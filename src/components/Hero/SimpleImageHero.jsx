@@ -23,6 +23,15 @@ const SimpleImageHero = () => {
           style={{ minHeight: '100%', objectPosition: 'center' }} // Centrado para mejor visibilidad
         />
 
+        {/* Label "De Aldo Magallanes" */}
+        <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
+          <div className="bg-black/60 backdrop-blur-sm px-6 py-2 md:px-8 md:py-3 rounded-lg border border-white/20">
+            <p className="text-black text-sm md:text-base font-light tracking-widest" style={{ fontFamily: 'Georgia, serif' }}>
+              De Aldo Magallanes
+            </p>
+          </div>
+        </div>
+
         {/* Espaciador invisible para forzar altura */}
         <div className="w-full h-[25vh] md:h-[70vh] pointer-events-none"></div>
       </div>

@@ -4,7 +4,7 @@ import { supabase } from '../supabaseClient';
 import './WhatsAppButton.css';
 
 const WhatsAppButton = () => {
-    const phoneNumber = '51960282376'; // Número de WhatsApp sin + ni espacios
+    const phoneNumber = import.meta.env.VITE_WHATSAPP_PHONE || '51960282376';
     const location = useLocation();
     const [whatsappUrl, setWhatsappUrl] = useState('');
 
@@ -20,16 +20,25 @@ const WhatsAppButton = () => {
                     // Obtener el título del producto desde Supabase
                     const { data, error } = await supabase
                         .from('productos')
-                        .select('titulo')
+                        .select('titulo, material')
                         .eq('id', productId)
                         .single();
 
                     if (!error && data) {
-                        const productTitle = data.titulo;
-                        const productUrl = window.location.href;
+                        const productInfo = {
+                            nombre: data.titulo,
+                            material: data.material || 'No especificado'
+                        };
+
+                        // Formato optimizado para n8n/automatización
                         const message = encodeURIComponent(
-                            `Hola estoy interesado, ${productTitle}, éste es el enlace ${productUrl}`
+                            `Hola, me interesa este producto:\n\n` +
+                            `📦 ${productInfo.nombre}\n` +
+                            `⭐ Material: ${productInfo.material}\n` +
+                            `🔗 Enlace: ${window.location.href}\n\n` +
+                            `¿Podrías darme más información?`
                         );
+
                         setWhatsappUrl(`https://wa.me/${phoneNumber}?text=${message}`);
                         return;
                     }
@@ -39,7 +48,16 @@ const WhatsAppButton = () => {
             }
 
             // Mensaje por defecto si no estamos en una página de producto
-            const defaultMessage = encodeURIComponent('¡Hola! Me interesan sus productos artesanales.');
+            let defaultMessageText = '¡Hola! Me interesan sus productos artesanales.';
+
+            // Personalizar mensaje según la ruta (opcional, para mejor contexto)
+            if (location.pathname.includes('/catalogo')) {
+                defaultMessageText = `Hola, estoy viendo el catálogo en: ${window.location.href}. Me gustaría más información.`;
+            } else if (location.pathname === '/contacto') {
+                defaultMessageText = 'Hola, quisiera ponerme en contacto con ustedes.';
+            }
+
+            const defaultMessage = encodeURIComponent(defaultMessageText);
             setWhatsappUrl(`https://wa.me/${phoneNumber}?text=${defaultMessage}`);
         };
 

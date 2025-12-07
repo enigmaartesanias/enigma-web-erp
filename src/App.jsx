@@ -35,6 +35,7 @@ import CarouselAdmin from './components/CarouselAdmin';
 import CategoriaAdmin from './components/CategoriaAdmin';
 import ProductoAdmin from './components/ProductoAdmin';
 import StockAdmin from './components/StockAdmin';
+import Pedidos from './components/Pedidos';
 
 function App() {
     return (
@@ -68,6 +69,7 @@ function App() {
                     <Route path="/admin/categoria" element={<PrivateRoute><CategoriaAdmin /></PrivateRoute>} />
                     <Route path="/admin/productos" element={<PrivateRoute><ProductoAdmin /></PrivateRoute>} />
                     <Route path="/admin/stock" element={<PrivateRoute><StockAdmin /></PrivateRoute>} />
+                    <Route path="/admin/pedidos" element={<PrivateRoute><Pedidos /></PrivateRoute>} />
                 </Routes>
                 <WhatsAppButton />
                 <Footer />

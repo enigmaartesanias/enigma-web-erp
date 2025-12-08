@@ -34,9 +34,7 @@ const Pedidos = () => {
         requiere_envio: false,
         modalidad_envio: 'Fijo',
         envio_cobrado_al_cliente: 0,
-        envio_referencia: 0,
         monto_a_cuenta: 0,
-        entregado: false,
         incluye_igv: false,
     });
 
@@ -490,17 +488,18 @@ const Pedidos = () => {
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700">TelÃ©fono (Opcional)</label>
+                                <label className="block text-sm font-medium text-gray-700">Teléfono *</label>
                                 <input
                                     type="text"
                                     name="telefono"
                                     value={formData.telefono}
                                     onChange={handleChange}
                                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2"
+                                    required
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700">DNI / RUC (Opcional)</label>
+                                <label className="block text-sm font-medium text-gray-700">DNI/RUC</label>
                                 <input
                                     type="text"
                                     name="dni_ruc"
@@ -515,16 +514,15 @@ const Pedidos = () => {
                     {/* SecciÃ³n Producto (Agregar MÃºltiples) */}
                     <div className="md:col-span-2">
                         <h3 className="text-xl font-semibold mb-4 text-blue-600">Detalles del Producto</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:items-end bg-gray-50 p-4 rounded border">
-                            <div>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:items-start border p-4 rounded">
+                            <div className="md:col-span-3">
                                 <label className="block text-sm font-medium text-gray-700">Producto</label>
-                                <input
-                                    type="text"
+                                <textarea
                                     name="nombre_producto"
                                     value={productoActual.nombre_producto}
                                     onChange={handleProductoChange}
+                                    rows="4"
                                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2"
-                                    placeholder="Ej. Anillo de Plata"
                                 />
                             </div>
                             <div>
@@ -600,7 +598,7 @@ const Pedidos = () => {
 
                     {/* SecciÃ³n EnvÃ­o */}
                     <div className="md:col-span-2">
-                        <h3 className="text-xl font-semibold mb-4 text-blue-600">EnvÃ­o y Entrega</h3>
+                        <h3 className="text-xl font-semibold mb-4 text-blue-600">Envío</h3>
                         <div className="space-y-4">
                             <div className="flex items-center">
                                 <input
@@ -639,7 +637,7 @@ const Pedidos = () => {
                                         </select>
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700">EnvÃ­o Cobrado al Cliente</label>
+                                        <label className="block text-sm font-medium text-gray-700">Costo de Envío</label>
                                         <input
                                             type="number"
                                             name="envio_cobrado_al_cliente"
@@ -649,31 +647,8 @@ const Pedidos = () => {
                                             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2"
                                         />
                                     </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700">Costo Real EnvÃ­o (Ref)</label>
-                                        <input
-                                            type="number"
-                                            name="envio_referencia"
-                                            value={formData.envio_referencia}
-                                            onChange={handleChange}
-                                            step="0.01"
-                                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2"
-                                        />
-                                    </div>
                                 </div>
                             )}
-
-                            <div className="flex items-center">
-                                <input
-                                    type="checkbox"
-                                    name="entregado"
-                                    checked={formData.entregado}
-                                    onChange={handleChange}
-                                    id="entregado"
-                                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                                />
-                                <label htmlFor="entregado" className="ml-2 block text-sm text-gray-900">Pedido Entregado</label>
-                            </div>
                         </div>
                     </div>
 
@@ -696,7 +671,7 @@ const Pedidos = () => {
                                 </select>
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700">Comprobante Pago (Ref)</label>
+                                <label className="block text-sm font-medium text-gray-700">Comprobante de Pago</label>
                                 <input
                                     type="text"
                                     name="comprobante_pago"
@@ -923,9 +898,6 @@ const Pedidos = () => {
                                                         <FaMoneyBillWave className="h-5 w-5" />
                                                     </button>
                                                 )}
-                                                <button onClick={() => handleWhatsApp(pedido)} className="text-green-500 hover:text-green-700" title="Enviar WhatsApp">
-                                                    <FaWhatsapp className="h-5 w-5" />
-                                                </button>
                                                 <button onClick={() => handlePrint(pedido)} className="text-gray-600 hover:text-gray-900" title="Imprimir / Ver Detalle">
                                                     <FaPrint className="h-5 w-5" />
                                                 </button>

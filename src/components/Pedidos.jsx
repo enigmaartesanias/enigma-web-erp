@@ -96,7 +96,8 @@ const Pedidos = () => {
 
         const precio_total = precio_total_sin_igv + monto_igv;
         const monto_a_cuenta = parseFloat(formData.monto_a_cuenta) || 0;
-        const monto_saldo = precio_total - monto_a_cuenta;
+        const monto_saldo_raw = precio_total - monto_a_cuenta;
+        const monto_saldo = monto_saldo_raw < 0.10 ? 0 : monto_saldo_raw;
         const cancelado = monto_saldo <= 0.001;
 
         setCalculos({
@@ -455,10 +456,10 @@ const Pedidos = () => {
     });
 
     return (
-        <div className="container mx-auto p-6 bg-gray-50 min-h-screen">
-            <div className="bg-white shadow-lg rounded-lg p-6 mb-8 max-w-4xl mx-auto">
+        <div className="container mx-auto p-4 md:p-6 bg-gray-50 min-h-screen">
+            <div className="bg-white shadow-lg rounded-lg p-4 md:p-6 mb-8 max-w-4xl mx-auto">
                 <div className="flex justify-between items-center border-b pb-4 mb-6">
-                    <h2 className="text-3xl font-bold text-gray-800">{editingId ? 'Editar Pedido' : 'Registrar Nuevo Pedido'}</h2>
+                    <h2 className="text-2xl md:text-3xl font-medium text-gray-800">{editingId ? 'Editar Pedido' : 'Registrar Nuevo Pedido'}</h2>
                     {editingId && (
                         <button onClick={resetForm} className="text-sm text-gray-500 hover:text-gray-700 underline">
                             Cancelar EdiciÃ³n

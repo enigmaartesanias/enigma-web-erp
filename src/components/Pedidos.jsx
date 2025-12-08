@@ -697,7 +697,7 @@ const Pedidos = () => {
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-gray-700">Monto a Cuenta (Adelanto) *</label>
+                                <label className="block text-sm font-medium text-gray-700">A Cuenta *</label>
                                 <div className="flex space-x-2">
                                     <input
                                         type="number"
@@ -711,10 +711,10 @@ const Pedidos = () => {
                                     <button
                                         type="button"
                                         onClick={handlePayFull}
-                                        className="mt-1 px-3 py-2 bg-green-500 text-white rounded hover:bg-green-600 text-sm"
-                                        title="Cobrar Todo"
+                                        className="mt-1 px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 text-lg font-bold"
+                                        title="Cobrar Total"
                                     >
-                                        Todo
+                                        +
                                     </button>
                                 </div>
                             </div>
@@ -723,30 +723,34 @@ const Pedidos = () => {
                         {/* Resumen de Totales */}
                         <div className="mt-6 bg-gray-100 p-4 rounded-lg">
                             <div className="flex justify-between py-1">
-                                <span>Subtotal + EnvÃ­o:</span>
+                                <span>Subtotal:</span>
                                 <span>S/ {calculos.precio_total_sin_igv.toFixed(2)}</span>
                             </div>
                             {formData.incluye_igv && (
                                 <div className="flex justify-between py-1 text-sm text-gray-600">
-                                    <span>IGV (18%):</span>
+                                    <span>+ IGV (18%):</span>
                                     <span>S/ {calculos.monto_igv.toFixed(2)}</span>
                                 </div>
                             )}
                             <div className="flex justify-between py-2 font-bold text-lg border-t border-gray-300 mt-2">
-                                <span>Total a Pagar:</span>
+                                <span>Total:</span>
                                 <span>S/ {calculos.precio_total.toFixed(2)}</span>
                             </div>
-                            <div className="flex justify-between py-1 text-blue-700">
-                                <span>A Cuenta:</span>
-                                <span>- S/ {parseFloat(formData.monto_a_cuenta).toFixed(2)}</span>
-                            </div>
-                            <div className={`flex justify-between py-2 font-bold text-xl border-t border-gray-300 mt-2 ${calculos.cancelado ? 'text-green-600' : 'text-red-600'}`}>
-                                <span>Saldo Pendiente:</span>
-                                <span>S/ {calculos.monto_saldo.toFixed(2)}</span>
-                            </div>
-                            <div className="text-right mt-2">
-                                <span className={`px-2 py-1 rounded text-xs font-bold ${calculos.cancelado ? 'bg-green-200 text-green-800' : 'bg-red-200 text-red-800'}`}>
-                                    {calculos.cancelado ? 'CANCELADO' : 'PENDIENTE DE PAGO'}
+                            {formData.requiere_envio && parseFloat(formData.envio_cobrado_al_cliente) > 0 && (
+                                <div className="flex justify-between py-1 text-xs text-gray-500">
+                                    <span>(incluye envío)</span>
+                                    <span>S/ {parseFloat(formData.envio_cobrado_al_cliente).toFixed(2)}</span>
+                                </div>
+                            )}
+                            {!calculos.cancelado && (
+                                <div className="flex justify-between py-2 font-bold text-red-600 border-t border-gray-300 mt-2">
+                                    <span>Saldo Pendiente:</span>
+                                    <span>S/ {calculos.monto_saldo.toFixed(2)}</span>
+                                </div>
+                            )}
+                            <div className="text-center mt-3">
+                                <span className={`px-4 py-2 rounded text-sm font-bold ${calculos.cancelado ? 'bg-green-200 text-green-800' : 'bg-red-200 text-red-800'}`}>
+                                    {calculos.cancelado ? '✓ CANCELADO' : 'PENDIENTE DE PAGO'}
                                 </span>
                             </div>
                         </div>

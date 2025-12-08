@@ -1,7 +1,7 @@
 ﻿
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../supabaseClient';
-import { FaEdit, FaTrash, FaCheckCircle, FaTimesCircle, FaPlus, FaWhatsapp, FaPrint, FaSearch } from 'react-icons/fa';
+import { FaEdit, FaTrash, FaCheckCircle, FaTimesCircle, FaPlus, FaWhatsapp, FaPrint, FaSearch, FaMoneyBillWave, FaShareAlt } from 'react-icons/fa';
 
 
 const Pedidos = () => {
@@ -13,6 +13,16 @@ const Pedidos = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [showPrintModal, setShowPrintModal] = useState(false);
     const [printPedido, setPrintPedido] = useState(null);
+    const [fechaPago, setFechaPago] = useState(new Date().toISOString().split('T')[0]);
+
+    // Quick Pay Modal State
+    const [showPayModal, setShowPayModal] = useState(false);
+    const [payPedido, setPayPedido] = useState(null);
+    const [payData, setPayData] = useState({
+        monto: '',
+        fecha: new Date().toISOString().split('T')[0],
+        metodo: 'Efectivo'
+    });
 
     const [formData, setFormData] = useState({
         nombre_cliente: '',
@@ -59,7 +69,8 @@ const Pedidos = () => {
                 .from('pedidos')
                 .select(`
                     *,
-                    detalles_pedido (*)
+                    detalles_pedido (*),
+                    pagos (*)
                 `)
                 .order('fecha_pedido', { ascending: false });
 
@@ -215,7 +226,9 @@ const Pedidos = () => {
             precio_unitario: 0
         });
         setListaProductos([]);
+        setListaProductos([]);
         setEditingId(null);
+        setFechaPago(new Date().toISOString().split('T')[0]);
     };
 
     const handleSubmit = async (e) => {
@@ -310,6 +323,20 @@ const Pedidos = () => {
 
                 if (errorDetalle) throw errorDetalle;
 
+                // Registrar pago inicial si hay monto a cuenta
+                if (pedidoData.monto_a_cuenta > 0) {
+                    const { error: errorPago } = await supabase
+                        .from('pagos')
+                        .insert([{
+                            id_pedido: pedidoId,
+                            monto: pedidoData.monto_a_cuenta,
+                            fecha_pago: new Date().toISOString().split('T')[0],
+                            metodo_pago: formData.forma_pago,
+                            referencia: formData.comprobante_pago
+                        }]);
+                    if (errorPago) console.error('Error creando pago inicial', errorPago);
+                }
+
                 setMessage({ type: 'success', text: 'Pedido registrado correctamente.' });
             }
 
@@ -346,6 +373,67 @@ const Pedidos = () => {
     const closePrintModal = () => {
         setShowPrintModal(false);
         setPrintPedido(null);
+    };
+
+    // Quick Pay Handlers
+    const handleOpenPayModal = (pedido) => {
+        setPayPedido(pedido);
+        setPayData({
+            monto: pedido.monto_saldo,
+            fecha: new Date().toISOString().split('T')[0],
+            metodo: 'Efectivo'
+        });
+        setShowPayModal(true);
+    };
+
+    const handleClosePayModal = () => {
+        setShowPayModal(false);
+        setPayPedido(null);
+    };
+
+    const handleQuickPay = async () => {
+        if (!payPedido || !payData.monto) return;
+
+        try {
+            const montoPago = parseFloat(payData.monto);
+            const nuevoAcuenta = (payPedido.monto_a_cuenta || 0) + montoPago;
+            // Recalculate saldo based on total price
+            const nuevoSaldo = payPedido.precio_total - nuevoAcuenta;
+            const cancelado = nuevoSaldo <= 0.05; // Tolerance
+
+            // Update in DB (Update Pedido + Insert Pago)
+            const { error: errorUpdate } = await supabase
+                .from('pedidos')
+                .update({
+                    monto_a_cuenta: nuevoAcuenta,
+                    monto_saldo: nuevoSaldo < 0 ? 0 : nuevoSaldo,
+                    cancelado: cancelado
+                })
+                .eq('id_pedido', payPedido.id_pedido);
+
+            if (errorUpdate) throw errorUpdate;
+
+            // Insert new payment record
+            const { error: errorPago } = await supabase
+                .from('pagos')
+                .insert([{
+                    id_pedido: payPedido.id_pedido,
+                    monto: montoPago,
+                    fecha_pago: payData.fecha,
+                    metodo_pago: payData.metodo,
+                    referencia: ''
+                }]);
+
+            if (errorPago) console.error('Error insertando pago', errorPago);
+
+            setMessage({ type: 'success', text: 'Pago registrado correctamente.' });
+            handleClosePayModal();
+            fetchPedidos(); // Refresh Grid
+
+        } catch (error) {
+            console.error('Error al registrar pago:', error);
+            alert('Error al registrar pago: ' + error.message);
+        }
     };
 
     // Filter Logic
@@ -807,11 +895,21 @@ const Pedidos = () => {
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                             S/ {pedido.precio_total?.toFixed(2)}
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-green-600 font-medium">
-                                            S/ {pedido.monto_a_cuenta?.toFixed(2)}
+                                        <td className={`px-6 py-4 whitespace-nowrap text-sm font-bold ${pedido.monto_a_cuenta > 0 ? 'text-green-600' : 'text-gray-400'}`}>
+                                            <div>S/ {pedido.monto_a_cuenta.toFixed(2)}</div>
+                                            {pedido.pagos && pedido.pagos.length > 0 && pedido.monto_a_cuenta > 0 && (
+                                                <div className="text-xs text-gray-400 font-normal">
+                                                    ({new Date(pedido.pagos.sort((a, b) => new Date(b.fecha_pago) - new Date(a.fecha_pago))[0].fecha_pago).toLocaleDateString('es-PE', { day: '2-digit', month: 'numeric', year: '2-digit' })})
+                                                </div>
+                                            )}
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-red-600 font-medium">
-                                            S/ {pedido.monto_saldo?.toFixed(2)}
+                                        <td className={`px-6 py-4 whitespace-nowrap text-sm font-bold ${pedido.cancelado ? 'text-green-600' : 'text-red-600'}`}>
+                                            <div>S/ {pedido.monto_saldo.toFixed(2)}</div>
+                                            {pedido.cancelado && pedido.pagos && pedido.pagos.length > 0 && (
+                                                <div className="text-xs text-green-800 font-normal">
+                                                    {new Date(pedido.pagos.sort((a, b) => new Date(b.fecha_pago) - new Date(a.fecha_pago))[0].fecha_pago).toLocaleDateString('es-PE', { day: '2-digit', month: 'numeric', year: '2-digit' })}
+                                                </div>
+                                            )}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-center">
                                             <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${pedido.cancelado ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
@@ -820,6 +918,11 @@ const Pedidos = () => {
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
                                             <div className="flex justify-center space-x-3">
+                                                {!pedido.cancelado && (
+                                                    <button onClick={() => handleOpenPayModal(pedido)} className="text-green-600 hover:text-green-900" title="Registrar Pago / Saldar">
+                                                        <FaMoneyBillWave className="h-5 w-5" />
+                                                    </button>
+                                                )}
                                                 <button onClick={() => handleWhatsApp(pedido)} className="text-green-500 hover:text-green-700" title="Enviar WhatsApp">
                                                     <FaWhatsapp className="h-5 w-5" />
                                                 </button>
@@ -840,107 +943,200 @@ const Pedidos = () => {
                         </tbody>
                     </table>
                 </div>
-            </div>
+            </div >
 
             {/* Modal de ImpresiÃ³n / Vista Previa */}
-            {showPrintModal && printPedido && (
-                <div className="fixed inset-0 bg-gray-600 bg-opacity-75 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
-                    <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl flex flex-col max-h-[90vh]">
-                        {/* Header Modal */}
-                        <div className="px-6 py-4 border-b flex justify-between items-center bg-gray-50 rounded-t-lg">
-                            <h3 className="text-lg font-bold text-gray-800">Detalle del Pedido #{printPedido.id_pedido}</h3>
-                            <button onClick={closePrintModal} className="text-gray-600 hover:text-gray-800">
-                                <FaTimesCircle size={24} />
-                            </button>
-                        </div>
-
-                        {/* Content (Printable Area) */}
-                        <div className="p-8 overflow-y-auto bg-white" id="printable-area">
-                            <div className="text-center mb-6 border-b pb-4">
-                                <h1 className="text-2xl font-bold uppercase tracking-widest text-gray-900">Nota de Pedido</h1>
-                                <p className="text-sm text-gray-500 mt-1">{new Date(printPedido.fecha_pedido).toLocaleDateString()}</p>
+            {
+                showPrintModal && printPedido && (
+                    <div className="fixed inset-0 bg-gray-600 bg-opacity-75 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
+                        <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl flex flex-col max-h-[90vh]">
+                            {/* Header Modal */}
+                            <div className="px-6 py-4 border-b flex justify-between items-center bg-gray-50 rounded-t-lg">
+                                <h3 className="text-lg font-bold text-gray-800">Detalle del Pedido #{printPedido.id_pedido}</h3>
+                                <button onClick={closePrintModal} className="text-gray-600 hover:text-gray-800">
+                                    <FaTimesCircle size={24} />
+                                </button>
                             </div>
 
-                            <div className="mb-6 grid grid-cols-2 gap-4 text-sm">
-                                <div>
-                                    <h4 className="font-bold text-gray-700">Cliente</h4>
-                                    <p>{printPedido.nombre_cliente}</p>
-                                    <p>{printPedido.telefono}</p>
-                                    <p>{printPedido.dni_ruc}</p>
+                            {/* Content (Printable Area) */}
+                            <div className="p-8 overflow-y-auto bg-white" id="printable-area">
+                                <div className="text-center mb-6 border-b pb-4">
+                                    <h1 className="text-2xl font-bold uppercase tracking-widest text-gray-900">Nota de Pedido</h1>
+                                    <p className="text-sm text-gray-500 mt-1">{new Date(printPedido.fecha_pedido).toLocaleDateString()}</p>
                                 </div>
-                                <div className="text-right">
-                                    <h4 className="font-bold text-gray-700">EnvÃ­o / Entrega</h4>
-                                    <p>{printPedido.direccion_entrega || 'Recojo en tienda'}</p>
-                                    <p>{printPedido.modalidad_envio}</p>
-                                </div>
-                            </div>
 
-                            <table className="w-full mb-6 text-sm">
-                                <thead className="bg-gray-100">
-                                    <tr>
-                                        <th className="py-2 px-3 text-left">Producto</th>
-                                        <th className="py-2 px-3 text-center">Cant.</th>
-                                        <th className="py-2 px-3 text-right">P.Unit</th>
-                                        <th className="py-2 px-3 text-right">Total</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y">
-                                    {printPedido.detalles_pedido.map((d, i) => (
-                                        <tr key={i}>
-                                            <td className="py-2 px-3">{d.nombre_producto}</td>
-                                            <td className="py-2 px-3 text-center">{d.cantidad}</td>
-                                            <td className="py-2 px-3 text-right">{d.precio_unitario.toFixed(2)}</td>
-                                            <td className="py-2 px-3 text-right">{(d.cantidad * d.precio_unitario).toFixed(2)}</td>
+                                <div className="mb-6 grid grid-cols-2 gap-4 text-sm">
+                                    <div>
+                                        <h4 className="font-bold text-gray-700">Cliente</h4>
+                                        <p>{printPedido.nombre_cliente}</p>
+                                        <p>{printPedido.telefono}</p>
+                                        <p>{printPedido.dni_ruc}</p>
+                                    </div>
+                                    <div className="text-right">
+                                        <h4 className="font-bold text-gray-700">EnvÃ­o / Entrega</h4>
+                                        <p>{printPedido.direccion_entrega || 'Recojo en tienda'}</p>
+                                        <p>{printPedido.modalidad_envio}</p>
+                                    </div>
+                                </div>
+
+                                <table className="w-full mb-6 text-sm">
+                                    <thead className="bg-gray-100">
+                                        <tr>
+                                            <th className="py-2 px-3 text-left">Producto</th>
+                                            <th className="py-2 px-3 text-center">Cant.</th>
+                                            <th className="py-2 px-3 text-right">P.Unit</th>
+                                            <th className="py-2 px-3 text-right">Total</th>
                                         </tr>
-                                    ))}
-                                </tbody>
-                            </table>
+                                    </thead>
+                                    <tbody className="divide-y">
+                                        {printPedido.detalles_pedido.map((d, i) => (
+                                            <tr key={i}>
+                                                <td className="py-2 px-3">{d.nombre_producto}</td>
+                                                <td className="py-2 px-3 text-center">{d.cantidad}</td>
+                                                <td className="py-2 px-3 text-right">{d.precio_unitario.toFixed(2)}</td>
+                                                <td className="py-2 px-3 text-right">{(d.cantidad * d.precio_unitario).toFixed(2)}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
 
-                            <div className="flex justify-end">
-                                <div className="w-1/2 space-y-2 text-sm">
-                                    <div className="flex justify-between">
-                                        <span>Subtotal:</span>
-                                        <span>S/ {printPedido.precio_total_sin_igv.toFixed(2)}</span>
-                                    </div>
-                                    <div className="flex justify-between font-bold text-lg border-t pt-2">
-                                        <span>Total:</span>
-                                        <span>S/ {printPedido.precio_total.toFixed(2)}</span>
-                                    </div>
-                                    <div className="flex justify-between text-blue-800">
-                                        <span>A Cuenta:</span>
-                                        <span>S/ {printPedido.monto_a_cuenta.toFixed(2)}</span>
-                                    </div>
-                                    <div className="flex justify-between font-bold text-red-600 border-t pt-2">
-                                        <span>Saldo:</span>
-                                        <span>S/ {printPedido.monto_saldo.toFixed(2)}</span>
+                                <div className="flex justify-end">
+                                    <div className="w-1/2 space-y-2 text-sm">
+                                        <div className="flex justify-between">
+                                            <span>Subtotal:</span>
+                                            <span>S/ {printPedido.precio_total_sin_igv.toFixed(2)}</span>
+                                        </div>
+                                        <div className="flex justify-between font-bold text-lg border-t pt-2">
+                                            <span>Total:</span>
+                                            <span>S/ {printPedido.precio_total.toFixed(2)}</span>
+                                        </div>
+                                        <div className="flex justify-between text-blue-800 border-t pt-2 mt-2">
+                                            <span>A Cuenta:</span>
+                                            <span>S/ {printPedido.monto_a_cuenta.toFixed(2)}</span>
+                                        </div>
+
+                                        {/* Detalle de Pagos en Modal */}
+                                        {printPedido.pagos && printPedido.pagos.length > 0 && (
+                                            <div className="text-xs text-gray-500 space-y-1 mb-2">
+                                                {printPedido.pagos.sort((a, b) => new Date(a.fecha_pago) - new Date(b.fecha_pago)).map((pago, idx) => (
+                                                    <div key={idx} className="flex justify-between">
+                                                        <span>- {new Date(pago.fecha_pago).toLocaleDateString()} {pago.metodo_pago ? `(${pago.metodo_pago})` : ''}</span>
+                                                        <span>S/ {pago.monto.toFixed(2)}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                        <div className="flex justify-between font-bold text-red-600 border-t pt-2">
+                                            <span>Saldo:</span>
+                                            <span>S/ {printPedido.monto_saldo.toFixed(2)}</span>
+                                        </div>
+                                        {printPedido.cancelado && (
+                                            <div className="flex justify-between font-bold text-green-600 border-t pt-2">
+                                                <span>Total Cancelado:</span>
+                                                <span>S/ 0.00</span>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             </div>
-                        </div>
 
-                        {/* Footer Modal */}
-                        <div className="px-6 py-4 border-t bg-gray-50 rounded-b-lg flex justify-end space-x-3">
-                            <button
-                                onClick={() => {
-                                    const printContent = document.getElementById('printable-area').innerHTML;
-                                    const originalContent = document.body.innerHTML;
-                                    document.body.innerHTML = printContent;
-                                    window.print();
-                                    document.body.innerHTML = originalContent;
-                                    window.location.reload(); // Simple way to restore state after print hijack
-                                }}
-                                className="px-4 py-2 bg-gray-800 text-white rounded hover:bg-gray-900 flex items-center"
-                            >
-                                <FaPrint className="mr-2" /> Imprimir
-                            </button>
-                            <button onClick={closePrintModal} className="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400">
-                                Cerrar
-                            </button>
+                            {/* Footer Modal */}
+                            <div className="px-6 py-4 border-t bg-gray-50 rounded-b-lg flex justify-end space-x-3">
+                                <button
+                                    onClick={async () => {
+                                        const text = `*PEDIDO #${printPedido.id_pedido}*\nCliente: ${printPedido.nombre_cliente}\nTotal: S/ ${printPedido.precio_total.toFixed(2)}\nSaldo: S/ ${printPedido.monto_saldo.toFixed(2)}`;
+                                        if (navigator.share) {
+                                            try {
+                                                await navigator.share({
+                                                    title: `Pedido #${printPedido.id_pedido}`,
+                                                    text: text,
+                                                    url: window.location.href
+                                                });
+                                            } catch (err) {
+                                                console.log('Error sharing', err);
+                                            }
+                                        } else {
+                                            alert("La función de compartir no está soportada en este dispositivo.");
+                                        }
+                                    }}
+                                    className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 flex items-center"
+                                >
+                                    <FaShareAlt className="mr-2" /> Compartir
+                                </button>
+                                <button onClick={closePrintModal} className="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400">
+                                    Cerrar
+                                </button>
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
-        </div>
+                )
+            }
+
+            {/* Modal de Pago Rápido */}
+            {
+                showPayModal && payPedido && (
+                    <div className="fixed inset-0 bg-gray-600 bg-opacity-75 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
+                        <div className="bg-white rounded-lg shadow-xl w-full max-w-md flex flex-col">
+                            <div className="px-6 py-4 border-b flex justify-between items-center bg-gray-50 rounded-t-lg">
+                                <h3 className="text-lg font-bold text-gray-800">Registrar Pago</h3>
+                                <button onClick={handleClosePayModal} className="text-gray-600 hover:text-gray-800">
+                                    <FaTimesCircle size={24} />
+                                </button>
+                            </div>
+                            <div className="p-6">
+                                <p className="mb-4 text-sm text-gray-600">
+                                    Cliente: <span className="font-bold">{payPedido.nombre_cliente}</span><br />
+                                    Saldo Pendiente: <span className="font-bold text-red-600">S/ {payPedido.monto_saldo.toFixed(2)}</span>
+                                </p>
+
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700">Monto a Pagar</label>
+                                        <input
+                                            type="number"
+                                            step="0.01"
+                                            value={payData.monto}
+                                            onChange={(e) => setPayData({ ...payData, monto: e.target.value })}
+                                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700">Fecha</label>
+                                        <input
+                                            type="date"
+                                            value={payData.fecha}
+                                            onChange={(e) => setPayData({ ...payData, fecha: e.target.value })}
+                                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700">Método de Pago</label>
+                                        <select
+                                            value={payData.metodo}
+                                            onChange={(e) => setPayData({ ...payData, metodo: e.target.value })}
+                                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2"
+                                        >
+                                            <option value="Efectivo">Efectivo</option>
+                                            <option value="Yape">Yape</option>
+                                            <option value="Plin">Plin</option>
+                                            <option value="Transferencia">Transferencia</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="px-6 py-4 border-t bg-gray-50 rounded-b-lg flex justify-end space-x-3">
+                                <button onClick={handleClosePayModal} className="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400">
+                                    Cancelar
+                                </button>
+                                <button onClick={handleQuickPay} className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
+                                    Confirmar Pago
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )
+            }
+        </div >
     );
 };
 

@@ -257,7 +257,7 @@ const Pedidos = () => {
                 precio_total_sin_igv: calculos.precio_total_sin_igv,
                 precio_total: calculos.precio_total,
                 monto_a_cuenta: parseFloat(formData.monto_a_cuenta),
-                entregado: formData.entregado,
+                entregado: false,
                 incluye_igv: formData.incluye_igv,
                 monto_igv: calculos.monto_igv,
                 monto_saldo: calculos.monto_saldo,
@@ -457,6 +457,7 @@ const Pedidos = () => {
 
     return (
         <div className="container mx-auto p-4 md:p-6 bg-gray-50 min-h-screen">
+            <h1 className="text-3xl font-light text-gray-800 mb-8 text-center">Registro de Pedidos</h1>
             <div className="bg-white shadow-lg rounded-lg p-4 md:p-6 mb-8 max-w-4xl mx-auto">
                 <div className="flex justify-between items-center border-b pb-4 mb-6">
                     <h2 className="text-2xl md:text-3xl font-medium text-gray-800">{editingId ? 'Editar Pedido' : 'Registrar Nuevo Pedido'}</h2>

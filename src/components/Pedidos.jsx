@@ -1,7 +1,8 @@
 ﻿
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../supabaseClient';
-import { FaEdit, FaTrash, FaCheckCircle, FaTimesCircle, FaPlus, FaWhatsapp, FaPrint, FaSearch, FaMoneyBillWave, FaShareAlt } from 'react-icons/fa';
+import { FaEdit, FaTrash, FaCheckCircle, FaTimesCircle, FaPlus, FaWhatsapp, FaPrint, FaSearch, FaMoneyBillWave, FaShareAlt, FaImage } from 'react-icons/fa';
+import html2canvas from 'html2canvas';
 
 
 const Pedidos = () => {
@@ -933,6 +934,7 @@ const Pedidos = () => {
                             {/* Content (Printable Area) */}
                             <div className="p-8 overflow-y-auto bg-white" id="printable-area">
                                 <div className="text-center mb-6 border-b pb-4">
+                                    <p className="text-sm text-gray-500 mb-1">Enigma artesanías y accesorios</p>
                                     <h1 className="text-2xl font-bold uppercase tracking-widest text-gray-900">Nota de Pedido</h1>
                                     <p className="text-sm text-gray-500 mt-1">{new Date(printPedido.fecha_pedido).toLocaleDateString()}</p>
                                 </div>
@@ -1016,24 +1018,38 @@ const Pedidos = () => {
                             <div className="px-6 py-4 border-t bg-gray-50 rounded-b-lg flex justify-end space-x-3">
                                 <button
                                     onClick={async () => {
-                                        const text = `*PEDIDO #${printPedido.id_pedido}*\nCliente: ${printPedido.nombre_cliente}\nTotal: S/ ${printPedido.precio_total.toFixed(2)}\nSaldo: S/ ${printPedido.monto_saldo.toFixed(2)}`;
-                                        if (navigator.share) {
-                                            try {
-                                                await navigator.share({
-                                                    title: `Pedido #${printPedido.id_pedido}`,
-                                                    text: text,
-                                                    url: window.location.href
-                                                });
-                                            } catch (err) {
-                                                console.log('Error sharing', err);
+                                        const element = document.getElementById('printable-area');
+                                        const canvas = await html2canvas(element, { scale: 2, backgroundColor: '#ffffff' });
+
+                                        canvas.toBlob(async (blob) => {
+                                            const file = new File([blob], `pedido_${printPedido.id_pedido}.jpg`, { type: 'image/jpeg' });
+
+                                            if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                                                try {
+                                                    await navigator.share({
+                                                        files: [file],
+                                                        title: `Pedido #${printPedido.id_pedido}`,
+                                                        text: `Nota de Pedido para ${printPedido.nombre_cliente}`
+                                                    });
+                                                } catch (_) {
+                                                    // Fallback: descargar directamente
+                                                    const link = document.createElement('a');
+                                                    link.download = `pedido_${printPedido.id_pedido}.jpg`;
+                                                    link.href = canvas.toDataURL('image/jpeg', 0.9);
+                                                    link.click();
+                                                }
+                                            } else {
+                                                // Dispositivo no soporta share con archivos, descargar
+                                                const link = document.createElement('a');
+                                                link.download = `pedido_${printPedido.id_pedido}.jpg`;
+                                                link.href = canvas.toDataURL('image/jpeg', 0.9);
+                                                link.click();
                                             }
-                                        } else {
-                                            alert("La función de compartir no está soportada en este dispositivo.");
-                                        }
+                                        }, 'image/jpeg', 0.9);
                                     }}
-                                    className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 flex items-center"
+                                    className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 flex items-center"
                                 >
-                                    <FaShareAlt className="mr-2" /> Compartir
+                                    <FaImage className="mr-2" /> Enviar Imagen
                                 </button>
                                 <button onClick={closePrintModal} className="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400">
                                     Cerrar

@@ -99,6 +99,20 @@ const AdminPanel = () => {
             <h2 className="text-xl font-semibold text-gray-800 mb-2">Pedidos</h2>
             <p className="text-gray-600">Registra y controla los pedidos manuales.</p>
           </Link>
+
+          {/* Reportes */}
+          <Link
+            to="/admin/reportes"
+            className="block p-8 bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 text-center"
+          >
+            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+            </div>
+            <h2 className="text-xl font-semibold text-gray-800 mb-2">Reportes</h2>
+            <p className="text-gray-600">Visualiza estadísticas y exporta reportes en PDF.</p>
+          </Link>
         </div>
 
         {/* Botón de cierre de sesión */}

@@ -981,7 +981,7 @@ const Pedidos = () => {
             {/* Modal de ImpresiÃ³n / Vista Previa */}
             {
                 showPrintModal && printPedido && (
-                    <div className="fixed inset-0 bg-gray-600 bg-opacity-75 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
+                    <div className="fixed inset-0 bg-gray-600 bg-opacity-75 overflow-y-auto h-full w-full z-50 flex items-start md:items-center justify-center p-4 pt-24 md:pt-4">
                         <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl flex flex-col max-h-[90vh]">
                             {/* Header Modal */}
                             <div className="px-6 py-4 border-b flex justify-between items-center bg-gray-50 rounded-t-lg">
@@ -1119,45 +1119,64 @@ const Pedidos = () => {
                             </div>
 
                             {/* Footer Modal */}
-                            <div className="px-6 py-4 border-t bg-gray-50 rounded-b-lg flex justify-end space-x-3">
+                            {/* Footer Modal */}
+                            <div className="px-6 py-4 border-t bg-gray-50 rounded-b-lg flex justify-between items-center">
+                                {/* Botón WhatsApp (Izquierda) */}
                                 <button
-                                    onClick={async () => {
-                                        const element = document.getElementById('printable-area');
-                                        const canvas = await html2canvas(element, { scale: 2, backgroundColor: '#ffffff' });
+                                    onClick={() => {
+                                        const phone = printPedido.telefono ? printPedido.telefono.replace(/\D/g, '') : '';
+                                        if (phone) {
+                                            window.open(`https://wa.me/51${phone}`, '_blank');
+                                        }
+                                    }}
+                                    className="p-2 bg-green-500 text-white rounded hover:bg-green-600 flex items-center justify-center transition-colors"
+                                    title="Abrir WhatsApp"
+                                >
+                                    <FaWhatsapp className="h-5 w-5" />
+                                </button>
 
-                                        canvas.toBlob(async (blob) => {
-                                            const file = new File([blob], `pedido_${printPedido.id_pedido}.jpg`, { type: 'image/jpeg' });
+                                {/* Botones de Acción (Derecha) */}
+                                <div className="flex space-x-3">
+                                    <button
+                                        onClick={async () => {
+                                            const element = document.getElementById('printable-area');
+                                            const canvas = await html2canvas(element, { scale: 2, backgroundColor: '#ffffff' });
 
-                                            if (navigator.canShare && navigator.canShare({ files: [file] })) {
-                                                try {
-                                                    await navigator.share({
-                                                        files: [file],
-                                                        title: `Pedido #${printPedido.id_pedido}`,
-                                                        text: `Nota de Pedido para ${printPedido.nombre_cliente}`
-                                                    });
-                                                } catch (_) {
-                                                    // Fallback: descargar directamente
+                                            canvas.toBlob(async (blob) => {
+                                                const file = new File([blob], `pedido_${printPedido.id_pedido}.jpg`, { type: 'image/jpeg' });
+
+                                                if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                                                    try {
+                                                        await navigator.share({
+                                                            files: [file],
+                                                            title: `Pedido #${printPedido.id_pedido}`,
+                                                            text: `Nota de Pedido para ${printPedido.nombre_cliente}`
+                                                        });
+                                                    } catch (_) {
+                                                        // Fallback: descargar directamente
+                                                        const link = document.createElement('a');
+                                                        link.download = `pedido_${printPedido.id_pedido}.jpg`;
+                                                        link.href = canvas.toDataURL('image/jpeg', 0.9);
+                                                        link.click();
+                                                    }
+                                                } else {
+                                                    // Dispositivo no soporta share con archivos, descargar
                                                     const link = document.createElement('a');
                                                     link.download = `pedido_${printPedido.id_pedido}.jpg`;
                                                     link.href = canvas.toDataURL('image/jpeg', 0.9);
                                                     link.click();
                                                 }
-                                            } else {
-                                                // Dispositivo no soporta share con archivos, descargar
-                                                const link = document.createElement('a');
-                                                link.download = `pedido_${printPedido.id_pedido}.jpg`;
-                                                link.href = canvas.toDataURL('image/jpeg', 0.9);
-                                                link.click();
-                                            }
-                                        }, 'image/jpeg', 0.9);
-                                    }}
-                                    className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 flex items-center text-sm"
-                                >
-                                    <FaImage className="mr-2" /> Enviar Pedido
-                                </button>
-                                <button onClick={closePrintModal} className="px-3 py-1 bg-gray-300 text-gray-700 rounded hover:bg-gray-400 text-sm">
-                                    Cerrar
-                                </button>
+                                            }, 'image/jpeg', 0.9);
+                                        }}
+                                        className="p-2 bg-blue-600 text-white rounded hover:bg-blue-700 flex items-center justify-center transition-colors"
+                                        title="Compartir Imagen del Pedido"
+                                    >
+                                        <FaImage className="h-5 w-5" />
+                                    </button>
+                                    <button onClick={closePrintModal} className="px-3 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400 text-sm">
+                                        Cerrar
+                                    </button>
+                                </div>
                             </div>
                         </div >
                     </div >

@@ -36,6 +36,7 @@ import CategoriaAdmin from './components/CategoriaAdmin';
 import ProductoAdmin from './components/ProductoAdmin';
 import StockAdmin from './components/StockAdmin';
 import Pedidos from './components/Pedidos';
+import ReportePedidos from './components/ReportePedidos';
 
 function App() {
     return (
@@ -70,6 +71,7 @@ function App() {
                     <Route path="/admin/productos" element={<PrivateRoute><ProductoAdmin /></PrivateRoute>} />
                     <Route path="/admin/stock" element={<PrivateRoute><StockAdmin /></PrivateRoute>} />
                     <Route path="/admin/pedidos" element={<PrivateRoute><Pedidos /></PrivateRoute>} />
+                    <Route path="/admin/reportes" element={<PrivateRoute><ReportePedidos /></PrivateRoute>} />
                 </Routes>
                 <WhatsAppButton />
                 <Footer />

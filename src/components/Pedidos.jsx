@@ -1,7 +1,7 @@
 ﻿
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../supabaseClient';
-import { FaEdit, FaTrash, FaCheckCircle, FaTimesCircle, FaPlus, FaWhatsapp, FaPrint, FaSearch, FaMoneyBillWave, FaShareAlt, FaImage } from 'react-icons/fa';
+import { FaEdit, FaTrash, FaCheckCircle, FaTimesCircle, FaPlus, FaWhatsapp, FaPrint, FaSearch, FaMoneyBillWave, FaShareAlt, FaImage, FaPhone } from 'react-icons/fa';
 import html2canvas from 'html2canvas';
 
 
@@ -42,14 +42,14 @@ const Pedidos = () => {
     // Estado para el producto actual siendo agregado
     const [productoActual, setProductoActual] = useState({
         nombre_producto: '',
-        cantidad: 1,
-        precio_unitario: 0
+        cantidad: '',
+        precio_unitario: ''
     });
 
     // Lista de productos del pedido actual
     const [listaProductos, setListaProductos] = useState([]);
 
-    // CÃ¡lculos
+    // Cálculos
     const [calculos, setCalculos] = useState({
         precio_total_sin_igv: 0,
         monto_igv: 0,
@@ -57,6 +57,8 @@ const Pedidos = () => {
         monto_saldo: 0,
         cancelado: false
     });
+
+    const [tipoPagoInicial, setTipoPagoInicial] = useState('adelanto'); // 'adelanto' | 'total'
 
     useEffect(() => {
         fetchPedidos();
@@ -86,15 +88,19 @@ const Pedidos = () => {
             return acc + (item.cantidad * item.precio_unitario);
         }, 0);
 
-        const envio = parseFloat(formData.envio_cobrado_al_cliente) || 0;
-        const precio_total_sin_igv = subtotalProductos + envio;
+        const envio = formData.requiere_envio ? (parseFloat(formData.envio_cobrado_al_cliente) || 0) : 0;
+
+        // Nueva Lógica: precio_total_sin_igv es SOLO productos (Valor Venta)
+        const precio_total_sin_igv = subtotalProductos;
 
         let monto_igv = 0;
         if (formData.incluye_igv) {
             monto_igv = precio_total_sin_igv * 0.18;
         }
 
-        const precio_total = precio_total_sin_igv + monto_igv;
+        // Total = (Productos + IGV) + Envío
+        const precio_total = precio_total_sin_igv + monto_igv + envio;
+
         const monto_a_cuenta = parseFloat(formData.monto_a_cuenta) || 0;
         const monto_saldo_raw = precio_total - monto_a_cuenta;
         const monto_saldo = monto_saldo_raw < 0.10 ? 0 : monto_saldo_raw;
@@ -109,6 +115,18 @@ const Pedidos = () => {
         });
 
     }, [formData, listaProductos]);
+
+    // Efecto para sincronizar monto a cuenta con total si se selecciona "Pago Total"
+    useEffect(() => {
+        if (tipoPagoInicial === 'total') {
+            setFormData(prev => {
+                if (prev.monto_a_cuenta !== calculos.precio_total) {
+                    return { ...prev, monto_a_cuenta: calculos.precio_total };
+                }
+                return prev;
+            });
+        }
+    }, [calculos.precio_total, tipoPagoInicial]);
 
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target;
@@ -127,8 +145,9 @@ const Pedidos = () => {
     };
 
     const agregarProducto = () => {
-        if (!productoActual.nombre_producto || productoActual.cantidad <= 0 || productoActual.precio_unitario < 0) {
-            alert("Por favor complete los datos del producto correctamente.");
+        // Validación más estricta: nombre, cantidad > 0, precio >= 0 (y que no esté vacío)
+        if (!productoActual.nombre_producto.trim() || !productoActual.cantidad || productoActual.cantidad <= 0 || productoActual.precio_unitario === '' || productoActual.precio_unitario < 0) {
+            alert("Por favor complete todos los campos obligatorios del producto (Nombre, Cantidad, Precio).");
             return;
         }
 
@@ -140,8 +159,8 @@ const Pedidos = () => {
 
         setProductoActual({
             nombre_producto: '',
-            cantidad: 1,
-            precio_unitario: 0
+            cantidad: '',
+            precio_unitario: ''
         });
     };
 
@@ -149,12 +168,7 @@ const Pedidos = () => {
         setListaProductos(prev => prev.filter((_, i) => i !== index));
     };
 
-    const handlePayFull = () => {
-        setFormData(prev => ({
-            ...prev,
-            monto_a_cuenta: calculos.precio_total
-        }));
-    };
+
 
     const handleEdit = (pedido) => {
         setEditingId(pedido.id_pedido);
@@ -190,10 +204,31 @@ const Pedidos = () => {
     };
 
     const handleDelete = async (id) => {
-        if (!window.confirm('Â¿EstÃ¡s seguro de eliminar este pedido?')) return;
+        if (!window.confirm('¿Estás seguro de eliminar este pedido?')) return;
 
         try {
-            const { error } = await supabase.from('pedidos').delete().eq('id_pedido', id);
+            // 1. Eliminar Detalles de Pedido (Foreign Key)
+            const { error: errorDetalles } = await supabase
+                .from('detalles_pedido')
+                .delete()
+                .eq('id_pedido', id);
+
+            if (errorDetalles) throw errorDetalles;
+
+            // 2. Eliminar Pagos (Foreign Key)
+            const { error: errorPagos } = await supabase
+                .from('pagos')
+                .delete()
+                .eq('id_pedido', id);
+
+            if (errorPagos) throw errorPagos;
+
+            // 3. Eliminar Pedido Principal
+            const { error } = await supabase
+                .from('pedidos')
+                .delete()
+                .eq('id_pedido', id);
+
             if (error) throw error;
 
             setMessage({ type: 'success', text: 'Pedido eliminado correctamente.' });
@@ -222,12 +257,13 @@ const Pedidos = () => {
         });
         setProductoActual({
             nombre_producto: '',
-            cantidad: 1,
-            precio_unitario: 0
+            cantidad: '',
+            precio_unitario: ''
         });
         setListaProductos([]);
         setListaProductos([]);
         setEditingId(null);
+        setTipoPagoInicial('adelanto');
         setFechaPago(new Date().toISOString().split('T')[0]);
     };
 
@@ -354,12 +390,12 @@ const Pedidos = () => {
     const handleWhatsApp = (pedido) => {
         const telefono = pedido.telefono ? pedido.telefono.replace(/\D/g, '') : '';
         if (!telefono) {
-            alert("El cliente no tiene un telÃ©fono registrado.");
+            alert("El cliente no tiene un teléfono registrado.");
             return;
         }
 
         const items = pedido.detalles_pedido.map(d => `- ${d.cantidad}x ${d.nombre_producto} (S/ ${d.precio_unitario.toFixed(2)})`).join('\n');
-        const mensaje = `*Hola ${pedido.nombre_cliente}, aquÃ­ estÃ¡ el resumen de tu pedido:*\n\n${items}\n\n*Total a Pagar:* S/ ${pedido.precio_total.toFixed(2)}\n*A Cuenta:* S/ ${pedido.monto_a_cuenta.toFixed(2)}\n*Saldo Pendiente:* S/ ${pedido.monto_saldo.toFixed(2)}\n\nGracias por tu preferencia!`;
+        const mensaje = `*Hola ${pedido.nombre_cliente}, aquí está el resumen de tu pedido:*\n\n${items}\n\n*Total a Pagar:* S/ ${pedido.precio_total.toFixed(2)}\n*A Cuenta:* S/ ${pedido.monto_a_cuenta.toFixed(2)}\n*Saldo Pendiente:* S/ ${pedido.monto_saldo.toFixed(2)}\n\nGracias por tu preferencia!`;
 
         const url = `https://wa.me/51${telefono}?text=${encodeURIComponent(mensaje)}`;
         window.open(url, '_blank');
@@ -463,7 +499,7 @@ const Pedidos = () => {
                     <h2 className="text-2xl md:text-3xl font-medium text-gray-800">{editingId ? 'Editar Pedido' : 'Registrar Nuevo Pedido'}</h2>
                     {editingId && (
                         <button onClick={resetForm} className="text-sm text-gray-500 hover:text-gray-700 underline">
-                            Cancelar EdiciÃ³n
+                            Cancelar Edición
                         </button>
                     )}
                 </div>
@@ -475,7 +511,7 @@ const Pedidos = () => {
                 )}
 
                 <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* SecciÃ³n Cliente */}
+                    {/* Sección Cliente */}
                     <div className="md:col-span-2">
                         <h3 className="text-xl font-semibold mb-4 text-blue-600">Datos del Cliente</h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -514,12 +550,12 @@ const Pedidos = () => {
                         </div>
                     </div>
 
-                    {/* SecciÃ³n Producto (Agregar MÃºltiples) */}
+                    {/* Sección Producto (Agregar Múltiples) */}
                     <div className="md:col-span-2">
                         <h3 className="text-xl font-semibold mb-4 text-blue-600">Detalles del Producto</h3>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:items-start border p-4 rounded">
                             <div className="md:col-span-3">
-                                <label className="block text-sm font-medium text-gray-700">Producto</label>
+                                <label className="block text-sm font-medium text-gray-700">Producto *</label>
                                 <textarea
                                     name="nombre_producto"
                                     value={productoActual.nombre_producto}
@@ -529,7 +565,7 @@ const Pedidos = () => {
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700">Cantidad</label>
+                                <label className="block text-sm font-medium text-gray-700">Cantidad *</label>
                                 <input
                                     type="number"
                                     name="cantidad"
@@ -541,7 +577,7 @@ const Pedidos = () => {
                             </div>
                             <div className="flex space-x-2">
                                 <div className="flex-1">
-                                    <label className="block text-sm font-medium text-gray-700">Precio Unitario</label>
+                                    <label className="block text-sm font-medium text-gray-700">Precio Unitario *</label>
                                     <input
                                         type="number"
                                         name="precio_unitario"
@@ -572,7 +608,7 @@ const Pedidos = () => {
                                             <th className="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Cant.</th>
                                             <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">P. Unit</th>
                                             <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Subtotal</th>
-                                            <th className="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">AcciÃ³n</th>
+                                            <th className="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Acción</th>
                                         </tr>
                                     </thead>
                                     <tbody className="bg-white divide-y divide-gray-200">
@@ -599,7 +635,7 @@ const Pedidos = () => {
                         )}
                     </div>
 
-                    {/* SecciÃ³n EnvÃ­o */}
+                    {/* Sección Envío */}
                     <div className="md:col-span-2">
                         <h3 className="text-xl font-semibold mb-4 text-blue-600">Envío</h3>
                         <div className="space-y-4">
@@ -612,13 +648,13 @@ const Pedidos = () => {
                                     id="requiere_envio"
                                     className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                                 />
-                                <label htmlFor="requiere_envio" className="ml-2 block text-sm text-gray-900">Requiere EnvÃ­o</label>
+                                <label htmlFor="requiere_envio" className="ml-2 block text-sm text-gray-900">Requiere Envío</label>
                             </div>
 
                             {formData.requiere_envio && (
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border p-4 rounded bg-gray-50">
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700">DirecciÃ³n de Entrega</label>
+                                        <label className="block text-sm font-medium text-gray-700">Dirección de Entrega</label>
                                         <input
                                             type="text"
                                             name="direccion_entrega"
@@ -635,7 +671,7 @@ const Pedidos = () => {
                                             onChange={handleChange}
                                             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2"
                                         >
-                                            <option value="Fijo">EnvÃ­o Fijo/Calculado</option>
+                                            <option value="Fijo">Envío Fijo/Calculado</option>
                                             <option value="Por Pagar">Por Pagar en Agencia</option>
                                         </select>
                                     </div>
@@ -655,7 +691,7 @@ const Pedidos = () => {
                         </div>
                     </div>
 
-                    {/* SecciÃ³n Pago */}
+                    {/* Sección Pago */}
                     <div className="md:col-span-2">
                         <h3 className="text-xl font-semibold mb-4 text-blue-600">Pago y Totales</h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -697,7 +733,31 @@ const Pedidos = () => {
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-gray-700">A Cuenta *</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Tipo de Pago Inicial</label>
+                                <div className="flex space-x-4 mb-2">
+                                    <label className="inline-flex items-center">
+                                        <input
+                                            type="radio"
+                                            className="form-radio text-blue-600"
+                                            name="tipoPagoInicial"
+                                            value="adelanto"
+                                            checked={tipoPagoInicial === 'adelanto'}
+                                            onChange={() => setTipoPagoInicial('adelanto')}
+                                        />
+                                        <span className="ml-2">Adelanto / A Cuenta</span>
+                                    </label>
+                                    <label className="inline-flex items-center">
+                                        <input
+                                            type="radio"
+                                            className="form-radio text-green-600"
+                                            name="tipoPagoInicial"
+                                            value="total"
+                                            checked={tipoPagoInicial === 'total'}
+                                            onChange={() => setTipoPagoInicial('total')}
+                                        />
+                                        <span className="ml-2 font-semibold text-green-700">Pago Total (Cancelar)</span>
+                                    </label>
+                                </div>
                                 <div className="flex space-x-2">
                                     <input
                                         type="number"
@@ -705,17 +765,11 @@ const Pedidos = () => {
                                         value={formData.monto_a_cuenta}
                                         onChange={handleChange}
                                         step="0.01"
-                                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2"
+                                        className={`mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2 ${tipoPagoInicial === 'total' ? 'bg-gray-100 text-gray-500' : ''}`}
                                         required
+                                        readOnly={tipoPagoInicial === 'total'}
                                     />
-                                    <button
-                                        type="button"
-                                        onClick={handlePayFull}
-                                        className="mt-1 px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 text-lg font-bold"
-                                        title="Cobrar Total"
-                                    >
-                                        +
-                                    </button>
+                                    {/* Botón '+' eliminado por rediseño */}
                                 </div>
                             </div>
                         </div>
@@ -901,7 +955,7 @@ const Pedidos = () => {
                                         <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
                                             <div className="flex justify-center space-x-3">
                                                 {!pedido.cancelado && (
-                                                    <button onClick={() => handleOpenPayModal(pedido)} className="text-green-600 hover:text-green-900" title="Registrar Pago / Saldar">
+                                                    <button onClick={() => handleOpenPayModal(pedido)} className="text-green-600 hover:text-green-900" title="Registrar Pago / Adelanto">
                                                         <FaMoneyBillWave className="h-5 w-5" />
                                                     </button>
                                                 )}
@@ -941,21 +995,26 @@ const Pedidos = () => {
                             <div className="p-8 overflow-y-auto bg-white" id="printable-area">
                                 <div className="text-center mb-6 border-b pb-4">
                                     <p className="text-sm text-gray-500 mb-1">Enigma artesanías y accesorios</p>
-                                    <h1 className="text-2xl font-bold uppercase tracking-widest text-gray-900">Nota de Pedido</h1>
+                                    <h1 className="text-xl font-bold uppercase tracking-widest text-gray-900">Nota de Pedido</h1>
                                     <p className="text-sm text-gray-500 mt-1">{new Date(printPedido.fecha_pedido).toLocaleDateString()}</p>
                                 </div>
 
                                 <div className="mb-6 grid grid-cols-2 gap-4 text-sm">
-                                    <div>
-                                        <h4 className="font-bold text-gray-700">Cliente</h4>
-                                        <p>{printPedido.nombre_cliente}</p>
-                                        <p>{printPedido.telefono}</p>
-                                        <p>{printPedido.dni_ruc}</p>
+                                    <div className="text-left">
+                                        <h4 className="font-bold text-gray-700 mb-1">Cliente</h4>
+                                        <p className="text-gray-900">{printPedido.nombre_cliente}</p>
+                                        <div className="flex items-center text-gray-600 mt-1">
+                                            <FaPhone className="mr-1" size={12} />
+                                            <span>{printPedido.telefono}</span>
+                                        </div>
                                     </div>
                                     <div className="text-right">
-                                        <h4 className="font-bold text-gray-700">EnvÃ­o / Entrega</h4>
-                                        <p>{printPedido.direccion_entrega || 'Recojo en tienda'}</p>
-                                        <p>{printPedido.modalidad_envio}</p>
+                                        {printPedido.requiere_envio && (
+                                            <>
+                                                <h4 className="font-bold text-gray-700 mb-1">Envío</h4>
+                                                <p className="text-gray-900">{printPedido.direccion_entrega}</p>
+                                            </>
+                                        )}
                                     </div>
                                 </div>
 
@@ -981,42 +1040,81 @@ const Pedidos = () => {
                                 </table>
 
                                 <div className="flex justify-end">
-                                    <div className="w-1/2 space-y-2 text-sm">
-                                        <div className="flex justify-between">
-                                            <span>Subtotal:</span>
-                                            <span>S/ {printPedido.precio_total_sin_igv.toFixed(2)}</span>
-                                        </div>
-                                        <div className="flex justify-between font-bold text-lg border-t pt-2">
-                                            <span>Total:</span>
+                                    <div className="w-full md:w-1/2 space-y-1 text-sm">
+                                        {/* Sección 1: Desglose de Venta */}
+                                        {/* Mostrar detalle solo si hay IGV */}
+                                        {printPedido.incluye_igv && (
+                                            <>
+                                                <div className="flex justify-between text-gray-800">
+                                                    <span>Valor Venta:</span>
+                                                    <span>S/ {printPedido.precio_total_sin_igv.toFixed(2)}</span>
+                                                </div>
+                                                <div className="flex justify-between text-gray-800">
+                                                    <span>IGV (18%):</span>
+                                                    <span>S/ {printPedido.monto_igv.toFixed(2)}</span>
+                                                </div>
+                                                <div className="flex justify-between text-gray-800">
+                                                    <span>Total Venta:</span>
+                                                    <span>S/ {(printPedido.precio_total_sin_igv + printPedido.monto_igv).toFixed(2)}</span>
+                                                </div>
+                                            </>
+                                        )}
+
+                                        {/* Costo de Envío (Azul) */}
+                                        {printPedido.envio_cobrado_al_cliente > 0 && (
+                                            <div className="flex justify-between text-blue-600 font-medium mt-1">
+                                                <span>Costo de Envío:</span>
+                                                <span>S/ {printPedido.envio_cobrado_al_cliente.toFixed(2)}</span>
+                                            </div>
+                                        )}
+
+                                        <div className="flex justify-between font-bold text-sm border-t pt-1 mt-1">
+                                            <span>
+                                                {printPedido.envio_cobrado_al_cliente > 0
+                                                    ? "TOTAL A PAGAR + ENV.:"
+                                                    : (printPedido.incluye_igv ? "TOTAL:" : "TOTAL A PAGAR:")}
+                                            </span>
                                             <span>S/ {printPedido.precio_total.toFixed(2)}</span>
                                         </div>
-                                        <div className="flex justify-between text-blue-800 border-t pt-2 mt-2">
-                                            <span>A Cuenta:</span>
-                                            <span>S/ {printPedido.monto_a_cuenta.toFixed(2)}</span>
-                                        </div>
-
-                                        {/* Detalle de Pagos en Modal */}
-                                        {printPedido.pagos && printPedido.pagos.length > 0 && (
-                                            <div className="text-xs text-gray-500 space-y-1 mb-2">
-                                                {printPedido.pagos.sort((a, b) => new Date(a.fecha_pago) - new Date(b.fecha_pago)).map((pago, idx) => (
-                                                    <div key={idx} className="flex justify-between">
-                                                        <span>- {new Date(pago.fecha_pago).toLocaleDateString()} {pago.metodo_pago ? `(${pago.metodo_pago})` : ''}</span>
-                                                        <span>S/ {pago.monto.toFixed(2)}</span>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        )}
-                                        <div className="flex justify-between font-bold text-red-600 border-t pt-2">
-                                            <span>Saldo:</span>
-                                            <span>S/ {printPedido.monto_saldo.toFixed(2)}</span>
-                                        </div>
-                                        {printPedido.cancelado && (
-                                            <div className="flex justify-between font-bold text-green-600 border-t pt-2">
-                                                <span>Total Cancelado:</span>
-                                                <span>S/ 0.00</span>
-                                            </div>
-                                        )}
                                     </div>
+                                </div>
+
+                                {/* Espaciador Vertical */}
+                                <div className="py-2"></div>
+
+                                {/* Sección 2: Estado de Cuenta */}
+                                <h4 className="font-bold text-gray-800 border-b pb-1 mb-2">Estado de Cuenta</h4>
+
+                                {/* Tabla de Adelantos */}
+                                <div className="mb-2">
+                                    <div className="flex justify-between font-bold text-xs text-gray-600 border-b pb-1 mb-1">
+                                        <span>Adelantos (Pagos a Cuenta)</span>
+                                        <span>Método</span>
+                                        <span>Monto</span>
+                                    </div>
+                                    {printPedido.pagos && printPedido.pagos.length > 0 ? (
+                                        printPedido.pagos.sort((a, b) => new Date(a.fecha_pago) - new Date(b.fecha_pago)).map((pago, idx) => (
+                                            <div key={idx} className="flex justify-between text-xs py-1">
+                                                <span>{new Date(pago.fecha_pago).toLocaleDateString()}</span>
+                                                <span>{pago.metodo_pago}</span>
+                                                <span>S/ {pago.monto.toFixed(2)}</span>
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <div className="text-xs text-center text-gray-400 italic">No hay pagos registrados</div>
+                                    )}
+                                </div>
+
+                                <div className="flex justify-between font-bold text-red-600 border-t pt-1 mt-1 text-sm">
+                                    <span>SALDO PENDIENTE:</span>
+                                    <span>S/ {printPedido.monto_saldo > 0.1 ? printPedido.monto_saldo.toFixed(2) : '0.00'}</span>
+                                </div>
+
+
+                                <div className="mt-8 pt-4 border-t text-center">
+                                    <p className="text-[4px] text-gray-500">ACLARACIÓN IMPORTANTE</p>
+                                    <p className="text-[2px] text-gray-500">Esta Nota de Pedido no tiene validez como comprobante de pago o factura.</p>
+                                    <p className="text-[4px] text-gray-500 font-semibold mt-1">¡Gracias por tu pedido!</p>
                                 </div>
                             </div>
 
@@ -1053,16 +1151,16 @@ const Pedidos = () => {
                                             }
                                         }, 'image/jpeg', 0.9);
                                     }}
-                                    className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 flex items-center"
+                                    className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 flex items-center text-sm"
                                 >
-                                    <FaImage className="mr-2" /> Enviar Imagen
+                                    <FaImage className="mr-2" /> Enviar Pedido
                                 </button>
-                                <button onClick={closePrintModal} className="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400">
+                                <button onClick={closePrintModal} className="px-3 py-1 bg-gray-300 text-gray-700 rounded hover:bg-gray-400 text-sm">
                                     Cerrar
                                 </button>
                             </div>
-                        </div>
-                    </div>
+                        </div >
+                    </div >
                 )
             }
 
@@ -1072,7 +1170,7 @@ const Pedidos = () => {
                     <div className="fixed inset-0 bg-gray-600 bg-opacity-75 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
                         <div className="bg-white rounded-lg shadow-xl w-full max-w-md flex flex-col">
                             <div className="px-6 py-4 border-b flex justify-between items-center bg-gray-50 rounded-t-lg">
-                                <h3 className="text-lg font-bold text-gray-800">Registrar Pago</h3>
+                                <h3 className="text-lg font-bold text-gray-800">Registrar Pago / Adelanto</h3>
                                 <button onClick={handleClosePayModal} className="text-gray-600 hover:text-gray-800">
                                     <FaTimesCircle size={24} />
                                 </button>

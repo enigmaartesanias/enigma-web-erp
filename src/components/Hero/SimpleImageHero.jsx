@@ -24,9 +24,9 @@ const SimpleImageHero = () => {
         />
 
         {/* Label "De Aldo Magallanes" */}
-        <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
-          <div className="bg-black/60 backdrop-blur-sm px-6 py-2 md:px-8 md:py-3 rounded-lg border border-white/20">
-            <p className="text-black text-sm md:text-base font-light tracking-widest" style={{ fontFamily: 'Georgia, serif' }}>
+        <div className="absolute bottom-2 right-4 md:bottom-6 md:right-10 z-10 pointer-events-none">
+          <div>
+            <p className="text-black text-sm md:text-lg font-bold tracking-widest" style={{ fontFamily: 'Georgia, serif' }}>
               De Aldo Magallanes
             </p>
           </div>

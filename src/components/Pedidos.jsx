@@ -900,7 +900,7 @@ const Pedidos = () => {
                             <tr>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cliente</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/4">Producto</th>
+                                <th className="hidden md:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/4">Producto</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">A Cuenta</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Saldo</th>
@@ -922,7 +922,7 @@ const Pedidos = () => {
                                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                                             {pedido.nombre_cliente}
                                         </td>
-                                        <td className="px-6 py-4 text-sm text-gray-500 min-w-[250px]">
+                                        <td className="hidden md:table-cell px-6 py-4 text-sm text-gray-500 min-w-[250px]">
                                             {pedido.detalles_pedido && pedido.detalles_pedido.length > 0 ? (
                                                 <div className="space-y-1">
                                                     {pedido.detalles_pedido.map((d, idx) => (

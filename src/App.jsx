@@ -1,6 +1,6 @@
 import React from 'react';
 import './styles/styles.css';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import ScrollToTop from './components/ScrollToTop';
 
 // Páginas
@@ -38,43 +38,58 @@ import StockAdmin from './components/StockAdmin';
 import Pedidos from './components/Pedidos';
 import ReportePedidos from './components/ReportePedidos';
 
+const MainContent = () => {
+    const location = useLocation();
+    const isAdmin = location.pathname.startsWith('/admin');
+
+    return (
+        <>
+            <ScrollToTop />
+            {!isAdmin && <Header />}
+            <Routes>
+                {/* Rutas públicas */}
+                <Route path="/" element={<Home />} />
+                <Route path="/sobremi" element={<SobreMi />} />
+                <Route path="/contacto" element={<Contacto />} />
+                <Route path="/politicasenvios" element={<PoliticasEnvios />} />
+                <Route path="/shippingpolicies" element={<ShippingPolicies />} />
+                <Route path="/videoshorts" element={<VideoShorts />} />
+                <Route path="/el-taller" element={<ElTaller />} />
+                <Route path="/carrusel" element={<PublicCarousel />} />
+                <Route path="/producto/:id" element={<ProductoDetalle />} />
+                <Route path="/tienda" element={<Tienda />} />
+
+                {/* Rutas dinámicas de ProductGridPage */}
+                <Route path="/catalogo/:material/:categoria" element={<ProductGridPage />} />
+
+                {/* Rutas de autenticación */}
+                <Route path="/signup" element={<SignUp />} />
+                <Route path="/login" element={<Login />} />
+
+                {/* Panel de administración - Rutas privadas */}
+                <Route path="/admin" element={<PrivateRoute><AdminPanel /></PrivateRoute>} />
+                <Route path="/admin/carrusel" element={<PrivateRoute><CarouselAdmin /></PrivateRoute>} />
+                <Route path="/admin/categoria" element={<PrivateRoute><CategoriaAdmin /></PrivateRoute>} />
+                <Route path="/admin/productos" element={<PrivateRoute><ProductoAdmin /></PrivateRoute>} />
+                <Route path="/admin/stock" element={<PrivateRoute><StockAdmin /></PrivateRoute>} />
+                <Route path="/admin/pedidos" element={<PrivateRoute><Pedidos /></PrivateRoute>} />
+                <Route path="/admin/reportes" element={<PrivateRoute><ReportePedidos /></PrivateRoute>} />
+            </Routes>
+            {!isAdmin && (
+                <>
+                    <WhatsAppButton />
+                    <Footer />
+                </>
+            )}
+        </>
+    );
+};
+
 function App() {
     return (
         <AuthProvider>
             <Router>
-                <ScrollToTop />
-                <Header />
-                <Routes>
-                    {/* Rutas públicas */}
-                    <Route path="/" element={<Home />} />
-                    <Route path="/sobremi" element={<SobreMi />} />
-                    <Route path="/contacto" element={<Contacto />} />
-                    <Route path="/politicasenvios" element={<PoliticasEnvios />} />
-                    <Route path="/shippingpolicies" element={<ShippingPolicies />} />
-                    <Route path="/videoshorts" element={<VideoShorts />} />
-                    <Route path="/el-taller" element={<ElTaller />} />
-                    <Route path="/carrusel" element={<PublicCarousel />} />
-                    <Route path="/producto/:id" element={<ProductoDetalle />} />
-                    <Route path="/tienda" element={<Tienda />} />
-
-                    {/* Rutas dinámicas de ProductGridPage */}
-                    <Route path="/catalogo/:material/:categoria" element={<ProductGridPage />} />
-
-                    {/* Rutas de autenticación */}
-                    <Route path="/signup" element={<SignUp />} />
-                    <Route path="/login" element={<Login />} />
-
-                    {/* Panel de administración - Rutas privadas */}
-                    <Route path="/admin" element={<PrivateRoute><AdminPanel /></PrivateRoute>} />
-                    <Route path="/admin/carrusel" element={<PrivateRoute><CarouselAdmin /></PrivateRoute>} />
-                    <Route path="/admin/categoria" element={<PrivateRoute><CategoriaAdmin /></PrivateRoute>} />
-                    <Route path="/admin/productos" element={<PrivateRoute><ProductoAdmin /></PrivateRoute>} />
-                    <Route path="/admin/stock" element={<PrivateRoute><StockAdmin /></PrivateRoute>} />
-                    <Route path="/admin/pedidos" element={<PrivateRoute><Pedidos /></PrivateRoute>} />
-                    <Route path="/admin/reportes" element={<PrivateRoute><ReportePedidos /></PrivateRoute>} />
-                </Routes>
-                <WhatsAppButton />
-                <Footer />
+                <MainContent />
             </Router>
         </AuthProvider>
     );

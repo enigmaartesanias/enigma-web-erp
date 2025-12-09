@@ -1,9 +1,9 @@
 ﻿
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../supabaseClient';
-import { FaEdit, FaTrash, FaCheckCircle, FaTimesCircle, FaPlus, FaWhatsapp, FaPrint, FaSearch, FaMoneyBillWave, FaShareAlt, FaImage, FaPhone } from 'react-icons/fa';
+import { Link } from 'react-router-dom';
+import { FaEdit, FaTrash, FaCheckCircle, FaTimesCircle, FaPlus, FaWhatsapp, FaPrint, FaSearch, FaMoneyBillWave, FaShareAlt, FaImage, FaPhone, FaArrowLeft } from 'react-icons/fa';
 import html2canvas from 'html2canvas';
-
 
 const Pedidos = () => {
     const [loading, setLoading] = useState(false);
@@ -493,6 +493,12 @@ const Pedidos = () => {
 
     return (
         <div className="container mx-auto p-4 md:p-6 bg-gray-50 min-h-screen">
+            <div className="mb-6">
+                <Link to="/admin" className="flex items-center text-gray-600 hover:text-blue-600 transition-colors w-fit">
+                    <FaArrowLeft className="mr-2" />
+                    <span className="font-medium">Regresar al Panel</span>
+                </Link>
+            </div>
             <h1 className="text-3xl font-light text-gray-800 mb-8 text-center">Registro de Pedidos</h1>
             <div className="bg-white shadow-lg rounded-lg p-4 md:p-6 mb-8 max-w-4xl mx-auto">
                 <div className="flex justify-between items-center border-b pb-4 mb-6">

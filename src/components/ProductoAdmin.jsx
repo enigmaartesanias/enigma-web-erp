@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
 import ImageUploader from './ImageUploader';
 import { generateSlug } from '../utils';
-import { FaEdit, FaTrash, FaSearch, FaPlus, FaFilter, FaCheck, FaTimes, FaStar } from 'react-icons/fa';
+import { FaEdit, FaTrash, FaSearch, FaPlus, FaFilter, FaCheck, FaTimes, FaStar, FaArrowLeft } from 'react-icons/fa';
 
 const ProductoAdmin = () => {
     const { user } = useAuth();
@@ -331,6 +332,12 @@ const ProductoAdmin = () => {
 
     return (
         <div className="container mx-auto p-4 max-w-7xl mt-8">
+            <div className="mb-6">
+                <Link to="/admin" className="flex items-center text-gray-600 hover:text-blue-600 transition-colors w-fit">
+                    <FaArrowLeft className="mr-2" />
+                    <span className="font-medium">Regresar al Panel</span>
+                </Link>
+            </div>
             {error && (
                 <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
                     <strong>Error:</strong> {error}

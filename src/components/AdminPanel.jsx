@@ -33,7 +33,9 @@ const AdminPanel = () => {
     <div className="bg-gray-50 min-h-screen">
       {/* Logo Header */}
       <div className="flex justify-center pt-8 bg-gray-50">
-        <img src={logo} alt="Logo" className="h-10 object-contain" />
+        <Link to="/">
+          <img src={logo} alt="Logo" className="h-10 object-contain hover:opacity-80 transition-opacity" />
+        </Link>
       </div>
 
       {/* Header Text */}

@@ -862,7 +862,7 @@ const Pedidos = () => {
                             </div>
                             <input
                                 type="text"
-                                placeholder="Buscar cliente o telÃ©fono..."
+                                placeholder="Buscar cliente o teléfono..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                                 className="pl-10 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2"
@@ -873,7 +873,7 @@ const Pedidos = () => {
                     <div className="bg-gray-100 p-3 rounded-lg flex space-x-6 text-sm justify-end">
                         {(filterStatus === 'todos' || filterStatus === 'cancelado') && (
                             <div>
-                                <span className="text-gray-500 block">Total Cancelado (Sin EnvÃ­o)</span>
+                                <span className="text-gray-500 block">Total Cancelado (Sin Envío)</span>
                                 <span className="font-bold text-lg text-green-600">
                                     S/ {filteredPedidos.filter(p => p.cancelado).reduce((acc, p) => {
                                         const envio = p.envio_cobrado_al_cliente || 0;
@@ -911,7 +911,7 @@ const Pedidos = () => {
                         <tbody className="bg-white divide-y divide-gray-200">
                             {filteredPedidos.length === 0 ? (
                                 <tr>
-                                    <td colSpan="8" className="px-6 py-4 text-center text-gray-500">No hay pedidos registrados en esta categorÃ­a.</td>
+                                    <td colSpan="8" className="px-6 py-4 text-center text-gray-500">No hay pedidos registrados en esta categoría.</td>
                                 </tr>
                             ) : (
                                 filteredPedidos.map((pedido) => (
@@ -984,7 +984,7 @@ const Pedidos = () => {
                 </div>
             </div >
 
-            {/* Modal de ImpresiÃ³n / Vista Previa */}
+            {/* Modal de Impresión / Vista Previa */}
             {
                 showPrintModal && printPedido && (
                     <div className="fixed inset-0 bg-gray-600 bg-opacity-75 overflow-y-auto h-full w-full z-50 flex items-start md:items-center justify-center p-4 pt-24 md:pt-4">

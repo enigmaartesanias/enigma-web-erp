@@ -44,6 +44,26 @@ const Footer = () => {
               <Link to="/shippingpolicies" className="hover:text-white transition-colors">
                 Shipping Policies
               </Link>
+              <button onClick={async (e) => {
+                e.preventDefault();
+                const shareData = {
+                  title: 'Enigma Artesanías',
+                  text: 'Mira esta página de artesanías y accesorios increíbles.',
+                  url: 'https://artesaniasenigma.com/',
+                };
+                if (navigator.share) {
+                  try {
+                    await navigator.share(shareData);
+                  } catch (err) {
+                    console.error('Error al compartir:', err);
+                  }
+                } else {
+                  navigator.clipboard.writeText(shareData.url);
+                  alert('Enlace copiado al portapapeles!');
+                }
+              }} className="hover:text-teal-400 text-teal-600 font-medium transition-colors focus:outline-none mt-2 md:mt-0">
+                Compartir Página
+              </button>
             </div>
           </div>
         </div>

@@ -64,7 +64,7 @@ const WhatsAppButton = () => {
         generateWhatsAppUrl();
     }, [location.pathname]);
 
-    if (location.pathname === '/admin/pedidos') return null;
+    if (location.pathname === '/admin/pedidos' || location.pathname === '/admin/reportes') return null;
 
     return (
         <a

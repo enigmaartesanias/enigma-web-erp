@@ -1,61 +1,57 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 import { Link } from 'react-router-dom';
-import { FaArrowLeft, FaFilePdf, FaCalendarAlt, FaChartLine, FaShoppingBag, FaMoneyBillWave } from 'react-icons/fa';
+import { FaArrowLeft, FaFilePdf, FaChartLine, FaMoneyBillWave, FaUserTie, FaBoxOpen, FaExclamationCircle } from 'react-icons/fa';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 const ReportePedidos = () => {
     const [loading, setLoading] = useState(false);
-    const [pedidos, setPedidos] = useState([]);
-    const [stats, setStats] = useState({ totalVentas: 0, cantidadPedidos: 0, ticketPromedio: 0 });
+    const [stats, setStats] = useState({
+        ventasBrutas: 0,
+        ventasNetas: 0,
+        cuentasPorCobrar: 0,
+        cantidadPedidos: 0,
+        ticketPromedio: 0
+    });
+    const [topProductos, setTopProductos] = useState([]);
+    const [topClientes, setTopClientes] = useState([]);
+    const [chartData, setChartData] = useState([]);
 
     // Filtros
     const today = new Date();
-    const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+    const threeMonthsAgo = new Date();
+    threeMonthsAgo.setMonth(today.getMonth() - 2);
+    threeMonthsAgo.setDate(1);
 
-    const [fechaInicio, setFechaInicio] = useState(firstDayOfMonth.toISOString().split('T')[0]);
+    const [fechaInicio, setFechaInicio] = useState(threeMonthsAgo.toISOString().split('T')[0]);
     const [fechaFin, setFechaFin] = useState(today.toISOString().split('T')[0]);
-    const [estadoFiltro, setEstadoFiltro] = useState('todos'); // todos, pagados (no cancelados), pendientes
 
     useEffect(() => {
         fetchReportData();
-    }, [fechaInicio, fechaFin, estadoFiltro]);
+    }, [fechaInicio, fechaFin]);
 
     const fetchReportData = async () => {
         setLoading(true);
         try {
-            let query = supabase
+            // Nota: Se asume relación 'detalles_pedido' (order_id -> id_pedido)
+            const { data, error } = await supabase
                 .from('pedidos')
                 .select(`
-                    id_pedido,
-                    fecha_pedido,
-                    nombre_cliente,
-                    precio_total,
-                    cancelado,
-                    monto_pagado,
-                    monto_saldo
+                    *,
+                    detalles_pedido (*)
                 `)
                 .gte('fecha_pedido', fechaInicio)
                 .lte('fecha_pedido', fechaFin)
                 .order('fecha_pedido', { ascending: false });
 
-            // Aplicar filtros de estado
-            // Nota: En tu lógica actual, 'cancelado' true significa anulado/cancelado.
-            // Si quieres ver "Ventas Reales", filtrarías cancelado = false.
-            if (estadoFiltro === 'validos') {
-                query = query.eq('cancelado', false);
-            } else if (estadoFiltro === 'cancelados') {
-                query = query.eq('cancelado', true);
-            }
-
-            const { data, error } = await query;
-
             if (error) throw error;
 
-            setPedidos(data || []);
-            calcularEstadisticas(data || []);
+            // En este sistema 'cancelado' (true) significa PAGADO, no ANULADO.
+            // Por lo tanto, debemos incluir TODOS los pedidos.
+            const pedidosActivos = data;
+            procesarDatos(pedidosActivos);
 
         } catch (error) {
             console.error('Error cargando reporte:', error);
@@ -64,263 +60,327 @@ const ReportePedidos = () => {
         }
     };
 
-    const calcularEstadisticas = (data) => {
-        // Filtrar solo los válidos para las sumas, a menos que el filtro sea explícito de cancelados
-        const pedidosValidos = estadoFiltro === 'cancelados' ? data : data.filter(p => !p.cancelado);
+    const procesarDatos = (pedidos) => {
+        try {
+            if (!Array.isArray(pedidos)) return;
 
-        const total = pedidosValidos.reduce((acc, curr) => acc + curr.precio_total, 0);
-        const cantidad = pedidosValidos.length;
-        const promedio = cantidad > 0 ? total / cantidad : 0;
+            // 1. Métricas Financieras
+            const ventasBrutas = pedidos.reduce((acc, p) => acc + (Number(p.precio_total) || 0), 0);
+            const ventasNetas = pedidos
+                .filter(p => (p.monto_saldo || 0) <= 0.1)
+                .reduce((acc, p) => acc + (Number(p.precio_total) || 0), 0);
+            const cuentasPorCobrar = pedidos.reduce((acc, p) => acc + ((p.monto_saldo > 0) ? Number(p.monto_saldo) : 0), 0);
 
-        setStats({
-            totalVentas: total,
-            cantidadPedidos: cantidad,
-            ticketPromedio: promedio
-        });
+            const cantidad = pedidos.length;
+            const promedio = cantidad > 0 ? ventasBrutas / cantidad : 0;
+
+            setStats({
+                ventasBrutas: ventasBrutas || 0,
+                ventasNetas: ventasNetas || 0,
+                cuentasPorCobrar: cuentasPorCobrar || 0,
+                cantidadPedidos: cantidad,
+                ticketPromedio: promedio || 0
+            });
+
+            // 2. Ranking Productos
+            const productoMap = {};
+            pedidos.forEach(p => {
+                if (Array.isArray(p.detalles_pedido)) {
+                    p.detalles_pedido.forEach(d => {
+                        const nombre = d.nombre_producto || 'Desconocido';
+                        if (!productoMap[nombre]) {
+                            productoMap[nombre] = { nombre: nombre, cantidad: 0, ventas: 0 };
+                        }
+                        productoMap[nombre].cantidad += (Number(d.cantidad) || 0);
+                        productoMap[nombre].ventas += (Number(d.subtotal) || (Number(d.cantidad) * Number(d.precio_unitario)) || 0);
+                    });
+                }
+            });
+            const rankingProductos = Object.values(productoMap)
+                .sort((a, b) => b.cantidad - a.cantidad)
+                .slice(0, 5);
+            setTopProductos(rankingProductos);
+
+            // 3. Ranking Clientes
+            const clienteMap = {};
+            pedidos.forEach(p => {
+                const nombreCliente = p.nombre_cliente || 'Cliente Anónimo';
+                if (!clienteMap[nombreCliente]) {
+                    clienteMap[nombreCliente] = { nombre: nombreCliente, pedidos: 0, total: 0 };
+                }
+                clienteMap[nombreCliente].pedidos += 1;
+                clienteMap[nombreCliente].total += (Number(p.precio_total) || 0);
+            });
+            const rankingClientes = Object.values(clienteMap)
+                .sort((a, b) => b.total - a.total)
+                .slice(0, 5);
+            setTopClientes(rankingClientes);
+
+            // 4. Gráfico Diario
+            const dailyMap = {};
+            pedidos.forEach(p => {
+                if (p.fecha_pedido) {
+                    try {
+                        // Use slice(0, 5) of ISO string or locale string consistently
+                        // let's use ISO date part "YYYY-MM-DD" then simpler format
+                        const dateObj = new Date(p.fecha_pedido + 'T00:00:00'); // Ensure it treats as local date if just "YYYY-MM-DD"
+                        const fecha = dateObj.toLocaleDateString(); // "dd/mm/yyyy" depending on locale
+
+                        if (!dailyMap[fecha]) dailyMap[fecha] = 0;
+                        dailyMap[fecha] += (Number(p.precio_total) || 0);
+                    } catch (e) {
+                        console.warn("Fecha inválida:", p.fecha_pedido);
+                    }
+                }
+            });
+            const chart = Object.keys(dailyMap).map(fecha => ({ fecha, ventas: dailyMap[fecha] }));
+            setChartData(chart);
+        } catch (error) {
+            console.error("Error procesando datos:", error);
+        }
     };
 
     const generarPDF = () => {
         const doc = new jsPDF();
+        const azul = [41, 128, 185];
+        const gris = [100, 100, 100];
 
-        // Encabezado
-        doc.setFontSize(18);
-        doc.text('Reporte de Pedidos - Enigma Artesanías', 14, 22);
+        // Header
+        doc.setFontSize(22);
+        doc.setTextColor(...azul);
+        doc.text('Reporte Gerencial de Ventas', 105, 20, { align: 'center' });
 
-        doc.setFontSize(11);
-        doc.setTextColor(100);
-        doc.text(`Período: ${fechaInicio} al ${fechaFin}`, 14, 30);
-        doc.text(`Generado el: ${new Date().toLocaleDateString()}`, 14, 36);
+        doc.setFontSize(10);
+        doc.setTextColor(...gris);
+        doc.text(`Período: ${fechaInicio} al ${fechaFin}`, 105, 28, { align: 'center' });
 
-        // Resumen
+        // 1. Resumen Ejecutivo
+        doc.setFontSize(14);
+        doc.setTextColor(0);
+        doc.text('1. Resumen Ejecutivo', 14, 40);
         doc.autoTable({
             startY: 45,
-            head: [['Ventas Totales', 'Nro. Pedidos', 'Ticket Promedio']],
+            head: [['Ventas Brutas', 'Cobrado (Neto)', 'Por Cobrar', 'Tickets']],
             body: [[
-                `S/ ${stats.totalVentas.toFixed(2)}`,
-                stats.cantidadPedidos,
-                `S/ ${stats.ticketPromedio.toFixed(2)}`
+                `S/ ${stats.ventasBrutas.toFixed(2)}`,
+                `S/ ${stats.ventasNetas.toFixed(2)}`,
+                `S/ ${stats.cuentasPorCobrar.toFixed(2)}`,
+                stats.cantidadPedidos
             ]],
-            theme: 'plain',
-            styles: { fontSize: 12, halign: 'center' }
+            theme: 'striped',
+            headStyles: { fillColor: azul }
         });
 
-        // Tabla Detallada
+        // 2. Top Productos
+        doc.text('2. Productos Más Vendidos', 14, doc.lastAutoTable.finalY + 15);
         doc.autoTable({
-            startY: doc.lastAutoTable.finalY + 10,
-            head: [['Fecha', 'Pedido #', 'Cliente', 'Estado', 'Total']],
-            body: pedidos.map(p => [
-                new Date(p.fecha_pedido).toLocaleDateString(),
-                p.id_pedido,
-                p.nombre_cliente,
-                p.cancelado ? 'CANCELADO' : (p.monto_saldo <= 0.1 ? 'Pagado' : 'Pendiente'),
-                `S/ ${p.precio_total.toFixed(2)}`
-            ]),
+            startY: doc.lastAutoTable.finalY + 20,
+            head: [['Producto', 'Unidades Vendidas', 'Ingresos Generados']],
+            body: topProductos.map(p => [p.nombre, p.cantidad, `S/ ${p.ventas.toFixed(2)}`]),
             theme: 'grid',
-            headStyles: { fillColor: [41, 128, 185] },
-            styles: { fontSize: 9 }
+            headStyles: { fillColor: [39, 174, 96] } // Verde
         });
 
-        doc.save(`reporte_ventas_${fechaInicio}_${fechaFin}.pdf`);
-    };
+        // 3. Top Clientes
+        doc.text('3. Mejores Clientes', 14, doc.lastAutoTable.finalY + 15);
+        doc.autoTable({
+            startY: doc.lastAutoTable.finalY + 20,
+            head: [['Cliente', 'Pedidos', 'Total Comprado']],
+            body: topClientes.map(c => [c.nombre, c.pedidos, `S/ ${c.total.toFixed(2)}`]),
+            theme: 'grid',
+            headStyles: { fillColor: [142, 68, 173] } // Morado
+        });
 
-    // Datos para gráfico (agrupar por fecha)
-    const chartData = pedidos.reduce((acc, curr) => {
-        if (!curr.cancelado) {
-            const fecha = new Date(curr.fecha_pedido).toLocaleDateString().slice(0, 5); // dd/mm
-            const existing = acc.find(item => item.fecha === fecha);
-            if (existing) {
-                existing.ventas += curr.precio_total;
-            } else {
-                acc.push({ fecha, ventas: curr.precio_total });
-            }
-        }
-        return acc;
-    }, []).reverse();
+        doc.save(`Reporte_Gerencial_${fechaInicio}.pdf`);
+    };
 
     return (
         <div className="bg-gray-100 min-h-screen p-6">
             <div className="max-w-7xl mx-auto">
-                {/* Header */}
-                <div className="flex justify-between items-center mb-6">
-                    <div className="flex items-center space-x-4">
-                        <Link to="/admin" className="text-gray-600 hover:text-gray-900">
-                            <FaArrowLeft className="h-6 w-6" />
+                {/* Header Nav */}
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 pt-24 md:pt-6 space-y-4 md:space-y-0"> {/* Adjusted padding and responsive layout */}
+                    <div className="flex items-center space-x-3">
+                        <Link to="/admin" className="text-gray-500 hover:text-gray-900 transition-colors">
+                            <FaArrowLeft size={18} />
                         </Link>
-                        <h1 className="text-2xl font-bold text-gray-800">Reporte de Ventas</h1>
+                        <div>
+                            <h1 className="text-lg font-bold text-gray-800">Dashboard de Reportes</h1>
+                            <p className="text-xs text-gray-500">Métricas clave y rendimiento comercial</p>
+                        </div>
                     </div>
-                    <button
-                        onClick={generarPDF}
-                        className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 flex items-center transition-colors shadow-sm"
-                    >
-                        <FaFilePdf className="mr-2" /> Exportar PDF
-                    </button>
-                </div>
 
-                {/* Filtros */}
-                <div className="bg-white p-4 rounded-lg shadow-sm mb-6 flex flex-wrap gap-4 items-end">
-                    <div>
-                        <label className="block text-xs font-semibold text-gray-500 mb-1">Desde</label>
-                        <input
-                            type="date"
-                            value={fechaInicio}
-                            onChange={(e) => setFechaInicio(e.target.value)}
-                            className="border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-xs font-semibold text-gray-500 mb-1">Hasta</label>
-                        <input
-                            type="date"
-                            value={fechaFin}
-                            onChange={(e) => setFechaFin(e.target.value)}
-                            className="border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-xs font-semibold text-gray-500 mb-1">Estado</label>
-                        <select
-                            value={estadoFiltro}
-                            onChange={(e) => setEstadoFiltro(e.target.value)}
-                            className="border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        >
-                            <option value="todos">Todos los Pedidos</option>
-                            <option value="validos">Solo Ventas Válidas</option>
-                            <option value="cancelados">Solo Cancelados</option>
-                        </select>
-                    </div>
-                    <div className="flex-grow"></div>
-                    <div className="flex space-x-2">
+                    {/* Filtros de Fecha */}
+                    <div className="w-full md:w-auto flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-2 bg-white p-2 rounded-lg shadow-sm">
+                        <div className="flex items-center space-x-1 w-full sm:w-auto">
+                            <span className="text-xs text-gray-500 font-medium">Del</span>
+                            <input
+                                type="date"
+                                value={fechaInicio}
+                                onChange={e => setFechaInicio(e.target.value)}
+                                className="flex-1 sm:flex-none border-gray-300 rounded-md text-xs py-1 px-2 focus:ring-blue-500 focus:border-blue-500"
+                            />
+                        </div>
+                        <div className="flex items-center space-x-1 w-full sm:w-auto">
+                            <span className="text-xs text-gray-500 font-medium">Al</span>
+                            <input
+                                type="date"
+                                value={fechaFin}
+                                onChange={e => setFechaFin(e.target.value)}
+                                className="flex-1 sm:flex-none border-gray-300 rounded-md text-xs py-1 px-2 focus:ring-blue-500 focus:border-blue-500"
+                            />
+                        </div>
                         <button
-                            onClick={() => {
-                                const d = new Date();
-                                d.setDate(d.getDate() - 7);
-                                setFechaInicio(d.toISOString().split('T')[0]);
-                                setFechaFin(new Date().toISOString().split('T')[0]);
-                            }}
-                            className="text-xs text-blue-600 hover:underline px-2"
+                            onClick={generarPDF}
+                            className="w-full sm:w-auto bg-gray-900 hover:bg-gray-800 text-white px-3 py-1.5 rounded-md text-xs font-medium flex justify-center items-center transition-all"
                         >
-                            Últimos 7 días
-                        </button>
-                        <button
-                            onClick={() => {
-                                const d = new Date();
-                                const first = new Date(d.getFullYear(), d.getMonth(), 1);
-                                setFechaInicio(first.toISOString().split('T')[0]);
-                                setFechaFin(new Date().toISOString().split('T')[0]);
-                            }}
-                            className="text-xs text-blue-600 hover:underline px-2"
-                        >
-                            Este Mes
+                            <FaFilePdf className="mr-1.5" /> Descargar
                         </button>
                     </div>
                 </div>
 
-                {/* KPIs */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                    <div className="bg-white p-6 rounded-lg shadow-sm border-l-4 border-blue-500">
-                        <div className="flex items-center justify-between">
+                {/* 1. KPIs Financieros */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6"> {/* Reduced gap */}
+                    <div className="bg-white p-4 rounded-xl shadow-sm border-b-4 border-blue-500">
+                        <div className="flex justify-between items-start">
                             <div>
-                                <p className="text-gray-500 text-sm font-medium uppercase">Ventas Totales</p>
-                                <p className="text-2xl font-bold text-gray-800">S/ {stats.totalVentas.toFixed(2)}</p>
+                                <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Ventas Brutas</p>
+                                <h3 className="text-xl font-bold text-gray-800 mt-1">S/ {stats.ventasBrutas.toFixed(2)}</h3> {/* Smaller text */}
                             </div>
-                            <div className="p-3 bg-blue-100 rounded-full">
-                                <FaMoneyBillWave className="text-blue-600 h-6 w-6" />
+                            <div className="p-1.5 bg-blue-50 text-blue-600 rounded-lg">
+                                <FaChartLine size={20} />
                             </div>
                         </div>
+                        <p className="text-[10px] text-gray-400 mt-1">Total generado</p>
                     </div>
-                    <div className="bg-white p-6 rounded-lg shadow-sm border-l-4 border-green-500">
-                        <div className="flex items-center justify-between">
+
+                    <div className="bg-white p-4 rounded-xl shadow-sm border-b-4 border-green-500">
+                        <div className="flex justify-between items-start">
                             <div>
-                                <p className="text-gray-500 text-sm font-medium uppercase">Pedidos</p>
-                                <p className="text-2xl font-bold text-gray-800">{stats.cantidadPedidos}</p>
+                                <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Ventas Netas</p>
+                                <h3 className="text-xl font-bold text-gray-800 mt-1">S/ {stats.ventasNetas.toFixed(2)}</h3>
                             </div>
-                            <div className="p-3 bg-green-100 rounded-full">
-                                <FaShoppingBag className="text-green-600 h-6 w-6" />
+                            <div className="p-1.5 bg-green-50 text-green-600 rounded-lg">
+                                <FaMoneyBillWave size={20} />
                             </div>
                         </div>
+                        <p className="text-[10px] text-gray-400 mt-1">Pagado al 100%</p>
                     </div>
-                    <div className="bg-white p-6 rounded-lg shadow-sm border-l-4 border-purple-500">
-                        <div className="flex items-center justify-between">
+
+                    <div className="bg-white p-4 rounded-xl shadow-sm border-b-4 border-red-500">
+                        <div className="flex justify-between items-start">
                             <div>
-                                <p className="text-gray-500 text-sm font-medium uppercase">Ticket Promedio</p>
-                                <p className="text-2xl font-bold text-gray-800">S/ {stats.ticketPromedio.toFixed(2)}</p>
+                                <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Por Cobrar</p>
+                                <h3 className="text-xl font-bold text-gray-800 mt-1">S/ {stats.cuentasPorCobrar.toFixed(2)}</h3>
                             </div>
-                            <div className="p-3 bg-purple-100 rounded-full">
-                                <FaChartLine className="text-purple-600 h-6 w-6" />
+                            <div className="p-1.5 bg-red-50 text-red-600 rounded-lg">
+                                <FaExclamationCircle size={20} />
                             </div>
+                        </div>
+                        <p className="text-[10px] text-gray-400 mt-1">Saldos pendientes</p>
+                    </div>
+
+                    <div className="bg-white p-4 rounded-xl shadow-sm border-b-4 border-purple-500">
+                        <div className="flex justify-between items-start">
+                            <div>
+                                <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Ticket Promedio</p>
+                                <h3 className="text-xl font-bold text-gray-800 mt-1">S/ {stats.ticketPromedio.toFixed(2)}</h3>
+                            </div>
+                            <div className="p-1.5 bg-purple-50 text-purple-600 rounded-lg">
+                                <FaUserTie size={20} />
+                            </div>
+                        </div>
+                        <p className="text-[10px] text-gray-400 mt-1">{stats.cantidadPedidos} pedidos</p>
+                    </div>
+                </div>
+
+                {/* 2. Gráficos y Rankings */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+
+                    {/* Top Productos */}
+                    <div className="bg-white p-4 rounded-xl shadow-sm">
+                        <h3 className="font-bold text-gray-800 mb-4 text-sm flex items-center">
+                            <FaBoxOpen className="mr-2 text-blue-500" />
+                            Top 5 Productos
+                        </h3>
+                        <div className="space-y-3">
+                            {topProductos.map((prod, idx) => (
+                                <div key={idx} className="flex items-center justify-between">
+                                    <div className="flex items-center justify-start text-left"> {/* Justification left */}
+                                        <div className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center text-xs font-bold text-gray-600 mr-2">
+                                            {idx + 1}
+                                        </div>
+                                        <div>
+                                            <p className="text-xs font-medium text-gray-800">{prod.nombre}</p>
+                                            <p className="text-[10px] text-gray-500">{prod.cantidad} unid.</p>
+                                        </div>
+                                    </div>
+                                    <span className="text-xs font-medium text-gray-700">S/ {prod.ventas.toFixed(2)}</span> {/* Unbolded amount */}
+                                </div>
+                            ))}
+                            {topProductos.length === 0 && <p className="text-xs text-gray-400 italic">No hay datos.</p>}
+                        </div>
+                    </div>
+
+                    {/* Top Clientes */}
+                    <div className="bg-white p-6 rounded-xl shadow-sm">
+                        <h3 className="font-bold text-gray-800 mb-6 flex items-center">
+                            <FaUserTie className="mr-2 text-purple-500" />
+                            Top 5 Mejores Clientes
+                        </h3>
+                        <div className="space-y-4">
+                            {topClientes.map((cliente, idx) => (
+                                <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                                    <div>
+                                        <p className="text-sm font-bold text-gray-800">{cliente.nombre}</p>
+                                        <p className="text-xs text-gray-500">{cliente.pedidos} pedidos realizados</p>
+                                    </div>
+                                    <div className="text-right">
+                                        <span className="block text-sm font-bold text-purple-700">S/ {cliente.total.toFixed(2)}</span>
+                                    </div>
+                                </div>
+                            ))}
+                            {topClientes.length === 0 && <p className="text-sm text-gray-400 italic">No hay datos suficientes.</p>}
                         </div>
                     </div>
                 </div>
 
-                {/* Gráfico y Tabla */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    {/* Gráfico */}
-                    <div className="bg-white p-6 rounded-lg shadow-sm lg:col-span-3">
-                        <h3 className="font-bold text-gray-700 mb-4">Evolución de Ventas</h3>
-                        <div className="h-64 w-full">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <LineChart data={chartData}>
-                                    <CartesianGrid strokeDasharray="3 3" />
-                                    <XAxis dataKey="fecha" />
-                                    <YAxis />
-                                    <Tooltip formatter={(value) => [`S/ ${value.toFixed(2)}`, 'Ventas']} />
-                                    <Line type="monotone" dataKey="ventas" stroke="#2563eb" strokeWidth={2} />
-                                </LineChart>
-                            </ResponsiveContainer>
-                        </div>
-                    </div>
-
-                    {/* Tabla Detallada */}
-                    <div className="bg-white rounded-lg shadow-sm lg:col-span-3 overflow-hidden">
-                        <div className="p-4 border-b bg-gray-50">
-                            <h3 className="font-bold text-gray-700">Detalle de Pedidos</h3>
-                        </div>
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-sm text-left">
-                                <thead className="bg-gray-100 text-gray-600 uppercase text-xs">
-                                    <tr>
-                                        <th className="px-6 py-3">Fecha</th>
-                                        <th className="px-6 py-3">Pedido #</th>
-                                        <th className="px-6 py-3">Cliente</th>
-                                        <th className="px-6 py-3 text-center">Estado</th>
-                                        <th className="px-6 py-3 text-right">Total</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y">
-                                    {pedidos.length > 0 ? (
-                                        pedidos.map((pedido) => (
-                                            <tr key={pedido.id_pedido} className="hover:bg-gray-50 transition-colors">
-                                                <td className="px-6 py-4">{new Date(pedido.fecha_pedido).toLocaleDateString()}</td>
-                                                <td className="px-6 py-4 font-mono text-gray-500">#{pedido.id_pedido}</td>
-                                                <td className="px-6 py-4 font-medium text-gray-900">{pedido.nombre_cliente}</td>
-                                                <td className="px-6 py-4 text-center">
-                                                    {pedido.cancelado ? (
-                                                        <span className="px-2 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-800">
-                                                            Cancelado
-                                                        </span>
-                                                    ) : (
-                                                        <span className={`px-2 py-1 rounded-full text-xs font-semibold ${pedido.monto_saldo <= 0.1 ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
-                                                            {pedido.monto_saldo <= 0.1 ? 'Pagado' : 'Saldo Pendiente'}
-                                                        </span>
-                                                    )}
-                                                </td>
-                                                <td className="px-6 py-4 text-right font-bold text-gray-800">
-                                                    S/ {pedido.precio_total.toFixed(2)}
-                                                </td>
-                                            </tr>
-                                        ))
-                                    ) : (
-                                        <tr>
-                                            <td colSpan="5" className="px-6 py-8 text-center text-gray-500 italic">
-                                                No se encontraron resultados para este período.
-                                            </td>
-                                        </tr>
-                                    )}
-                                </tbody>
-                            </table>
-                        </div>
+                {/* Gráfico Visual */}
+                <div className="mt-8 bg-white p-6 rounded-xl shadow-sm">
+                    <h3 className="font-bold text-gray-800 mb-4">Tendencia de Ventas (Diario)</h3>
+                    <div className="h-72 w-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <LineChart data={chartData}>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                                <XAxis
+                                    dataKey="fecha"
+                                    axisLine={false}
+                                    tickLine={false}
+                                    dy={10} // Push labels down
+                                    tick={{ fontSize: 10, fill: '#6b7280' }} // Smaller font for dates
+                                />
+                                <YAxis
+                                    axisLine={false}
+                                    tickLine={false}
+                                    tickFormatter={(value) => `S/${value}`}
+                                    tick={{ fontSize: 10, fill: '#6b7280' }}
+                                />
+                                <Tooltip
+                                    contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                                    formatter={(value) => [`S/ ${value.toFixed(2)}`, 'Ventas']}
+                                />
+                                <Line
+                                    type="monotone"
+                                    dataKey="ventas"
+                                    stroke="#3b82f6"
+                                    strokeWidth={3}
+                                    dot={{ r: 4, fill: '#3b82f6', strokeWidth: 2, stroke: '#fff' }}
+                                    activeDot={{ r: 6 }}
+                                />
+                            </LineChart>
+                        </ResponsiveContainer>
                     </div>
                 </div>
+
             </div>
         </div>
     );

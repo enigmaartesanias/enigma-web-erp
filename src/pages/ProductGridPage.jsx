@@ -3,8 +3,11 @@ import { useParams, Link } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import ProductImage from '../components/ProductImage';
 
+import MaterialSubNavigation from '../components/MaterialSubNavigation';
+
 
 const ProductGridPage = () => {
+
     // Parámetros dinámicos de la URL
     const { material, categoria } = useParams();
 
@@ -64,6 +67,55 @@ const ProductGridPage = () => {
                         .from('productos')
                         .select('*')
                         .eq('categoria_id', categoriaId)
+                        .eq('activo', true)
+                        .order('created_at', { ascending: false });
+
+                    if (productsError) throw productsError;
+                    productsData = data || [];
+
+                } else if (material !== 'all' && categoria === 'all') {
+                    // CASO 4: Filtrado SOLO por Material (Todas las categorías de un material)
+
+                    // 1. Obtener ID del material (búsqueda insensible a mayúsculas/minúsculas)
+                    const { data: materialData, error: materialError } = await supabase
+                        .from('materiales')
+                        .select('id')
+                        .ilike('nombre', material)
+                        .maybeSingle();
+
+                    if (materialError) throw materialError;
+
+                    if (!materialData) {
+                        console.warn(`El Material '${material}' no se encontró.`);
+                        setProducts([]);
+                        setLoading(false);
+                        return;
+                    }
+                    const materialId = materialData.id;
+
+                    // 2. Obtener IDs de productos que tienen el material
+                    const { data: productoMaterialData, error: productoMaterialError } = await supabase
+                        .from('producto_material')
+                        .select('producto_id')
+                        .eq('material_id', materialId);
+
+                    if (productoMaterialError) throw productoMaterialError;
+
+                    const validProductoMaterialData = productoMaterialData || [];
+
+                    if (validProductoMaterialData.length === 0) {
+                        setProducts([]);
+                        setLoading(false);
+                        return;
+                    }
+
+                    const productIdsFromMaterial = validProductoMaterialData.map(pm => pm.producto_id);
+
+                    // 3. Obtener productos activos que coinciden con los IDs de material
+                    const { data, error: productsError } = await supabase
+                        .from('productos')
+                        .select('*')
+                        .in('id', productIdsFromMaterial)
                         .eq('activo', true)
                         .order('created_at', { ascending: false });
 
@@ -191,6 +243,9 @@ const ProductGridPage = () => {
     } else if (material === 'all') {
         const catKey = categoria.toUpperCase();
         pageTitle = CATEGORY_DISPLAY_NAMES[catKey] || toTitleCase(categoria);
+    } else if (categoria === 'all') {
+        const displayMat = toTitleCase(material);
+        pageTitle = `Colección ${displayMat}`;
     } else {
         const catKey = categoria.toUpperCase();
         const displayCat = CATEGORY_DISPLAY_NAMES[catKey] || toTitleCase(categoria);
@@ -211,23 +266,39 @@ const ProductGridPage = () => {
 
     return (
         <div className="container mx-auto px-4 py-8 pt-24">
-            <div className="mb-6 px-1">
-                <Link to="/" className="text-sm text-gray-500 hover:underline">
-                    &lt; Inicio
-                </Link>
+            {/* Top Bar: Breadcrumbs & Sort */}
+            <div className="flex justify-between items-end mb-8 border-b border-gray-100 pb-2">
+                <div className="text-xs md:text-sm text-gray-500 font-sans tracking-wide">
+                    <Link to="/" className="hover:text-black transition-colors">INICIO</Link>
+                    {material !== 'all' && (
+                        <>
+                            <span className="mx-2">/</span>
+                            <span className="uppercase text-gray-800 font-medium">{material}</span>
+                        </>
+                    )}
+                </div>
+
+                <div className="flex items-center">
+                    <Link
+                        to={`/catalogo/${material}/all`}
+                        className="text-xs md:text-sm text-gray-500 hover:text-black transition-colors font-sans uppercase tracking-wide"
+                    >
+                        Ver todo
+                    </Link>
+                </div>
             </div>
-            <div className="flex justify-between items-center mb-2">
-                <h1 className="text-lg md:text-3xl font-bold">{pageTitle}</h1>
-                <select
-                    onChange={handleSortChange}
-                    value={sortOrder}
-                    className="p-1 text-sm border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
-                >
-                    <option value="default">Más Nuevos</option>
-                    <option value="oldest">Más Antiguos</option>
-                </select>
+
+            {/* Main Title Centered */}
+            <div className="text-center mb-8">
+                <h1 className="text-2xl md:text-3xl font-serif font-medium tracking-widest text-gray-900 uppercase">
+                    {material !== 'all' ? `Colección ${material}` : pageTitle}
+                </h1>
             </div>
-            <p className="text-gray-600 mb-8">Explora nuestra colección.</p>
+
+            {/* Sub-navegación por Material */}
+            <MaterialSubNavigation material={material} currentCategory={categoria} />
+
+
 
             {sortedProducts.length > 0 ? (
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
@@ -235,10 +306,11 @@ const ProductGridPage = () => {
                         <Link to={`/producto/${product.id}`} key={product.id} className="group block h-full">
                             <div className="bg-white shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden h-full flex flex-col">
                                 {/* Componente de imagen para la carga gradual */}
-                                <div className="h-56 sm:h-56 overflow-hidden">
+                                <div className="aspect-[4/5] w-full overflow-hidden">
                                     <ProductImage
                                         src={product.imagen_principal_url}
                                         alt={product.titulo}
+                                        className="h-full w-full object-cover"
                                     />
                                 </div>
 

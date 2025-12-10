@@ -15,18 +15,21 @@ const BASE_ROUTES = {
         pulseras: "/catalogo/Plata/Pulsera",
         anillos: "/catalogo/Plata/Anillo",
         collares: "/catalogo/Plata/Collar",
+        all: "/catalogo/Plata/all",
     },
     alpaca: {
         aretes: "/catalogo/Alpaca/Arete",
         pulseras: "/catalogo/Alpaca/Pulsera",
         anillos: "/catalogo/Alpaca/Anillo",
         collares: "/catalogo/Alpaca/Collar",
+        all: "/catalogo/Alpaca/all",
     },
     cobre: {
         aretes: "/catalogo/Cobre/Arete",
         pulseras: "/catalogo/Cobre/Pulsera",
         anillos: "/catalogo/Cobre/Anillo",
         collares: "/catalogo/Cobre/Collar",
+        all: "/catalogo/Cobre/all",
     },
 };
 
@@ -123,11 +126,11 @@ const MaterialCard = ({ card, isActive, isAnyCardActive, onToggle }) => {
                 </div>
 
                 {/* Enlaces debajo de la imagen (solo en móvil) */}
-                <div className="mt-4 grid grid-cols-2 gap-2 justify-center">
+                <div className="mt-3 grid grid-cols-2 gap-x-2 gap-y-1.5 justify-center">
                     {isCustom ? (
                         <Link
                             to={link}
-                            className="px-6 py-3 bg-gray-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-full shadow-md transition-colors duration-300 no-underline uppercase col-span-2 text-center"
+                            className="px-6 py-2 bg-gray-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-full shadow-md transition-colors duration-300 no-underline uppercase col-span-2 text-center"
                         >
                             Ver Modelos
                         </Link>
@@ -136,11 +139,20 @@ const MaterialCard = ({ card, isActive, isAnyCardActive, onToggle }) => {
                             <Link
                                 key={cat.slug}
                                 to={getRoute(key, cat.slug)}
-                                className="px-4 py-3 text-xs font-bold text-white bg-gray-700 hover:bg-gray-900 rounded-full border border-gray-600 shadow-md transition-colors duration-300 no-underline uppercase text-center"
+                                className="px-4 py-2 text-xs font-bold text-white bg-gray-700 hover:bg-gray-900 rounded-full border border-gray-600 shadow-md transition-colors duration-300 no-underline uppercase text-center"
                             >
                                 {cat.name}
                             </Link>
                         ))
+                    )}
+                    {/* Botón Ver Todo para Móvil */}
+                    {!isCustom && (
+                        <Link
+                            to={getRoute(key, "all")}
+                            className="col-span-2 px-4 py-2 text-xs font-bold text-white bg-gray-700 hover:bg-gray-900 rounded-full border border-gray-600 shadow-md transition-colors duration-300 no-underline uppercase text-center mt-0.5"
+                        >
+                            Ver Todo
+                        </Link>
                     )}
                 </div>
             </div>
@@ -228,6 +240,15 @@ const MaterialCard = ({ card, isActive, isAnyCardActive, onToggle }) => {
                                     </Link>
                                 ))
                             )}
+                            {/* Botón Ver Todo para Desktop */}
+                            {!isCustom && (
+                                <Link
+                                    to={getRoute(key, "all")}
+                                    className="px-8 py-2.5 text-xs font-bold text-white bg-gray-900 hover:bg-black rounded-full border border-gray-700 shadow-md transition-colors duration-300 no-underline uppercase w-full max-w-[200px]"
+                                >
+                                    Ver Colección
+                                </Link>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -258,7 +279,7 @@ const Galeria = () => {
         >
             <div className="container mx-auto px-3">
                 <div className="text-center mb-10">
-                    <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900 tracking-tight">
+                    <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 tracking-tight">
                         Colecciones Artesanales
                     </h2>
                     <p className="mt-2 text-lg text-gray-600">
@@ -267,11 +288,11 @@ const Galeria = () => {
                 </div>
 
                 {/* Flex row en desktop, column en móvil */}
-                <div className="flex flex-col gap-8 lg:flex-row lg:justify-between lg:gap-6">
+                <div className="flex flex-col gap-12 lg:flex-row lg:justify-between lg:gap-6">
                     {MATERIAL_CARDS.map((card) => (
                         <div
                             key={card.key}
-                            className="flex flex-col bg-white p-4 rounded-xl shadow-xl transition-shadow duration-300 hover:shadow-2xl w-full lg:w-[23.5%]"
+                            className="flex flex-col bg-white p-4 rounded-xl shadow-xl border border-gray-200 transition-shadow duration-300 hover:shadow-2xl w-full lg:w-[23.5%]"
                         >
                             <h3 className="text-xl sm:text-2xl font-semibold text-gray-800 tracking-tight mb-1 text-center">
                                 {card.name}

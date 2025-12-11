@@ -4,6 +4,7 @@ import Galeria from '../../components/Galeria';
 import Hero3 from '../../components/Hero/Hero3';
 import CelebrityCollaboration from '../../components/CelebrityCollaboration';
 import SocialProof from '../../components/SocialProof';
+import HomeVideoShort from '../../components/HomeVideoShort';
 
 const Home = () => {
   return (
@@ -21,6 +22,7 @@ const Home = () => {
 
         <Hero3 />
         <CelebrityCollaboration />
+        <HomeVideoShort />
         <SocialProof />
       </main>
     </>

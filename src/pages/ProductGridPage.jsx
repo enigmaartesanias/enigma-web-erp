@@ -281,7 +281,12 @@ const ProductGridPage = () => {
                 <div className="flex items-center">
                     <Link
                         to={`/catalogo/${material}/all`}
-                        className="text-xs md:text-sm text-gray-500 hover:text-black transition-colors font-sans uppercase tracking-wide"
+                        className={`
+                            text-xs md:text-sm transition-colors duration-300 font-sans uppercase tracking-wide
+                            ${categoria === 'all'
+                                ? 'text-black font-bold border-b 2 border-black'
+                                : 'text-gray-500 hover:text-black border-b border-transparent'}
+                        `}
                     >
                         Ver todo
                     </Link>

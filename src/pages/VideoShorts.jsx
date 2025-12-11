@@ -49,7 +49,7 @@ const VideoShorts = () => {
         <p className="text-sm md:text-lg text-center text-gray-700 mb-10 max-w-3xl mx-auto">
           Disfruta de nuestros videos cortos en formato vertical y descubre el arte, la técnica y la inspiración detrás de cada pieza. ¡Síguenos en YouTube para más contenido exclusivo!
         </p>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {shortsData.map((video, idx) => (
             <div key={video.id} className="flex flex-col items-center mb-8">
               {/* Número de VideoShorts */}

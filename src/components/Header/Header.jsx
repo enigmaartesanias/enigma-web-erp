@@ -147,10 +147,10 @@ const Header = () => {
                                     </span>
                                 </button>
                                 <ul
-                                    className={`${activeDropdown === material
-                                        ? 'block bg-gray-100 md:bg-white md:absolute md:min-w-[160px] md:mt-2 md:shadow-lg md:border md:border-gray-200 z-50'
-                                        : 'hidden'
-                                        } md:group-hover:block`}
+                                    className={`${activeDropdown === material ? 'block' : 'hidden'} 
+                                        md:group-hover:block 
+                                        bg-gray-100 
+                                        md:bg-white md:absolute md:top-full md:left-0 md:min-w-[160px] md:shadow-lg md:border md:border-gray-200 z-50`}
                                 >
                                     {jewelryByMaterial[material].map((jewelry) => (
                                         <li key={`${material}-${jewelry.name}`}>
@@ -216,7 +216,7 @@ const Header = () => {
                     </ul>
                 </nav>
             </div>
-        </header>
+        </header >
     );
 };
 

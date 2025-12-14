@@ -1,0 +1,25 @@
+export default function Inventario() {
+    return (
+        <div className="min-h-screen bg-gray-50 p-6">
+            <div className="max-w-7xl mx-auto">
+                <div className="bg-white rounded-lg shadow-md p-6">
+                    <h1 className="text-3xl font-bold text-gray-900 mb-6">
+                        📊 Inventario
+                    </h1>
+                    <p className="text-gray-600 mb-4">
+                        Control y seguimiento de stock
+                    </p>
+
+                    <div className="bg-teal-50 border border-teal-200 rounded-lg p-4">
+                        <p className="text-teal-800">
+                            📈 <strong>Módulo de Inventario</strong> - En construcción
+                        </p>
+                        <p className="text-sm text-teal-600 mt-2">
+                            Este módulo mostrará el estado actual del inventario y movimientos.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}

@@ -38,6 +38,15 @@ import StockAdmin from './components/StockAdmin';
 import Pedidos from './components/Pedidos';
 import ReportePedidos from './components/ReportePedidos';
 
+// Módulo de Inventario
+import InventarioHome from './modules/inventario/pages/InventarioHome';
+import Produccion from './modules/inventario/pages/Produccion';
+import Ventas from './modules/inventario/pages/Ventas';
+import Catalogo from './modules/inventario/pages/Catalogo';
+import Compras from './modules/inventario/pages/Compras';
+import Inventario from './modules/inventario/pages/Inventario';
+import StockInicial from './modules/inventario/pages/StockInicial';
+
 const MainContent = () => {
     const location = useLocation();
     const isAdmin = location.pathname.startsWith('/admin');
@@ -74,6 +83,15 @@ const MainContent = () => {
                 <Route path="/admin/stock" element={<PrivateRoute><StockAdmin /></PrivateRoute>} />
                 <Route path="/admin/pedidos" element={<PrivateRoute><Pedidos /></PrivateRoute>} />
                 <Route path="/admin/reportes" element={<PrivateRoute><ReportePedidos /></PrivateRoute>} />
+
+                {/* Módulo de Inventario - Rutas privadas */}
+                <Route path="/inventario-home" element={<PrivateRoute><InventarioHome /></PrivateRoute>} />
+                <Route path="/produccion" element={<PrivateRoute><Produccion /></PrivateRoute>} />
+                <Route path="/ventas" element={<PrivateRoute><Ventas /></PrivateRoute>} />
+                <Route path="/catalogo-inventario" element={<PrivateRoute><Catalogo /></PrivateRoute>} />
+                <Route path="/compras" element={<PrivateRoute><Compras /></PrivateRoute>} />
+                <Route path="/inventario" element={<PrivateRoute><Inventario /></PrivateRoute>} />
+                <Route path="/stock-inicial" element={<PrivateRoute><StockInicial /></PrivateRoute>} />
             </Routes>
             {!isAdmin && (
                 <>

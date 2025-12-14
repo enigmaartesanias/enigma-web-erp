@@ -139,31 +139,26 @@ const AdminPanel = () => {
           </div>
         </div>
 
-        {/* Grupo 4: Sistema Externo */}
+        {/* Grupo 4: Sistema de Inventario Integrado */}
         <div className="mb-8">
-          <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-4 text-center">Sistema Avanzado</h3>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-8 max-w-4xl mx-auto">
-            {/* Sistema de Costos e Inventario */}
-            <a
-              href="https://enigmasistemas.netlify.app/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="block p-6 bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 text-center border border-gray-100"
+          <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-4 text-center">Sistema de Inventario</h3>
+          <div className="grid grid-cols-1 lg:grid-cols-1 gap-4 md:gap-8 max-w-md mx-auto">
+            {/* Sistema de Inventario Integrado */}
+            <Link
+              to="/inventario-home"
+              className="block p-6 bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl shadow-md hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 text-center border-2 border-indigo-200"
             >
-              <div className="w-12 h-12 md:w-16 md:h-16 bg-indigo-50 rounded-full flex items-center justify-center mx-auto mb-3 md:mb-4">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 md:h-8 md:w-8 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <div className="w-12 h-12 md:w-16 md:h-16 bg-indigo-600 rounded-full flex items-center justify-center mx-auto mb-3 md:mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 md:h-8 md:w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
                 </svg>
               </div>
-              <h2 className="text-base md:text-xl font-medium text-gray-800 mb-1">Sistema de Costos e Inventario</h2>
-              <p className="text-xs md:text-sm text-gray-500 hidden md:block">Sistema avanzado con autenticación independiente.</p>
-              <div className="mt-2 flex items-center justify-center gap-1 text-xs text-indigo-600">
-                <span>Abrir sistema</span>
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                </svg>
+              <h2 className="text-base md:text-xl font-medium text-gray-900 mb-1">Sistema ERP Completo</h2>
+              <p className="text-xs md:text-sm text-gray-600 hidden md:block mb-2">Producción, Compras, Ventas, Inventario y más.</p>
+              <div className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-indigo-700 bg-indigo-100 px-3 py-1 rounded-full">
+                <span>✨ Integrado</span>
               </div>
-            </a>
+            </Link>
           </div>
         </div>
 

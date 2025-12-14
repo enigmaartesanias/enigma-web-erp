@@ -1,6 +1,6 @@
 ﻿
 import React, { useState, useEffect, useRef } from 'react';
-import { supabase } from '../supabaseClient';
+import { pedidosDB } from '../utils/pedidosNeonClient';
 import { Link } from 'react-router-dom';
 import { FaEdit, FaTrash, FaCheckCircle, FaTimesCircle, FaPlus, FaWhatsapp, FaPrint, FaSearch, FaMoneyBillWave, FaShareAlt, FaImage, FaPhone, FaArrowLeft } from 'react-icons/fa';
 import html2canvas from 'html2canvas';
@@ -66,16 +66,7 @@ const Pedidos = () => {
 
     const fetchPedidos = async () => {
         try {
-            const { data, error } = await supabase
-                .from('pedidos')
-                .select(`
-                    *,
-                    detalles_pedido (*),
-                    pagos (*)
-                `)
-                .order('fecha_pedido', { ascending: false });
-
-            if (error) throw error;
+            const data = await pedidosDB.getAll();
             setPedidos(data || []);
         } catch (error) {
             console.error('Error al cargar pedidos:', error);
@@ -207,30 +198,7 @@ const Pedidos = () => {
         if (!window.confirm('¿Estás seguro de eliminar este pedido?')) return;
 
         try {
-            // 1. Eliminar Detalles de Pedido (Foreign Key)
-            const { error: errorDetalles } = await supabase
-                .from('detalles_pedido')
-                .delete()
-                .eq('id_pedido', id);
-
-            if (errorDetalles) throw errorDetalles;
-
-            // 2. Eliminar Pagos (Foreign Key)
-            const { error: errorPagos } = await supabase
-                .from('pagos')
-                .delete()
-                .eq('id_pedido', id);
-
-            if (errorPagos) throw errorPagos;
-
-            // 3. Eliminar Pedido Principal
-            const { error } = await supabase
-                .from('pedidos')
-                .delete()
-                .eq('id_pedido', id);
-
-            if (error) throw error;
-
+            await pedidosDB.delete(id);
             setMessage({ type: 'success', text: 'Pedido eliminado correctamente.' });
             fetchPedidos();
         } catch (error) {
@@ -289,7 +257,7 @@ const Pedidos = () => {
                 requiere_envio: formData.requiere_envio,
                 modalidad_envio: formData.modalidad_envio,
                 envio_cobrado_al_cliente: parseFloat(formData.envio_cobrado_al_cliente),
-                envio_referencia: parseFloat(formData.envio_referencia),
+                envio_referencia: parseFloat(formData.envio_referencia || 0),
                 precio_total_sin_igv: calculos.precio_total_sin_igv,
                 precio_total: calculos.precio_total,
                 monto_a_cuenta: parseFloat(formData.monto_a_cuenta),
@@ -304,73 +272,31 @@ const Pedidos = () => {
 
             if (editingId) {
                 // Actualizar Pedido
-                const { error: errorPedido } = await supabase
-                    .from('pedidos')
-                    .update(pedidoData)
-                    .eq('id_pedido', editingId);
+                await pedidosDB.update(editingId, pedidoData);
 
-                if (errorPedido) throw errorPedido;
-
-                // Reemplazar detalles: Primero eliminar todos los existentes
-                const { error: errorDelete } = await supabase
-                    .from('detalles_pedido')
-                    .delete()
-                    .eq('id_pedido', editingId);
-
-                if (errorDelete) throw errorDelete;
-
-                // Insertar los nuevos detalles de la lista
-                const detallesParaInsertar = listaProductos.map(p => ({
-                    id_pedido: editingId,
-                    nombre_producto: p.nombre_producto,
-                    cantidad: parseInt(p.cantidad),
-                    precio_unitario: parseFloat(p.precio_unitario)
-                }));
-
-                const { error: errorInsert } = await supabase
-                    .from('detalles_pedido')
-                    .insert(detallesParaInsertar);
-
-                if (errorInsert) throw errorInsert;
+                // Reemplazar detalles
+                await pedidosDB.deleteDetalles(editingId);
+                await pedidosDB.createDetalles(editingId, listaProductos);
 
                 setMessage({ type: 'success', text: 'Pedido actualizado correctamente.' });
 
             } else {
                 // Crear Nuevo Pedido
-                const { data: pedido, error: errorPedido } = await supabase
-                    .from('pedidos')
-                    .insert([pedidoData])
-                    .select()
-                    .single();
-
-                if (errorPedido) throw errorPedido;
+                const pedido = await pedidosDB.create(pedidoData);
                 pedidoId = pedido.id_pedido;
 
-                const detallesParaInsertar = listaProductos.map(p => ({
-                    id_pedido: pedidoId,
-                    nombre_producto: p.nombre_producto,
-                    cantidad: parseInt(p.cantidad),
-                    precio_unitario: parseFloat(p.precio_unitario)
-                }));
-
-                const { error: errorDetalle } = await supabase
-                    .from('detalles_pedido')
-                    .insert(detallesParaInsertar);
-
-                if (errorDetalle) throw errorDetalle;
+                // Crear detalles
+                await pedidosDB.createDetalles(pedidoId, listaProductos);
 
                 // Registrar pago inicial si hay monto a cuenta
                 if (pedidoData.monto_a_cuenta > 0) {
-                    const { error: errorPago } = await supabase
-                        .from('pagos')
-                        .insert([{
-                            id_pedido: pedidoId,
-                            monto: pedidoData.monto_a_cuenta,
-                            fecha_pago: new Date().toISOString().split('T')[0],
-                            metodo_pago: formData.forma_pago,
-                            referencia: formData.comprobante_pago
-                        }]);
-                    if (errorPago) console.error('Error creando pago inicial', errorPago);
+                    await pedidosDB.createPago({
+                        id_pedido: pedidoId,
+                        monto: pedidoData.monto_a_cuenta,
+                        fecha_pago: new Date().toISOString().split('T')[0],
+                        metodo_pago: formData.forma_pago,
+                        referencia: formData.comprobante_pago || ''
+                    });
                 }
 
                 setMessage({ type: 'success', text: 'Pedido registrado correctamente.' });
@@ -433,38 +359,29 @@ const Pedidos = () => {
         try {
             const montoPago = parseFloat(payData.monto);
             const nuevoAcuenta = (payPedido.monto_a_cuenta || 0) + montoPago;
-            // Recalculate saldo based on total price
             const nuevoSaldo = payPedido.precio_total - nuevoAcuenta;
-            const cancelado = nuevoSaldo <= 0.05; // Tolerance
+            const cancelado = nuevoSaldo <= 0.05;
 
-            // Update in DB (Update Pedido + Insert Pago)
-            const { error: errorUpdate } = await supabase
-                .from('pedidos')
-                .update({
-                    monto_a_cuenta: nuevoAcuenta,
-                    monto_saldo: nuevoSaldo < 0 ? 0 : nuevoSaldo,
-                    cancelado: cancelado
-                })
-                .eq('id_pedido', payPedido.id_pedido);
+            // Update pedido
+            await pedidosDB.update(payPedido.id_pedido, {
+                ...payPedido,
+                monto_a_cuenta: nuevoAcuenta,
+                monto_saldo: nuevoSaldo < 0 ? 0 : nuevoSaldo,
+                cancelado: cancelado
+            });
 
-            if (errorUpdate) throw errorUpdate;
-
-            // Insert new payment record
-            const { error: errorPago } = await supabase
-                .from('pagos')
-                .insert([{
-                    id_pedido: payPedido.id_pedido,
-                    monto: montoPago,
-                    fecha_pago: payData.fecha,
-                    metodo_pago: payData.metodo,
-                    referencia: ''
-                }]);
-
-            if (errorPago) console.error('Error insertando pago', errorPago);
+            // Insert payment record
+            await pedidosDB.createPago({
+                id_pedido: payPedido.id_pedido,
+                monto: montoPago,
+                fecha_pago: payData.fecha,
+                metodo_pago: payData.metodo,
+                referencia: ''
+            });
 
             setMessage({ type: 'success', text: 'Pago registrado correctamente.' });
             handleClosePayModal();
-            fetchPedidos(); // Refresh Grid
+            fetchPedidos();
 
         } catch (error) {
             console.error('Error al registrar pago:', error);

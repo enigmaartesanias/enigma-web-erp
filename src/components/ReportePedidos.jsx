@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from '../supabaseClient';
+import { pedidosDB } from '../utils/pedidosNeonClient';
 import { Link } from 'react-router-dom';
 import { FaArrowLeft, FaFilePdf, FaChartLine, FaMoneyBillWave, FaUserTie, FaBoxOpen, FaExclamationCircle } from 'react-icons/fa';
 import jsPDF from 'jspdf';
@@ -19,14 +19,13 @@ const ReportePedidos = () => {
     const [topClientes, setTopClientes] = useState([]);
     const [chartData, setChartData] = useState([]);
 
-    // Filtros
+    // Filtros - Por defecto mostrar TODOS los pedidos
     const today = new Date();
-    const threeMonthsAgo = new Date();
-    threeMonthsAgo.setMonth(today.getMonth() - 2);
-    threeMonthsAgo.setDate(1);
+    const oneYearAgo = new Date();
+    oneYearAgo.setFullYear(today.getFullYear() - 1);
 
-    const [fechaInicio, setFechaInicio] = useState(threeMonthsAgo.toISOString().split('T')[0]);
-    const [fechaFin, setFechaFin] = useState(today.toISOString().split('T')[0]);
+    const [fechaInicio, setFechaInicio] = useState('');
+    const [fechaFin, setFechaFin] = useState('');
 
     useEffect(() => {
         fetchReportData();
@@ -35,18 +34,34 @@ const ReportePedidos = () => {
     const fetchReportData = async () => {
         setLoading(true);
         try {
-            // Nota: Se asume relación 'detalles_pedido' (order_id -> id_pedido)
-            const { data, error } = await supabase
-                .from('pedidos')
-                .select(`
-                    *,
-                    detalles_pedido (*)
-                `)
-                .gte('fecha_pedido', fechaInicio)
-                .lte('fecha_pedido', fechaFin)
-                .order('fecha_pedido', { ascending: false });
+            // Obtener todos los pedidos con detalles desde Neon DB
+            const allPedidos = await pedidosDB.getAll();
+            console.log('📊 Total pedidos en Neon:', allPedidos.length);
+            console.log('📅 Rango de fechas:', { fechaInicio, fechaFin });
 
-            if (error) throw error;
+            // Mostrar fechas de los primeros pedidos para depuración
+            if (allPedidos.length > 0) {
+                console.log('🗓️ Fechas de pedidos en DB:', allPedidos.slice(0, 3).map(p => ({
+                    id: p.id_pedido,
+                    fecha: p.fecha_pedido,
+                    cliente: p.nombre_cliente
+                })));
+            }
+
+            // Filtrar por rango de fechas solo si hay fechas válidas
+            let data = allPedidos;
+
+            if (fechaInicio && fechaFin) {
+                data = allPedidos.filter(p => {
+                    if (!p.fecha_pedido) return false;
+                    const fechaPedido = p.fecha_pedido;
+                    const enRango = fechaPedido >= fechaInicio && fechaPedido <= fechaFin;
+                    return enRango;
+                });
+            }
+
+            console.log('✅ Pedidos filtrados por fecha:', data.length);
+            console.log('📋 Muestra de pedidos:', data.slice(0, 2));
 
             // En este sistema 'cancelado' (true) significa PAGADO, no ANULADO.
             // Por lo tanto, debemos incluir TODOS los pedidos.
@@ -66,9 +81,16 @@ const ReportePedidos = () => {
 
             // 1. Métricas Financieras
             const ventasBrutas = pedidos.reduce((acc, p) => acc + (Number(p.precio_total) || 0), 0);
+
+            // Ventas Netas = Pedidos cancelados (pagados 100%) SIN INCLUIR envío
             const ventasNetas = pedidos
                 .filter(p => (p.monto_saldo || 0) <= 0.1)
-                .reduce((acc, p) => acc + (Number(p.precio_total) || 0), 0);
+                .reduce((acc, p) => {
+                    const total = Number(p.precio_total) || 0;
+                    const envio = Number(p.envio_cobrado_al_cliente) || 0;
+                    return acc + (total - envio);
+                }, 0);
+
             const cuentasPorCobrar = pedidos.reduce((acc, p) => acc + ((p.monto_saldo > 0) ? Number(p.monto_saldo) : 0), 0);
 
             const cantidad = pedidos.length;

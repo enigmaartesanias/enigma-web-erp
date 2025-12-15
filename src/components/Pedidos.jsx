@@ -1,8 +1,11 @@
 ﻿
+
+
 import React, { useState, useEffect, useRef } from 'react';
 import { pedidosDB } from '../utils/pedidosNeonClient';
-import { Link } from 'react-router-dom';
-import { FaEdit, FaTrash, FaCheckCircle, FaTimesCircle, FaPlus, FaWhatsapp, FaPrint, FaSearch, FaMoneyBillWave, FaShareAlt, FaImage, FaPhone, FaArrowLeft } from 'react-icons/fa';
+import { produccionDB, METALES, TIPOS_PRODUCTO } from '../utils/produccionNeonClient';
+import { Link, useNavigate } from 'react-router-dom';
+import { FaEdit, FaTrash, FaCheckCircle, FaTimesCircle, FaPlus, FaWhatsapp, FaPrint, FaSearch, FaMoneyBillWave, FaShareAlt, FaImage, FaPhone, FaArrowLeft, FaHammer } from 'react-icons/fa';
 import html2canvas from 'html2canvas';
 
 const Pedidos = () => {
@@ -30,12 +33,14 @@ const Pedidos = () => {
         telefono: '',
         dni_ruc: '',
         direccion_entrega: '',
+        metal: '',
+        tipo_producto: '',
         forma_pago: 'Efectivo',
         comprobante_pago: '',
         requiere_envio: false,
         modalidad_envio: 'Fijo',
         envio_cobrado_al_cliente: 0,
-        monto_a_cuenta: 0,
+        monto_a_cuenta: '',
         incluye_igv: false,
     });
 
@@ -142,17 +147,33 @@ const Pedidos = () => {
             return;
         }
 
+        // Validar Metal y Tipo antes de agregar el producto
+        if (!formData.metal || !formData.tipo_producto) {
+            alert("Por favor seleccione el Metal y el Tipo antes de agregar el producto.");
+            return;
+        }
+
         setListaProductos(prev => [...prev, {
             ...productoActual,
             cantidad: parseFloat(productoActual.cantidad),
-            precio_unitario: parseFloat(productoActual.precio_unitario)
+            precio_unitario: parseFloat(productoActual.precio_unitario),
+            metal: formData.metal,           // Guardar metal específico
+            tipo_producto: formData.tipo_producto // Guardar tipo específico
         }]);
 
+        // Resetear campos del producto
         setProductoActual({
             nombre_producto: '',
             cantidad: '',
             precio_unitario: ''
         });
+
+        // Resetear selección de Metal y Tipo para el siguiente producto
+        setFormData(prev => ({
+            ...prev,
+            metal: '',
+            tipo_producto: ''
+        }));
     };
 
     const eliminarProductoLista = (index) => {
@@ -169,6 +190,8 @@ const Pedidos = () => {
             telefono: pedido.telefono || '',
             dni_ruc: pedido.dni_ruc || '',
             direccion_entrega: pedido.direccion_entrega || '',
+            metal: pedido.metal || 'Plata',
+            tipo_producto: pedido.tipo_producto || 'Anillo',
             forma_pago: pedido.forma_pago || 'Efectivo',
             comprobante_pago: pedido.comprobante_pago || '',
             requiere_envio: pedido.requiere_envio,
@@ -207,19 +230,28 @@ const Pedidos = () => {
         }
     };
 
+    const navigate = useNavigate();
+
+    const handleCrearProduccion = async (pedido) => {
+        // Navegar a producción con parámetro de pedido
+        navigate(`/produccion?pedido=${pedido.id_pedido}`);
+    };
+
     const resetForm = () => {
         setFormData({
             nombre_cliente: '',
             telefono: '',
             dni_ruc: '',
             direccion_entrega: '',
+            metal: '',
+            tipo_producto: '',
             forma_pago: 'Efectivo',
             comprobante_pago: '',
             requiere_envio: false,
             modalidad_envio: 'Fijo',
             envio_cobrado_al_cliente: 0,
-            envio_referencia: 0,
-            monto_a_cuenta: 0,
+            monto_a_cuenta: '',
+            incluye_igv: false,
             entregado: false,
             incluye_igv: false,
         });
@@ -229,7 +261,6 @@ const Pedidos = () => {
             precio_unitario: ''
         });
         setListaProductos([]);
-        setListaProductos([]);
         setEditingId(null);
         setTipoPagoInicial('adelanto');
         setFechaPago(new Date().toISOString().split('T')[0]);
@@ -238,10 +269,21 @@ const Pedidos = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
 
+        // 1. Validar Productos
         if (listaProductos.length === 0) {
-            alert("Debe agregar al menos un producto al pedido.");
+            setMessage({ type: 'error', text: "Debe agregar al menos un producto al pedido." });
+            window.scrollTo({ top: 0, behavior: 'smooth' });
             return;
         }
+
+        // 2. Validar Campos Obligatorios Clientes
+        if (!formData.nombre_cliente || !formData.telefono) {
+            setMessage({ type: 'error', text: "El Nombre del Cliente y Teléfono son obligatorios." });
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            return;
+        }
+
+
 
         setLoading(true);
         setMessage(null);
@@ -252,15 +294,17 @@ const Pedidos = () => {
                 telefono: formData.telefono,
                 dni_ruc: formData.dni_ruc,
                 direccion_entrega: formData.direccion_entrega,
+                metal: formData.metal || (listaProductos.length > 0 ? listaProductos[0].metal : ''),
+                tipo_producto: formData.tipo_producto || (listaProductos.length > 0 ? listaProductos[0].tipo_producto : ''),
                 forma_pago: formData.forma_pago,
                 comprobante_pago: formData.comprobante_pago,
                 requiere_envio: formData.requiere_envio,
                 modalidad_envio: formData.modalidad_envio,
-                envio_cobrado_al_cliente: parseFloat(formData.envio_cobrado_al_cliente),
+                envio_cobrado_al_cliente: parseFloat(formData.envio_cobrado_al_cliente) || 0,
                 envio_referencia: parseFloat(formData.envio_referencia || 0),
                 precio_total_sin_igv: calculos.precio_total_sin_igv,
                 precio_total: calculos.precio_total,
-                monto_a_cuenta: parseFloat(formData.monto_a_cuenta),
+                monto_a_cuenta: parseFloat(formData.monto_a_cuenta) || 0,
                 entregado: false,
                 incluye_igv: formData.incluye_igv,
                 monto_igv: calculos.monto_igv,
@@ -268,11 +312,19 @@ const Pedidos = () => {
                 cancelado: calculos.cancelado
             };
 
+            console.log('📝 Datos del pedido a guardar:', pedidoData);
+            console.log('📦 Productos:', listaProductos);
+
             let pedidoId = editingId;
 
             if (editingId) {
                 // Actualizar Pedido
-                await pedidosDB.update(editingId, pedidoData);
+                console.log('🔄 Actualizando pedido ID:', editingId);
+                const pedidoActualizado = await pedidosDB.update(editingId, pedidoData);
+
+                if (!pedidoActualizado) {
+                    throw new Error("La base de datos no devolvió confirmación de actualización.");
+                }
 
                 // Reemplazar detalles
                 await pedidosDB.deleteDetalles(editingId);
@@ -282,14 +334,25 @@ const Pedidos = () => {
 
             } else {
                 // Crear Nuevo Pedido
+                console.log('✨ Creando nuevo pedido...');
                 const pedido = await pedidosDB.create(pedidoData);
+
+                if (!pedido || !pedido.id_pedido) {
+                    console.error("Respuesta de BD inválida:", pedido);
+                    throw new Error("No se pudo crear el pedido: La base de datos no devolvió un ID válido.");
+                }
+
+                console.log('✅ Pedido creado:', pedido);
                 pedidoId = pedido.id_pedido;
 
                 // Crear detalles
+                console.log('📦 Creando detalles del pedido...');
                 await pedidosDB.createDetalles(pedidoId, listaProductos);
+                console.log('✅ Detalles creados');
 
                 // Registrar pago inicial si hay monto a cuenta
                 if (pedidoData.monto_a_cuenta > 0) {
+                    console.log('💰 Registrando pago inicial...');
                     await pedidosDB.createPago({
                         id_pedido: pedidoId,
                         monto: pedidoData.monto_a_cuenta,
@@ -297,17 +360,24 @@ const Pedidos = () => {
                         metodo_pago: formData.forma_pago,
                         referencia: formData.comprobante_pago || ''
                     });
+                    console.log('✅ Pago registrado');
                 }
 
                 setMessage({ type: 'success', text: 'Pedido registrado correctamente.' });
             }
 
+            console.log('🔄 Refrescando lista de pedidos...');
+            await fetchPedidos();
+            console.log('✅ Lista actualizada');
+
             resetForm();
-            fetchPedidos();
 
         } catch (error) {
-            console.error('Error al guardar pedido:', error);
-            setMessage({ type: 'error', text: 'Error al guardar el pedido: ' + error.message });
+            console.error('❌ Error completo al guardar pedido:', error);
+            console.error('❌ Stack trace:', error.stack);
+            const errorMsg = error.message || 'Error desconocido';
+            alert('ERROR AL GUARDAR: ' + errorMsg + '\n\nRevisa la consola para más detalles.');
+            setMessage({ type: 'error', text: 'Error al guardar el pedido: ' + errorMsg });
         } finally {
             setLoading(false);
         }
@@ -408,6 +478,12 @@ const Pedidos = () => {
         return matchesStatus && matchesSearch;
     });
 
+
+    // Prevent mouse wheel from changing number inputs
+    const handleWheel = (e) => {
+        e.target.blur();
+    };
+
     return (
         <div className="container mx-auto p-4 md:p-6 bg-gray-50 min-h-screen">
             <div className="mb-6">
@@ -446,7 +522,6 @@ const Pedidos = () => {
                                     value={formData.nombre_cliente}
                                     onChange={handleChange}
                                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2"
-                                    required
                                 />
                             </div>
                             <div>
@@ -457,7 +532,6 @@ const Pedidos = () => {
                                     value={formData.telefono}
                                     onChange={handleChange}
                                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2"
-                                    required
                                 />
                             </div>
                             <div>
@@ -469,6 +543,30 @@ const Pedidos = () => {
                                     onChange={handleChange}
                                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2"
                                 />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700">Metal *</label>
+                                <select
+                                    name="metal"
+                                    value={formData.metal}
+                                    onChange={handleChange}
+                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2"
+                                >
+                                    <option value="">-- Selecciona metal --</option>
+                                    {METALES.map(m => <option key={m} value={m}>{m}</option>)}
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700">Tipo de Producto *</label>
+                                <select
+                                    name="tipo_producto"
+                                    value={formData.tipo_producto}
+                                    onChange={handleChange}
+                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2"
+                                >
+                                    <option value="">-- Selecciona tipo --</option>
+                                    {TIPOS_PRODUCTO.map(t => <option key={t} value={t}>{t}</option>)}
+                                </select>
                             </div>
                         </div>
                     </div>
@@ -496,6 +594,7 @@ const Pedidos = () => {
                                     onChange={handleProductoChange}
                                     min="1"
                                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2"
+                                    onWheel={handleWheel}
                                 />
                             </div>
                             <div className="flex space-x-2">
@@ -508,6 +607,7 @@ const Pedidos = () => {
                                         onChange={handleProductoChange}
                                         step="0.01"
                                         className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2"
+                                        onWheel={handleWheel}
                                     />
                                 </div>
                                 <button
@@ -523,35 +623,47 @@ const Pedidos = () => {
 
                         {/* Lista de productos agregados */}
                         {listaProductos.length > 0 && (
-                            <div className="mt-4 overflow-x-auto">
-                                <table className="min-w-full divide-y divide-gray-200 border">
-                                    <thead className="bg-gray-100">
+                            <div className="mt-6">
+                                <table className="min-w-full divide-y divide-gray-200">
+                                    <thead className="bg-gray-50">
                                         <tr>
-                                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Producto</th>
-                                            <th className="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Cant.</th>
-                                            <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">P. Unit</th>
-                                            <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Subtotal</th>
-                                            <th className="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Acción</th>
+                                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Producto</th>
+                                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Metal / Tipo</th>
+                                            <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase">Cant.</th>
+                                            <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">P. Unit</th>
+                                            <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">Subtotal</th>
+                                            <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase">Acción</th>
                                         </tr>
                                     </thead>
                                     <tbody className="bg-white divide-y divide-gray-200">
                                         {listaProductos.map((prod, index) => (
                                             <tr key={index}>
-                                                <td className="px-4 py-2 text-sm text-gray-900">{prod.nombre_producto}</td>
-                                                <td className="px-4 py-2 text-center text-sm text-gray-900">{prod.cantidad}</td>
-                                                <td className="px-4 py-2 text-right text-sm text-gray-900">S/ {parseFloat(prod.precio_unitario).toFixed(2)}</td>
-                                                <td className="px-4 py-2 text-right text-sm text-gray-900 font-medium">S/ {(prod.cantidad * prod.precio_unitario).toFixed(2)}</td>
-                                                <td className="px-4 py-2 text-center">
+                                                <td className="px-3 py-2 text-sm text-gray-900">{prod.nombre_producto}</td>
+                                                <td className="px-3 py-2 text-sm text-gray-500">
+                                                    <div className="text-xs font-semibold text-gray-700">{prod.metal}</div>
+                                                    <div className="text-xs text-gray-500">{prod.tipo_producto}</div>
+                                                </td>
+                                                <td className="px-3 py-2 text-sm text-gray-900 text-center">{prod.cantidad}</td>
+                                                <td className="px-3 py-2 text-sm text-gray-900 text-right">S/ {parseFloat(prod.precio_unitario).toFixed(2)}</td>
+                                                <td className="px-3 py-2 text-sm font-bold text-gray-900 text-right">S/ {(prod.cantidad * prod.precio_unitario).toFixed(2)}</td>
+                                                <td className="px-3 py-2 text-center">
                                                     <button
                                                         type="button"
                                                         onClick={() => eliminarProductoLista(index)}
-                                                        className="text-red-500 hover:text-red-700"
+                                                        className="text-red-600 hover:text-red-900"
                                                     >
                                                         <FaTrash size={14} />
                                                     </button>
                                                 </td>
                                             </tr>
                                         ))}
+                                        {listaProductos.length === 0 && (
+                                            <tr>
+                                                <td colSpan="6" className="px-3 py-4 text-center text-sm text-gray-500">
+                                                    No hay productos agregados.
+                                                </td>
+                                            </tr>
+                                        )}
                                     </tbody>
                                 </table>
                             </div>
@@ -607,6 +719,7 @@ const Pedidos = () => {
                                             onChange={handleChange}
                                             step="0.01"
                                             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2"
+                                            onWheel={handleWheel}
                                         />
                                     </div>
                                 </div>
@@ -690,6 +803,7 @@ const Pedidos = () => {
                                         step="0.01"
                                         className={`mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2 ${tipoPagoInicial === 'total' ? 'bg-gray-100 text-gray-500' : ''}`}
                                         required
+                                        onWheel={handleWheel}
                                         readOnly={tipoPagoInicial === 'total'}
                                     />
                                     {/* Botón '+' eliminado por rediseño */}
@@ -743,10 +857,10 @@ const Pedidos = () => {
                         </button>
                     </div>
                 </form>
-            </div>
+            </div >
 
             {/* Listado de Pedidos */}
-            <div className="bg-white shadow-lg rounded-lg p-6 max-w-6xl mx-auto">
+            < div className="bg-white shadow-lg rounded-lg p-6 max-w-6xl mx-auto" >
                 <h3 className="text-2xl font-bold mb-4 text-gray-800">Historial de Pedidos</h3>
 
                 {/* Filtros y Totales + Buscador */}
@@ -834,12 +948,12 @@ const Pedidos = () => {
                                 filteredPedidos.map((pedido) => (
                                     <tr key={pedido.id_pedido} className="hover:bg-gray-50">
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                            {new Date(pedido.fecha_pedido).toLocaleDateString()}
+                                            {new Date(pedido.fecha_pedido).toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', year: '2-digit' })}
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 text-left">
                                             {pedido.nombre_cliente}
                                         </td>
-                                        <td className="hidden md:table-cell px-6 py-4 text-sm text-gray-500 min-w-[250px]">
+                                        <td className="hidden md:table-cell px-6 py-4 text-sm text-gray-500 min-w-[250px] text-left">
                                             {pedido.detalles_pedido && pedido.detalles_pedido.length > 0 ? (
                                                 <div className="space-y-1">
                                                     {pedido.detalles_pedido.map((d, idx) => (
@@ -877,6 +991,15 @@ const Pedidos = () => {
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
                                             <div className="flex justify-center space-x-3">
+                                                {!pedido.cancelado && pedido.metal && pedido.tipo_producto && (
+                                                    <button
+                                                        onClick={() => handleCrearProduccion(pedido)}
+                                                        className="text-purple-600 hover:text-purple-900"
+                                                        title="Crear Producción"
+                                                    >
+                                                        <FaHammer className="h-5 w-5" />
+                                                    </button>
+                                                )}
                                                 {!pedido.cancelado && (
                                                     <button onClick={() => handleOpenPayModal(pedido)} className="text-green-600 hover:text-green-900" title="Registrar Pago / Adelanto">
                                                         <FaMoneyBillWave className="h-5 w-5" />

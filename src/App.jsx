@@ -50,11 +50,19 @@ import StockInicial from './modules/inventario/pages/StockInicial';
 const MainContent = () => {
     const location = useLocation();
     const isAdmin = location.pathname.startsWith('/admin');
+    const isInventarioModule = location.pathname.startsWith('/inventario') ||
+        location.pathname.startsWith('/produccion') ||
+        location.pathname.startsWith('/ventas') ||
+        location.pathname.startsWith('/catalogo-inventario') ||
+        location.pathname.startsWith('/compras') ||
+        location.pathname.startsWith('/stock-inicial');
+
+    const hideHeaderFooter = isAdmin || isInventarioModule;
 
     return (
         <>
             <ScrollToTop />
-            {!isAdmin && <Header />}
+            {!hideHeaderFooter && <Header />}
             <Routes>
                 {/* Rutas públicas */}
                 <Route path="/" element={<Home />} />
@@ -93,7 +101,7 @@ const MainContent = () => {
                 <Route path="/inventario" element={<PrivateRoute><Inventario /></PrivateRoute>} />
                 <Route path="/stock-inicial" element={<PrivateRoute><StockInicial /></PrivateRoute>} />
             </Routes>
-            {!isAdmin && (
+            {!hideHeaderFooter && (
                 <>
                     <WhatsAppButton />
                     <Footer />

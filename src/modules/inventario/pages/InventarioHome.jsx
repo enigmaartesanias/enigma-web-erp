@@ -84,32 +84,27 @@ export default function InventarioHome() {
 
                 {/* Sección: Ventas y Análisis */}
                 <div className="mb-12">
-                    <h2 className="text-2xl font-semibold text-gray-800 mb-6 text-center">
+                    <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-6 text-center">
                         Ventas y Análisis
                     </h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+                    <div className="grid grid-cols-2 gap-4 md:gap-8 max-w-4xl mx-auto">
                         {salesModules.map((module) => {
                             const Icon = module.icon;
                             return (
                                 <Link
                                     key={module.path}
                                     to={module.path}
-                                    className="bg-white rounded-lg shadow-md hover:shadow-xl transition-shadow p-6 border-l-4"
-                                    style={{ borderLeftColor: module.color.replace('bg-', '') }}
+                                    className="block p-6 bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 text-center border border-gray-100"
                                 >
-                                    <div className="flex items-start gap-4">
-                                        <div className={`${module.color} p-3 rounded-lg text-white`}>
-                                            <Icon size={28} />
-                                        </div>
-                                        <div>
-                                            <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                                                {module.title}
-                                            </h3>
-                                            <p className="text-gray-600 text-sm">
-                                                {module.description}
-                                            </p>
-                                        </div>
+                                    <div className={`w-12 h-12 md:w-16 md:h-16 ${module.color.replace('600', '50')} rounded-full flex items-center justify-center mx-auto mb-3 md:mb-4`}>
+                                        <Icon className={`w-6 h-6 md:w-8 md:h-8 ${module.color.replace('bg-', 'text-')}`} />
                                     </div>
+                                    <h3 className="text-base md:text-xl font-medium text-gray-800 mb-1">
+                                        {module.title}
+                                    </h3>
+                                    <p className="text-xs md:text-sm text-gray-500">
+                                        {module.description}
+                                    </p>
                                 </Link>
                             );
                         })}
@@ -121,32 +116,27 @@ export default function InventarioHome() {
 
                 {/* Sección: Gestión de Producción e Inventario */}
                 <div>
-                    <h2 className="text-2xl font-semibold text-gray-800 mb-6 text-center">
+                    <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-6 text-center">
                         Gestión de Producción e Inventario
                     </h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-2 gap-4 md:gap-8 max-w-4xl mx-auto">
                         {productionModules.map((module) => {
                             const Icon = module.icon;
                             return (
                                 <Link
                                     key={module.path}
                                     to={module.path}
-                                    className="bg-white rounded-lg shadow-md hover:shadow-xl transition-shadow p-6 border-l-4"
-                                    style={{ borderLeftColor: module.color.replace('bg-', '') }}
+                                    className="block p-6 bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 text-center border border-gray-100"
                                 >
-                                    <div className="flex items-start gap-4">
-                                        <div className={`${module.color} p-3 rounded-lg text-white`}>
-                                            <Icon size={24} />
-                                        </div>
-                                        <div>
-                                            <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                                                {module.title}
-                                            </h3>
-                                            <p className="text-gray-600 text-sm">
-                                                {module.description}
-                                            </p>
-                                        </div>
+                                    <div className={`w-12 h-12 md:w-16 md:h-16 ${module.color.replace('500', '50')} rounded-full flex items-center justify-center mx-auto mb-3 md:mb-4`}>
+                                        <Icon className={`w-6 h-6 md:w-8 md:h-8 ${module.color.replace('bg-', 'text-')}`} />
                                     </div>
+                                    <h3 className="text-base md:text-xl font-medium text-gray-800 mb-1">
+                                        {module.title}
+                                    </h3>
+                                    <p className="text-xs md:text-sm text-gray-500">
+                                        {module.description}
+                                    </p>
                                 </Link>
                             );
                         })}

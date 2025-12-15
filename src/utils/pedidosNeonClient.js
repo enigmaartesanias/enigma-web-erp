@@ -69,13 +69,16 @@ export const pedidosDB = {
     const [pedido] = await sql`
       INSERT INTO pedidos (
         nombre_cliente, telefono, dni_ruc, direccion_entrega,
+        metal, tipo_producto,
         forma_pago, comprobante_pago, requiere_envio, modalidad_envio,
         envio_cobrado_al_cliente, envio_referencia,
         precio_total_sin_igv, precio_total, monto_a_cuenta,
         monto_igv, monto_saldo, entregado, cancelado, incluye_igv
       ) VALUES (
         ${pedidoData.nombre_cliente}, ${pedidoData.telefono}, ${pedidoData.dni_ruc},
-        ${pedidoData.direccion_entrega}, ${pedidoData.forma_pago}, ${pedidoData.comprobante_pago},
+        ${pedidoData.direccion_entrega},
+        ${pedidoData.metal}, ${pedidoData.tipo_producto},
+        ${pedidoData.forma_pago}, ${pedidoData.comprobante_pago},
         ${pedidoData.requiere_envio}, ${pedidoData.modalidad_envio},
         ${pedidoData.envio_cobrado_al_cliente}, ${pedidoData.envio_referencia || 0},
         ${pedidoData.precio_total_sin_igv}, ${pedidoData.precio_total}, ${pedidoData.monto_a_cuenta},
@@ -95,6 +98,8 @@ export const pedidosDB = {
         telefono = ${pedidoData.telefono},
         dni_ruc = ${pedidoData.dni_ruc},
         direccion_entrega = ${pedidoData.direccion_entrega},
+        metal = ${pedidoData.metal},
+        tipo_producto = ${pedidoData.tipo_producto},
         forma_pago = ${pedidoData.forma_pago},
         comprobante_pago = ${pedidoData.comprobante_pago},
         requiere_envio = ${pedidoData.requiere_envio},
@@ -126,8 +131,22 @@ export const pedidosDB = {
   async createDetalles(pedidoId, detalles) {
     for (const detalle of detalles) {
       await sql`
-        INSERT INTO detalles_pedido (id_pedido, nombre_producto, cantidad, precio_unitario)
-        VALUES (${pedidoId}, ${detalle.nombre_producto}, ${detalle.cantidad}, ${detalle.precio_unitario})
+        INSERT INTO detalles_pedido (
+          id_pedido, 
+          nombre_producto, 
+          cantidad, 
+          precio_unitario,
+          metal,
+          tipo_producto
+        )
+        VALUES (
+          ${pedidoId}, 
+          ${detalle.nombre_producto}, 
+          ${detalle.cantidad}, 
+          ${detalle.precio_unitario},
+          ${detalle.metal || null},
+          ${detalle.tipo_producto || null}
+        )
       `;
     }
   },
@@ -135,6 +154,20 @@ export const pedidosDB = {
   // Eliminar todos los detalles de un pedido
   async deleteDetalles(pedidoId) {
     await sql`DELETE FROM detalles_pedido WHERE id_pedido = ${pedidoId}`;
+  },
+
+  // Obtener detalles (productos) de un pedido
+  async getDetalles(pedidoId) {
+    const detalles = await sql`
+      SELECT * FROM detalles_pedido 
+      WHERE id_pedido = ${pedidoId}
+      ORDER BY id_detalle
+    `;
+    return detalles.map(d => ({
+      ...d,
+      cantidad: parseInt(d.cantidad) || 0,
+      precio_unitario: parseFloat(d.precio_unitario) || 0
+    }));
   },
 
   // Crear pago

@@ -84,39 +84,7 @@ const AdminPanel = () => {
           </div>
         </div>
 
-        {/* Grupo 2: Pedidos y Reportes */}
-        <div className="mb-8">
-          <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-4 text-center">Ventas y Análisis</h3>
-          <div className="grid grid-cols-2 lg:grid-cols-2 gap-4 md:gap-8 max-w-4xl mx-auto">
-            {/* Control de Pedidos */}
-            <Link
-              to="/admin/pedidos"
-              className="block p-6 bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 text-center border border-gray-100"
-            >
-              <div className="w-12 h-12 md:w-16 md:h-16 bg-purple-50 rounded-full flex items-center justify-center mx-auto mb-3 md:mb-4">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 md:h-8 md:w-8 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
-                </svg>
-              </div>
-              <h2 className="text-base md:text-xl font-medium text-gray-800 mb-1">Pedidos</h2>
-              <p className="text-xs md:text-sm text-gray-500 hidden md:block">Registra y controla los pedidos manuales.</p>
-            </Link>
 
-            {/* Reportes */}
-            <Link
-              to="/admin/reportes"
-              className="block p-6 bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 text-center border border-gray-100"
-            >
-              <div className="w-12 h-12 md:w-16 md:h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-3 md:mb-4">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 md:h-8 md:w-8 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-              </div>
-              <h2 className="text-base md:text-xl font-medium text-gray-800 mb-1">Reportes</h2>
-              <p className="text-xs md:text-sm text-gray-500 hidden md:block">Visualiza estadísticas y exporta reportes en PDF.</p>
-            </Link>
-          </div>
-        </div>
 
         {/* Grupo 3: Gestión de Stock */}
         <div className="mb-8">

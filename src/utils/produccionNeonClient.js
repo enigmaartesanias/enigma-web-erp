@@ -79,7 +79,7 @@ export const produccionDB = {
         ${costos.horas_trabajo || 0},
         ${costos.costo_hora || 0},
         ${costos.costo_herramientas || 0},
-        ${costos.otros_gastos || 0},
+
         'pendiente',
         ${costos.observaciones || 'Producción creada desde pedido'}
       )

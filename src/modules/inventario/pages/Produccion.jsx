@@ -2,7 +2,10 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { produccionDB, METALES, TIPOS_PRODUCTO } from '../../../utils/produccionNeonClient';
 import { pedidosDB } from '../../../utils/pedidosNeonClient';
 import { Link, useLocation } from 'react-router-dom';
-import { FaEdit, FaTrash, FaArrowLeft, FaSave, FaTimes, FaBox, FaMoneyBillWave, FaHammer, FaCheckCircle, FaEye } from 'react-icons/fa';
+import { FaEdit, FaTrash, FaArrowLeft, FaSave, FaTimes, FaBox, FaMoneyBillWave, FaHammer, FaCheckCircle, FaEye, FaCamera } from 'react-icons/fa';
+import { storage } from '../../../firebaseConfig';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { v4 as uuidv4 } from 'uuid';
 
 
 const Produccion = () => {
@@ -14,6 +17,7 @@ const Produccion = () => {
     const [editingId, setEditingId] = useState(null);
     const [filterType, setFilterType] = useState('todos');
     const [searchTerm, setSearchTerm] = useState('');
+    const [uploadingImage, setUploadingImage] = useState(false);
     const [stats, setStats] = useState({
         total_registros: 0,
         pendientes: 0,
@@ -21,21 +25,25 @@ const Produccion = () => {
         terminados: 0
     });
 
-    const [formData, setFormData] = useState({
+    // Estado inicial del formulario
+    const initialFormState = {
         tipo_produccion: 'STOCK',
-        pedido_id: '',
+        pedido_id: null,
         metal: '',
         tipo_producto: '',
         nombre_producto: '',
-        cantidad: '', // Default vacío como solicitado
+        cantidad: '',
         costo_materiales: '',
         horas_trabajo: '',
-        costo_hora: '0',
+        costo_hora: '',
         costo_herramientas: '',
         otros_gastos: '',
-        estado_produccion: 'en_proceso',
-        observaciones: ''
-    });
+        estado_produccion: 'en_proceso', // Valor por defecto automatico
+        observaciones: '',
+        imagen_url: '' // Nuevo campo imagen
+    };
+
+    const [formData, setFormData] = useState(initialFormState);
 
     // Derivar parámetro de URL de forma reactiva
     const urlPedidoId = useMemo(() => {
@@ -219,6 +227,64 @@ const Produccion = () => {
             observaciones: ''
         });
         setEditingId(null);
+    };
+
+
+    // Manejar subida de imagen
+    const handleImageUpload = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        // Validaciones
+        if (!file.type.startsWith('image/')) {
+            alert('Solo se permiten archivos de imagen (JPG, PNG)');
+            return;
+        }
+
+        if (file.size > 5 * 1024 * 1024) { // 5MB limit
+            alert('La imagen no debe superar los 5MB');
+            return;
+        }
+
+        try {
+            setUploadingImage(true);
+            const fileName = `productos_terminados/${uuidv4()}_${file.name}`;
+            const storageRef = ref(storage, fileName);
+
+            await uploadBytes(storageRef, file);
+            const url = await getDownloadURL(storageRef);
+
+            setFormData(prev => ({ ...prev, imagen_url: url }));
+        } catch (error) {
+            console.error('Error subiendo imagen:', error);
+            alert('Error al subir la imagen. Verifique su conexión y configuración.');
+        } finally {
+            setUploadingImage(false);
+        }
+    };
+
+    // Manejar drag and drop
+    const handleDrop = (e) => {
+        e.preventDefault();
+        const file = e.dataTransfer.files[0];
+        if (file) {
+            handleImageUpload({ target: { files: [file] } });
+        }
+    };
+
+    const handleDragOver = (e) => {
+        e.preventDefault();
+    };
+
+    // Renderizar celdas de tabla para imagen
+    const renderImageCell = (url) => {
+        if (!url) return <div className="w-10 h-10 bg-gray-100 rounded-md flex items-center justify-center text-gray-400"><FaCamera /></div>;
+        return (
+            <a href={url} target="_blank" rel="noopener noreferrer" className="block relative group">
+                <img src={url} alt="Producto" className="w-10 h-10 object-cover rounded-md shadow-sm border border-gray-200" />
+                <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-all rounded-md"></div>
+            </a>
+        );
     };
 
     const handleSubmit = async (e) => {

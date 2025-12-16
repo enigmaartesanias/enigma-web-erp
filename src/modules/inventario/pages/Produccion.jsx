@@ -159,12 +159,15 @@ const Produccion = () => {
     };
 
     const handleMarkAsComplete = async (item) => {
-        if (!window.confirm(`¿Marcar como terminado: ${item.nombre_producto || item.tipo_producto}?\n\nEsto agregará el producto al inventario.`)) return;
+        const isPedido = item.tipo_produccion === 'PEDIDO';
+        const confirmMessage = isPedido
+            ? `¿Marcar como terminado: ${item.nombre_producto || item.tipo_producto}?\n\nEste producto pertenece a un PEDIDO y NO irá al stock general.`
+            : `¿Marcar como terminado: ${item.nombre_producto || item.tipo_producto}?\n\nEsto agregará el producto al inventario de STOCK.`;
+
+        if (!window.confirm(confirmMessage)) return;
 
         try {
-            await produccionDB.update(item.id_produccion, {
-                estado_produccion: 'terminado'
-            });
+            await produccionDB.updateEstado(item.id_produccion, 'terminado');
             setMessage({ type: 'success', text: 'Producción marcada como terminada.' });
             fetchProduccion();
             fetchStats();

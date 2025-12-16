@@ -171,8 +171,7 @@ export const produccionDB = {
       INNER JOIN detalles_pedido d ON p.id_pedido = d.id_pedido
       LEFT JOIN produccion_taller pr ON pr.pedido_id = p.id_pedido 
         AND pr.nombre_producto LIKE '%' || d.nombre_producto || '%'
-      WHERE p.cancelado = false
-        AND pr.id_produccion IS NULL
+      WHERE pr.id_produccion IS NULL
       ORDER BY p.fecha_pedido DESC, d.id_detalle
     `;
 

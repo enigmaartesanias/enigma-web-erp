@@ -41,6 +41,7 @@ import ReportePedidos from './components/ReportePedidos';
 // Módulo de Inventario
 import InventarioHome from './modules/inventario/pages/InventarioHome';
 import Produccion from './modules/inventario/pages/Produccion';
+import ProduccionReporte from './modules/inventario/pages/ProduccionReporte';
 import Ventas from './modules/inventario/pages/Ventas';
 import Catalogo from './modules/inventario/pages/Catalogo';
 import Compras from './modules/inventario/pages/Compras';
@@ -95,6 +96,7 @@ const MainContent = () => {
                 {/* Módulo de Inventario - Rutas privadas */}
                 <Route path="/inventario-home" element={<PrivateRoute><InventarioHome /></PrivateRoute>} />
                 <Route path="/produccion" element={<PrivateRoute><Produccion /></PrivateRoute>} />
+                <Route path="/produccion-reporte" element={<PrivateRoute><ProduccionReporte /></PrivateRoute>} />
                 <Route path="/ventas" element={<PrivateRoute><Ventas /></PrivateRoute>} />
                 <Route path="/catalogo-inventario" element={<PrivateRoute><Catalogo /></PrivateRoute>} />
                 <Route path="/compras" element={<PrivateRoute><Compras /></PrivateRoute>} />

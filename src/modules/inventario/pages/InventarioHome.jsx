@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import { Package, ShoppingCart, Clipboard, Hammer, BarChart3, FileText, ClipboardList, LineChart } from 'lucide-react';
 
 export default function InventarioHome() {
-    const salesModules = [
+    const pedidosReportes = [
         {
             title: 'Pedidos',
             icon: ClipboardList,
@@ -19,7 +19,7 @@ export default function InventarioHome() {
         }
     ];
 
-    const productionModules = [
+    const produccionReporte = [
         {
             title: 'Producción',
             icon: Hammer,
@@ -27,6 +27,16 @@ export default function InventarioHome() {
             description: 'Gestión del taller y fabricación',
             color: 'bg-blue-500'
         },
+        {
+            title: 'Reporte Prod.',
+            icon: BarChart3,
+            path: '/produccion-reporte',
+            description: 'Métricas y Costos',
+            color: 'bg-blue-700'
+        }
+    ];
+
+    const gestionInventario = [
         {
             title: 'Ventas',
             icon: ShoppingCart,
@@ -64,82 +74,76 @@ export default function InventarioHome() {
         }
     ];
 
+    const ModuleCard = ({ module }) => {
+        const Icon = module.icon;
+        return (
+            <Link
+                to={module.path}
+                className="block p-4 sm:p-6 bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-300 transform hover:-translate-y-1 text-center border border-gray-100 h-full flex flex-col items-center justify-center"
+            >
+                <div className={`w-12 h-12 ${module.color.replace('600', '50').replace('500', '50').replace('700', '50')} rounded-full flex items-center justify-center mb-3`}>
+                    <Icon className={`w-6 h-6 ${module.color.replace('bg-', 'text-')}`} />
+                </div>
+                <h3 className="text-base font-medium text-gray-800 mb-1 leading-tight">
+                    {module.title}
+                </h3>
+                <p className="text-xs text-gray-500 line-clamp-2">
+                    {module.description}
+                </p>
+            </Link>
+        );
+    };
+
     return (
         <div className="min-h-screen bg-gray-50 p-6">
             <div className="max-w-7xl mx-auto">
-                <div className="text-center mb-12">
-                    <h1 className="text-4xl font-bold text-gray-900 mb-4">
+                <div className="text-center mb-8">
+                    <h1 className="text-3xl font-bold text-gray-900 mb-2">
                         Enigma Sistema ERP
                     </h1>
-                    <p className="text-lg text-gray-600">
-                        Gestión integral del taller de artesanías
-                    </p>
                     <Link
                         to="/admin"
-                        className="inline-block mt-4 text-blue-600 hover:text-blue-800"
+                        className="inline-block text-sm text-blue-600 hover:text-blue-800 hover:underline"
                     >
                         ← Volver al Panel Admin
                     </Link>
                 </div>
 
-                {/* Sección: Ventas y Análisis */}
-                <div className="mb-12">
-                    <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-6 text-center">
-                        Ventas y Análisis
-                    </h2>
-                    <div className="grid grid-cols-2 gap-4 md:gap-8 max-w-4xl mx-auto">
-                        {salesModules.map((module) => {
-                            const Icon = module.icon;
-                            return (
-                                <Link
-                                    key={module.path}
-                                    to={module.path}
-                                    className="block p-6 bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 text-center border border-gray-100"
-                                >
-                                    <div className={`w-12 h-12 md:w-16 md:h-16 ${module.color.replace('600', '50')} rounded-full flex items-center justify-center mx-auto mb-3 md:mb-4`}>
-                                        <Icon className={`w-6 h-6 md:w-8 md:h-8 ${module.color.replace('bg-', 'text-')}`} />
-                                    </div>
-                                    <h3 className="text-base md:text-xl font-medium text-gray-800 mb-1">
-                                        {module.title}
-                                    </h3>
-                                    <p className="text-xs md:text-sm text-gray-500">
-                                        {module.description}
-                                    </p>
-                                </Link>
-                            );
-                        })}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-5xl mx-auto mb-8">
+                    {/* Grupo 1: Pedidos y Reportes */}
+                    <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+                        <h2 className="text-center text-sm font-semibold text-gray-500 uppercase tracking-wider mb-6">
+                            Pedidos y Reportes
+                        </h2>
+                        <div className="grid grid-cols-2 gap-4">
+                            {pedidosReportes.map((module) => (
+                                <ModuleCard key={module.path} module={module} />
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Grupo 2: Producción y Reporte */}
+                    <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+                        <h2 className="text-center text-sm font-semibold text-gray-500 uppercase tracking-wider mb-6">
+                            Producción y Reporte
+                        </h2>
+                        <div className="grid grid-cols-2 gap-4">
+                            {produccionReporte.map((module) => (
+                                <ModuleCard key={module.path} module={module} />
+                            ))}
+                        </div>
                     </div>
                 </div>
 
-                {/* Divisor visual */}
-                <div className="border-t-2 border-gray-200 my-8 max-w-4xl mx-auto"></div>
-
-                {/* Sección: Gestión de Producción e Inventario */}
-                <div>
-                    <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-6 text-center">
-                        Gestión de Producción e Inventario
+                {/* Grupo 3: Gestión de Inventario */}
+                <div className="max-w-5xl mx-auto bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+                    <h2 className="text-center text-sm font-semibold text-gray-500 uppercase tracking-wider mb-6">
+                        Gestión de Inventario
                     </h2>
-                    <div className="grid grid-cols-2 gap-4 md:gap-8 max-w-4xl mx-auto">
-                        {productionModules.map((module) => {
-                            const Icon = module.icon;
-                            return (
-                                <Link
-                                    key={module.path}
-                                    to={module.path}
-                                    className="block p-6 bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 text-center border border-gray-100"
-                                >
-                                    <div className={`w-12 h-12 md:w-16 md:h-16 ${module.color.replace('500', '50')} rounded-full flex items-center justify-center mx-auto mb-3 md:mb-4`}>
-                                        <Icon className={`w-6 h-6 md:w-8 md:h-8 ${module.color.replace('bg-', 'text-')}`} />
-                                    </div>
-                                    <h3 className="text-base md:text-xl font-medium text-gray-800 mb-1">
-                                        {module.title}
-                                    </h3>
-                                    <p className="text-xs md:text-sm text-gray-500">
-                                        {module.description}
-                                    </p>
-                                </Link>
-                            );
-                        })}
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
+                        {gestionInventario.map((module) => (
+                            <ModuleCard key={module.path} module={module} />
+                        ))}
                     </div>
                 </div>
             </div>

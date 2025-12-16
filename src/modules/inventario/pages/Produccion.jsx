@@ -424,27 +424,7 @@ const Produccion = () => {
                 </Link>
             </div>
 
-            <h1 className="text-3xl font-light text-gray-800 mb-8 text-center">🔨 Registro de Producción</h1>
 
-            {/* Métricas */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-                <div className="bg-white p-4 rounded-lg shadow-sm border-l-4 border-purple-500">
-                    <p className="text-xs text-gray-500 uppercase font-bold">Total</p>
-                    <p className="text-2xl font-bold text-purple-600">{stats.total_registros}</p>
-                </div>
-                <div className="bg-white p-4 rounded-lg shadow-sm border-l-4 border-yellow-500">
-                    <p className="text-xs text-gray-500 uppercase font-bold">Pendientes</p>
-                    <p className="text-2xl font-bold text-yellow-600">{stats.pendientes}</p>
-                </div>
-                <div className="bg-white p-4 rounded-lg shadow-sm border-l-4 border-orange-500">
-                    <p className="text-xs text-gray-500 uppercase font-bold">En Proceso</p>
-                    <p className="text-2xl font-bold text-orange-600">{stats.en_proceso}</p>
-                </div>
-                <div className="bg-white p-4 rounded-lg shadow-sm border-l-4 border-green-500">
-                    <p className="text-xs text-gray-500 uppercase font-bold">Terminados</p>
-                    <p className="text-2xl font-bold text-green-600">{stats.terminados}</p>
-                </div>
-            </div>
 
             {/* Formulario */}
             <div className="bg-white shadow-lg rounded-lg p-4 md:p-6 mb-8 max-w-4xl mx-auto">
@@ -624,7 +604,7 @@ const Produccion = () => {
                             Costos de Fabricación
                         </h3>
 
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                             <div>
                                 <label className="block text-xs font-medium text-gray-700 mb-1">Materiales (S/)</label>
                                 <input

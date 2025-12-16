@@ -28,6 +28,8 @@ const Pedidos = () => {
         metodo: 'Efectivo'
     });
 
+    const [showCancelAlert, setShowCancelAlert] = useState(false); // Nuevo estado para popup
+
     const [formData, setFormData] = useState({
         nombre_cliente: '',
         telefono: '',
@@ -109,6 +111,13 @@ const Pedidos = () => {
             monto_saldo: parseFloat(monto_saldo.toFixed(2)),
             cancelado
         });
+
+        // Mostrar popup si se cancela (solo si no estaba ya mostrado y es true)
+        if (cancelado) {
+            setShowCancelAlert(true);
+        } else {
+            setShowCancelAlert(false);
+        }
 
     }, [formData, listaProductos]);
 
@@ -492,7 +501,7 @@ const Pedidos = () => {
                     <span className="font-medium">Regresar al Panel</span>
                 </Link>
             </div>
-            <h1 className="text-3xl font-light text-gray-800 mb-8 text-center">Registro de Pedidos</h1>
+
             <div className="bg-white shadow-lg rounded-lg p-4 md:p-6 mb-8 max-w-4xl mx-auto">
                 <div className="flex justify-between items-center border-b pb-4 mb-6">
                     <h2 className="text-2xl md:text-3xl font-medium text-gray-800">{editingId ? 'Editar Pedido' : 'Registrar Nuevo Pedido'}</h2>
@@ -839,11 +848,7 @@ const Pedidos = () => {
                                     <span>S/ {calculos.monto_saldo.toFixed(2)}</span>
                                 </div>
                             )}
-                            <div className="text-center mt-3">
-                                <span className={`px-4 py-2 rounded text-sm font-bold ${calculos.cancelado ? 'bg-green-200 text-green-800' : 'bg-red-200 text-red-800'}`}>
-                                    {calculos.cancelado ? '✓ CANCELADO' : 'PENDIENTE DE PAGO'}
-                                </span>
-                            </div>
+
                         </div>
                     </div>
 
@@ -936,7 +941,7 @@ const Pedidos = () => {
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">A Cuenta</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Saldo</th>
                                 <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
-                                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+                                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
@@ -989,9 +994,9 @@ const Pedidos = () => {
                                                 {pedido.cancelado ? 'Cancelado' : 'Pendiente'}
                                             </span>
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
-                                            <div className="flex justify-center space-x-3">
-                                                {!pedido.cancelado && pedido.metal && pedido.tipo_producto && (
+                                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                            <div className="flex justify-end space-x-3">
+                                                {pedido.metal && pedido.tipo_producto && (
                                                     <button
                                                         onClick={() => handleCrearProduccion(pedido)}
                                                         className="text-purple-600 hover:text-purple-900"
@@ -1293,6 +1298,17 @@ const Pedidos = () => {
                     </div>
                 )
             }
+
+
+            {/* Popup Pedido Cancelado */}
+            {showCancelAlert && calculos.cancelado && (
+                <div className="fixed top-20 right-4 z-50 animate-bounce">
+                    <div className="bg-green-500 text-white px-6 py-4 rounded-lg shadow-xl cursor-pointer flex items-center bg-opacity-90 hover:bg-opacity-100 transition-all font-bold text-lg" onClick={() => setShowCancelAlert(false)}>
+                        <span>✓ PEDIDO CANCELADO</span>
+                        <span className="ml-3 text-sm font-normal underline">(Click para cerrar)</span>
+                    </div>
+                </div>
+            )}
         </div >
     );
 };

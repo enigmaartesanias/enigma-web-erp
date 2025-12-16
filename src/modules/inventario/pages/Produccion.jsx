@@ -404,27 +404,51 @@ const Produccion = () => {
                 <form onSubmit={handleSubmit} className="space-y-6">
                     {/* Selector de Tipo */}
                     {!editingId && (
-                        <div className="flex gap-3">
-                            <button
-                                type="button"
-                                onClick={() => handleTipoChange('STOCK')}
-                                className={`flex-1 py-3 px-4 rounded-lg font-semibold transition-all ${formData.tipo_produccion === 'STOCK'
-                                    ? 'bg-blue-600 text-white shadow-lg'
-                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                                    }`}
-                            >
-                                📦 Producción para Stock
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => handleTipoChange('PEDIDO')}
-                                className={`flex-1 py-3 px-4 rounded-lg font-semibold transition-all ${formData.tipo_produccion === 'PEDIDO'
-                                    ? 'bg-amber-600 text-white shadow-lg'
-                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                                    }`}
-                            >
-                                📋 Desde Pedido
-                            </button>
+                        <div className="flex flex-col gap-2">
+                            <div className="flex gap-3">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        if (!urlPedidoId) {
+                                            handleTipoChange('STOCK');
+                                        }
+                                    }}
+                                    className={`flex-1 py-3 px-4 rounded-lg font-semibold transition-all ${formData.tipo_produccion === 'STOCK'
+                                        ? 'bg-blue-600 text-white shadow-lg'
+                                        : urlPedidoId
+                                            ? 'bg-gray-50 text-gray-400 cursor-not-allowed opacity-60'
+                                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                        }`}
+                                    title={urlPedidoId ? "Modo exclusivo: Producción de Pedido. Para Stock, vuelva al menú principal." : ""}
+                                >
+                                    📦 Producción para Stock
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        if (urlPedidoId) {
+                                            handleTipoChange('PEDIDO');
+                                        } else {
+                                            alert("Para producir un pedido específico, por favor vaya al Módulo de Pedidos y haga clic en el icono 🔨 correspondiente al pedido.");
+                                        }
+                                    }}
+                                    className={`flex-1 py-3 px-4 rounded-lg font-semibold transition-all flex justify-center items-center gap-2 ${formData.tipo_produccion === 'PEDIDO'
+                                        ? 'bg-amber-600 text-white shadow-lg'
+                                        : urlPedidoId
+                                            ? 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                            : 'bg-gray-50 text-gray-400 cursor-not-allowed opacity-60'
+                                        }`}
+                                    title={!urlPedidoId ? "Para pedidos específicos, inicie desde el Módulo de Pedidos" : ""}
+                                >
+                                    📋 Desde Pedido
+                                    {!urlPedidoId && <FaArrowLeft className="text-xs" />}
+                                </button>
+                            </div>
+                            {!urlPedidoId && (
+                                <p className="text-xs text-center text-gray-500 italic bg-gray-50 p-2 rounded border border-gray-100">
+                                    ℹ️ Para producir un pedido, utiliza el icono 🔨 en el módulo de <Link to="/pedidos" className="text-blue-600 hover:underline">Pedidos</Link>.
+                                </p>
+                            )}
                         </div>
                     )}
 

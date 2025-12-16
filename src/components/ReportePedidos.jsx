@@ -3,8 +3,7 @@ import { pedidosDB } from '../utils/pedidosNeonClient';
 import { Link } from 'react-router-dom';
 import { FaArrowLeft, FaFilePdf, FaChartLine, FaMoneyBillWave, FaUserTie, FaBoxOpen, FaExclamationCircle } from 'react-icons/fa';
 import jsPDF from 'jspdf';
-import 'jspdf-autotable';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import autoTable from 'jspdf-autotable';
 
 const ReportePedidos = () => {
     const [loading, setLoading] = useState(false);
@@ -17,7 +16,6 @@ const ReportePedidos = () => {
     });
     const [topProductos, setTopProductos] = useState([]);
     const [topClientes, setTopClientes] = useState([]);
-    const [chartData, setChartData] = useState([]);
 
     // Filtros - Por defecto mostrar TODOS los pedidos
     const today = new Date();
@@ -137,26 +135,6 @@ const ReportePedidos = () => {
                 .sort((a, b) => b.total - a.total)
                 .slice(0, 5);
             setTopClientes(rankingClientes);
-
-            // 4. Gráfico Diario
-            const dailyMap = {};
-            pedidos.forEach(p => {
-                if (p.fecha_pedido) {
-                    try {
-                        // Use slice(0, 5) of ISO string or locale string consistently
-                        // let's use ISO date part "YYYY-MM-DD" then simpler format
-                        const dateObj = new Date(p.fecha_pedido + 'T00:00:00'); // Ensure it treats as local date if just "YYYY-MM-DD"
-                        const fecha = dateObj.toLocaleDateString(); // "dd/mm/yyyy" depending on locale
-
-                        if (!dailyMap[fecha]) dailyMap[fecha] = 0;
-                        dailyMap[fecha] += (Number(p.precio_total) || 0);
-                    } catch (e) {
-                        console.warn("Fecha inválida:", p.fecha_pedido);
-                    }
-                }
-            });
-            const chart = Object.keys(dailyMap).map(fecha => ({ fecha, ventas: dailyMap[fecha] }));
-            setChartData(chart);
         } catch (error) {
             console.error("Error procesando datos:", error);
         }
@@ -179,8 +157,11 @@ const ReportePedidos = () => {
         // 1. Resumen Ejecutivo
         doc.setFontSize(14);
         doc.setTextColor(0);
+        // 1. Resumen Ejecutivo
+        doc.setFontSize(14);
+        doc.setTextColor(0);
         doc.text('1. Resumen Ejecutivo', 14, 40);
-        doc.autoTable({
+        autoTable(doc, {
             startY: 45,
             head: [['Ventas Brutas', 'Cobrado (Neto)', 'Por Cobrar', 'Tickets']],
             body: [[
@@ -195,7 +176,7 @@ const ReportePedidos = () => {
 
         // 2. Top Productos
         doc.text('2. Productos Más Vendidos', 14, doc.lastAutoTable.finalY + 15);
-        doc.autoTable({
+        autoTable(doc, {
             startY: doc.lastAutoTable.finalY + 20,
             head: [['Producto', 'Unidades Vendidas', 'Ingresos Generados']],
             body: topProductos.map(p => [p.nombre, p.cantidad, `S/ ${p.ventas.toFixed(2)}`]),
@@ -205,7 +186,7 @@ const ReportePedidos = () => {
 
         // 3. Top Clientes
         doc.text('3. Mejores Clientes', 14, doc.lastAutoTable.finalY + 15);
-        doc.autoTable({
+        autoTable(doc, {
             startY: doc.lastAutoTable.finalY + 20,
             head: [['Cliente', 'Pedidos', 'Total Comprado']],
             body: topClientes.map(c => [c.nombre, c.pedidos, `S/ ${c.total.toFixed(2)}`]),
@@ -222,7 +203,7 @@ const ReportePedidos = () => {
                 {/* Header Nav */}
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 pt-24 md:pt-6 space-y-4 md:space-y-0"> {/* Adjusted padding and responsive layout */}
                     <div className="flex items-center space-x-3">
-                        <Link to="/admin" className="text-gray-500 hover:text-gray-900 transition-colors">
+                        <Link to="/inventario-home" className="text-gray-500 hover:text-gray-900 transition-colors">
                             <FaArrowLeft size={18} />
                         </Link>
                         <div>
@@ -363,43 +344,6 @@ const ReportePedidos = () => {
                             ))}
                             {topClientes.length === 0 && <p className="text-sm text-gray-400 italic">No hay datos suficientes.</p>}
                         </div>
-                    </div>
-                </div>
-
-                {/* Gráfico Visual */}
-                <div className="mt-8 bg-white p-6 rounded-xl shadow-sm">
-                    <h3 className="font-bold text-gray-800 mb-4">Tendencia de Ventas (Diario)</h3>
-                    <div className="h-72 w-full">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <LineChart data={chartData}>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                                <XAxis
-                                    dataKey="fecha"
-                                    axisLine={false}
-                                    tickLine={false}
-                                    dy={10} // Push labels down
-                                    tick={{ fontSize: 10, fill: '#6b7280' }} // Smaller font for dates
-                                />
-                                <YAxis
-                                    axisLine={false}
-                                    tickLine={false}
-                                    tickFormatter={(value) => `S/${value}`}
-                                    tick={{ fontSize: 10, fill: '#6b7280' }}
-                                />
-                                <Tooltip
-                                    contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
-                                    formatter={(value) => [`S/ ${value.toFixed(2)}`, 'Ventas']}
-                                />
-                                <Line
-                                    type="monotone"
-                                    dataKey="ventas"
-                                    stroke="#3b82f6"
-                                    strokeWidth={3}
-                                    dot={{ r: 4, fill: '#3b82f6', strokeWidth: 2, stroke: '#fff' }}
-                                    activeDot={{ r: 6 }}
-                                />
-                            </LineChart>
-                        </ResponsiveContainer>
                     </div>
                 </div>
 

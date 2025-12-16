@@ -540,16 +540,10 @@ const Produccion = () => {
                             </div>
 
                             <div>
-                                <label className="block text-xs font-semibold text-gray-700 mb-1">Estado</label>
-                                <select
-                                    name="estado_produccion"
-                                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 border p-2"
-                                    value={formData.estado_produccion}
-                                    onChange={handleChange}
-                                >
-                                    <option value="en_proceso">En Proceso</option>
-                                    <option value="terminado">Terminado</option>
-                                </select>
+                                <label className="block text-xs font-semibold text-gray-700 mb-1">Estado Inicial</label>
+                                <div className="w-full rounded-md border-gray-200 bg-gray-50 border p-2 text-gray-500 italic text-sm">
+                                    ⏳ En Proceso (Automático)
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -762,7 +756,7 @@ const Produccion = () => {
                                     </td>
                                     <td className="px-4 py-3 text-center">
                                         <div className="flex justify-center space-x-2">
-                                            {item.estado_produccion === 'en_proceso' ? (
+                                            {['en_proceso', 'pendiente'].includes(item.estado_produccion) ? (
                                                 <>
                                                     <button
                                                         onClick={() => handleEdit(item)}
@@ -773,17 +767,17 @@ const Produccion = () => {
                                                     </button>
                                                     <button
                                                         onClick={() => handleMarkAsComplete(item)}
-                                                        className="text-green-600 hover:text-green-900"
+                                                        className="flex items-center gap-1 bg-green-50 text-green-700 px-2 py-1 rounded border border-green-200 hover:bg-green-100 transition-colors text-xs font-semibold"
                                                         title="Marcar como Terminado"
                                                     >
-                                                        <FaCheckCircle size={18} />
+                                                        <FaCheckCircle size={14} /> Terminar
                                                     </button>
                                                     <button
                                                         onClick={() => handleDelete(item.id_produccion)}
-                                                        className="text-red-600 hover:text-red-900"
+                                                        className="text-red-500 hover:text-red-700 ml-1"
                                                         title="Eliminar"
                                                     >
-                                                        <FaTrash size={18} />
+                                                        <FaTrash size={16} />
                                                     </button>
                                                 </>
                                             ) : (

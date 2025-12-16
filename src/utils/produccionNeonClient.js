@@ -67,7 +67,7 @@ export const produccionDB = {
       INSERT INTO produccion_taller (
         pedido_id, tipo_produccion, metal, tipo_producto, nombre_producto,
         cantidad, costo_materiales, horas_trabajo, costo_hora,
-        costo_herramientas, otros_gastos, estado_produccion, observaciones
+        costo_herramientas, otros_gastos, estado_produccion, observaciones, imagen_url
       ) VALUES (
         ${pedidoId},
         'PEDIDO',
@@ -79,9 +79,10 @@ export const produccionDB = {
         ${costos.horas_trabajo || 0},
         ${costos.costo_hora || 0},
         ${costos.costo_herramientas || 0},
-
+        ${costos.otros_gastos || 0},
         'pendiente',
-        ${costos.observaciones || 'Producción creada desde pedido'}
+        ${costos.observaciones || 'Producción creada desde pedido'},
+        ${costos.imagen_url || ''}
       )
       RETURNING *
     `;
@@ -94,7 +95,7 @@ export const produccionDB = {
       INSERT INTO produccion_taller (
         pedido_id, tipo_produccion, metal, tipo_producto, nombre_producto,
         cantidad, costo_materiales, horas_trabajo, costo_hora,
-        costo_herramientas, otros_gastos, estado_produccion, observaciones, fecha_produccion
+        costo_herramientas, otros_gastos, estado_produccion, observaciones, fecha_produccion, imagen_url
       ) VALUES (
         ${produccionData.pedido_id || null},
         ${produccionData.tipo_produccion || 'STOCK'},
@@ -109,7 +110,8 @@ export const produccionDB = {
         ${produccionData.otros_gastos || 0},
         ${produccionData.estado_produccion || 'pendiente'},
         ${produccionData.observaciones || ''},
-        ${produccionData.fecha_produccion || new Date().toISOString().split('T')[0]}
+        ${produccionData.fecha_produccion || new Date().toISOString().split('T')[0]},
+        ${produccionData.imagen_url || ''}
       )
       RETURNING *
     `;
@@ -129,7 +131,8 @@ export const produccionDB = {
         costo_herramientas = ${produccionData.costo_herramientas || 0},
         otros_gastos = ${produccionData.otros_gastos || 0},
         estado_produccion = ${produccionData.estado_produccion},
-        observaciones = ${produccionData.observaciones || ''}
+        observaciones = ${produccionData.observaciones || ''},
+        imagen_url = ${produccionData.imagen_url || ''}
       WHERE id_produccion = ${id}
       RETURNING *
     `;

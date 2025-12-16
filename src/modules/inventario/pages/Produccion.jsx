@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { produccionDB, METALES, TIPOS_PRODUCTO } from '../../../utils/produccionNeonClient';
 import { pedidosDB } from '../../../utils/pedidosNeonClient';
 import { Link, useLocation } from 'react-router-dom';
-import { FaEdit, FaTrash, FaArrowLeft, FaSave, FaTimes, FaBox, FaMoneyBillWave, FaHammer, FaCheckCircle, FaEye, FaCamera } from 'react-icons/fa';
+import { FaEdit, FaTrash, FaArrowLeft, FaSave, FaTimes, FaBox, FaMoneyBillWave, FaHammer, FaCheckCircle, FaEye, FaCamera, FaCheck } from 'react-icons/fa';
 import { storage } from '../../../firebaseConfig';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { v4 as uuidv4 } from 'uuid';
@@ -24,6 +24,8 @@ const Produccion = () => {
         en_proceso: 0,
         terminados: 0
     });
+    const [uploadingId, setUploadingId] = useState(null);
+    const fileInputRef = React.useRef(null);
 
     // Estado inicial del formulario
     const initialFormState = {
@@ -177,6 +179,87 @@ const Produccion = () => {
         }
     };
 
+    // Trigger para subir imagen desde tabla
+    const triggerTableImageUpload = (id) => {
+        setUploadingId(id);
+        setTimeout(() => {
+            if (fileInputRef.current) {
+                fileInputRef.current.click();
+            }
+        }, 100);
+    };
+
+    // Manejar subida de imagen directa en tabla
+    const handleTableImageUpload = async (e) => {
+        const file = e.target.files[0];
+        if (!file || !uploadingId) return;
+
+        // Validaciones
+        if (!file.type.startsWith('image/')) {
+            alert('Solo se permiten archivos de imagen (JPG, PNG)');
+            return;
+        }
+
+        if (file.size > 5 * 1024 * 1024) {
+            alert('La imagen no debe superar los 5MB');
+            return;
+        }
+
+        try {
+            setLoading(true);
+            const fileName = `productos_terminados/${uuidv4()}_${file.name}`;
+            const storageRef = ref(storage, fileName);
+
+            await uploadBytes(storageRef, file);
+            const url = await getDownloadURL(storageRef);
+
+            // Actualizar registro en BD
+            const item = produccion.find(p => p.id_produccion === uploadingId);
+            if (item) {
+                await produccionDB.update(uploadingId, {
+                    ...item,
+                    imagen_url: url
+                });
+                setMessage({ type: 'success', text: 'Imagen subida correctamente.' });
+                // Actualizar estado local
+                setProduccion(prev => prev.map(p => p.id_produccion === uploadingId ? { ...p, imagen_url: url } : p));
+            }
+
+        } catch (error) {
+            console.error('Error subiendo imagen:', error);
+            alert('Error al subir la imagen.');
+        } finally {
+            setLoading(false);
+            setUploadingId(null);
+            if (fileInputRef.current) fileInputRef.current.value = '';
+        }
+    };
+
+    const renderImageCell = (item) => {
+        if (item.imagen_url) {
+            return (
+                <div className="relative group w-12 h-12 mx-auto">
+                    <a href={item.imagen_url} target="_blank" rel="noopener noreferrer">
+                        <img src={item.imagen_url} alt="Prod" className="w-full h-full object-cover rounded shadow-sm border" />
+                    </a>
+                </div>
+            );
+        } else {
+            if (item.estado_produccion === 'terminado') {
+                return (
+                    <button
+                        onClick={() => triggerTableImageUpload(item.id_produccion)}
+                        className="w-10 h-10 mx-auto bg-gray-100 rounded-full flex items-center justify-center text-gray-500 hover:bg-blue-50 hover:text-blue-600 transition-colors"
+                        title="Subir Foto"
+                    >
+                        <FaCamera size={16} />
+                    </button>
+                );
+            }
+            return <span className="text-gray-300">-</span>;
+        }
+    };
+
     const handleView = (item) => {
         // Cargar item en modo solo lectura
         setEditingId(item.id_produccion);
@@ -279,16 +362,7 @@ const Produccion = () => {
         e.preventDefault();
     };
 
-    // Renderizar celdas de tabla para imagen
-    const renderImageCell = (url) => {
-        if (!url) return <div className="w-10 h-10 bg-gray-100 rounded-md flex items-center justify-center text-gray-400"><FaCamera /></div>;
-        return (
-            <a href={url} target="_blank" rel="noopener noreferrer" className="block relative group">
-                <img src={url} alt="Producto" className="w-10 h-10 object-cover rounded-md shadow-sm border border-gray-200" />
-                <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-all rounded-md"></div>
-            </a>
-        );
-    };
+
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -405,6 +479,19 @@ const Produccion = () => {
 
         return matchesType && matchesSearch;
     });
+
+    const handleTerminar = async (item) => {
+        if (!window.confirm(`¿Confirmar que la producción de "${item.nombre_producto}" ha finalizado?`)) return;
+
+        try {
+            await produccionDB.updateEstado(item.id_produccion, 'terminado');
+            setMessage({ type: 'success', text: 'Producción marcada como terminada correctamente.' });
+            fetchData();
+        } catch (error) {
+            console.error('Error al terminar producción:', error);
+            setMessage({ type: 'error', text: 'Error al actualizar el estado.' });
+        }
+    };
 
     // Calcular costo total en tiempo real
     const costoManoObra = (parseFloat(formData.horas_trabajo) || 0) * (parseFloat(formData.costo_hora) || 0);
@@ -759,6 +846,7 @@ const Produccion = () => {
                     <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-gray-50">
                             <tr>
+                                <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Imagen</th>
                                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Producto</th>
                                 <th className="hidden sm:table-cell px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Cant.</th>
                                 <th className="hidden md:table-cell px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Costo Unit.</th>
@@ -770,6 +858,9 @@ const Produccion = () => {
                         <tbody className="bg-white divide-y divide-gray-200">
                             {filteredProduccion.map((item) => (
                                 <tr key={item.id_produccion} className="hover:bg-gray-50">
+                                    <td className="px-4 py-3 whitespace-nowrap text-center">
+                                        {renderImageCell(item)}
+                                    </td>
                                     <td className="px-4 py-3">
                                         <div className="text-sm font-medium text-gray-900">{item.nombre_producto || `${item.tipo_producto} de ${item.metal}`}</div>
                                         <div className="text-xs text-gray-500">
@@ -816,10 +907,10 @@ const Produccion = () => {
                                                     </button>
                                                     <button
                                                         onClick={() => handleMarkAsComplete(item)}
-                                                        className="flex items-center gap-1 bg-green-50 text-green-700 px-2 py-1 rounded border border-green-200 hover:bg-green-100 transition-colors text-xs font-semibold"
+                                                        className="text-green-600 hover:text-green-900"
                                                         title="Marcar como Terminado"
                                                     >
-                                                        <FaCheckCircle size={14} /> Terminar
+                                                        <FaCheck size={18} />
                                                     </button>
                                                     <button
                                                         onClick={() => handleDelete(item.id_produccion)}
@@ -860,6 +951,14 @@ const Produccion = () => {
                     )}
                 </div>
             </div>
+            {/* Input oculto para subida desde tabla */}
+            <input
+                type="file"
+                ref={fileInputRef}
+                className="hidden"
+                accept="image/*"
+                onChange={handleTableImageUpload}
+            />
         </div>
     );
 };

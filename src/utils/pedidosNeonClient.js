@@ -34,7 +34,12 @@ export const pedidosDB = {
             'referencia', pa.referencia
           )) FILTER (WHERE pa.id_pago IS NOT NULL),
           '[]'::json
-        ) as pagos
+        ) as pagos,
+        EXISTS (
+          SELECT 1 FROM produccion_taller pt 
+          WHERE pt.pedido_id = p.id_pedido 
+          AND pt.estado_produccion != 'terminado'
+        ) as en_produccion
       FROM pedidos p
       LEFT JOIN detalles_pedido d ON p.id_pedido = d.id_pedido
       LEFT JOIN pagos pa ON p.id_pedido = pa.id_pedido
@@ -45,6 +50,7 @@ export const pedidosDB = {
     // Convertir strings numéricos a números
     return pedidos.map(p => ({
       ...p,
+      en_produccion: p.en_produccion || false,
       precio_total_sin_igv: parseFloat(p.precio_total_sin_igv) || 0,
       precio_total: parseFloat(p.precio_total) || 0,
       monto_a_cuenta: parseFloat(p.monto_a_cuenta) || 0,

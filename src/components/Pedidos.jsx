@@ -102,7 +102,8 @@ const Pedidos = () => {
         const monto_a_cuenta = parseFloat(formData.monto_a_cuenta) || 0;
         const monto_saldo_raw = precio_total - monto_a_cuenta;
         const monto_saldo = monto_saldo_raw < 0.10 ? 0 : monto_saldo_raw;
-        const cancelado = monto_saldo <= 0.001;
+        // Cancelado solo si hay monto total (> 0) y el saldo es 0
+        const cancelado = precio_total > 0 && monto_saldo <= 0.001;
 
         setCalculos({
             precio_total_sin_igv: parseFloat(precio_total_sin_igv.toFixed(2)),
@@ -120,18 +121,6 @@ const Pedidos = () => {
         }
 
     }, [formData, listaProductos]);
-
-    // Efecto para sincronizar monto a cuenta con total si se selecciona "Pago Total"
-    useEffect(() => {
-        if (tipoPagoInicial === 'total') {
-            setFormData(prev => {
-                if (prev.monto_a_cuenta !== calculos.precio_total) {
-                    return { ...prev, monto_a_cuenta: calculos.precio_total };
-                }
-                return prev;
-            });
-        }
-    }, [calculos.precio_total, tipoPagoInicial]);
 
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target;
@@ -778,31 +767,7 @@ const Pedidos = () => {
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Tipo de Pago Inicial</label>
-                                <div className="flex space-x-4 mb-2">
-                                    <label className="inline-flex items-center">
-                                        <input
-                                            type="radio"
-                                            className="form-radio text-blue-600"
-                                            name="tipoPagoInicial"
-                                            value="adelanto"
-                                            checked={tipoPagoInicial === 'adelanto'}
-                                            onChange={() => setTipoPagoInicial('adelanto')}
-                                        />
-                                        <span className="ml-2">Adelanto / A Cuenta</span>
-                                    </label>
-                                    <label className="inline-flex items-center">
-                                        <input
-                                            type="radio"
-                                            className="form-radio text-green-600"
-                                            name="tipoPagoInicial"
-                                            value="total"
-                                            checked={tipoPagoInicial === 'total'}
-                                            onChange={() => setTipoPagoInicial('total')}
-                                        />
-                                        <span className="ml-2 font-semibold text-green-700">Pago Total (Cancelar)</span>
-                                    </label>
-                                </div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Monto a Cuenta / Pago</label>
                                 <div className="flex space-x-2">
                                     <input
                                         type="number"
@@ -810,10 +775,9 @@ const Pedidos = () => {
                                         value={formData.monto_a_cuenta}
                                         onChange={handleChange}
                                         step="0.01"
-                                        className={`mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2 ${tipoPagoInicial === 'total' ? 'bg-gray-100 text-gray-500' : ''}`}
+                                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2"
                                         required
                                         onWheel={handleWheel}
-                                        readOnly={tipoPagoInicial === 'total'}
                                     />
                                     {/* Botón '+' eliminado por rediseño */}
                                 </div>
@@ -938,7 +902,7 @@ const Pedidos = () => {
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cliente</th>
                                 <th className="hidden md:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/4">Producto</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">A Cuenta</th>
+                                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">PRODUCCIÓN</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Saldo</th>
                                 <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
                                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
@@ -973,12 +937,13 @@ const Pedidos = () => {
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                             S/ {pedido.precio_total?.toFixed(2)}
                                         </td>
-                                        <td className={`px-6 py-4 whitespace-nowrap text-sm font-bold ${pedido.monto_a_cuenta > 0 ? 'text-green-600' : 'text-gray-400'}`}>
-                                            <div>S/ {pedido.monto_a_cuenta.toFixed(2)}</div>
-                                            {pedido.pagos && pedido.pagos.length > 0 && pedido.monto_a_cuenta > 0 && (
-                                                <div className="text-xs text-gray-400 font-normal">
-                                                    ({new Date(pedido.pagos.sort((a, b) => new Date(b.fecha_pago) - new Date(a.fecha_pago))[0].fecha_pago).toLocaleDateString('es-PE', { day: '2-digit', month: 'numeric', year: '2-digit' })})
-                                                </div>
+                                        <td className="px-6 py-4 whitespace-nowrap text-center">
+                                            {pedido.en_produccion ? (
+                                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                                                    Proceso
+                                                </span>
+                                            ) : (
+                                                <span className="text-gray-300">-</span>
                                             )}
                                         </td>
                                         <td className={`px-6 py-4 whitespace-nowrap text-sm font-bold ${pedido.cancelado ? 'text-green-600' : 'text-red-600'}`}>

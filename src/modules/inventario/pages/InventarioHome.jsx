@@ -64,9 +64,16 @@ export default function InventarioHome() {
         {
             title: 'Ventas',
             icon: ShoppingCart,
-            path: '/ventas',
+            path: '/ventas/nueva',
             description: 'Registro de ventas',
             color: 'bg-green-500'
+        },
+        {
+            title: 'Rep. Ventas',
+            icon: LineChart,
+            path: '/ventas/reporte',
+            description: 'Estadísticas y análisis',
+            color: 'bg-green-700'
         },
         {
             title: 'Compras',
@@ -164,7 +171,7 @@ export default function InventarioHome() {
                     <h2 className="text-center text-sm font-semibold text-gray-500 uppercase tracking-wider mb-6">
                         Gestión Comercial
                     </h2>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
                         {operacionesComerciales.map((module) => (
                             <ModuleCard key={module.path} module={module} />
                         ))}

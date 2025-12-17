@@ -51,6 +51,8 @@ import Inventario from './modules/inventario/pages/Inventario';
 import StockInicial from './modules/inventario/pages/StockInicial';
 import ProductoForm from './modules/inventario/pages/ProductoForm';
 import ProductoEdit from './modules/inventario/pages/ProductoEdit';
+import NuevaVenta from './modules/ventas/pages/NuevaVenta';
+import ReporteVentas from './modules/ventas/pages/ReporteVentas';
 
 const MainContent = () => {
     const location = useLocation();
@@ -109,6 +111,8 @@ const MainContent = () => {
                 <Route path="/stock-inicial" element={<PrivateRoute><StockInicial /></PrivateRoute>} />
                 <Route path="/inventario/nuevo" element={<PrivateRoute><ProductoForm /></PrivateRoute>} />
                 <Route path="/inventario/editar/:id" element={<PrivateRoute><ProductoEdit /></PrivateRoute>} />
+                <Route path="/ventas/nueva" element={<PrivateRoute><NuevaVenta /></PrivateRoute>} />
+                <Route path="/ventas/reporte" element={<PrivateRoute><ReporteVentas /></PrivateRoute>} />
             </Routes>
             {!hideHeaderFooter && (
                 <>

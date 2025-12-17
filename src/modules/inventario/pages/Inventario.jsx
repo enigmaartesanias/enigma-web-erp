@@ -168,8 +168,8 @@ export default function Inventario() {
                                         <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Imagen</th>
                                         <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Código</th>
                                         <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Producto</th>
-                                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Categoría</th>
-                                        <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase">Stock</th>
+                                        {/* <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Categoría</th> */}
+                                        <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase">Saldo</th>
                                         <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase">Costo</th>
                                         <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase">Origen</th>
                                         <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase">Precio</th>
@@ -198,11 +198,11 @@ export default function Inventario() {
                                             <td className="px-4 py-3">
                                                 <div className="text-gray-700 text-xs">{producto.nombre}</div>
                                             </td>
-                                            <td className="px-4 py-3">
+                                            {/* <td className="px-4 py-3">
                                                 <span className="px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs">
                                                     {producto.categoria || 'Sin categoría'}
                                                 </span>
-                                            </td>
+                                            </td> */}
                                             <td className="px-4 py-3 text-center">
                                                 <span className={`text-xs ${producto.stock_actual <= producto.stock_minimo
                                                     ? 'text-red-600'

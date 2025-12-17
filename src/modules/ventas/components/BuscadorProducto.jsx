@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { FaSearch, FaBarcode, FaSpinner } from 'react-icons/fa';
 import { productosExternosDB } from '../../../utils/productosExternosNeonClient';
 
-const BuscadorProducto = ({ onScan, onSelect }) => {
+const BuscadorProducto = ({ onScan, onSelect, onQRClick }) => {
     const [query, setQuery] = useState('');
     const [results, setResults] = useState([]);
     const [showResults, setShowResults] = useState(false);
@@ -64,35 +64,47 @@ const BuscadorProducto = ({ onScan, onSelect }) => {
     };
 
     return (
-        <div className="relative w-full z-20" ref={searchRef}>
-            <form onSubmit={handleSearch} className="relative">
+        <div className="relative w-full z-20 flex gap-2" ref={searchRef}>
+            <form onSubmit={handleSearch} className="relative flex-1">
                 <input
                     type="text"
                     value={query}
                     onChange={handleInputChange}
-                    placeholder="Escanear código o buscar..."
-                    className="w-full pl-10 pr-4 py-2.5 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:bg-white focus:border-slate-500 focus:ring-1 focus:ring-slate-500 transition-all outline-none"
+                    placeholder="Código o nombre..."
+                    className="w-full pl-8 pr-16 py-2 text-sm bg-gray-50 border border-gray-300 rounded-lg focus:bg-white focus:border-gray-400 focus:ring-1 focus:ring-gray-400 transition-all outline-none"
                     autoFocus
                 />
-                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
-                    {loading ? <FaSpinner className="animate-spin text-slate-500" /> : <FaBarcode size={16} />}
+                <div className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400">
+                    {loading ? <FaSpinner className="animate-spin text-gray-500" /> : <FaBarcode size={14} />}
                 </div>
                 {query && (
                     <button
                         type="button"
                         onClick={() => { setQuery(''); setResults([]); }}
-                        className="absolute right-10 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 px-2"
+                        className="absolute right-9 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 px-2 text-xs"
                     >
                         ✕
                     </button>
                 )}
                 <button
                     type="submit"
-                    className="absolute right-1.5 top-1/2 -translate-y-1/2 bg-slate-700 text-white p-1.5 rounded-md hover:bg-slate-800 transition"
+                    className="absolute right-1 top-1/2 -translate-y-1/2 bg-gray-600 text-white p-1.5 rounded-md hover:bg-gray-700 transition"
                 >
-                    <FaSearch size={12} />
+                    <FaSearch size={11} />
                 </button>
             </form>
+
+            {/* Botón QR al lado */}
+            {onQRClick && (
+                <button
+                    onClick={onQRClick}
+                    className="px-3 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition flex-shrink-0 flex items-center gap-1.5"
+                    title="Escanear QR"
+                >
+                    <FaBarcode size={16} />
+                    <span className="text-xs hidden sm:inline">QR</span>
+                </button>
+            )}
 
             {/* Dropdown de resultados */}
             {showResults && results.length > 0 && (

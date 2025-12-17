@@ -83,6 +83,13 @@ export default function InventarioHome() {
             color: 'bg-orange-500'
         },
         {
+            title: 'Clientes',
+            icon: FileText,
+            path: '/clientes',
+            description: 'Gestión de clientes',
+            color: 'bg-purple-600'
+        },
+        {
             title: 'Stock Inicial',
             icon: ClipboardList,
             path: '/stock-inicial',

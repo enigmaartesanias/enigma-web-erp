@@ -53,6 +53,7 @@ import ProductoForm from './modules/inventario/pages/ProductoForm';
 import ProductoEdit from './modules/inventario/pages/ProductoEdit';
 import NuevaVenta from './modules/ventas/pages/NuevaVenta';
 import ReporteVentas from './modules/ventas/pages/ReporteVentas';
+import Clientes from './modules/clientes/pages/Clientes';
 
 const MainContent = () => {
     const location = useLocation();
@@ -62,6 +63,7 @@ const MainContent = () => {
         location.pathname.startsWith('/ventas') ||
         location.pathname.startsWith('/catalogo-inventario') ||
         location.pathname.startsWith('/compras') ||
+        location.pathname.startsWith('/clientes') ||
         location.pathname.startsWith('/stock-inicial');
 
     const hideHeaderFooter = isAdmin || isInventarioModule;
@@ -113,6 +115,7 @@ const MainContent = () => {
                 <Route path="/inventario/editar/:id" element={<PrivateRoute><ProductoEdit /></PrivateRoute>} />
                 <Route path="/ventas/nueva" element={<PrivateRoute><NuevaVenta /></PrivateRoute>} />
                 <Route path="/ventas/reporte" element={<PrivateRoute><ReporteVentas /></PrivateRoute>} />
+                <Route path="/clientes" element={<PrivateRoute><Clientes /></PrivateRoute>} />
             </Routes>
             {!hideHeaderFooter && (
                 <>

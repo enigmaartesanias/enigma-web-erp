@@ -6,7 +6,9 @@ import BuscadorProducto from '../components/BuscadorProducto';
 import ItemVenta from '../components/ItemVenta';
 import ResumenVenta from '../components/ResumenVenta';
 import { Toaster, toast } from 'react-hot-toast';
-import { FaArrowLeft, FaShoppingCart, FaHistory } from 'react-icons/fa';
+import { FaArrowLeft, FaHistory, FaShoppingCart } from 'react-icons/fa';
+import QRScanner from '../components/QRScanner';
+import ClienteSelector from '../components/ClienteSelector';
 
 const NuevaVenta = () => {
     const navigate = useNavigate();
@@ -17,6 +19,8 @@ const NuevaVenta = () => {
     } = useVentas();
 
     const [processing, setProcessing] = useState(false);
+    const [showQRScanner, setShowQRScanner] = useState(false);
+    const [showClienteSelector, setShowClienteSelector] = useState(false);
 
     // Manejo de escaneo (Input manual o búsqueda exacta)
     const handleScan = async (codigo) => {
@@ -33,6 +37,13 @@ const NuevaVenta = () => {
     const handleSelectProduct = (product) => {
         addProductToCart(product);
         toast.success(`Agregado: ${product.nombre}`, { position: 'bottom-center' });
+    };
+
+    // Seleccionar cliente
+    const handleSelectCliente = (cliente) => {
+        setConfig({ ...config, cliente });
+        setShowClienteSelector(false);
+        toast.success(`Cliente: ${cliente.nombre}`, { position: 'bottom-center', duration: 1500 });
     };
 
     // Procesar Venta
@@ -79,23 +90,37 @@ const NuevaVenta = () => {
         <div className="min-h-screen bg-gray-50 flex flex-col h-screen overflow-hidden">
             <Toaster />
 
+            {/* QR Scanner Modal */}
+            <QRScanner
+                isOpen={showQRScanner}
+                onClose={() => setShowQRScanner(false)}
+                onScan={handleScan}
+            />
+
+            {/* Cliente Selector Modal */}
+            <ClienteSelector
+                isOpen={showClienteSelector}
+                onClose={() => setShowClienteSelector(false)}
+                onSelect={handleSelectCliente}
+            />
+
             {/* Navbar Simple */}
-            <header className="bg-white border-b border-gray-200 px-4 py-3 flex justify-between items-center shadow-sm z-30">
-                <div className="flex items-center gap-3">
+            <header className="bg-white border-b border-gray-200 px-3 py-2 flex justify-between items-center shadow-sm z-30 flex-shrink-0">
+                <div className="flex items-center gap-2">
                     <button
                         onClick={() => navigate('/inventario-home')}
-                        className="p-2 hover:bg-gray-100 rounded-full text-gray-600 transition"
+                        className="p-1.5 hover:bg-gray-100 rounded-full text-gray-600 transition"
                     >
-                        <FaArrowLeft />
+                        <FaArrowLeft size={16} />
                     </button>
-                    <h1 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-                        <span className="bg-indigo-600 text-white p-1.5 rounded-lg text-sm">POS</span>
+                    <h1 className="text-base font-bold text-gray-800 flex items-center gap-2">
+                        <span className="bg-gray-700 text-white px-2 py-0.5 rounded text-xs">POS</span>
                         Punto de Venta
                     </h1>
                 </div>
-                <div className="flex items-center gap-3">
-                    <button className="text-gray-500 hover:text-indigo-600 flex items-center gap-1 text-sm font-medium px-3 py-1.5 rounded-lg hover:bg-indigo-50 transition">
-                        <FaHistory />
+                <div className="flex items-center gap-2">
+                    <button className="text-gray-500 hover:text-gray-700 flex items-center gap-1 text-xs font-medium px-2 py-1 rounded hover:bg-gray-100 transition">
+                        <FaHistory size={14} />
                         <span className="hidden sm:inline">Historial</span>
                     </button>
                 </div>
@@ -105,14 +130,18 @@ const NuevaVenta = () => {
             <main className="flex-1 overflow-hidden flex flex-col md:flex-row">
 
                 {/* Columna Izquierda: Buscador y Carrito */}
-                <section className="flex-1 flex flex-col h-full relative">
+                <section className="flex-1 flex flex-col h-full md:h-auto relative overflow-hidden">
                     {/* Buscador Fijo */}
-                    <div className="p-4 bg-white border-b border-gray-100 shadow-sm z-20">
-                        <BuscadorProducto onScan={handleScan} onSelect={handleSelectProduct} />
+                    <div className="p-3 bg-white border-b border-gray-100 shadow-sm z-20 flex-shrink-0">
+                        <BuscadorProducto
+                            onScan={handleScan}
+                            onSelect={handleSelectProduct}
+                            onQRClick={() => setShowQRScanner(true)}
+                        />
                     </div>
 
                     {/* Lista de Items (Scrollable) */}
-                    <div className="flex-1 overflow-y-auto p-4 space-y-2 bg-gray-50 pb-24 md:pb-4">
+                    <div className="flex-1 overflow-y-auto p-3 space-y-2 bg-gray-50">
                         {cart.length === 0 ? (
                             <div className="h-full flex flex-col items-center justify-center text-gray-400 opacity-60">
                                 <FaShoppingCart size={64} className="mb-4 text-gray-300" />
@@ -132,14 +161,15 @@ const NuevaVenta = () => {
                     </div>
                 </section>
 
-                {/* Columna Derecha: Totales (Fijo en desktop, bottom sheet en mobile) */}
-                <section className="w-full md:w-96 bg-white border-l border-gray-200 shadow-xl z-30 flex-shrink-0">
+                {/* Columna Derecha: Totales */}
+                <section className="w-full md:w-80 bg-white border-l border-gray-200 shadow-xl z-30 flex-shrink-0 flex flex-col h-full md:h-auto">
                     <ResumenVenta
                         totals={totals}
                         config={config}
                         setConfig={setConfig}
                         onProcess={handleProcessVenta}
                         processing={processing}
+                        onClienteClick={() => setShowClienteSelector(true)}
                     />
                 </section>
 

@@ -1,7 +1,7 @@
 -- Tabla para Productos Comerciales (Compra/Venta)
 CREATE TABLE IF NOT EXISTS productos_externos (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    codigo_usuario TEXT UNIQUE NOT NULL, -- Clave manual (ej: ARE010)
+    codigo_usuario TEXT NOT NULL, -- Clave manual (ej: ARE010) - Permite duplicados para agrupar modelos
     nombre TEXT NOT NULL,
     categoria TEXT, -- Aretes, Pulseras, etc.
     descripcion TEXT,

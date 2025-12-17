@@ -60,13 +60,20 @@ const ProductoForm = () => {
 
     const applyProduccionData = (item) => {
         setSelectedProduccion(item.id_produccion);
+
+        // Generar código único basado en el tipo y timestamp
+        const timestamp = Date.now().toString().slice(-6); // Últimos 6 dígitos
+        const tipoPrefix = item.tipo_producto.substring(0, 3).toUpperCase();
+        const codigoUnico = `${tipoPrefix}${timestamp}`;
+
         setFormData(prev => ({
             ...prev,
             nombre: item.nombre_producto || `${item.tipo_producto} de ${item.metal}`,
             costo: item.costo_total_unitario ? parseFloat(item.costo_total_unitario).toFixed(2) : '',
             stock_actual: item.cantidad,
             descripcion: `Producto fabricado en taller. Metal: ${item.metal}. Tipo: ${item.tipo_producto}.`,
-            origen: 'PRODUCCION'
+            origen: 'PRODUCCION',
+            codigo_usuario: codigoUnico // Código único autogenerado
         }));
         if (item.imagen_url) {
             setPreviewUrl(item.imagen_url);

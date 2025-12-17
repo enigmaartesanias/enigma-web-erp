@@ -485,9 +485,9 @@ const Pedidos = () => {
     return (
         <div className="container mx-auto p-4 md:p-6 bg-gray-50 min-h-screen">
             <div className="mb-6">
-                <Link to="/admin" className="flex items-center text-gray-600 hover:text-blue-600 transition-colors w-fit">
+                <Link to="/inventario-home" className="flex items-center text-gray-600 hover:text-blue-600 transition-colors w-fit">
                     <FaArrowLeft className="mr-2" />
-                    <span className="font-medium">Regresar al Panel</span>
+                    <span className="font-medium">Enigma Sistema ERP</span>
                 </Link>
             </div>
 

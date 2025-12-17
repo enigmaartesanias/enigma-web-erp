@@ -852,7 +852,7 @@ const Produccion = () => {
                                 <th className="hidden md:table-cell px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Costo Unit.</th>
                                 <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Estado</th>
                                 <th className="hidden lg:table-cell px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Tipo</th>
-                                <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Acciones</th>
+                                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Acciones</th>
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
@@ -861,11 +861,10 @@ const Produccion = () => {
                                     <td className="px-4 py-3 whitespace-nowrap text-center">
                                         {renderImageCell(item)}
                                     </td>
-                                    <td className="px-4 py-3">
+                                    <td className="px-4 py-3 text-left">
                                         <div className="text-sm font-medium text-gray-900">{item.nombre_producto || `${item.tipo_producto} de ${item.metal}`}</div>
                                         <div className="text-xs text-gray-500">
                                             {item.metal} - {item.tipo_producto}
-                                            {item.nombre_cliente && <span className="ml-2 text-amber-600">({item.nombre_cliente})</span>}
                                         </div>
                                         {/* Mostrar cantidad en móvil dentro del nombre */}
                                         <div className="sm:hidden text-xs font-semibold text-gray-700 mt-1">
@@ -894,8 +893,8 @@ const Produccion = () => {
                                             </span>
                                         )}
                                     </td>
-                                    <td className="px-4 py-3 text-center">
-                                        <div className="flex justify-center space-x-2">
+                                    <td className="px-4 py-3 text-right">
+                                        <div className="flex justify-end space-x-2">
                                             {['en_proceso', 'pendiente'].includes(item.estado_produccion) ? (
                                                 <>
                                                     <button

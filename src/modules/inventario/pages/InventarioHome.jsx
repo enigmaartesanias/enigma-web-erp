@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Package, ShoppingCart, Clipboard, Hammer, BarChart3, FileText, ClipboardList, LineChart } from 'lucide-react';
+import { Package, ShoppingCart, Clipboard, Hammer, BarChart3, FileText, ClipboardList, LineChart, QrCode } from 'lucide-react';
 
 export default function InventarioHome() {
     const pedidosReportes = [
@@ -50,6 +50,13 @@ export default function InventarioHome() {
             path: '/inventario',
             description: 'Ver stock y detalles',
             color: 'bg-teal-500'
+        },
+        {
+            title: 'Códigos QR',
+            icon: QrCode,
+            path: '/admin/codigos-qr',
+            description: 'Imprimir etiquetas QR',
+            color: 'bg-gray-800'
         }
     ];
 

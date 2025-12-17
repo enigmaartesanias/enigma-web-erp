@@ -37,6 +37,7 @@ import ProductoAdmin from './components/ProductoAdmin';
 import StockAdmin from './components/StockAdmin';
 import Pedidos from './components/Pedidos';
 import ReportePedidos from './components/ReportePedidos';
+import ReporteCodigosQR from './components/ReporteCodigosQR';
 
 // Módulo de Inventario
 import InventarioHome from './modules/inventario/pages/InventarioHome';
@@ -95,6 +96,7 @@ const MainContent = () => {
                 <Route path="/admin/stock" element={<PrivateRoute><StockAdmin /></PrivateRoute>} />
                 <Route path="/admin/pedidos" element={<PrivateRoute><Pedidos /></PrivateRoute>} />
                 <Route path="/admin/reportes" element={<PrivateRoute><ReportePedidos /></PrivateRoute>} />
+                <Route path="/admin/codigos-qr" element={<PrivateRoute><ReporteCodigosQR /></PrivateRoute>} />
 
                 {/* Módulo de Inventario - Rutas privadas */}
                 <Route path="/inventario-home" element={<PrivateRoute><InventarioHome /></PrivateRoute>} />

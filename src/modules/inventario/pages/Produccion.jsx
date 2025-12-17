@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { produccionDB, METALES, TIPOS_PRODUCTO } from '../../../utils/produccionNeonClient';
 import { pedidosDB } from '../../../utils/pedidosNeonClient';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { FaEdit, FaTrash, FaArrowLeft, FaSave, FaTimes, FaBox, FaMoneyBillWave, FaHammer, FaCheckCircle, FaEye, FaCamera, FaCheck } from 'react-icons/fa';
 import { storage } from '../../../firebaseConfig';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -10,6 +10,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 const Produccion = () => {
     const location = useLocation();
+    const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState(null);
     const [produccion, setProduccion] = useState([]);
@@ -928,6 +929,15 @@ const Produccion = () => {
                                                     >
                                                         <FaEye size={18} />
                                                     </button>
+                                                    {item.tipo_produccion === 'STOCK' && (
+                                                        <button
+                                                            onClick={() => navigate('/inventario/nuevo', { state: { prefill: item } })}
+                                                            className="text-blue-600 hover:text-blue-900"
+                                                            title="Enviar a Inventario"
+                                                        >
+                                                            <FaBox size={18} />
+                                                        </button>
+                                                    )}
                                                     <button
                                                         onClick={() => handleDeleteCompleted(item.id_produccion)}
                                                         className="text-red-600 hover:text-red-900"

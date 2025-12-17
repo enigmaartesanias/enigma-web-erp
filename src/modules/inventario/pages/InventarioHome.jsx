@@ -36,20 +36,30 @@ export default function InventarioHome() {
         }
     ];
 
-    const gestionInventario = [
+    const accionesInventario = [
+        {
+            title: 'Inventario',
+            icon: Clipboard,
+            path: '/inventario/nuevo',
+            description: 'Agregar productos',
+            color: 'bg-teal-600'
+        },
+        {
+            title: 'Reporte Inv.',
+            icon: BarChart3,
+            path: '/inventario',
+            description: 'Ver stock y detalles',
+            color: 'bg-teal-500'
+        }
+    ];
+
+    const operacionesComerciales = [
         {
             title: 'Ventas',
             icon: ShoppingCart,
             path: '/ventas',
             description: 'Registro de ventas',
             color: 'bg-green-500'
-        },
-        {
-            title: 'Catálogo',
-            icon: FileText,
-            path: '/catalogo-inventario',
-            description: 'Productos del catálogo',
-            color: 'bg-purple-500'
         },
         {
             title: 'Compras',
@@ -59,15 +69,8 @@ export default function InventarioHome() {
             color: 'bg-orange-500'
         },
         {
-            title: 'Inventario',
-            icon: BarChart3,
-            path: '/inventario',
-            description: 'Control de stock',
-            color: 'bg-teal-500'
-        },
-        {
             title: 'Stock Inicial',
-            icon: Clipboard,
+            icon: ClipboardList,
             path: '/stock-inicial',
             description: 'Carga inicial de inventario',
             color: 'bg-indigo-500'
@@ -135,13 +138,27 @@ export default function InventarioHome() {
                     </div>
                 </div>
 
-                {/* Grupo 3: Gestión de Inventario */}
+                {/* Grupo 3: Control de Inventario (NUEVO GRUPO) */}
+                <div className="max-w-5xl mx-auto mb-8">
+                    <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+                        <h2 className="text-center text-sm font-semibold text-gray-500 uppercase tracking-wider mb-6">
+                            Control de Inventario
+                        </h2>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-4 gap-4 justify-center max-w-2xl mx-auto">
+                            {accionesInventario.map((module) => (
+                                <ModuleCard key={module.path} module={module} />
+                            ))}
+                        </div>
+                    </div>
+                </div>
+
+                {/* Grupo 4: Operaciones Comerciales */}
                 <div className="max-w-5xl mx-auto bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
                     <h2 className="text-center text-sm font-semibold text-gray-500 uppercase tracking-wider mb-6">
-                        Gestión de Inventario
+                        Gestión Comercial
                     </h2>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
-                        {gestionInventario.map((module) => (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 gap-4">
+                        {operacionesComerciales.map((module) => (
                             <ModuleCard key={module.path} module={module} />
                         ))}
                     </div>

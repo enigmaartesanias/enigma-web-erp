@@ -85,28 +85,6 @@ const AdminPanel = () => {
         </div>
 
 
-
-        {/* Grupo 3: Gestión de Stock */}
-        <div className="mb-8">
-          <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-4 text-center">Inventario</h3>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-8 max-w-4xl mx-auto">
-            {/* Gestión de Stock */}
-            <Link
-              to="/admin/stock"
-              className="block p-6 bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 text-center border border-gray-100"
-            >
-              <div className="w-12 h-12 md:w-16 md:h-16 bg-orange-50 rounded-full flex items-center justify-center mx-auto mb-3 md:mb-4">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 md:h-8 md:w-8 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c1.657 0 3 1.343 3 3v5H9v-5c0-1.657 1.343-3 3-3z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12h-4V8a7 7 0 00-14 0v4H3a1 1 0 00-1 1v6a1 1 0 001 1h18a1 1 0 001-1v-6a1 1 0 00-1-1z" />
-                </svg>
-              </div>
-              <h2 className="text-base md:text-xl font-medium text-gray-800 mb-1">Gestión de Stock</h2>
-              <p className="text-xs md:text-sm text-gray-500 hidden md:block">Administra el inventario de la tienda.</p>
-            </Link>
-          </div>
-        </div>
-
         {/* Grupo 4: Sistema de Inventario Integrado */}
         <div className="mb-8">
           <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-4 text-center">Sistema de Inventario</h3>

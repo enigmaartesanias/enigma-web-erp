@@ -9,6 +9,7 @@ import { Toaster, toast } from 'react-hot-toast';
 import { FaArrowLeft, FaHistory, FaShoppingCart } from 'react-icons/fa';
 import QRScanner from '../components/QRScanner';
 import ClienteSelector from '../components/ClienteSelector';
+import NotaVentaModal from '../components/NotaVentaModal';
 
 const NuevaVenta = () => {
     const navigate = useNavigate();
@@ -18,9 +19,12 @@ const NuevaVenta = () => {
         updateQuantity, removeFromCart, clearCart
     } = useVentas();
 
+    const [formaPago, setFormaPago] = useState('Efectivo');
+
     const [processing, setProcessing] = useState(false);
     const [showQRScanner, setShowQRScanner] = useState(false);
     const [showClienteSelector, setShowClienteSelector] = useState(false);
+    const [showNotaModal, setShowNotaModal] = useState(false);
 
     // Manejo de escaneo (Input manual o búsqueda exacta)
     const handleScan = async (codigo) => {
@@ -61,7 +65,8 @@ const NuevaVenta = () => {
                 descuento_monto: totals.descuento,
                 impuesto_monto: totals.impuesto,
                 total: totals.total,
-                metodo_pago: 'Efectivo', // Podría ser dinámico si agregamos selector
+                forma_pago: formaPago, // Usar forma de pago del estado
+                observaciones: '',
                 detalles: cart.map(item => ({
                     producto_id: item.id,
                     cantidad: item.cantidad,
@@ -86,6 +91,38 @@ const NuevaVenta = () => {
         }
     };
 
+    // Emitir Nota de Venta
+    const handleEmitirNota = () => {
+        setShowNotaModal(true);
+    };
+
+    // Preparar datos para la nota
+    const getNotaData = () => {
+        const fecha = new Date().toLocaleDateString('es-PE', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric'
+        });
+
+        const numeroVenta = `V-${Date.now().toString().slice(-6)}`;
+
+        return {
+            numeroVenta,
+            fecha,
+            cliente: config.cliente || null,
+            productos: cart.map(item => ({
+                nombre: item.nombre,
+                cantidad: item.cantidad,
+                precioUnitario: item.precio
+            })),
+            subtotal: totals.subtotal,
+            igv: totals.impuesto,
+            descuento: totals.descuento,
+            total: totals.total,
+            formaPago
+        };
+    };
+
     return (
         <div className="min-h-screen bg-gray-50 flex flex-col h-screen overflow-hidden">
             <Toaster />
@@ -104,6 +141,13 @@ const NuevaVenta = () => {
                 onSelect={handleSelectCliente}
             />
 
+            {/* Nota de Venta Modal */}
+            <NotaVentaModal
+                isOpen={showNotaModal}
+                onClose={() => setShowNotaModal(false)}
+                ventaData={getNotaData()}
+            />
+
             {/* Navbar Simple */}
             <header className="bg-white border-b border-gray-200 px-3 py-2 flex justify-between items-center shadow-sm z-30 flex-shrink-0">
                 <div className="flex items-center gap-2">
@@ -118,20 +162,15 @@ const NuevaVenta = () => {
                         Punto de Venta
                     </h1>
                 </div>
-                <div className="flex items-center gap-2">
-                    <button className="text-gray-500 hover:text-gray-700 flex items-center gap-1 text-xs font-medium px-2 py-1 rounded hover:bg-gray-100 transition">
-                        <FaHistory size={14} />
-                        <span className="hidden sm:inline">Historial</span>
-                    </button>
-                </div>
+                {/* Espacio para futuros botones si es necesario */}
             </header>
 
             {/* Main Content - Grid Layout */}
             <main className="flex-1 overflow-hidden flex flex-col md:flex-row">
 
                 {/* Columna Izquierda: Buscador y Carrito */}
-                <section className="flex-1 flex flex-col h-full md:h-auto relative overflow-hidden">
-                    {/* Buscador Fijo */}
+                <section className="hidden md:flex flex-1 flex-col h-full md:h-auto relative overflow-hidden order-2 md:order-1">
+                    {/* Buscador Fijo - Solo visible en desktop */}
                     <div className="p-3 bg-white border-b border-gray-100 shadow-sm z-20 flex-shrink-0">
                         <BuscadorProducto
                             onScan={handleScan}
@@ -162,7 +201,7 @@ const NuevaVenta = () => {
                 </section>
 
                 {/* Columna Derecha: Totales */}
-                <section className="w-full md:w-80 bg-white border-l border-gray-200 shadow-xl z-30 flex-shrink-0 flex flex-col h-full md:h-auto">
+                <section className="w-full md:w-80 bg-white border-l border-gray-200 shadow-xl z-30 flex-shrink-0 flex flex-col h-auto md:h-auto order-1 md:order-2">
                     <ResumenVenta
                         totals={totals}
                         config={config}
@@ -170,6 +209,15 @@ const NuevaVenta = () => {
                         onProcess={handleProcessVenta}
                         processing={processing}
                         onClienteClick={() => setShowClienteSelector(true)}
+                        onScan={handleScan}
+                        onSelect={handleSelectProduct}
+                        onQRClick={() => setShowQRScanner(true)}
+                        cart={cart}
+                        onUpdateQuantity={updateQuantity}
+                        onRemove={removeFromCart}
+                        formaPago={formaPago}
+                        setFormaPago={setFormaPago}
+                        onEmitirNota={handleEmitirNota}
                     />
                 </section>
 

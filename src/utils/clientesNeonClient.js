@@ -6,7 +6,7 @@ export const clientesDB = {
     // Obtener todos los clientes
     async getAll() {
         try {
-            const clientes = await sql`SELECT * FROM clientes ORDER BY created_at DESC`;
+            const clientes = await sql`SELECT * FROM clientes ORDER BY id DESC`;
             return clientes;
         } catch (error) {
             console.error('Error fetching clientes:', error);

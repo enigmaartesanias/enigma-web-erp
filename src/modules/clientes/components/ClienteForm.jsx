@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FaTimes } from 'react-icons/fa';
 
 const ClienteForm = ({ isOpen, onClose, onSave, initialData = null }) => {
@@ -7,6 +7,17 @@ const ClienteForm = ({ isOpen, onClose, onSave, initialData = null }) => {
         telefono: initialData?.telefono || ''
     });
     const [errors, setErrors] = useState({});
+
+    // Reset form cuando cambia initialData o se abre el modal
+    useEffect(() => {
+        if (isOpen) {
+            setFormData({
+                nombre: initialData?.nombre || '',
+                telefono: initialData?.telefono || ''
+            });
+            setErrors({});
+        }
+    }, [isOpen, initialData]);
 
     const validate = () => {
         const newErrors = {};

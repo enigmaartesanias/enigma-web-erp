@@ -34,7 +34,7 @@ import AdminPanel from './components/AdminPanel';
 import CarouselAdmin from './components/CarouselAdmin';
 import CategoriaAdmin from './components/CategoriaAdmin';
 import ProductoAdmin from './components/ProductoAdmin';
-import StockAdmin from './components/StockAdmin';
+
 import Pedidos from './components/Pedidos';
 import ReportePedidos from './components/ReportePedidos';
 import ReporteCodigosQR from './components/ReporteCodigosQR';
@@ -97,7 +97,7 @@ const MainContent = () => {
                 <Route path="/admin/carrusel" element={<PrivateRoute><CarouselAdmin /></PrivateRoute>} />
                 <Route path="/admin/categoria" element={<PrivateRoute><CategoriaAdmin /></PrivateRoute>} />
                 <Route path="/admin/productos" element={<PrivateRoute><ProductoAdmin /></PrivateRoute>} />
-                <Route path="/admin/stock" element={<PrivateRoute><StockAdmin /></PrivateRoute>} />
+
                 <Route path="/admin/pedidos" element={<PrivateRoute><Pedidos /></PrivateRoute>} />
                 <Route path="/admin/reportes" element={<PrivateRoute><ReportePedidos /></PrivateRoute>} />
                 <Route path="/admin/codigos-qr" element={<PrivateRoute><ReporteCodigosQR /></PrivateRoute>} />

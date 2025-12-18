@@ -9,7 +9,7 @@ export const ventasDB = {
         // ventaData espera: { 
         //   cliente_nombre, cliente_documento, 
         //   subtotal, descuento_monto, impuesto_monto, total, 
-        //   metodo_pago, observaciones, 
+        //   forma_pago, observaciones, 
         //   detalles: [{ producto_id, cantidad, precio_unitario, producto_nombre, producto_codigo }] 
         // }
 
@@ -27,7 +27,7 @@ export const ventasDB = {
                     descuento_monto,
                     impuesto_monto,
                     total,
-                    metodo_pago,
+                    forma_pago,
                     observaciones
                 ) VALUES (
                     ${codigoVenta},
@@ -37,7 +37,7 @@ export const ventasDB = {
                     ${ventaData.descuento_monto || 0},
                     ${ventaData.impuesto_monto || 0},
                     ${ventaData.total},
-                    ${ventaData.metodo_pago || 'Efectivo'},
+                    ${ventaData.forma_pago || 'Efectivo'},
                     ${ventaData.observaciones || ''}
                 )
                 RETURNING *

@@ -1,12 +1,104 @@
 ﻿
-
-
 import React, { useState, useEffect, useRef } from 'react';
 import { pedidosDB } from '../utils/pedidosNeonClient';
 import { produccionDB, METALES, TIPOS_PRODUCTO } from '../utils/produccionNeonClient';
 import { Link, useNavigate } from 'react-router-dom';
-import { FaEdit, FaTrash, FaCheckCircle, FaTimesCircle, FaPlus, FaWhatsapp, FaPrint, FaSearch, FaMoneyBillWave, FaShareAlt, FaImage, FaPhone, FaArrowLeft, FaHammer } from 'react-icons/fa';
+import { FaEdit, FaTrash, FaCheckCircle, FaTimesCircle, FaPlus, FaWhatsapp, FaPrint, FaSearch, FaMoneyBillWave, FaShareAlt, FaImage, FaPhone, FaArrowLeft, FaHammer, FaCar } from 'react-icons/fa';
 import html2canvas from 'html2canvas';
+
+// ========================================
+// COMPONENTES DE BADGE
+// ========================================
+
+const EstadoPedidoBadge = ({ estado }) => {
+    const estilos = {
+        aceptado: 'bg-blue-100 text-blue-800',
+        entregado: 'bg-green-100 text-green-800'
+    };
+
+    const iconos = {
+        aceptado: '🔵',
+        entregado: '🟢'
+    };
+
+    const labels = {
+        aceptado: 'Aceptado',
+        entregado: 'Entregado'
+    };
+
+    return (
+        <span className={`px-2 py-1 rounded-full text-xs font-semibold ${estilos[estado] || 'bg-gray-100 text-gray-800'}`}>
+            {iconos[estado] || '⚪'} {labels[estado] || estado}
+        </span>
+    );
+};
+
+const EstadoProduccionBadge = ({ estado }) => {
+    const estilos = {
+        no_iniciado: 'bg-yellow-100 text-yellow-800',
+        en_proceso: 'bg-blue-100 text-blue-800',
+        terminado: 'bg-green-100 text-green-800'
+    };
+
+    const iconos = {
+        no_iniciado: '🟡',
+        en_proceso: '🔵',
+        terminado: '🟢'
+    };
+
+    const labels = {
+        no_iniciado: 'No iniciado',
+        en_proceso: 'En proceso',
+        terminado: 'Terminado'
+    };
+
+    return (
+        <span className={`px-2 py-1 rounded-full text-xs font-semibold ${estilos[estado] || 'bg-gray-100 text-gray-800'}`}>
+            {iconos[estado] || '⚪'} {labels[estado] || estado}
+        </span>
+    );
+};
+
+const EstadoPagoBadge = ({ pedido }) => {
+    let estado = 'pendiente';
+
+    if (pedido.monto_a_cuenta === 0) {
+        estado = 'pendiente';
+    } else if (pedido.monto_saldo > 0) {
+        estado = 'adelanto';
+    } else {
+        estado = 'pagado';
+    }
+
+    const estilos = {
+        pendiente: 'bg-red-100 text-red-800',
+        adelanto: 'bg-yellow-100 text-yellow-800',
+        pagado: 'bg-green-100 text-green-800'
+    };
+
+    const iconos = {
+        pendiente: '🔴',
+        adelanto: '🟡',
+        pagado: '🟢'
+    };
+
+    const labels = {
+        pendiente: 'Pendiente',
+        adelanto: 'Adelanto',
+        pagado: 'Pagado'
+    };
+
+    return (
+        <span className={`px-2 py-1 rounded-full text-xs font-semibold ${estilos[estado]}`}>
+            {iconos[estado]} {labels[estado]}
+        </span>
+    );
+};
+
+// ========================================
+// COMPONENTE PRINCIPAL
+// ========================================
+
 
 const Pedidos = () => {
     const [loading, setLoading] = useState(false);
@@ -30,6 +122,12 @@ const Pedidos = () => {
 
     const [showCancelAlert, setShowCancelAlert] = useState(false); // Nuevo estado para popup
 
+    // Estado Modal para cambiar estado de pedido/producción
+    const [showEstadoModal, setShowEstadoModal] = useState(false);
+    const [estadoPedido, setEstadoPedido] = useState(null);
+    const [nuevoEstadoPedido, setNuevoEstadoPedido] = useState('');
+    const [nuevoEstadoProduccion, setNuevoEstadoProduccion] = useState('');
+
     const [formData, setFormData] = useState({
         nombre_cliente: '',
         telefono: '',
@@ -44,6 +142,8 @@ const Pedidos = () => {
         envio_cobrado_al_cliente: 0,
         monto_a_cuenta: '',
         incluye_igv: false,
+        estado_pedido: 'aceptado',
+        estado_produccion: 'no_iniciado',
     });
 
     // Estado para el producto actual siendo agregado
@@ -181,6 +281,12 @@ const Pedidos = () => {
 
 
     const handleEdit = (pedido) => {
+        // No permitir edición de pedidos entregados
+        if (pedido.estado_pedido === 'entregado') {
+            alert('No se puede editar un pedido que ya ha sido entregado.');
+            return;
+        }
+
         setEditingId(pedido.id_pedido);
 
         setFormData({
@@ -199,6 +305,8 @@ const Pedidos = () => {
             monto_a_cuenta: pedido.monto_a_cuenta || 0,
             entregado: pedido.entregado,
             incluye_igv: pedido.incluye_igv,
+            estado_pedido: pedido.estado_pedido || 'aceptado',
+            estado_produccion: pedido.estado_produccion || 'no_iniciado',
         });
 
         // Cargar productos en la lista desde detalles_pedido
@@ -235,6 +343,42 @@ const Pedidos = () => {
         navigate(`/produccion?pedido=${pedido.id_pedido}`);
     };
 
+    const handleEntregar = async (pedido) => {
+        // Validación: Producción debe estar terminada
+        if (pedido.estado_produccion !== 'terminado') {
+            alert('⚠️ No se puede entregar: La producción aún no está terminada.');
+            return;
+        }
+
+        // Validación: Saldo debe ser 0
+        if (pedido.monto_saldo > 0) {
+            const confirmar = window.confirm(
+                `⚠️ El pedido aún tiene un saldo pendiente de S/ ${pedido.monto_saldo.toFixed(2)}.\n\n¿Deseas marcarlo como entregado de todos modos?`
+            );
+            if (!confirmar) return;
+        }
+
+        // Confirmar entrega
+        if (!window.confirm(`¿Marcar pedido de ${pedido.nombre_cliente} como ENTREGADO?`)) {
+            return;
+        }
+
+        try {
+            await pedidosDB.updateEstadoPedido(pedido.id_pedido, 'entregado');
+            setMessage({
+                type: 'success',
+                text: `Pedido de ${pedido.nombre_cliente} marcado como ENTREGADO.`
+            });
+            fetchPedidos(); // Recargar
+        } catch (error) {
+            console.error('Error al marcar como entregado:', error);
+            setMessage({
+                type: 'error',
+                text: 'Error al actualizar el pedido: ' + error.message
+            });
+        }
+    };
+
     const resetForm = () => {
         setFormData({
             nombre_cliente: '',
@@ -251,7 +395,8 @@ const Pedidos = () => {
             monto_a_cuenta: '',
             incluye_igv: false,
             entregado: false,
-            incluye_igv: false,
+            estado_pedido: 'aceptado',
+            estado_produccion: 'no_iniciado',
         });
         setProductoActual({
             nombre_producto: '',
@@ -307,7 +452,9 @@ const Pedidos = () => {
                 incluye_igv: formData.incluye_igv,
                 monto_igv: calculos.monto_igv,
                 monto_saldo: calculos.monto_saldo,
-                cancelado: calculos.cancelado
+                cancelado: calculos.cancelado,
+                estado_pedido: formData.estado_pedido || 'aceptado',
+                estado_produccion: formData.estado_produccion || 'no_iniciado',
             };
 
             console.log('📝 Datos del pedido a guardar:', pedidoData);
@@ -457,12 +604,59 @@ const Pedidos = () => {
         }
     };
 
+    // ========================================
+    // NUEVO: Funciones para Modal de Estado
+    // ========================================
+
+    const handleOpenEstadoModal = (pedido) => {
+        setEstadoPedido(pedido);
+        setNuevoEstadoPedido(pedido.estado_pedido || 'aceptado');
+        setNuevoEstadoProduccion(pedido.estado_produccion || 'no_iniciado');
+        setShowEstadoModal(true);
+    };
+
+    const handleCloseEstadoModal = () => {
+        setShowEstadoModal(false);
+        setEstadoPedido(null);
+    };
+
+    const handleUpdateEstado = async () => {
+        if (!estadoPedido) return;
+
+        try {
+            // Validación: Si se marca como entregado, la producción debe estar terminada
+            if (nuevoEstadoPedido === 'entregado' && nuevoEstadoProduccion !== 'terminado') {
+                if (!window.confirm('¿Marcar producción como "Terminado" también? (recomendado para pedidos entregados)')) {
+                    return;
+                }
+                setNuevoEstadoProduccion('terminado');
+            }
+
+            await pedidosDB.update(estadoPedido.id_pedido, {
+                ...estadoPedido,
+                estado_pedido: nuevoEstadoPedido,
+                estado_produccion: nuevoEstadoProduccion
+            });
+
+            setMessage({ type: 'success', text: 'Estado actualizado correctamente.' });
+            handleCloseEstadoModal();
+            fetchPedidos();
+
+        } catch (error) {
+            console.error('Error al actualizar estado:', error);
+            alert('Error al actualizar estado: ' + error.message);
+        }
+    };
+
     // Filter Logic
     const filteredPedidos = pedidos.filter(p => {
-        // Status Filter
+        // Status Filter - Usar nuevos estados
         let matchesStatus = true;
-        if (filterStatus === 'cancelado') matchesStatus = p.cancelado;
-        if (filterStatus === 'pendiente') matchesStatus = !p.cancelado;
+        if (filterStatus === 'aceptado') matchesStatus = p.estado_pedido === 'aceptado';
+        if (filterStatus === 'entregado') matchesStatus = p.estado_pedido === 'entregado';
+        // Mantener compatibilidad temporal con filtros antiguos
+        if (filterStatus === 'cancelado') matchesStatus = p.cancelado === true;
+        if (filterStatus === 'pendiente') matchesStatus = p.estado_pedido === 'aceptado' && !p.cancelado;
 
         // Search Filter
         let matchesSearch = true;
@@ -843,16 +1037,16 @@ const Pedidos = () => {
                                 Todos
                             </button>
                             <button
-                                onClick={() => setFilterStatus('cancelado')}
-                                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${filterStatus === 'cancelado' ? 'bg-green-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
+                                onClick={() => setFilterStatus('aceptado')}
+                                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${filterStatus === 'aceptado' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
                             >
-                                Cancelados
+                                Aceptados
                             </button>
                             <button
-                                onClick={() => setFilterStatus('pendiente')}
-                                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${filterStatus === 'pendiente' ? 'bg-red-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
+                                onClick={() => setFilterStatus('entregado')}
+                                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${filterStatus === 'entregado' ? 'bg-green-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
                             >
-                                Pendientes
+                                Entregados
                             </button>
                         </div>
 
@@ -896,33 +1090,39 @@ const Pedidos = () => {
 
                 <div className="overflow-x-auto">
                     <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50">
+                        <thead className="bg-gray-100">
                             <tr>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cliente</th>
-                                <th className="hidden md:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/4">Producto</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
-                                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">PRODUCCIÓN</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Saldo</th>
-                                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
-                                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Fecha</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Cliente</th>
+                                <th className="hidden md:table-cell px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider w-1/4">Producto</th>
+                                <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">Total</th>
+                                <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">Producción</th>
+                                <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">Pago</th>
+                                <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">Saldo</th>
+                                <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">Estado Pedido</th>
+                                <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">Acciones</th>
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
                             {filteredPedidos.length === 0 ? (
                                 <tr>
-                                    <td colSpan="8" className="px-6 py-4 text-center text-gray-500">No hay pedidos registrados en esta categoría.</td>
+                                    <td colSpan="9" className="px-6 py-4 text-center text-gray-500">No hay pedidos registrados en esta categoría.</td>
                                 </tr>
                             ) : (
                                 filteredPedidos.map((pedido) => (
-                                    <tr key={pedido.id_pedido} className="hover:bg-gray-50">
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    <tr key={pedido.id_pedido} className="hover:bg-gray-50 transition-colors">
+                                        {/* FECHA */}
+                                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
                                             {new Date(pedido.fecha_pedido).toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', year: '2-digit' })}
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 text-left">
+
+                                        {/* CLIENTE */}
+                                        <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
                                             {pedido.nombre_cliente}
                                         </td>
-                                        <td className="hidden md:table-cell px-6 py-4 text-sm text-gray-500 min-w-[250px] text-left">
+
+                                        {/* PRODUCTO */}
+                                        <td className="hidden md:table-cell px-4 py-3 text-sm text-gray-600">
                                             {pedido.detalles_pedido && pedido.detalles_pedido.length > 0 ? (
                                                 <div className="space-y-1">
                                                     {pedido.detalles_pedido.map((d, idx) => (
@@ -934,34 +1134,36 @@ const Pedidos = () => {
                                                 </div>
                                             ) : '-'}
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+
+                                        {/* TOTAL */}
+                                        <td className="px-4 py-3 whitespace-nowrap text-sm font-semibold text-gray-900 text-right">
                                             S/ {pedido.precio_total?.toFixed(2)}
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-center">
-                                            {pedido.en_produccion ? (
-                                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
-                                                    Proceso
-                                                </span>
-                                            ) : (
-                                                <span className="text-gray-300">-</span>
-                                            )}
+
+                                        {/* PRODUCCIÓN */}
+                                        <td className="px-4 py-3 whitespace-nowrap text-center">
+                                            <EstadoProduccionBadge estado={pedido.estado_produccion || 'no_iniciado'} />
                                         </td>
-                                        <td className={`px-6 py-4 whitespace-nowrap text-sm font-bold ${pedido.cancelado ? 'text-green-600' : 'text-red-600'}`}>
-                                            <div>S/ {pedido.monto_saldo.toFixed(2)}</div>
-                                            {pedido.cancelado && pedido.pagos && pedido.pagos.length > 0 && (
-                                                <div className="text-xs text-green-800 font-normal">
-                                                    {new Date(pedido.pagos.sort((a, b) => new Date(b.fecha_pago) - new Date(a.fecha_pago))[0].fecha_pago).toLocaleDateString('es-PE', { day: '2-digit', month: 'numeric', year: '2-digit' })}
-                                                </div>
-                                            )}
+
+                                        {/* PAGO */}
+                                        <td className="px-4 py-3 whitespace-nowrap text-center">
+                                            <EstadoPagoBadge pedido={pedido} />
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-center">
-                                            <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${pedido.cancelado ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                                                {pedido.cancelado ? 'Cancelado' : 'Pendiente'}
-                                            </span>
+
+                                        {/* SALDO */}
+                                        <td className={`px-4 py-3 whitespace-nowrap text-sm font-bold text-right ${pedido.monto_saldo > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                                            S/ {pedido.monto_saldo.toFixed(2)}
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                            <div className="flex justify-end space-x-3">
-                                                {pedido.metal && pedido.tipo_producto && (
+
+                                        {/* ESTADO PEDIDO */}
+                                        <td className="px-4 py-3 whitespace-nowrap text-center">
+                                            <EstadoPedidoBadge estado={pedido.estado_pedido || 'aceptado'} />
+                                        </td>
+
+                                        {/* ACCIONES */}
+                                        <td className="px-4 py-3 whitespace-nowrap text-right text-sm font-medium">
+                                            <div className="flex justify-end space-x-2">
+                                                {pedido.metal && pedido.tipo_producto && (pedido.estado_produccion === 'no_iniciado' || pedido.tiene_productos_pendientes) && (
                                                     <button
                                                         onClick={() => handleCrearProduccion(pedido)}
                                                         className="text-purple-600 hover:text-purple-900"
@@ -970,18 +1172,53 @@ const Pedidos = () => {
                                                         <FaHammer className="h-5 w-5" />
                                                     </button>
                                                 )}
-                                                {!pedido.cancelado && (
-                                                    <button onClick={() => handleOpenPayModal(pedido)} className="text-green-600 hover:text-green-900" title="Registrar Pago / Adelanto">
+                                                {pedido.estado_pedido !== 'entregado' && (
+                                                    <button
+                                                        onClick={() => handleOpenPayModal(pedido)}
+                                                        className="text-green-600 hover:text-green-900"
+                                                        title="Registrar Pago"
+                                                    >
                                                         <FaMoneyBillWave className="h-5 w-5" />
                                                     </button>
                                                 )}
-                                                <button onClick={() => handlePrint(pedido)} className="text-gray-600 hover:text-gray-900" title="Imprimir / Ver Detalle">
+                                                <button
+                                                    onClick={() => handlePrint(pedido)}
+                                                    className="text-gray-600 hover:text-gray-900"
+                                                    title="Imprimir"
+                                                >
                                                     <FaPrint className="h-5 w-5" />
                                                 </button>
-                                                <button onClick={() => handleEdit(pedido)} className="text-blue-600 hover:text-blue-900" title="Editar">
+                                                <button
+                                                    onClick={() => handleEdit(pedido)}
+                                                    className="text-blue-600 hover:text-blue-900"
+                                                    title="Editar"
+                                                    disabled={pedido.estado_pedido === 'entregado'}
+                                                >
                                                     <FaEdit className="h-5 w-5" />
                                                 </button>
-                                                <button onClick={() => handleDelete(pedido.id_pedido)} className="text-red-600 hover:text-red-900" title="Eliminar">
+                                                {/* NUEVO: Botón Entregar */}
+                                                {pedido.estado_pedido !== 'entregado' && (
+                                                    <button
+                                                        onClick={() => handleEntregar(pedido)}
+                                                        disabled={pedido.estado_produccion !== 'terminado'}
+                                                        className={`${pedido.estado_produccion === 'terminado'
+                                                                ? 'text-green-600 hover:text-green-900 cursor-pointer'
+                                                                : 'text-gray-300 cursor-not-allowed'
+                                                            }`}
+                                                        title={
+                                                            pedido.estado_produccion === 'terminado'
+                                                                ? 'Marcar como Entregado'
+                                                                : 'No se puede entregar: producción no terminada'
+                                                        }
+                                                    >
+                                                        <FaCar className="h-5 w-5" />
+                                                    </button>
+                                                )}
+                                                <button
+                                                    onClick={() => handleDelete(pedido.id_pedido)}
+                                                    className="text-red-600 hover:text-red-900"
+                                                    title="Eliminar"
+                                                >
                                                     <FaTrash className="h-5 w-5" />
                                                 </button>
                                             </div>
@@ -1271,6 +1508,48 @@ const Pedidos = () => {
                     <div className="bg-green-500 text-white px-6 py-4 rounded-lg shadow-xl cursor-pointer flex items-center bg-opacity-90 hover:bg-opacity-100 transition-all font-bold text-lg" onClick={() => setShowCancelAlert(false)}>
                         <span>✓ PEDIDO CANCELADO</span>
                         <span className="ml-3 text-sm font-normal underline">(Click para cerrar)</span>
+                    </div>
+                </div>
+            )}
+
+            {/* Modal de Cambio de Estado */}
+            {showEstadoModal && estadoPedido && (
+                <div className="fixed inset-0 bg-gray-600 bg-opacity-75 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
+                    <div className="relative bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+                        <h3 className="text-lg font-bold mb-4 text-gray-900">Cambiar Estado del Pedido</h3>
+
+                        <div className="mb-4 p-3 bg-gray-100 rounded">
+                            <p className="text-sm text-gray-600"><strong>Cliente:</strong> {estadoPedido.nombre_cliente}</p>
+                            <p className="text-sm text-gray-600"><strong>Fecha:</strong> {new Date(estadoPedido.fecha_pedido).toLocaleDateString()}</p>
+                        </div>
+
+                        <div className="mb-4">
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Estado del Pedido</label>
+                            <select value={nuevoEstadoPedido} onChange={(e) => setNuevoEstadoPedido(e.target.value)} className="w-full border border-gray-300 rounded-md px-3 py-2">
+                                <option value="aceptado">🔵 Aceptado</option>
+                                <option value="entregado">🟢 Entregado</option>
+                            </select>
+                        </div>
+
+                        <div className="mb-6">
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Estado de Producción</label>
+                            <select value={nuevoEstadoProduccion} onChange={(e) => setNuevoEstadoProduccion(e.target.value)} className="w-full border border-gray-300 rounded-md px-3 py-2">
+                                <option value="no_iniciado">🟡 No iniciado</option>
+                                <option value="en_proceso">🔵 En proceso</option>
+                                <option value="terminado">🟢 Terminado</option>
+                            </select>
+                        </div>
+
+                        {nuevoEstadoPedido === 'entregado' && nuevoEstadoProduccion !== 'terminado' && (
+                            <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded">
+                                <p className="text-sm text-yellow-800">⚠️ <strong>Nota:</strong> Si un pedido está entregado, la producción debería estar terminada.</p>
+                            </div>
+                        )}
+
+                        <div className="flex justify-end space-x-3">
+                            <button onClick={handleCloseEstadoModal} className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300">Cancelar</button>
+                            <button onClick={handleUpdateEstado} className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Actualizar Estado</button>
+                        </div>
                     </div>
                 </div>
             )}

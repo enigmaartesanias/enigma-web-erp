@@ -39,7 +39,33 @@ export const pedidosDB = {
           SELECT 1 FROM produccion_taller pt 
           WHERE pt.pedido_id = p.id_pedido 
           AND pt.estado_produccion != 'terminado'
-        ) as en_produccion
+        ) as en_produccion,
+        -- NUEVO: Calcular estado de producción dinámicamente
+        CASE
+          WHEN NOT EXISTS (
+            SELECT 1 FROM produccion_taller pt WHERE pt.pedido_id = p.id_pedido
+          ) THEN COALESCE(p.estado_produccion, 'no_iniciado')
+          WHEN NOT EXISTS (
+            SELECT 1 FROM produccion_taller pt 
+            WHERE pt.pedido_id = p.id_pedido 
+            AND pt.estado_produccion != 'terminado'
+          ) THEN 'terminado'
+          WHEN NOT EXISTS (
+            SELECT 1 FROM produccion_taller pt 
+            WHERE pt.pedido_id = p.id_pedido 
+            AND pt.estado_produccion IN ('en_proceso', 'terminado')
+          ) THEN 'no_iniciado'
+          ELSE 'en_proceso'
+        END as estado_produccion_calculado,
+        -- Verificar si hay productos del pedido que aún no están en producción
+        EXISTS (
+          SELECT 1 
+          FROM detalles_pedido dp
+          LEFT JOIN produccion_taller pt ON pt.pedido_id = p.id_pedido 
+            AND pt.nombre_producto LIKE '%' || dp.nombre_producto || '%'
+          WHERE dp.id_pedido = p.id_pedido
+            AND pt.id_produccion IS NULL
+        ) as tiene_productos_pendientes
       FROM pedidos p
       LEFT JOIN detalles_pedido d ON p.id_pedido = d.id_pedido
       LEFT JOIN pagos pa ON p.id_pedido = pa.id_pedido
@@ -51,6 +77,7 @@ export const pedidosDB = {
     return pedidos.map(p => ({
       ...p,
       en_produccion: p.en_produccion || false,
+      estado_produccion: p.estado_produccion_calculado || p.estado_produccion || 'no_iniciado',
       precio_total_sin_igv: parseFloat(p.precio_total_sin_igv) || 0,
       precio_total: parseFloat(p.precio_total) || 0,
       monto_a_cuenta: parseFloat(p.monto_a_cuenta) || 0,
@@ -79,7 +106,8 @@ export const pedidosDB = {
         forma_pago, comprobante_pago, requiere_envio, modalidad_envio,
         envio_cobrado_al_cliente, envio_referencia,
         precio_total_sin_igv, precio_total, monto_a_cuenta,
-        monto_igv, monto_saldo, entregado, cancelado, incluye_igv
+        monto_igv, monto_saldo, entregado, cancelado, incluye_igv,
+        estado_pedido, estado_produccion
       ) VALUES (
         ${pedidoData.nombre_cliente}, ${pedidoData.telefono}, ${pedidoData.dni_ruc},
         ${pedidoData.direccion_entrega},
@@ -89,7 +117,8 @@ export const pedidosDB = {
         ${pedidoData.envio_cobrado_al_cliente}, ${pedidoData.envio_referencia || 0},
         ${pedidoData.precio_total_sin_igv}, ${pedidoData.precio_total}, ${pedidoData.monto_a_cuenta},
         ${pedidoData.monto_igv}, ${pedidoData.monto_saldo}, ${pedidoData.entregado || false},
-        ${pedidoData.cancelado}, ${pedidoData.incluye_igv}
+        ${pedidoData.cancelado}, ${pedidoData.incluye_igv},
+        ${pedidoData.estado_pedido || 'aceptado'}, ${pedidoData.estado_produccion || 'no_iniciado'}
       )
       RETURNING *
     `;
@@ -120,6 +149,8 @@ export const pedidosDB = {
         entregado = ${pedidoData.entregado || false},
         cancelado = ${pedidoData.cancelado},
         incluye_igv = ${pedidoData.incluye_igv},
+        estado_pedido = ${pedidoData.estado_pedido},
+        estado_produccion = ${pedidoData.estado_produccion},
         updated_at = CURRENT_TIMESTAMP
       WHERE id_pedido = ${id}
       RETURNING *
@@ -185,6 +216,17 @@ export const pedidosDB = {
       RETURNING *
     `;
     return pago;
+  },
+
+  // Actualizar estado del pedido
+  async updateEstadoPedido(id, nuevoEstado) {
+    const [pedido] = await sql`
+      UPDATE pedidos 
+      SET estado_pedido = ${nuevoEstado}
+      WHERE id_pedido = ${id}
+      RETURNING *
+    `;
+    return pedido;
   }
 };
 

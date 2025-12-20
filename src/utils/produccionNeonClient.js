@@ -41,7 +41,9 @@ export const produccionDB = {
       costo_mano_obra: parseFloat(p.costo_mano_obra) || 0,
       costo_total_unitario: parseFloat(p.costo_total_unitario) || 0,
       costo_total_produccion: parseFloat(p.costo_total_produccion) || 0,
-      ganancia_estimada_pedido: p.ganancia_estimada_pedido ? parseFloat(p.ganancia_estimada_pedido) : null
+      ganancia_estimada_pedido: p.ganancia_estimada_pedido ? parseFloat(p.ganancia_estimada_pedido) : null,
+      codigo_producto: p.codigo_producto || '',
+      tiene_codigo_qr: p.tiene_codigo_qr || false
     }));
   },
 
@@ -95,7 +97,8 @@ export const produccionDB = {
       INSERT INTO produccion_taller (
         pedido_id, tipo_produccion, metal, tipo_producto, nombre_producto,
         cantidad, costo_materiales, horas_trabajo, costo_hora,
-        costo_herramientas, otros_gastos, estado_produccion, observaciones, fecha_produccion, imagen_url
+        costo_herramientas, otros_gastos, estado_produccion, observaciones, fecha_produccion, imagen_url,
+        codigo_producto, tiene_codigo_qr
       ) VALUES (
         ${produccionData.pedido_id || null},
         ${produccionData.tipo_produccion || 'STOCK'},
@@ -111,7 +114,9 @@ export const produccionDB = {
         ${produccionData.estado_produccion || 'pendiente'},
         ${produccionData.observaciones || ''},
         ${produccionData.fecha_produccion || new Date().toISOString().split('T')[0]},
-        ${produccionData.imagen_url || ''}
+        ${produccionData.imagen_url || ''},
+        ${produccionData.codigo_producto || ''},
+        ${produccionData.tiene_codigo_qr || false}
       )
       RETURNING *
     `;
@@ -132,7 +137,9 @@ export const produccionDB = {
         otros_gastos = ${produccionData.otros_gastos || 0},
         estado_produccion = ${produccionData.estado_produccion},
         observaciones = ${produccionData.observaciones || ''},
-        imagen_url = ${produccionData.imagen_url || ''}
+        imagen_url = ${produccionData.imagen_url || ''},
+        codigo_producto = COALESCE(${produccionData.codigo_producto}, codigo_producto),
+        tiene_codigo_qr = COALESCE(${produccionData.tiene_codigo_qr}, tiene_codigo_qr)
       WHERE id_produccion = ${id}
       RETURNING *
     `;

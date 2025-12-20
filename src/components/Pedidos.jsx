@@ -121,6 +121,7 @@ const Pedidos = () => {
     });
 
     const [showCancelAlert, setShowCancelAlert] = useState(false); // Nuevo estado para popup
+    const [showSuccessModal, setShowSuccessModal] = useState(false); // Modal de confirmación
 
     // Estado Modal para cambiar estado de pedido/producción
     const [showEstadoModal, setShowEstadoModal] = useState(false);
@@ -508,7 +509,9 @@ const Pedidos = () => {
                     console.log('✅ Pago registrado');
                 }
 
-                setMessage({ type: 'success', text: 'Pedido registrado correctamente.' });
+                // Mostrar modal de confirmación en lugar de mensaje
+                setShowSuccessModal(true);
+                setTimeout(() => setShowSuccessModal(false), 3000); // Auto-cerrar después de 3 segundos
             }
 
             console.log('🔄 Refrescando lista de pedidos...');
@@ -701,11 +704,11 @@ const Pedidos = () => {
                     </div>
                 )}
 
-                <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                     {/* Sección Cliente */}
                     <div className="md:col-span-2">
-                        <h3 className="text-xl font-semibold mb-4 text-blue-600">Datos del Cliente</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <h3 className="text-lg md:text-xl font-semibold mb-3 text-blue-600">Datos del Cliente</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700">Nombre Cliente *</label>
                                 <input
@@ -737,18 +740,6 @@ const Pedidos = () => {
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700">Metal *</label>
-                                <select
-                                    name="metal"
-                                    value={formData.metal}
-                                    onChange={handleChange}
-                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2"
-                                >
-                                    <option value="">-- Selecciona metal --</option>
-                                    {METALES.map(m => <option key={m} value={m}>{m}</option>)}
-                                </select>
-                            </div>
-                            <div>
                                 <label className="block text-sm font-medium text-gray-700">Tipo de Producto *</label>
                                 <select
                                     name="tipo_producto"
@@ -760,21 +751,33 @@ const Pedidos = () => {
                                     {TIPOS_PRODUCTO.map(t => <option key={t} value={t}>{t}</option>)}
                                 </select>
                             </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700">Metal *</label>
+                                <select
+                                    name="metal"
+                                    value={formData.metal}
+                                    onChange={handleChange}
+                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2"
+                                >
+                                    <option value="">-- Selecciona metal --</option>
+                                    {METALES.map(m => <option key={m} value={m}>{m}</option>)}
+                                </select>
+                            </div>
                         </div>
                     </div>
 
                     {/* Sección Producto (Agregar Múltiples) */}
                     <div className="md:col-span-2">
-                        <h3 className="text-xl font-semibold mb-4 text-blue-600">Detalles del Producto</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:items-start border p-4 rounded">
+                        <h3 className="text-lg md:text-xl font-semibold mb-3 text-blue-600">Detalles del Producto</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4 md:items-start border p-3 md:p-4 rounded">
                             <div className="md:col-span-3">
                                 <label className="block text-sm font-medium text-gray-700">Producto *</label>
                                 <textarea
                                     name="nombre_producto"
                                     value={productoActual.nombre_producto}
                                     onChange={handleProductoChange}
-                                    rows="4"
-                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2"
+                                    rows="2"
+                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2 text-sm"
                                 />
                             </div>
                             <div>
@@ -785,7 +788,7 @@ const Pedidos = () => {
                                     value={productoActual.cantidad}
                                     onChange={handleProductoChange}
                                     min="1"
-                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2"
+                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2 text-sm"
                                     onWheel={handleWheel}
                                 />
                             </div>
@@ -798,14 +801,14 @@ const Pedidos = () => {
                                         value={productoActual.precio_unitario}
                                         onChange={handleProductoChange}
                                         step="0.01"
-                                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2"
+                                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2 text-sm"
                                         onWheel={handleWheel}
                                     />
                                 </div>
                                 <button
                                     type="button"
                                     onClick={agregarProducto}
-                                    className="mt-1 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 flex items-center justify-center"
+                                    className="mt-1 px-3 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 flex items-center justify-center text-sm"
                                     title="Agregar Producto"
                                 >
                                     <FaPlus />
@@ -864,8 +867,8 @@ const Pedidos = () => {
 
                     {/* Sección Envío */}
                     <div className="md:col-span-2">
-                        <h3 className="text-xl font-semibold mb-4 text-blue-600">Envío</h3>
-                        <div className="space-y-4">
+                        <h3 className="text-lg md:text-xl font-semibold mb-3 text-blue-600">Envío</h3>
+                        <div className="space-y-3">
                             <div className="flex items-center">
                                 <input
                                     type="checkbox"
@@ -879,7 +882,7 @@ const Pedidos = () => {
                             </div>
 
                             {formData.requiere_envio && (
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border p-4 rounded bg-gray-50">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 border p-3 md:p-4 rounded bg-gray-50">
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700">Dirección de Entrega</label>
                                         <input
@@ -921,8 +924,8 @@ const Pedidos = () => {
 
                     {/* Sección Pago */}
                     <div className="md:col-span-2">
-                        <h3 className="text-xl font-semibold mb-4 text-blue-600">Pago y Totales</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <h3 className="text-lg md:text-xl font-semibold mb-3 text-blue-600">Pago y Totales</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700">Forma de Pago</label>
                                 <select
@@ -961,7 +964,7 @@ const Pedidos = () => {
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Monto a Cuenta / Pago</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Monto a Cuenta ó Pagado</label>
                                 <div className="flex space-x-2">
                                     <input
                                         type="number"
@@ -1202,8 +1205,8 @@ const Pedidos = () => {
                                                         onClick={() => handleEntregar(pedido)}
                                                         disabled={pedido.estado_produccion !== 'terminado'}
                                                         className={`${pedido.estado_produccion === 'terminado'
-                                                                ? 'text-green-600 hover:text-green-900 cursor-pointer'
-                                                                : 'text-gray-300 cursor-not-allowed'
+                                                            ? 'text-green-600 hover:text-green-900 cursor-pointer'
+                                                            : 'text-gray-300 cursor-not-allowed'
                                                             }`}
                                                         title={
                                                             pedido.estado_produccion === 'terminado'
@@ -1550,6 +1553,21 @@ const Pedidos = () => {
                             <button onClick={handleCloseEstadoModal} className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300">Cancelar</button>
                             <button onClick={handleUpdateEstado} className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Actualizar Estado</button>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Modal de Confirmación de Pedido Ingresado */}
+            {showSuccessModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+                    <div className="bg-white rounded-lg shadow-2xl p-8 max-w-sm w-full text-center animate-bounce">
+                        <div className="flex justify-center mb-4">
+                            <div className="rounded-full bg-green-500 p-4">
+                                <FaCheckCircle className="text-white text-5xl" />
+                            </div>
+                        </div>
+                        <h2 className="text-2xl font-bold text-gray-800 mb-2">PEDIDO INGRESADO</h2>
+                        <p className="text-gray-600">El pedido ha sido registrado exitosamente</p>
                     </div>
                 </div>
             )}

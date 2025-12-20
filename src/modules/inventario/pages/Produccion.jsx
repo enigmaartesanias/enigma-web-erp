@@ -2,7 +2,8 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { produccionDB, METALES, TIPOS_PRODUCTO } from '../../../utils/produccionNeonClient';
 import { pedidosDB } from '../../../utils/pedidosNeonClient';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { FaEdit, FaTrash, FaArrowLeft, FaSave, FaTimes, FaBox, FaMoneyBillWave, FaHammer, FaCheckCircle, FaEye, FaCamera, FaCheck } from 'react-icons/fa';
+import { FaEdit, FaTrash, FaArrowLeft, FaSave, FaTimes, FaBox, FaMoneyBillWave, FaHammer, FaCheckCircle, FaCamera, FaCheck, FaQrcode } from 'react-icons/fa';
+import QRCode from 'react-qr-code';
 import { storage } from '../../../firebaseConfig';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { v4 as uuidv4 } from 'uuid';
@@ -26,6 +27,15 @@ const Produccion = () => {
         terminados: 0
     });
     const [uploadingId, setUploadingId] = useState(null);
+    const [showSuccessModal, setShowSuccessModal] = useState(false);
+    const [showQRModal, setShowQRModal] = useState(false);
+    const [showInventoryModal, setShowInventoryModal] = useState(false);
+    const [selectedItem, setSelectedItem] = useState(null);
+    const [qrData, setQrData] = useState({
+        codigo: '',
+        nombre: '',
+        categoria: ''
+    });
     const fileInputRef = React.useRef(null);
 
     // Estado inicial del formulario
@@ -386,7 +396,8 @@ const Produccion = () => {
                     observaciones: formData.observaciones
                 });
 
-                setMessage({ type: 'success', text: 'Producción actualizada correctamente.' });
+                setShowSuccessModal(true);
+                setTimeout(() => setShowSuccessModal(false), 3000);
             } else {
                 // Extraer solo el id_pedido del valor compuesto "pedidoId-detalleId"
                 let pedidoIdToSave = null;
@@ -411,7 +422,8 @@ const Produccion = () => {
                     observaciones: formData.observaciones
                 });
 
-                setMessage({ type: 'success', text: 'Producción registrada correctamente.' });
+                setShowSuccessModal(true);
+                setTimeout(() => setShowSuccessModal(false), 3000);
             }
 
             setTimeout(() => {
@@ -494,6 +506,68 @@ const Produccion = () => {
         }
     };
 
+    // Funciones de manejo de Códigos QR
+    const generateRandomCode = (tipoProducto) => {
+        const prefix = tipoProducto.substring(0, 3).toUpperCase();
+        const random = Math.floor(100000 + Math.random() * 900000);
+        return `${prefix}${random}`;
+    };
+
+    const openQRModal = (item) => {
+        setSelectedItem(item);
+        setQrData({
+            codigo: item.codigo_producto || '',
+            nombre: item.nombre_producto || `${item.tipo_producto} de ${item.metal}`,
+            categoria: item.tipo_producto.toUpperCase()
+        });
+        setShowQRModal(true);
+    };
+
+    const handleSaveQRCode = async () => {
+        if (!qrData.codigo.trim()) {
+            alert('Por favor, ingresa un código');
+            return;
+        }
+
+        try {
+            setLoading(true);
+            await produccionDB.update(selectedItem.id_produccion, {
+                ...selectedItem,
+                codigo_producto: qrData.codigo,
+                tiene_codigo_qr: true
+            });
+            setShowQRModal(false);
+            setMessage({ type: 'success', text: 'Código QR guardado correctamente' });
+            fetchData();
+        } catch (error) {
+            console.error('Error al guardar código QR:', error);
+            setMessage({ type: 'error', text: 'Error al guardar el código QR' });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleSendToInventory = (item) => {
+        setSelectedItem(item);
+        setShowInventoryModal(true);
+    };
+
+    const confirmSendToInventory = () => {
+        navigate('/inventario/nuevo', {
+            state: {
+                prefill: {
+                    nombre: selectedItem.nombre_producto || `${selectedItem.tipo_producto} de ${selectedItem.metal}`,
+                    codigo_usuario: selectedItem.codigo_producto,
+                    categoria: selectedItem.tipo_producto.toUpperCase(),
+                    metal: selectedItem.metal,
+                    cantidad: selectedItem.cantidad,
+                    imagen_url: selectedItem.imagen_url
+                }
+            }
+        });
+        setShowInventoryModal(false);
+    };
+
     // Calcular costo total en tiempo real
     const costoManoObra = (parseFloat(formData.horas_trabajo) || 0) * (parseFloat(formData.costo_hora) || 0);
     const costoTotalUnitario =
@@ -508,7 +582,7 @@ const Produccion = () => {
             <div className="mb-6">
                 <Link to="/inventario-home" className="flex items-center text-gray-600 hover:text-blue-600 transition-colors w-fit">
                     <FaArrowLeft className="mr-2" />
-                    <span className="font-medium">Volver al Sistema ERP</span>
+                    <span className="font-medium">Enigma Sistema ERP</span>
                 </Link>
             </div>
 
@@ -521,9 +595,6 @@ const Produccion = () => {
                         <h2 className="text-2xl md:text-3xl font-medium text-gray-800">
                             {editingId ? 'Editar Producción' : 'Registrar Producción'}
                         </h2>
-                        <p className="text-sm text-gray-500 mt-1">
-                            {editingId ? 'Modifica los costos del registro' : 'Registra los costos de fabricación'}
-                        </p>
                     </div>
                     {editingId && (
                         <button onClick={resetForm} className="text-sm text-gray-500 hover:text-gray-700 flex items-center gap-1">
@@ -533,7 +604,7 @@ const Produccion = () => {
                 </div>
 
                 {message && (
-                    <div className={`p-4 mb-4 rounded ${message.type === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                    <div className={`p-4 mb-4 rounded ${message.type === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text- red-700'}`}>
                         {message.text}
                     </div>
                 )}
@@ -542,49 +613,15 @@ const Produccion = () => {
                     {/* Selector de Tipo */}
                     {!editingId && (
                         <div className="flex flex-col gap-2">
-                            <div className="flex gap-3">
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        if (!urlPedidoId) {
-                                            handleTipoChange('STOCK');
-                                        }
-                                    }}
-                                    className={`flex-1 py-3 px-4 rounded-lg font-semibold transition-all ${formData.tipo_produccion === 'STOCK'
-                                        ? 'bg-blue-600 text-white shadow-lg'
-                                        : urlPedidoId
-                                            ? 'bg-gray-50 text-gray-400 cursor-not-allowed opacity-60'
-                                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                                        }`}
-                                    title={urlPedidoId ? "Modo exclusivo: Producción de Pedido. Para Stock, vuelva al menú principal." : ""}
-                                >
+                            {/* Mostrar botón informativo según contexto */}
+                            {urlPedidoId ? (
+                                <div className="w-full py-3 px-4 rounded-lg bg-amber-500 text-white font-semibold text-center cursor-not-allowed opacity-90">
+                                    📋 Producción para Pedido
+                                </div>
+                            ) : (
+                                <div className="w-full py-3 px-4 rounded-lg bg-blue-600 text-white font-semibold text-center">
                                     📦 Producción para Stock
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        if (urlPedidoId) {
-                                            handleTipoChange('PEDIDO');
-                                        } else {
-                                            alert("Para producir un pedido específico, por favor vaya al Módulo de Pedidos y haga clic en el icono 🔨 correspondiente al pedido.");
-                                        }
-                                    }}
-                                    className={`flex-1 py-3 px-4 rounded-lg font-semibold transition-all flex justify-center items-center gap-2 ${formData.tipo_produccion === 'PEDIDO'
-                                        ? 'bg-amber-600 text-white shadow-lg'
-                                        : urlPedidoId
-                                            ? 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                                            : 'bg-gray-50 text-gray-400 cursor-not-allowed opacity-60'
-                                        }`}
-                                    title={!urlPedidoId ? "Para pedidos específicos, inicie desde el Módulo de Pedidos" : ""}
-                                >
-                                    📋 Desde Pedido
-                                    {!urlPedidoId && <FaArrowLeft className="text-xs" />}
-                                </button>
-                            </div>
-                            {!urlPedidoId && (
-                                <p className="text-xs text-center text-gray-500 italic bg-gray-50 p-2 rounded border border-gray-100">
-                                    ℹ️ Para producir un pedido, utiliza el icono 🔨 en el módulo de <Link to="/pedidos" className="text-blue-600 hover:underline">Pedidos</Link>.
-                                </p>
+                                </div>
                             )}
                         </div>
                     )}
@@ -597,6 +634,7 @@ const Produccion = () => {
                                 value={formData.pedido_id}
                                 onChange={handlePedidoSelect}
                                 className="w-full text-xs md:text-sm lg:text-base rounded-md border-gray-300 shadow-sm focus:border-amber-500 focus:ring-amber-500 border p-2"
+                                disabled={pedidosFiltradosDropdown.length === 0}
                                 required
                             >
                                 <option value="">-- Selecciona un producto --</option>
@@ -606,11 +644,6 @@ const Produccion = () => {
                                     </option>
                                 ))}
                             </select>
-                            {pedidosFiltradosDropdown.length === 0 && (
-                                <p className="text-xs text-amber-600 mt-2">
-                                    {urlPedidoId ? 'Este pedido no tiene productos pendientes.' : 'No hay productos pendientes de producción.'}
-                                </p>
-                            )}
                         </div>
                     )}
 
@@ -623,20 +656,6 @@ const Produccion = () => {
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                                <label className="block text-xs font-semibold text-gray-700 mb-1">Metal *</label>
-                                <select
-                                    name="metal"
-                                    className={`w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 border p-2 ${formData.tipo_produccion === 'PEDIDO' ? 'bg-gray-100 cursor-not-allowed text-gray-600' : ''}`}
-                                    value={formData.metal}
-                                    onChange={handleChange}
-                                    disabled={formData.tipo_produccion === 'PEDIDO'}
-                                    required
-                                >
-                                    <option value="">-- Selecciona metal --</option>
-                                    {METALES.map(m => <option key={m} value={m}>{m}</option>)}
-                                </select>
-                            </div>
-                            <div>
                                 <label className="block text-xs font-semibold text-gray-700 mb-1">Producto *</label>
                                 <select
                                     name="tipo_producto"
@@ -648,6 +667,20 @@ const Produccion = () => {
                                 >
                                     <option value="">-- Selecciona producto --</option>
                                     {TIPOS_PRODUCTO.map(t => <option key={t} value={t}>{t}</option>)}
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-xs font-semibold text-gray-700 mb-1">Metal *</label>
+                                <select
+                                    name="metal"
+                                    className={`w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 border p-2 ${formData.tipo_produccion === 'PEDIDO' ? 'bg-gray-100 cursor-not-allowed text-gray-600' : ''}`}
+                                    value={formData.metal}
+                                    onChange={handleChange}
+                                    disabled={formData.tipo_produccion === 'PEDIDO'}
+                                    required
+                                >
+                                    <option value="">-- Selecciona metal --</option>
+                                    {METALES.map(m => <option key={m} value={m}>{m}</option>)}
                                 </select>
                             </div>
                             <div className="md:col-span-2">
@@ -676,12 +709,6 @@ const Produccion = () => {
                                 />
                             </div>
 
-                            <div>
-                                <label className="block text-xs font-semibold text-gray-700 mb-1">Estado Inicial</label>
-                                <div className="w-full rounded-md border-gray-200 bg-gray-50 border p-2 text-gray-500 italic text-sm">
-                                    ⏳ En Proceso (Automático)
-                                </div>
-                            </div>
                         </div>
                     </div>
 
@@ -782,7 +809,7 @@ const Produccion = () => {
                         <label className="block text-sm font-medium text-gray-700 mb-1">Observaciones</label>
                         <textarea
                             name="observaciones"
-                            rows="3"
+                            rows="2"
                             className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2"
                             value={formData.observaciones}
                             onChange={handleChange}
@@ -790,7 +817,68 @@ const Produccion = () => {
                         />
                     </div>
 
-                    <div className="pt-4">
+                    {/* Imagen del Producto */}
+                    <div className="mt-4 border-t pt-4">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                            {formData.tipo_produccion === 'PEDIDO'
+                                ? '📷 Imagen de Referencia (Opcional)'
+                                : '📷 Imagen del Producto (Opcional)'}
+                        </label>
+
+                        <div className="flex items-center gap-4">
+                            {/* Botón de subida */}
+                            <label className="cursor-pointer bg-gray-100 hover:bg-gray-200 px-4 py-2 rounded-md flex items-center gap-2 transition-colors">
+                                <FaCamera className="text-gray-600" />
+                                <span className="text-sm font-medium text-gray-700">
+                                    {formData.imagen_url ? 'Cambiar Imagen' : 'Subir Imagen'}
+                                </span>
+                                <input
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={handleImageUpload}
+                                    className="hidden"
+                                    disabled={uploadingImage}
+                                />
+                            </label>
+
+                            {uploadingImage && (
+                                <span className="text-sm text-blue-600">Subiendo...</span>
+                            )}
+
+                            {/* Vista previa */}
+                            {formData.imagen_url && !uploadingImage && (
+                                <div className="relative">
+                                    <img
+                                        src={formData.imagen_url}
+                                        alt="Preview"
+                                        className="h-16 w-16 object-cover rounded-md border-2 border-gray-300 shadow-sm"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setFormData({ ...formData, imagen_url: '' })}
+                                        className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold shadow-md transition-colors"
+                                        title="Eliminar imagen"
+                                    >
+                                        ×
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Texto de ayuda */}
+                        {formData.tipo_produccion === 'PEDIDO' && (
+                            <p className="text-xs text-gray-500 mt-2 italic">
+                                💡 Sube una imagen de referencia del producto fabricado para el cliente
+                            </p>
+                        )}
+                        {formData.tipo_produccion === 'STOCK' && (
+                            <p className="text-xs text-gray-500 mt-2 italic">
+                                💡 Esta imagen se mostrará en el inventario
+                            </p>
+                        )}
+                    </div>
+
+                    <div className="pt-2">
                         <button
                             type="submit"
                             disabled={loading}
@@ -847,33 +935,36 @@ const Produccion = () => {
                     <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-gray-50">
                             <tr>
-                                <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Imagen</th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Producto</th>
-                                <th className="hidden sm:table-cell px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Cant.</th>
-                                <th className="hidden md:table-cell px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Costo Unit.</th>
-                                <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Estado</th>
-                                <th className="hidden lg:table-cell px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Tipo</th>
-                                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Acciones</th>
+                                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Fecha</th>
+                                <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase">Imagen</th>
+                                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cliente</th>
+                                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase w-48">Producto</th>
+                                <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase">Cant</th>
+                                <th className="hidden md:table-cell px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase">Costo Unit.</th>
+                                <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase">Estado</th>
+                                <th className="hidden lg:table-cell px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase">Tipo</th>
+                                <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase">Acciones</th>
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
                             {filteredProduccion.map((item) => (
                                 <tr key={item.id_produccion} className="hover:bg-gray-50">
-                                    <td className="px-4 py-3 whitespace-nowrap text-center">
+                                    <td className="px-3 py-3 whitespace-nowrap text-left text-xs text-gray-700">
+                                        {new Date(item.fecha_registro || item.created_at).toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', year: '2-digit' })}
+                                    </td>
+                                    <td className="px-3 py-3 whitespace-nowrap text-center">
                                         {renderImageCell(item)}
                                     </td>
-                                    <td className="px-4 py-3 text-left">
-                                        <div className="text-sm font-medium text-gray-900">{item.nombre_producto || `${item.tipo_producto} de ${item.metal}`}</div>
-                                        <div className="text-xs text-gray-500">
-                                            {item.metal} - {item.tipo_producto}
-                                        </div>
-                                        {/* Mostrar cantidad en móvil dentro del nombre */}
-                                        <div className="sm:hidden text-xs font-semibold text-gray-700 mt-1">
-                                            Cant: {item.cantidad}
+                                    <td className="px-3 py-3 text-left">
+                                        <div className="text-xs text-gray-700">{item.nombre_cliente || 'Stock'}</div>
+                                    </td>
+                                    <td className="px-3 py-3 text-left">
+                                        <div className="text-xs text-gray-700 max-w-xs">
+                                            {item.nombre_producto?.replace(/^.*?\s*-\s*/, '') || `${item.tipo_producto} de ${item.metal}`}
                                         </div>
                                     </td>
-                                    <td className="hidden sm:table-cell px-4 py-3 text-center text-sm font-semibold text-gray-900">{item.cantidad}</td>
-                                    <td className="hidden md:table-cell px-4 py-3 text-right text-sm text-gray-900">S/ {parseFloat(item.costo_total_unitario || 0).toFixed(2)}</td>
+                                    <td className="px-3 py-3 text-center text-xs text-gray-700">{item.cantidad}</td>
+                                    <td className="hidden md:table-cell px-3 py-3 text-right text-xs text-gray-700">S/ {parseFloat(item.costo_total_unitario || 0).toFixed(2)}</td>
                                     <td className="px-4 py-3 text-center">
                                         <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${item.estado_produccion === 'terminado' ? 'bg-green-100 text-green-800' :
                                             item.estado_produccion === 'en_proceso' ? 'bg-orange-100 text-orange-800' :
@@ -920,30 +1011,72 @@ const Produccion = () => {
                                                         <FaTrash size={16} />
                                                     </button>
                                                 </>
+                                            ) : item.estado_produccion === 'terminado' && item.tipo_produccion === 'STOCK' ? (
+                                                <>
+                                                    {/* Botón Ver - Siempre visible */}
+                                                    <button
+                                                        onClick={() => handleView(item)}
+                                                        className="text-gray-600 hover:text-gray-900"
+                                                        title="Editar"
+                                                    >
+                                                        <FaEdit size={18} />
+                                                    </button>
+
+                                                    {/* Lógica condicional: según si tiene código QR */}
+                                                    {!item.tiene_codigo_qr ? (
+                                                        // Sin código QR: Mostrar botón "Generar QR"
+                                                        <button
+                                                            onClick={() => openQRModal(item)}
+                                                            className="text-blue-600 hover:text-blue-900"
+                                                            title="Generar Código QR"
+                                                        >
+                                                            <FaQrcode size={18} />
+                                                        </button>
+                                                    ) : (
+                                                        // Con código QR: Mostrar "Editar QR" y "Enviar a Inventario"
+                                                        <>
+                                                            <button
+                                                                onClick={() => openQRModal(item)}
+                                                                className="text-gray-600 hover:text-gray-900"
+                                                                title="Editar Código QR"
+                                                            >
+                                                                <FaEdit size={18} />
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleSendToInventory(item)}
+                                                                className="text-green-600 hover:text-green-900"
+                                                                title="Enviar a Inventario"
+                                                            >
+                                                                <FaBox size={18} />
+                                                            </button>
+                                                        </>
+                                                    )}
+
+                                                    {/* Botón Eliminar - Siempre visible */}
+                                                    <button
+                                                        onClick={() => handleDelete(item.id_produccion)}
+                                                        className="text-red-500 hover:text-red-700"
+                                                        title="Eliminar"
+                                                    >
+                                                        <FaTrash size={16} />
+                                                    </button>
+                                                </>
                                             ) : (
+                                                // Producto terminado de PEDIDO o cualquier otro caso
                                                 <>
                                                     <button
                                                         onClick={() => handleView(item)}
                                                         className="text-gray-600 hover:text-gray-900"
-                                                        title="Ver Detalles"
+                                                        title="Editar"
                                                     >
-                                                        <FaEye size={18} />
+                                                        <FaEdit size={18} />
                                                     </button>
-                                                    {item.tipo_produccion === 'STOCK' && (
-                                                        <button
-                                                            onClick={() => navigate('/inventario/nuevo', { state: { prefill: item } })}
-                                                            className="text-blue-600 hover:text-blue-900"
-                                                            title="Enviar a Inventario"
-                                                        >
-                                                            <FaBox size={18} />
-                                                        </button>
-                                                    )}
                                                     <button
-                                                        onClick={() => handleDeleteCompleted(item.id_produccion)}
-                                                        className="text-red-600 hover:text-red-900"
-                                                        title="Eliminar (Terminado)"
+                                                        onClick={() => handleDelete(item.id_produccion)}
+                                                        className="text-red-500 hover:text-red-700"
+                                                        title="Eliminar"
                                                     >
-                                                        <FaTrash size={18} />
+                                                        <FaTrash size={16} />
                                                     </button>
                                                 </>
                                             )}
@@ -968,7 +1101,171 @@ const Produccion = () => {
                 accept="image/*"
                 onChange={handleTableImageUpload}
             />
-        </div>
+
+            {/* Modal de Generación/Edición de Código QR */}
+            {
+                showQRModal && (
+                    <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50">
+                        <div className="bg-white rounded-lg p-6 shadow-2xl max-w-md w-full mx-4">
+                            <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                                <FaQrcode className="mr-2 text-blue-600" />
+                                {selectedItem?.codigo_producto ? 'Editar Código QR' : 'Generar Código QR'}
+                            </h2>
+
+                            <div className="space-y-4">
+                                {/* Nombre del Producto */}
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        Producto
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={qrData.nombre}
+                                        disabled
+                                        className="w-full rounded-md border-gray-300 bg-gray-50 shadow-sm p-2 text-sm"
+                                    />
+                                </div>
+
+                                {/* Código */}
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        Código Único *
+                                    </label>
+                                    <div className="flex gap-2">
+                                        <input
+                                            type="text"
+                                            value={qrData.codigo}
+                                            onChange={(e) => setQrData({ ...qrData, codigo: e.target.value })}
+                                            placeholder="Ej: PUL722284"
+                                            className="flex-1 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => setQrData({ ...qrData, codigo: generateRandomCode(selectedItem.tipo_producto) })}
+                                            className="px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-md flex-shrink-0"
+                                            title="Generar código aleatorio"
+                                        >
+                                            🔄
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* Categoría */}
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        Categoría
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={qrData.categoria}
+                                        disabled
+                                        className="w-full rounded-md border-gray-300 bg-gray-50 shadow-sm p-2 text-sm"
+                                    />
+                                </div>
+
+                                {/* Vista Previa del QR */}
+                                {qrData.codigo && (
+                                    <div className="border-2 border-gray-200 rounded-lg p-4 bg-gray-50">
+                                        <p className="text-xs text-gray-600 mb-2 text-center font-medium">Vista Previa QR:</p>
+                                        <div className="flex justify-center">
+                                            <QRCode value={qrData.codigo} size={128} />
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Botones */}
+                            <div className="flex gap-3 mt-6">
+                                <button
+                                    onClick={() => setShowQRModal(false)}
+                                    className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    onClick={handleSaveQRCode}
+                                    disabled={!qrData.codigo.trim()}
+                                    className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center justify-center"
+                                >
+                                    <FaCheckCircle className="mr-2" />
+                                    Guardar Código QR
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )
+            }
+
+            {/* Modal de Confirmación de Envío a Inventario */}
+            {
+                showInventoryModal && selectedItem && (
+                    <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50">
+                        <div className="bg-white rounded-lg p-6 shadow-2xl max-w-md w-full mx-4">
+                            <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                                <FaBox className="mr-2 text-green-600" />
+                                Enviar a Inventario
+                            </h2>
+
+                            <div className="mb-6">
+                                <p className="text-gray-700 mb-4">¿Confirmar envío a inventario?</p>
+
+                                <div className="bg-gray-50 rounded-lg p-4 space-y-2">
+                                    <div className="flex justify-between">
+                                        <span className="text-sm text-gray-600">Producto:</span>
+                                        <span className="text-sm font-medium text-gray-900">{selectedItem.nombre_producto || `${selectedItem.tipo_producto} de ${selectedItem.metal}`}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-sm text-gray-600">Código:</span>
+                                        <span className="text-sm font-medium text-gray-900">{selectedItem.codigo_producto}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-sm text-gray-600">Cantidad:</span>
+                                        <span className="text-sm font-medium text-gray-900">{selectedItem.cantidad} unidad(es)</span>
+                                    </div>
+                                </div>
+
+                                <p className="text-xs text-gray-500 mt-4">
+                                    Este producto quedará disponible para venta en el inventario.
+                                </p>
+                            </div>
+
+                            {/* Botones */}
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={() => setShowInventoryModal(false)}
+                                    className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    onClick={confirmSendToInventory}
+                                    className="flex-1 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 flex items-center justify-center"
+                                >
+                                    <FaCheckCircle className="mr-2" />
+                                    Confirmar Envío
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )
+            }
+
+            {/* Modal de éxito */}
+            {
+                showSuccessModal && (
+                    <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50">
+                        <div className="bg-white rounded-lg p-8 shadow-2xl max-w-sm w-full mx-4 animate-bounce">
+                            <div className="flex flex-col items-center">
+                                <FaCheckCircle className="text-green-500 text-6xl mb-4" />
+                                <h3 className="text-2xl font-bold text-gray-800 text-center">
+                                    PRODUCCIÓN GUARDADA
+                                </h3>
+                            </div>
+                        </div>
+                    </div>
+                )
+            }
+        </div >
     );
 };
 

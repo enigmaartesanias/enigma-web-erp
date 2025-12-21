@@ -171,19 +171,27 @@ const Produccion = () => {
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
-    const handleDelete = async (id) => {
-        if (!window.confirm('¿Estás seguro de eliminar este registro de producción?')) return;
-
-        try {
-            await produccionDB.delete(id);
-            setMessage({ type: 'success', text: 'Registro eliminado correctamente.' });
-            fetchProduccion();
-            fetchStats();
-            fetchPedidosPendientes();
-        } catch (error) {
-            console.error('Error al eliminar:', error);
-            setMessage({ type: 'error', text: 'Error al eliminar: ' + error.message });
-        }
+    const handleDelete = (id) => {
+        setConfirmModal({
+            isOpen: true,
+            title: 'Eliminar Producción',
+            message: '¿Estás seguro? Esta acción no se puede deshacer.',
+            icon: <FaTrash />,
+            confirmText: 'Sí, eliminar',
+            confirmColor: 'red',
+            onConfirm: async () => {
+                try {
+                    await produccionDB.delete(id);
+                    toast.success('Producción eliminada correctamente');
+                    fetchProduccion();
+                    fetchStats();
+                    fetchPedidosPendientes();
+                } catch (error) {
+                    console.error('Error al eliminar:', error);
+                    toast.error('Error al eliminar: ' + error.message);
+                }
+            }
+        });
     };
 
     const handleMarkAsComplete = async (item) => {

@@ -1,8 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ventasDB } from '../../../utils/ventasClient';
-import { FaArrowLeft, FaCalendar, FaChartLine, FaDollarSign, FaFileInvoice, FaFilter } from 'react-icons/fa';
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { productosExternosDB } from '../../../utils/productosExternosNeonClient';
+import { FaArrowLeft, FaCalendar, FaChartLine, FaDollarSign, FaFileInvoice, FaFilter, FaBan, FaEye, FaExclamationTriangle } from 'react-icons/fa';
+import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as ChartTooltip, Legend, ResponsiveContainer } from 'recharts';
+import toast, { Toaster } from 'react-hot-toast';
+import ConfirmModal from '../../../components/ui/ConfirmModal';
+import Tooltip from '../../../components/ui/Tooltip';
 
 export default function ReporteVentas() {
     const navigate = useNavigate();

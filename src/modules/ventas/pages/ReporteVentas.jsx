@@ -15,6 +15,28 @@ export default function ReporteVentas() {
     const [fechaInicio, setFechaInicio] = useState('');
     const [fechaFin, setFechaFin] = useState('');
 
+    // Estados para modales de gestión
+    const [confirmModal, setConfirmModal] = useState({
+        isOpen: false,
+        title: '',
+        message: '',
+        icon: null,
+        confirmText: '',
+        confirmColor: 'blue',
+        onConfirm: () => { }
+    });
+
+    const [anularModal, setAnularModal] = useState({
+        isOpen: false,
+        venta: null,
+        motivo: ''
+    });
+
+    const [detalleModal, setDetalleModal] = useState({
+        isOpen: false,
+        venta: null
+    });
+
     useEffect(() => {
         loadVentas();
     }, []);
@@ -28,6 +50,55 @@ export default function ReporteVentas() {
             console.error('Error cargando ventas:', error);
         } finally {
             setLoading(false);
+        }
+    };
+
+    // Ver detalle de venta
+    const handleVer = (venta) => {
+        setDetalleModal({
+            isOpen: true,
+            venta: venta
+        });
+    };
+
+    // Anular venta
+    const handleAnular = (venta) => {
+        setAnularModal({
+            isOpen: true,
+            venta: venta,
+            motivo: ''
+        });
+    };
+
+    // Confirmar anulación
+    const confirmarAnulacion = async () => {
+        if (!anularModal.motivo.trim()) {
+            toast.warning('Debe especificar el motivo de anulación');
+            return;
+        }
+
+        try {
+            // Anular venta en la BD
+            await ventasDB.anular(anularModal.venta.id, {
+                motivo_anulacion: anularModal.motivo,
+                fecha_anulacion: new Date().toISOString(),
+                estado: 'ANULADA'
+            });
+
+            // Revertir inventario (aumentar stock de productos vendidos)
+            const detalles = anularModal.venta.detalles || [];
+            for (const item of detalles) {
+                if (item.producto_id) {
+                    await productosExternosDB.ajustarStock(item.producto_id, +item.cantidad);
+                }
+            }
+
+            toast.success(`Venta anulada correctamente. Stock revertido.`, { duration: 4000 });
+            setAnularModal({ isOpen: false, venta: null, motivo: '' });
+            loadVentas();
+        } catch (error) {
+            console.error('Error al anular:', error);
+            toast.error('Error al anular la venta');
         }
     };
 
@@ -216,6 +287,8 @@ export default function ReporteVentas() {
                                         <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase">IGV</th>
                                         <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase">Descuento</th>
                                         <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase">Total</th>
+                                        <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase">Estado</th>
+                                        <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase">Acciones</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-200">
@@ -244,6 +317,40 @@ export default function ReporteVentas() {
                                             <td className="px-4 py-3 text-right text-sm font-bold text-slate-700">
                                                 S/ {Number(venta.total).toFixed(2)}
                                             </td>
+                                            <td className="px-4 py-3 text-center">
+                                                {venta.estado === 'ANULADA' ? (
+                                                    <span className="inline-flex px-2 py-1 text-xs rounded-full bg-red-100 text-red-700 border border-red-200">
+                                                        Anulada
+                                                    </span>
+                                                ) : (
+                                                    <span className="inline-flex px-2 py-1 text-xs rounded-full bg-green-100 text-green-700 border border-green-200">
+                                                        Activa
+                                                    </span>
+                                                )}
+                                            </td>
+                                            <td className="px-4 py-3">
+                                                <div className="flex justify-center gap-2">
+                                                    <Tooltip text="Ver detalle">
+                                                        <button
+                                                            onClick={() => handleVer(venta)}
+                                                            className="p-2 text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                                                        >
+                                                            <FaEye size={16} />
+                                                        </button>
+                                                    </Tooltip>
+
+                                                    {venta.estado !== 'ANULADA' && (
+                                                        <Tooltip text="Anular venta">
+                                                            <button
+                                                                onClick={() => handleAnular(venta)}
+                                                                className="p-2 text-yellow-600 hover:bg-yellow-50 rounded transition-colors"
+                                                            >
+                                                                <FaBan size={16} />
+                                                            </button>
+                                                        </Tooltip>
+                                                    )}
+                                                </div>
+                                            </td>
                                         </tr>
                                     ))}
                                 </tbody>
@@ -251,6 +358,153 @@ export default function ReporteVentas() {
                         </div>
                     )}
                 </div>
+
+                {/* Modal de Anulación */}
+                {anularModal.isOpen && (
+                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                        <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+                            <div className="text-center mb-4">
+                                <FaBan className="text-yellow-600 text-5xl mx-auto mb-3" />
+                                <h3 className="text-xl font-bold text-gray-800">Anular Venta</h3>
+                                <p className="text-sm text-gray-600 mt-2">#{anularModal.venta?.codigo_venta}</p>
+                            </div>
+
+                            <div className="mb-4 bg-yellow-50 border border-yellow-200 rounded p-3">
+                                <p className="text-sm text-yellow-800">Esta acción:</p>
+                                <ul className="text-xs text-yellow-700 mt-2 ml-4 list-disc">
+                                    <li>Marcará la venta como ANULADA</li>
+                                    <li>Revertirá el stock vendido</li>
+                                    <li>No se puede deshacer</li>
+                                </ul>
+                            </div>
+
+                            <div className="mb-4">
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Motivo de anulación *
+                                </label>
+                                <textarea
+                                    value={anularModal.motivo}
+                                    onChange={(e) => setAnularModal({ ...anularModal, motivo: e.target.value })}
+                                    placeholder="Ej: Devolución del cliente..."
+                                    className="w-full border border-gray-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-yellow-500 outline-none"
+                                    rows={3}
+                                />
+                            </div>
+
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={() => setAnularModal({ isOpen: false, venta: null, motivo: '' })}
+                                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    onClick={confirmarAnulacion}
+                                    disabled={!anularModal.motivo.trim()}
+                                    className={`flex-1 px-4 py-2 rounded-lg text-white ${!anularModal.motivo.trim() ? 'bg-gray-300' : 'bg-yellow-600 hover:bg-yellow-700'}`}
+                                >
+                                    Sí, anular venta
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Modal de Detalle */}
+                {detalleModal.isOpen && (
+                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                        <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full p-6">
+                            <div className="flex justify-between items-start mb-4">
+                                <div>
+                                    <h3 className="text-xl font-bold">Detalle de Venta</h3>
+                                    <p className="text-sm text-gray-600">#{detalleModal.venta?.codigo_venta}</p>
+                                </div>
+                                <button
+                                    onClick={() => setDetalleModal({ isOpen: false, venta: null })}
+                                    className="text-gray-400 hover:text-gray-600"
+                                >
+                                    ✕
+                                </button>
+                            </div>
+
+                            {detalleModal.venta && (
+                                <div>
+                                    <div className="grid grid-cols-2 gap-4 mb-4 text-sm">
+                                        <div>
+                                            <p className="text-gray-500">Fecha:</p>
+                                            <p className="font-medium">{new Date(detalleModal.venta.fecha_venta).toLocaleString('es-PE')}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-gray-500">Cliente:</p>
+                                            <p className="font-medium">{detalleModal.venta.cliente_nombre || 'Público'}</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="border-t pt-4 space-y-2 text-sm">
+                                        <div className="flex justify-between">
+                                            <span>Subtotal:</span>
+                                            <span>S/ {Number(detalleModal.venta.subtotal).toFixed(2)}</span>
+                                        </div>
+                                        <div className="flex justify-between text-blue-600">
+                                            <span>IGV:</span>
+                                            <span>S/ {Number(detalleModal.venta.impuesto_monto).toFixed(2)}</span>
+                                        </div>
+                                        {Number(detalleModal.venta.descuento_monto) > 0 && (
+                                            <div className="flex justify-between text-red-600">
+                                                <span>Descuento:</span>
+                                                <span>- S/ {Number(detalleModal.venta.descuento_monto).toFixed(2)}</span>
+                                            </div>
+                                        )}
+                                        <div className="flex justify-between font-bold text-lg border-t pt-2">
+                                            <span>Total:</span>
+                                            <span>S/ {Number(detalleModal.venta.total).toFixed(2)}</span>
+                                        </div>
+                                    </div>
+
+                                    {detalleModal.venta.estado === 'ANULADA' && (
+                                        <div className="mt-4 bg-red-50 border border-red-200 rounded p-3">
+                                            <p className="text-sm font-semibold text-red-800">Venta Anulada</p>
+                                            {detalleModal.venta.motivo_anulacion && (
+                                                <p className="text-xs text-red-700 mt-1">Motivo: {detalleModal.venta.motivo_anulacion}</p>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    <button
+                                        onClick={() => setDetalleModal({ isOpen: false, venta: null })}
+                                        className="w-full mt-4 px-4 py-2 bg-gray-100 rounded-lg hover:bg-gray-200"
+                                    >
+                                        Cerrar
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
+
+                {/* Toaster */}
+                <Toaster
+                    position="top-right"
+                    toastOptions={{
+                        duration: 3000,
+                        style: { fontSize: '14px', maxWidth: '300px', padding: '12px 16px' },
+                        success: { iconTheme: { primary: '#10b981', secondary: 'white' }, style: { borderLeft: '4px solid #10b981' } },
+                        error: { iconTheme: { primary: '#ef4444', secondary: 'white' }, duration: 4000, style: { borderLeft: '4px solid #ef4444' } },
+                        warning: { icon: '⚠️', style: { borderLeft: '4px solid #f59e0b' } }
+                    }}
+                />
+
+                {/* ConfirmModal */}
+                <ConfirmModal
+                    isOpen={confirmModal.isOpen}
+                    onClose={() => setConfirmModal({ ...confirmModal, isOpen: false })}
+                    onConfirm={confirmModal.onConfirm}
+                    title={confirmModal.title}
+                    message={confirmModal.message}
+                    icon={confirmModal.icon}
+                    confirmText={confirmModal.confirmText}
+                    confirmColor={confirmModal.confirmColor}
+                />
             </div>
         </div>
     );

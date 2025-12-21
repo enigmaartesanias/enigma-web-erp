@@ -8,7 +8,7 @@ export default function InventarioHome() {
             title: 'Ventas',
             icon: ShoppingCart,
             path: '/ventas/nueva',
-            description: 'Registro de ventas'
+            description: 'Registrar ventas'
         },
         {
             title: 'Pedidos',
@@ -52,13 +52,13 @@ export default function InventarioHome() {
             title: 'Reporte Ventas',
             icon: BarChart3,
             path: '/ventas/reporte',
-            description: 'Estadísticas de ventas'
+            description: 'Estadísticas ventas'
         },
         {
             title: 'Reporte Compras',
             icon: BarChart3,
             path: '/compras/reporte',
-            description: 'Historial de compras'
+            description: 'Historial compras'
         },
         {
             title: 'Reporte Inventario',
@@ -70,7 +70,7 @@ export default function InventarioHome() {
             title: 'Reporte Pedidos',
             icon: BarChart3,
             path: '/admin/reportes',
-            description: 'Análisis de pedidos'
+            description: 'Análisis pedidos'
         }
     ];
 
@@ -80,7 +80,7 @@ export default function InventarioHome() {
             title: 'Clientes',
             icon: Users,
             path: '/clientes',
-            description: 'Gestión de clientes'
+            description: 'Gestión clientes'
         },
         {
             title: 'Stock Inicial',
@@ -101,14 +101,14 @@ export default function InventarioHome() {
         return (
             <Link
                 to={module.path}
-                className="group block p-6 bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all duration-150 hover:-translate-y-1 active:scale-95"
+                className="group block p-4 sm:p-5 bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-all duration-150 hover:-translate-y-1 active:scale-95"
             >
-                <div className="flex flex-col items-center text-center gap-2">
-                    <Icon className="w-8 h-8 text-gray-700 group-hover:text-slate-700 transition-colors" strokeWidth={1.5} />
-                    <h3 className="text-base font-semibold text-gray-900">
+                <div className="flex flex-col items-center text-center gap-1.5">
+                    <Icon className="w-6 h-6 text-gray-700 group-hover:text-slate-700 transition-colors" strokeWidth={1.5} />
+                    <h3 className="text-sm font-semibold text-gray-900">
                         {module.title}
                     </h3>
-                    <p className="text-xs text-gray-500 line-clamp-2">
+                    <p className="text-xs text-gray-500">
                         {module.description}
                     </p>
                 </div>

@@ -116,11 +116,17 @@ export default function InventarioHome() {
         );
     };
 
-    const Section = ({ title, modules, gridCols = "grid-cols-1 sm:grid-cols-2" }) => (
-        <div className="mb-6 sm:mb-8">
-            <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4 px-1">
-                {title}
-            </h2>
+    const Section = ({ title, subtitle, icon: Icon, modules, gridCols = "grid-cols-1 sm:grid-cols-2", bgClass = "" }) => (
+        <div className={`mb-6 sm:mb-8 ${bgClass} ${bgClass ? 'p-4 sm:p-5 rounded-xl' : ''}`}>
+            <div className="mb-4 px-1">
+                <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider flex items-center gap-1.5">
+                    {Icon && <Icon className="w-3.5 h-3.5" strokeWidth={2} />}
+                    {title}
+                </h2>
+                {subtitle && (
+                    <p className="text-xs text-gray-400 mt-1">{subtitle}</p>
+                )}
+            </div>
             <div className={`grid ${gridCols} gap-3 sm:gap-4`}>
                 {modules.map((module) => (
                     <ModuleCard key={module.path} module={module} />
@@ -160,8 +166,11 @@ export default function InventarioHome() {
 
                 <Section
                     title="Reportes"
+                    subtitle="Consulta y análisis (solo lectura)"
+                    icon={BarChart3}
                     modules={reportes}
                     gridCols="grid-cols-1 sm:grid-cols-2 md:grid-cols-2"
+                    bgClass="bg-gray-50"
                 />
 
                 <Section

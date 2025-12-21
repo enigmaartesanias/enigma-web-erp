@@ -59,6 +59,10 @@ import Proveedores from './modules/proveedores/pages/Proveedores';
 // Módulo de Compras
 import RegistroCompras from './modules/compras/pages/RegistroCompras';
 import ReporteCompras from './modules/compras/pages/ReporteCompras';
+import ProductosPendientes from './modules/compras/pages/ProductosPendientes';
+
+// Módulo de Materiales
+import RegistroMateriales from './modules/materiales/pages/RegistroMateriales';
 
 const MainContent = () => {
     const location = useLocation();
@@ -70,6 +74,8 @@ const MainContent = () => {
         location.pathname.startsWith('/compras') ||
         location.pathname.startsWith('/clientes') ||
         location.pathname.startsWith('/proveedores') ||
+        location.pathname.startsWith('/materiales') ||
+        location.pathname.startsWith('/productos-pendientes') ||
         location.pathname.startsWith('/stock-inicial');
 
     const hideHeaderFooter = isAdmin || isInventarioModule;
@@ -125,6 +131,8 @@ const MainContent = () => {
                 <Route path="/ventas/reporte" element={<PrivateRoute><ReporteVentas /></PrivateRoute>} />
                 <Route path="/clientes" element={<PrivateRoute><Clientes /></PrivateRoute>} />
                 <Route path="/proveedores" element={<PrivateRoute><Proveedores /></PrivateRoute>} />
+                <Route path="/materiales" element={<PrivateRoute><RegistroMateriales /></PrivateRoute>} />
+                <Route path="/productos-pendientes" element={<PrivateRoute><ProductosPendientes /></PrivateRoute>} />
             </Routes>
             {!hideHeaderFooter && (
                 <>

@@ -2,12 +2,15 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { produccionDB, METALES, TIPOS_PRODUCTO } from '../../../utils/produccionNeonClient';
 import { pedidosDB } from '../../../utils/pedidosNeonClient';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { FaEdit, FaTrash, FaArrowLeft, FaSave, FaTimes, FaBox, FaMoneyBillWave, FaHammer, FaCheckCircle, FaCamera, FaCheck, FaQrcode } from 'react-icons/fa';
+import { FaEdit, FaTrash, FaArrowLeft, FaSave, FaTimes, FaBox, FaMoneyBillWave, FaHammer, FaCheckCircle, FaCamera, FaCheck, FaQrcode, FaExclamationTriangle } from 'react-icons/fa';
 import QRCode from 'react-qr-code';
 import { storage } from '../../../firebaseConfig';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { v4 as uuidv4 } from 'uuid';
 import { compressAndResizeImage, validateImageFile } from '../../../utils/imageOptimizer';
+import toast, { Toaster } from 'react-hot-toast';
+import ConfirmModal from '../../../components/ui/ConfirmModal';
+import Tooltip from '../../../components/ui/Tooltip';
 
 
 const Produccion = () => {
@@ -38,6 +41,17 @@ const Produccion = () => {
         categoria: ''
     });
     const fileInputRef = React.useRef(null);
+
+    // Estado para Confirm Modal
+    const [confirmModal, setConfirmModal] = useState({
+        isOpen: false,
+        title: '',
+        message: '',
+        icon: null,
+        confirmText: '',
+        confirmColor: 'blue',
+        onConfirm: () => { }
+    });
 
     // Estado inicial del formulario
     const initialFormState = {
@@ -244,7 +258,7 @@ const Produccion = () => {
 
         } catch (error) {
             console.error('Error subiendo imagen:', error);
-            alert('Error al subir la imagen.');
+            toast.error('Error al subir la imagen', { duration: 4000 });
         } finally {
             setLoading(false);
             setUploadingId(null);

@@ -3,6 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { productosExternosDB } from '../../../utils/productosExternosNeonClient';
 import { FaPlus, FaEdit, FaTrash, FaSearch, FaQrcode, FaArrowLeft, FaBox, FaDollarSign, FaWarehouse } from 'react-icons/fa';
 import QRCode from 'react-qr-code';
+import toast, { Toaster } from 'react-hot-toast';
+import ConfirmModal from '../../../components/ui/ConfirmModal';
+import Tooltip from '../../../components/ui/Tooltip';
 
 export default function Inventario() {
     const navigate = useNavigate();
@@ -11,6 +14,17 @@ export default function Inventario() {
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedCategory, setSelectedCategory] = useState('');
     const [showQR, setShowQR] = useState(null);
+
+    // Estado para Confirm Modal
+    const [confirmModal, setConfirmModal] = useState({
+        isOpen: false,
+        title: '',
+        message: '',
+        icon: null,
+        confirmText: '',
+        confirmColor: 'blue',
+        onConfirm: () => { }
+    });
 
     useEffect(() => {
         loadProductos();
@@ -28,16 +42,25 @@ export default function Inventario() {
         }
     };
 
-    const handleDelete = async (id, nombre) => {
-        if (window.confirm(`¿Eliminar "${nombre}"?`)) {
-            try {
-                await productosExternosDB.delete(id);
-                await loadProductos();
-            } catch (error) {
-                console.error('Error eliminando:', error);
-                alert('Error al eliminar el producto');
+    const handleDelete = (id, nombre) => {
+        setConfirmModal({
+            isOpen: true,
+            title: 'Eliminar Producto',
+            message: `¿Estás seguro de eliminar "${nombre}" del inventario?`,
+            icon: <FaTrash />,
+            confirmText: 'Sí, eliminar',
+            confirmColor: 'red',
+            onConfirm: async () => {
+                try {
+                    await productosExternosDB.delete(id);
+                    toast.success('Producto eliminado del inventario');
+                    await loadProductos();
+                } catch (error) {
+                    console.error('Error eliminando:', error);
+                    toast.error('Error al eliminar producto', { duration: 4000 });
+                }
             }
-        }
+        });
     };
 
     const filteredProductos = productos.filter(p => {
@@ -230,27 +253,30 @@ export default function Inventario() {
                                             </td>
                                             <td className="px-4 py-3">
                                                 <div className="flex justify-center gap-2">
-                                                    <button
-                                                        onClick={() => setShowQR(producto.codigo_usuario)}
-                                                        className="p-2 text-blue-600 hover:bg-blue-50 rounded transition-colors"
-                                                        title="Ver QR"
-                                                    >
-                                                        <FaQrcode size={16} />
-                                                    </button>
-                                                    <button
-                                                        onClick={() => navigate(`/inventario/editar/${producto.id}`)}
-                                                        className="p-2 text-green-600 hover:bg-green-50 rounded transition-colors"
-                                                        title="Editar"
-                                                    >
-                                                        <FaEdit size={16} />
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleDelete(producto.id, producto.nombre)}
-                                                        className="p-2 text-red-600 hover:bg-red-50 rounded transition-colors"
-                                                        title="Eliminar"
-                                                    >
-                                                        <FaTrash size={16} />
-                                                    </button>
+                                                    <Tooltip text="Ver código QR">
+                                                        <button
+                                                            onClick={() => setShowQR(producto.codigo_usuario)}
+                                                            className="p-2 text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                                                        >
+                                                            <FaQrcode size={16} />
+                                                        </button>
+                                                    </Tooltip>
+                                                    <Tooltip text="Editar producto">
+                                                        <button
+                                                            onClick={() => navigate(`/inventario/editar/${producto.id}`)}
+                                                            className="p-2 text-green-600 hover:bg-green-50 rounded transition-colors"
+                                                        >
+                                                            <FaEdit size={16} />
+                                                        </button>
+                                                    </Tooltip>
+                                                    <Tooltip text="Eliminar del inventario">
+                                                        <button
+                                                            onClick={() => handleDelete(producto.id, producto.nombre)}
+                                                            className="p-2 text-red-600 hover:bg-red-50 rounded transition-colors"
+                                                        >
+                                                            <FaTrash size={16} />
+                                                        </button>
+                                                    </Tooltip>
                                                 </div>
                                             </td>
                                         </tr>
@@ -288,6 +314,40 @@ export default function Inventario() {
                     </div>
                 </div>
             )}
+
+            {/* Toaster para notificaciones */}
+            <Toaster
+                position="top-right"
+                toastOptions={{
+                    duration: 3000,
+                    style: {
+                        fontSize: '14px',
+                        maxWidth: '300px',
+                        padding: '12px 16px',
+                    },
+                    success: {
+                        iconTheme: { primary: '#10b981', secondary: 'white' },
+                        style: { borderLeft: '4px solid #10b981' }
+                    },
+                    error: {
+                        iconTheme: { primary: '#ef4444', secondary: 'white' },
+                        duration: 4000,
+                        style: { borderLeft: '4px solid #ef4444' }
+                    }
+                }}
+            />
+
+            {/* Modal de Confirmación */}
+            <ConfirmModal
+                isOpen={confirmModal.isOpen}
+                onClose={() => setConfirmModal({ ...confirmModal, isOpen: false })}
+                onConfirm={confirmModal.onConfirm}
+                title={confirmModal.title}
+                message={confirmModal.message}
+                icon={confirmModal.icon}
+                confirmText={confirmModal.confirmText}
+                confirmColor={confirmModal.confirmColor}
+            />
         </div>
     );
 }

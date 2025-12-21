@@ -4,6 +4,7 @@ import { proveedoresDB } from '../../../utils/proveedoresNeonClient';
 import { FaArrowLeft, FaPlus, FaEdit, FaTrash, FaSave, FaTimes } from 'react-icons/fa';
 import toast, { Toaster } from 'react-hot-toast';
 
+// Gestión de Proveedores - CRUD completo
 export default function Proveedores() {
     const navigate = useNavigate();
     const [proveedores, setProveedores] = useState([]);
@@ -12,9 +13,7 @@ export default function Proveedores() {
     const [editingId, setEditingId] = useState(null);
     const [formData, setFormData] = useState({
         nombre: '',
-        contacto: '',
         telefono: '',
-        email: '',
         direccion: ''
     });
 
@@ -51,6 +50,11 @@ export default function Proveedores() {
             return;
         }
 
+        if (!formData.telefono.trim()) {
+            toast.error('El teléfono es obligatorio');
+            return;
+        }
+
         try {
             if (editingId) {
                 await proveedoresDB.update(editingId, formData);
@@ -70,9 +74,7 @@ export default function Proveedores() {
     const handleEdit = (proveedor) => {
         setFormData({
             nombre: proveedor.nombre,
-            contacto: proveedor.contacto || '',
             telefono: proveedor.telefono || '',
-            email: proveedor.email || '',
             direccion: proveedor.direccion || ''
         });
         setEditingId(proveedor.id);
@@ -97,9 +99,7 @@ export default function Proveedores() {
     const resetForm = () => {
         setFormData({
             nombre: '',
-            contacto: '',
             telefono: '',
-            email: '',
             direccion: ''
         });
         setEditingId(null);
@@ -109,39 +109,36 @@ export default function Proveedores() {
     return (
         <div className="min-h-screen bg-gray-50">
             {/* Header */}
-            <div className="bg-white shadow-sm border-b">
-                <div className="max-w-6xl mx-auto px-4 py-4">
+            <header className="bg-white border-b border-gray-200 px-3 py-2 flex justify-between items-center shadow-sm flex-shrink-0">
+                <div className="flex items-center gap-2">
                     <button
                         onClick={() => navigate('/inventario-home')}
-                        className="flex items-center text-gray-600 hover:text-slate-700 transition-colors text-sm mb-3"
+                        className="p-1.5 hover:bg-gray-100 rounded-full text-gray-600 transition"
                     >
-                        <FaArrowLeft className="mr-2" size={14} />
-                        Volver al Panel
+                        <FaArrowLeft size={16} />
                     </button>
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <h1 className="text-2xl font-bold text-gray-800">
-                                Gestión de Proveedores
-                            </h1>
-                            <p className="text-gray-500 text-sm mt-1">Administra tu catálogo de proveedores</p>
-                        </div>
-                        <button
-                            onClick={() => setShowForm(!showForm)}
-                            className="px-4 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-800 transition text-sm flex items-center gap-2"
-                        >
-                            {showForm ? (
-                                <>
-                                    <FaTimes /> Cancelar
-                                </>
-                            ) : (
-                                <>
-                                    <FaPlus /> Nuevo Proveedor
-                                </>
-                            )}
-                        </button>
+                    <div>
+                        <h1 className="text-base font-bold text-gray-800">Gestión de Proveedores</h1>
+                        <p className="text-xs text-gray-500">Administra tu catálogo de proveedores</p>
                     </div>
                 </div>
-            </div>
+                <button
+                    onClick={() => setShowForm(!showForm)}
+                    className="px-3 py-1.5 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition flex items-center gap-1.5 text-sm font-medium"
+                >
+                    {showForm ? (
+                        <>
+                            <FaTimes size={12} />
+                            Cancelar
+                        </>
+                    ) : (
+                        <>
+                            <FaPlus size={12} />
+                            Nuevo
+                        </>
+                    )}
+                </button>
+            </header>
 
             {/* Contenido */}
             <div className="max-w-6xl mx-auto px-4 py-6">
@@ -164,30 +161,15 @@ export default function Proveedores() {
                                         value={formData.nombre}
                                         onChange={handleChange}
                                         placeholder="Nombre del proveedor"
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-500 outline-none text-sm"
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 outline-none text-sm"
                                         required
-                                    />
-                                </div>
-
-                                {/* Contacto */}
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        Persona de Contacto
-                                    </label>
-                                    <input
-                                        type="text"
-                                        name="contacto"
-                                        value={formData.contacto}
-                                        onChange={handleChange}
-                                        placeholder="Nombre del contacto"
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-500 outline-none text-sm"
                                     />
                                 </div>
 
                                 {/* Teléfono */}
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        Teléfono
+                                        Teléfono *
                                     </label>
                                     <input
                                         type="text"
@@ -195,29 +177,15 @@ export default function Proveedores() {
                                         value={formData.telefono}
                                         onChange={handleChange}
                                         placeholder="999-888-777"
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-500 outline-none text-sm"
-                                    />
-                                </div>
-
-                                {/* Email */}
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        Email
-                                    </label>
-                                    <input
-                                        type="email"
-                                        name="email"
-                                        value={formData.email}
-                                        onChange={handleChange}
-                                        placeholder="proveedor@ejemplo.com"
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-500 outline-none text-sm"
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 outline-none text-sm"
+                                        required
                                     />
                                 </div>
 
                                 {/* Dirección */}
                                 <div className="md:col-span-2">
                                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        Dirección
+                                        Dirección <span className="text-gray-400">(opcional)</span>
                                     </label>
                                     <textarea
                                         name="direccion"
@@ -225,7 +193,7 @@ export default function Proveedores() {
                                         onChange={handleChange}
                                         placeholder="Dirección completa"
                                         rows={2}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-500 outline-none text-sm"
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 outline-none text-sm"
                                     />
                                 </div>
                             </div>
@@ -241,7 +209,7 @@ export default function Proveedores() {
                                 </button>
                                 <button
                                     type="submit"
-                                    className="flex-1 px-4 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-800 transition text-sm flex items-center justify-center gap-2"
+                                    className="flex-1 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition text-sm flex items-center justify-center gap-2"
                                 >
                                     <FaSave />
                                     {editingId ? 'Actualizar' : 'Guardar'}
@@ -258,22 +226,21 @@ export default function Proveedores() {
                             <thead className="bg-gray-100 text-gray-700">
                                 <tr>
                                     <th className="px-4 py-3 text-left font-semibold">Nombre</th>
-                                    <th className="px-4 py-3 text-left font-semibold">Contacto</th>
                                     <th className="px-4 py-3 text-left font-semibold">Teléfono</th>
-                                    <th className="px-4 py-3 text-left font-semibold">Email</th>
+                                    <th className="px-4 py-3 text-left font-semibold">Dirección</th>
                                     <th className="px-4 py-3 text-center font-semibold">Acciones</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y">
                                 {loading ? (
                                     <tr>
-                                        <td colSpan="5" className="px-4 py-8 text-center text-gray-500">
+                                        <td colSpan="4" className="px-4 py-8 text-center text-gray-500">
                                             Cargando...
                                         </td>
                                     </tr>
                                 ) : proveedores.length === 0 ? (
                                     <tr>
-                                        <td colSpan="5" className="px-4 py-8 text-center text-gray-500">
+                                        <td colSpan="4" className="px-4 py-8 text-center text-gray-500">
                                             No hay proveedores registrados
                                         </td>
                                     </tr>
@@ -284,13 +251,10 @@ export default function Proveedores() {
                                                 {proveedor.nombre}
                                             </td>
                                             <td className="px-4 py-3 text-gray-600">
-                                                {proveedor.contacto || '-'}
-                                            </td>
-                                            <td className="px-4 py-3 text-gray-600">
                                                 {proveedor.telefono || '-'}
                                             </td>
                                             <td className="px-4 py-3 text-gray-600">
-                                                {proveedor.email || '-'}
+                                                {proveedor.direccion || '-'}
                                             </td>
                                             <td className="px-4 py-3 text-center">
                                                 <div className="flex items-center justify-center gap-2">

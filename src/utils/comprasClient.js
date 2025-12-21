@@ -79,7 +79,7 @@ export const comprasDB = {
                     p.nombre as producto_nombre,
                     p.codigo_usuario as producto_codigo
                 FROM compras c
-                LEFT JOIN productos_externos p ON c.producto_id = p.id
+                LEFT JOIN productos_externos p ON p.id::text = c.producto_id::text
                 ORDER BY c.fecha_compra DESC
             `;
         } catch (error) {
@@ -98,7 +98,7 @@ export const comprasDB = {
                     p.codigo_usuario as producto_codigo,
                     p.imagen_url as producto_imagen
                 FROM compras c
-                LEFT JOIN productos_externos p ON c.producto_id = p.id
+                LEFT JOIN productos_externos p ON p.id::text = c.producto_id::text
                 WHERE c.id = ${id}
             `;
             return compra;

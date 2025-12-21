@@ -2,12 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { comprasDB, generarCodigoCompra } from '../../../utils/comprasClient';
 import { productosExternosDB } from '../../../utils/productosExternosNeonClient';
-import { storage } from '../../../firebase/config';
+import { storage } from '../../../firebaseConfig';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { v4 as uuidv4 } from 'uuid';
 import { FaArrowLeft, FaBox, FaTools, FaSave } from 'react-icons/fa';
 import toast, { Toaster } from 'react-hot-toast';
-import { compressAndResizeImage } from '../../../utils/imageUtils';
+import { compressAndResizeImage } from '../../../utils/imageOptimizer';
 
 export default function RegistroCompras() {
     const navigate = useNavigate();
@@ -503,8 +503,8 @@ export default function RegistroCompras() {
                             type="submit"
                             disabled={loading}
                             className={`flex-1 px-4 py-2 rounded-lg text-white transition flex items-center justify-center gap-2 ${loading
-                                    ? 'bg-gray-400 cursor-not-allowed'
-                                    : 'bg-slate-700 hover:bg-slate-800'
+                                ? 'bg-gray-400 cursor-not-allowed'
+                                : 'bg-slate-700 hover:bg-slate-800'
                                 }`}
                         >
                             <FaSave />

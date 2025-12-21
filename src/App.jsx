@@ -55,6 +55,10 @@ import NuevaVenta from './modules/ventas/pages/NuevaVenta';
 import ReporteVentas from './modules/ventas/pages/ReporteVentas';
 import Clientes from './modules/clientes/pages/Clientes';
 
+// Módulo de Compras
+import RegistroCompras from './modules/compras/pages/RegistroCompras';
+import ReporteCompras from './modules/compras/pages/ReporteCompras';
+
 const MainContent = () => {
     const location = useLocation();
     const isAdmin = location.pathname.startsWith('/admin');
@@ -109,6 +113,8 @@ const MainContent = () => {
                 <Route path="/ventas" element={<PrivateRoute><Ventas /></PrivateRoute>} />
                 <Route path="/catalogo-inventario" element={<PrivateRoute><Catalogo /></PrivateRoute>} />
                 <Route path="/compras" element={<PrivateRoute><Compras /></PrivateRoute>} />
+                <Route path="/compras/nuevo" element={<PrivateRoute><RegistroCompras /></PrivateRoute>} />
+                <Route path="/compras/reporte" element={<PrivateRoute><ReporteCompras /></PrivateRoute>} />
                 <Route path="/inventario" element={<PrivateRoute><Inventario /></PrivateRoute>} />
                 <Route path="/stock-inicial" element={<PrivateRoute><StockInicial /></PrivateRoute>} />
                 <Route path="/inventario/nuevo" element={<PrivateRoute><ProductoForm /></PrivateRoute>} />

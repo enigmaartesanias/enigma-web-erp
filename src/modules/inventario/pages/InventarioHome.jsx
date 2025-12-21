@@ -78,9 +78,16 @@ export default function InventarioHome() {
         {
             title: 'Compras',
             icon: Package,
-            path: '/compras',
-            description: 'Gestión de compras',
+            path: '/compras/nuevo',
+            description: 'Registrar compras',
             color: 'bg-orange-500'
+        },
+        {
+            title: 'Rep. Compras',
+            icon: BarChart3,
+            path: '/compras/reporte',
+            description: 'Historial de compras',
+            color: 'bg-orange-700'
         },
         {
             title: 'Clientes',
@@ -178,7 +185,7 @@ export default function InventarioHome() {
                     <h2 className="text-center text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3 sm:mb-6">
                         Gestión Comercial
                     </h2>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 sm:gap-4">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2 sm:gap-4">
                         {operacionesComerciales.map((module) => (
                             <ModuleCard key={module.path} module={module} />
                         ))}

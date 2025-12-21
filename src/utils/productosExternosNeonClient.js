@@ -31,8 +31,7 @@ export const productosExternosDB = {
           stock_actual,
           stock_minimo,
           unidad,
-          imagen_url,
-          origen
+          imagen_url
         ) VALUES (
           ${data.codigo_usuario},
           ${data.nombre},
@@ -43,8 +42,7 @@ export const productosExternosDB = {
           ${data.stock_actual || 0},
           ${data.stock_minimo || 5},
           ${data.unidad || 'Unidad'},
-          ${data.imagen_url || null},
-          ${data.origen || 'COMPRA'}
+          ${data.imagen_url || null}
         )
         RETURNING *
       `;
@@ -63,8 +61,7 @@ export const productosExternosDB = {
           stock_actual = ${data.stock_actual},
           stock_minimo = ${data.stock_minimo},
           unidad = ${data.unidad},
-          imagen_url = ${data.imagen_url},
-          origen = ${data.origen}
+          imagen_url = ${data.imagen_url}
         WHERE id = ${id}
         RETURNING *
       `;

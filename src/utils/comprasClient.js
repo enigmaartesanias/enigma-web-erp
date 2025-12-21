@@ -14,25 +14,24 @@ export const generarCodigoCompra = () => {
 };
 
 export const comprasDB = {
-    // Crear nueva compra
+    // Crear nueva compra (cabecera)
     async create(data) {
         try {
             const [compra] = await sql`
                 INSERT INTO compras (
-                    codigo_compra, fecha_compra, tipo_compra,
-                    proveedor, descripcion, cantidad,
-                    costo_unitario, total, observaciones, producto_id
+                    codigo_compra, 
+                    fecha_compra, 
+                    tipo_compra,
+                    tipo_item,
+                    proveedor_id,
+                    observaciones
                 ) VALUES (
                     ${data.codigo_compra},
                     ${data.fecha_compra},
-                    ${data.tipo_compra},
-                    ${data.proveedor || null},
-                    ${data.descripcion},
-                    ${data.cantidad},
-                    ${data.costo_unitario},
-                    ${data.total},
-                    ${data.observaciones || null},
-                    ${data.producto_id || null}
+                    ${data.tipo_compra || null},
+                    ${data.tipo_item || null},
+                    ${data.proveedor_id || null},
+                    ${data.observaciones || null}
                 )
                 RETURNING *
             `;

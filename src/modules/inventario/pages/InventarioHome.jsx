@@ -83,6 +83,12 @@ export default function InventarioHome() {
             description: 'Gestión clientes'
         },
         {
+            title: 'Proveedores',
+            icon: Users,
+            path: '/proveedores',
+            description: 'Gestión proveedores'
+        },
+        {
             title: 'Stock Inicial',
             icon: Database,
             path: '/stock-inicial',

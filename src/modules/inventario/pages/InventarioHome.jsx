@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Package, ShoppingCart, Hammer, BarChart3, FileText, ClipboardList, Users, Database, QrCode } from 'lucide-react';
+import { Package, ShoppingCart, Hammer, BarChart3, FileText, ClipboardList, Users, Database, QrCode, Settings } from 'lucide-react';
 
 export default function InventarioHome() {
     // 1. OPERACIÓN DIARIA - Lo más usado
@@ -154,12 +154,14 @@ export default function InventarioHome() {
                 {/* Secciones */}
                 <Section
                     title="Operación Diaria"
+                    icon={ShoppingCart}
                     modules={operacionDiaria}
                     gridCols="grid-cols-1 sm:grid-cols-2 md:grid-cols-2"
                 />
 
                 <Section
                     title="Producción"
+                    icon={Hammer}
                     modules={produccion}
                     gridCols="grid-cols-1 sm:grid-cols-2"
                 />
@@ -175,6 +177,7 @@ export default function InventarioHome() {
 
                 <Section
                     title="Configuración"
+                    icon={Settings}
                     modules={configuracion}
                     gridCols="grid-cols-1 sm:grid-cols-3"
                 />

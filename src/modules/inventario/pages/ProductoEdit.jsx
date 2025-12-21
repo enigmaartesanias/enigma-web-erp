@@ -7,6 +7,7 @@ import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { v4 as uuidv4 } from 'uuid';
 import QRCode from 'react-qr-code';
 import { FaCamera, FaSave, FaTimes, FaQrcode } from 'react-icons/fa';
+import { compressAndResizeImage, validateImageFile } from '../../../utils/imageOptimizer';
 
 const ProductoEdit = () => {
     const { id } = useParams();
@@ -16,6 +17,7 @@ const ProductoEdit = () => {
     const [fetching, setFetching] = useState(true);
     const [previewUrl, setPreviewUrl] = useState(null);
     const [imageFile, setImageFile] = useState(null);
+    const [processingImage, setProcessingImage] = useState(false);
     const [categorias, setCategorias] = useState([]);
 
     const [formData, setFormData] = useState({
@@ -82,15 +84,41 @@ const ProductoEdit = () => {
         }
     };
 
-    const handleImageChange = (e) => {
+    const handleImageChange = async (e) => {
         const file = e.target.files[0];
-        if (file) {
-            setImageFile(file);
+        if (!file) return;
+
+        // Validar archivo
+        const validation = validateImageFile(file, 5);
+        if (!validation.valid) {
+            alert(validation.error);
+            return;
+        }
+
+        setProcessingImage(true);
+
+        try {
+            // Comprimir y redimensionar imagen
+            const optimizedFile = await compressAndResizeImage(file, {
+                maxSizeMB: 1,
+                maxWidth: 1200,
+                maxHeight: 1200,
+                quality: 0.95
+            });
+
+            setImageFile(optimizedFile);
+
+            // Mostrar preview
             const reader = new FileReader();
             reader.onloadend = () => {
                 setPreviewUrl(reader.result);
             };
-            reader.readAsDataURL(file);
+            reader.readAsDataURL(optimizedFile);
+        } catch (error) {
+            console.error('Error al procesar imagen:', error);
+            alert('Error al procesar la imagen. Intente con otra imagen.');
+        } finally {
+            setProcessingImage(false);
         }
     };
 

@@ -7,6 +7,7 @@ import QRCode from 'react-qr-code';
 import { storage } from '../../../firebaseConfig';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { v4 as uuidv4 } from 'uuid';
+import { compressAndResizeImage, validateImageFile } from '../../../utils/imageOptimizer';
 
 
 const Produccion = () => {
@@ -205,23 +206,28 @@ const Produccion = () => {
         const file = e.target.files[0];
         if (!file || !uploadingId) return;
 
-        // Validaciones
-        if (!file.type.startsWith('image/')) {
-            alert('Solo se permiten archivos de imagen (JPG, PNG)');
-            return;
-        }
-
-        if (file.size > 5 * 1024 * 1024) {
-            alert('La imagen no debe superar los 5MB');
+        // Validar archivo
+        const validation = validateImageFile(file, 5);
+        if (!validation.valid) {
+            alert(validation.error);
             return;
         }
 
         try {
             setLoading(true);
-            const fileName = `productos_terminados/${uuidv4()}_${file.name}`;
+
+            // Comprimir y redimensionar imagen
+            const optimizedFile = await compressAndResizeImage(file, {
+                maxSizeMB: 1,
+                maxWidth: 1200,
+                maxHeight: 1200,
+                quality: 0.95
+            });
+
+            const fileName = `productos_terminados/${uuidv4()}_${optimizedFile.name}`;
             const storageRef = ref(storage, fileName);
 
-            await uploadBytes(storageRef, file);
+            await uploadBytes(storageRef, optimizedFile);
             const url = await getDownloadURL(storageRef);
 
             // Actualizar registro en BD
@@ -332,23 +338,28 @@ const Produccion = () => {
         const file = e.target.files[0];
         if (!file) return;
 
-        // Validaciones
-        if (!file.type.startsWith('image/')) {
-            alert('Solo se permiten archivos de imagen (JPG, PNG)');
-            return;
-        }
-
-        if (file.size > 5 * 1024 * 1024) { // 5MB limit
-            alert('La imagen no debe superar los 5MB');
+        // Validar archivo
+        const validation = validateImageFile(file, 5);
+        if (!validation.valid) {
+            alert(validation.error);
             return;
         }
 
         try {
             setUploadingImage(true);
-            const fileName = `productos_terminados/${uuidv4()}_${file.name}`;
+
+            // Comprimir y redimensionar imagen
+            const optimizedFile = await compressAndResizeImage(file, {
+                maxSizeMB: 1,
+                maxWidth: 1200,
+                maxHeight: 1200,
+                quality: 0.95
+            });
+
+            const fileName = `productos_terminados/${uuidv4()}_${optimizedFile.name}`;
             const storageRef = ref(storage, fileName);
 
-            await uploadBytes(storageRef, file);
+            await uploadBytes(storageRef, optimizedFile);
             const url = await getDownloadURL(storageRef);
 
             setFormData(prev => ({ ...prev, imagen_url: url }));

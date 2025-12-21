@@ -3,8 +3,11 @@ import React, { useState, useEffect, useRef } from 'react';
 import { pedidosDB } from '../utils/pedidosNeonClient';
 import { produccionDB, METALES, TIPOS_PRODUCTO } from '../utils/produccionNeonClient';
 import { Link, useNavigate } from 'react-router-dom';
-import { FaEdit, FaTrash, FaCheckCircle, FaTimesCircle, FaPlus, FaWhatsapp, FaPrint, FaSearch, FaMoneyBillWave, FaShareAlt, FaImage, FaPhone, FaArrowLeft, FaHammer, FaCar } from 'react-icons/fa';
+import { FaEdit, FaTrash, FaCheckCircle, FaTimesCircle, FaPlus, FaWhatsapp, FaPrint, FaSearch, FaMoneyBillWave, FaShareAlt, FaImage, FaPhone, FaArrowLeft, FaHammer, FaCar, FaExclamationTriangle } from 'react-icons/fa';
 import html2canvas from 'html2canvas';
+import toast, { Toaster } from 'react-hot-toast';
+import ConfirmModal from './ui/ConfirmModal';
+import Tooltip from './ui/Tooltip';
 
 // ========================================
 // COMPONENTES DE BADGE
@@ -129,6 +132,17 @@ const Pedidos = () => {
     const [nuevoEstadoPedido, setNuevoEstadoPedido] = useState('');
     const [nuevoEstadoProduccion, setNuevoEstadoProduccion] = useState('');
 
+    // Estados para Confirm Modals
+    const [confirmModal, setConfirmModal] = useState({
+        isOpen: false,
+        title: '',
+        message: '',
+        icon: null,
+        confirmText: '',
+        confirmColor: 'blue',
+        onConfirm: () => { }
+    });
+
     const [formData, setFormData] = useState({
         nombre_cliente: '',
         telefono: '',
@@ -242,13 +256,17 @@ const Pedidos = () => {
     const agregarProducto = () => {
         // Validación más estricta: nombre, cantidad > 0, precio >= 0 (y que no esté vacío)
         if (!productoActual.nombre_producto.trim() || !productoActual.cantidad || productoActual.cantidad <= 0 || productoActual.precio_unitario === '' || productoActual.precio_unitario < 0) {
-            alert("Por favor complete todos los campos obligatorios del producto (Nombre, Cantidad, Precio).");
+            toast.error('Complete nombre, cantidad y precio del producto', {
+                duration: 4000
+            });
             return;
         }
 
         // Validar Metal y Tipo antes de agregar el producto
         if (!formData.metal || !formData.tipo_producto) {
-            alert("Por favor seleccione el Metal y el Tipo antes de agregar el producto.");
+            toast.warning('Seleccione Metal y Tipo antes de agregar el producto', {
+                duration: 4000
+            });
             return;
         }
 
@@ -284,7 +302,9 @@ const Pedidos = () => {
     const handleEdit = (pedido) => {
         // No permitir edición de pedidos entregados
         if (pedido.estado_pedido === 'entregado') {
-            alert('No se puede editar un pedido que ya ha sido entregado.');
+            toast.error('No se puede editar un pedido entregado', {
+                duration: 4000
+            });
             return;
         }
 
@@ -325,16 +345,24 @@ const Pedidos = () => {
     };
 
     const handleDelete = async (id) => {
-        if (!window.confirm('¿Estás seguro de eliminar este pedido?')) return;
-
-        try {
-            await pedidosDB.delete(id);
-            setMessage({ type: 'success', text: 'Pedido eliminado correctamente.' });
-            fetchPedidos();
-        } catch (error) {
-            console.error('Error al eliminar:', error);
-            setMessage({ type: 'error', text: 'Error al eliminar: ' + error.message });
-        }
+        setConfirmModal({
+            isOpen: true,
+            title: 'Eliminar Pedido',
+            message: '¿Estás seguro? Esta acción no se puede deshacer.',
+            icon: <FaTrash />,
+            confirmText: 'Sí, eliminar',
+            confirmColor: 'red',
+            onConfirm: async () => {
+                try {
+                    await pedidosDB.delete(id);
+                    toast.success('Pedido eliminado correctamente');
+                    fetchPedidos();
+                } catch (error) {
+                    console.error('Error al eliminar:', error);
+                    toast.error('Error al eliminar: ' + error.message);
+                }
+            }
+        });
     };
 
     const navigate = useNavigate();
@@ -347,36 +375,47 @@ const Pedidos = () => {
     const handleEntregar = async (pedido) => {
         // Validación: Producción debe estar terminada
         if (pedido.estado_produccion !== 'terminado') {
-            alert('⚠️ No se puede entregar: La producción aún no está terminada.');
+            toast.error('No se puede entregar: producción no terminada', {
+                icon: '⚠️',
+                duration: 4000
+            });
             return;
         }
 
         // Validación: Saldo debe ser 0
         if (pedido.monto_saldo > 0) {
-            const confirmar = window.confirm(
-                `⚠️ El pedido aún tiene un saldo pendiente de S/ ${pedido.monto_saldo.toFixed(2)}.\n\n¿Deseas marcarlo como entregado de todos modos?`
-            );
-            if (!confirmar) return;
-        }
-
-        // Confirmar entrega
-        if (!window.confirm(`¿Marcar pedido de ${pedido.nombre_cliente} como ENTREGADO?`)) {
+            setConfirmModal({
+                isOpen: true,
+                title: 'Saldo Pendiente',
+                message: `El pedido tiene S/ ${pedido.monto_saldo.toFixed(2)} pendiente. ¿Entregar de todos modos?`,
+                icon: <FaExclamationTriangle />,
+                confirmText: 'Sí, entregar',
+                confirmColor: 'yellow',
+                onConfirm: () => confirmarEntrega(pedido)
+            });
             return;
         }
 
+        // Confirmar entrega
+        setConfirmModal({
+            isOpen: true,
+            title: 'Marcar como Entregado',
+            message: `¿Confirmar entrega del pedido de ${pedido.nombre_cliente}?`,
+            icon: <FaCar />,
+            confirmText: 'Sí, entregar',
+            confirmColor: 'green',
+            onConfirm: () => confirmarEntrega(pedido)
+        });
+    };
+
+    const confirmarEntrega = async (pedido) => {
         try {
             await pedidosDB.updateEstadoPedido(pedido.id_pedido, 'entregado');
-            setMessage({
-                type: 'success',
-                text: `Pedido de ${pedido.nombre_cliente} marcado como ENTREGADO.`
-            });
-            fetchPedidos(); // Recargar
+            toast.success(`Pedido de ${pedido.nombre_cliente} marcado como entregado`);
+            fetchPedidos();
         } catch (error) {
             console.error('Error al marcar como entregado:', error);
-            setMessage({
-                type: 'error',
-                text: 'Error al actualizar el pedido: ' + error.message
-            });
+            toast.error('Error al actualizar el pedido: ' + error.message);
         }
     };
 
@@ -521,11 +560,12 @@ const Pedidos = () => {
             resetForm();
 
         } catch (error) {
-            console.error('❌ Error completo al guardar pedido:', error);
-            console.error('❌ Stack trace:', error.stack);
+            console.error('Error completo al guardar pedido:', error);
+            console.error('Stack trace:', error.stack);
             const errorMsg = error.message || 'Error desconocido';
-            alert('ERROR AL GUARDAR: ' + errorMsg + '\n\nRevisa la consola para más detalles.');
-            setMessage({ type: 'error', text: 'Error al guardar el pedido: ' + errorMsg });
+            toast.error(`Error al guardar: ${errorMsg}`, {
+                duration: 5000
+            });
         } finally {
             setLoading(false);
         }
@@ -534,7 +574,7 @@ const Pedidos = () => {
     const handleWhatsApp = (pedido) => {
         const telefono = pedido.telefono ? pedido.telefono.replace(/\D/g, '') : '';
         if (!telefono) {
-            alert("El cliente no tiene un teléfono registrado.");
+            toast.warning('Cliente sin teléfono registrado', { duration: 3000 });
             return;
         }
 
@@ -603,7 +643,7 @@ const Pedidos = () => {
 
         } catch (error) {
             console.error('Error al registrar pago:', error);
-            alert('Error al registrar pago: ' + error.message);
+            toast.error('Error al registrar pago', { duration: 4000 });
         }
     };
 
@@ -629,25 +669,41 @@ const Pedidos = () => {
         try {
             // Validación: Si se marca como entregado, la producción debe estar terminada
             if (nuevoEstadoPedido === 'entregado' && nuevoEstadoProduccion !== 'terminado') {
-                if (!window.confirm('¿Marcar producción como "Terminado" también? (recomendado para pedidos entregados)')) {
-                    return;
-                }
-                setNuevoEstadoProduccion('terminado');
+                setConfirmModal({
+                    isOpen: true,
+                    title: 'Actualizar Producción',
+                    message: '¿Marcar la producción como "Terminado" también?',
+                    icon: <FaHammer />,
+                    confirmText: 'Sí, marcar',
+                    confirmColor: 'green',
+                    onConfirm: async () => {
+                        setNuevoEstadoProduccion('terminado');
+                        await actualizarEstadoPedido();
+                    }
+                });
+                return;
             }
+            await actualizarEstadoPedido();
+        } catch (error) {
+            console.error('Error al actualizar estado:', error);
+            toast.error('Error al actualizar estado', { duration: 4000 });
+        }
+    };
 
+    const actualizarEstadoPedido = async () => {
+        try {
             await pedidosDB.update(estadoPedido.id_pedido, {
                 ...estadoPedido,
                 estado_pedido: nuevoEstadoPedido,
                 estado_produccion: nuevoEstadoProduccion
             });
-
-            setMessage({ type: 'success', text: 'Estado actualizado correctamente.' });
+            toast.success('Estado actualizado correctamente');
             handleCloseEstadoModal();
             fetchPedidos();
 
         } catch (error) {
             console.error('Error al actualizar estado:', error);
-            alert('Error al actualizar estado: ' + error.message);
+            toast.error('Error al actualizar estado', { duration: 4000 });
         }
     };
 
@@ -1167,63 +1223,73 @@ const Pedidos = () => {
                                         <td className="px-4 py-3 whitespace-nowrap text-right text-sm font-medium">
                                             <div className="flex justify-end space-x-2">
                                                 {pedido.metal && pedido.tipo_producto && (pedido.estado_produccion === 'no_iniciado' || pedido.tiene_productos_pendientes) && (
-                                                    <button
-                                                        onClick={() => handleCrearProduccion(pedido)}
-                                                        className="text-purple-600 hover:text-purple-900"
-                                                        title="Crear Producción"
-                                                    >
-                                                        <FaHammer className="h-5 w-5" />
-                                                    </button>
+                                                    <Tooltip text="Crear producción">
+                                                        <button
+                                                            onClick={() => handleCrearProduccion(pedido)}
+                                                            className="text-purple-600 hover:text-purple-900 transition-colors"
+                                                        >
+                                                            <FaHammer className="h-5 w-5" />
+                                                        </button>
+                                                    </Tooltip>
                                                 )}
                                                 {pedido.estado_pedido !== 'entregado' && (
-                                                    <button
-                                                        onClick={() => handleOpenPayModal(pedido)}
-                                                        className="text-green-600 hover:text-green-900"
-                                                        title="Registrar Pago"
-                                                    >
-                                                        <FaMoneyBillWave className="h-5 w-5" />
-                                                    </button>
+                                                    <Tooltip text="Registrar pago">
+                                                        <button
+                                                            onClick={() => handleOpenPayModal(pedido)}
+                                                            className="text-green-600 hover:text-green-900 transition-colors"
+                                                        >
+                                                            <FaMoneyBillWave className="h-5 w-5" />
+                                                        </button>
+                                                    </Tooltip>
                                                 )}
-                                                <button
-                                                    onClick={() => handlePrint(pedido)}
-                                                    className="text-gray-600 hover:text-gray-900"
-                                                    title="Imprimir"
-                                                >
-                                                    <FaPrint className="h-5 w-5" />
-                                                </button>
-                                                <button
-                                                    onClick={() => handleEdit(pedido)}
-                                                    className="text-blue-600 hover:text-blue-900"
-                                                    title="Editar"
-                                                    disabled={pedido.estado_pedido === 'entregado'}
-                                                >
-                                                    <FaEdit className="h-5 w-5" />
-                                                </button>
+                                                <Tooltip text="Imprimir pedido">
+                                                    <button
+                                                        onClick={() => handlePrint(pedido)}
+                                                        className="text-gray-600 hover:text-gray-900 transition-colors"
+                                                    >
+                                                        <FaPrint className="h-5 w-5" />
+                                                    </button>
+                                                </Tooltip>
+                                                <Tooltip text={pedido.estado_pedido === 'entregado' ? 'No se puede editar' : 'Editar pedido'}>
+                                                    <button
+                                                        onClick={() => handleEdit(pedido)}
+                                                        className={`transition-colors ${pedido.estado_pedido === 'entregado'
+                                                            ? 'text-gray-300 cursor-not-allowed'
+                                                            : 'text-blue-600 hover:text-blue-900'
+                                                            }`}
+                                                        disabled={pedido.estado_pedido === 'entregado'}
+                                                    >
+                                                        <FaEdit className="h-5 w-5" />
+                                                    </button>
+                                                </Tooltip>
                                                 {/* NUEVO: Botón Entregar */}
                                                 {pedido.estado_pedido !== 'entregado' && (
-                                                    <button
-                                                        onClick={() => handleEntregar(pedido)}
-                                                        disabled={pedido.estado_produccion !== 'terminado'}
-                                                        className={`${pedido.estado_produccion === 'terminado'
-                                                            ? 'text-green-600 hover:text-green-900 cursor-pointer'
-                                                            : 'text-gray-300 cursor-not-allowed'
-                                                            }`}
-                                                        title={
-                                                            pedido.estado_produccion === 'terminado'
-                                                                ? 'Marcar como Entregado'
-                                                                : 'No se puede entregar: producción no terminada'
+                                                    <Tooltip
+                                                        text={pedido.estado_produccion === 'terminado'
+                                                            ? 'Entregar pedido'
+                                                            : 'Producción no terminada'
                                                         }
                                                     >
-                                                        <FaCar className="h-5 w-5" />
-                                                    </button>
+                                                        <button
+                                                            onClick={() => handleEntregar(pedido)}
+                                                            disabled={pedido.estado_produccion !== 'terminado'}
+                                                            className={`transition-colors ${pedido.estado_produccion === 'terminado'
+                                                                ? 'text-green-600 hover:text-green-900 cursor-pointer'
+                                                                : 'text-gray-300 cursor-not-allowed'
+                                                                }`}
+                                                        >
+                                                            <FaCar className="h-5 w-5" />
+                                                        </button>
+                                                    </Tooltip>
                                                 )}
-                                                <button
-                                                    onClick={() => handleDelete(pedido.id_pedido)}
-                                                    className="text-red-600 hover:text-red-900"
-                                                    title="Eliminar"
-                                                >
-                                                    <FaTrash className="h-5 w-5" />
-                                                </button>
+                                                <Tooltip text="Eliminar pedido">
+                                                    <button
+                                                        onClick={() => handleDelete(pedido.id_pedido)}
+                                                        className="text-red-600 hover:text-red-900 transition-colors"
+                                                    >
+                                                        <FaTrash className="h-5 w-5" />
+                                                    </button>
+                                                </Tooltip>
                                             </div>
                                         </td>
                                     </tr>
@@ -1571,6 +1637,44 @@ const Pedidos = () => {
                     </div>
                 </div>
             )}
+
+            {/* Toaster para notificaciones */}
+            <Toaster
+                position="top-right"
+                toastOptions={{
+                    duration: 3000,
+                    style: {
+                        fontSize: '14px',
+                        maxWidth: '300px',
+                        padding: '12px 16px',
+                    },
+                    success: {
+                        iconTheme: { primary: '#10b981', secondary: 'white' },
+                        style: { borderLeft: '4px solid #10b981' }
+                    },
+                    error: {
+                        iconTheme: { primary: '#ef4444', secondary: 'white' },
+                        duration: 4000,
+                        style: { borderLeft: '4px solid #ef4444' }
+                    },
+                    warning: {
+                        icon: '⚠️',
+                        style: { borderLeft: '4px solid #f59e0b' }
+                    }
+                }}
+            />
+
+            {/* Modal de Confirmación */}
+            <ConfirmModal
+                isOpen={confirmModal.isOpen}
+                onClose={() => setConfirmModal({ ...confirmModal, isOpen: false })}
+                onConfirm={confirmModal.onConfirm}
+                title={confirmModal.title}
+                message={confirmModal.message}
+                icon={confirmModal.icon}
+                confirmText={confirmModal.confirmText}
+                confirmColor={confirmModal.confirmColor}
+            />
         </div >
     );
 };

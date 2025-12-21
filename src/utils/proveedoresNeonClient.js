@@ -51,12 +51,10 @@ export const proveedoresDB = {
         try {
             const [proveedor] = await sql`
                 INSERT INTO proveedores (
-                    nombre, contacto, telefono, email, direccion
+                    nombre, telefono, direccion
                 ) VALUES (
                     ${data.nombre},
-                    ${data.contacto || null},
                     ${data.telefono || null},
-                    ${data.email || null},
                     ${data.direccion || null}
                 )
                 RETURNING *
@@ -74,9 +72,7 @@ export const proveedoresDB = {
             const [proveedor] = await sql`
                 UPDATE proveedores SET
                     nombre = ${data.nombre},
-                    contacto = ${data.contacto || null},
                     telefono = ${data.telefono || null},
-                    email = ${data.email || null},
                     direccion = ${data.direccion || null},
                     activo = ${data.activo !== undefined ? data.activo : true}
                 WHERE id = ${id}

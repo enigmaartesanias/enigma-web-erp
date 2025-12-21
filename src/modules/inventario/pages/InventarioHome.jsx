@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Package, ShoppingCart, Hammer, BarChart3, FileText, ClipboardList, Users, Database, QrCode, Settings, Clock } from 'lucide-react';
+import { Package, ShoppingCart, Hammer, BarChart3, FileText, ClipboardList, Users, Database, QrCode, Settings } from 'lucide-react';
 
 export default function InventarioHome() {
     // 1. OPERACIÓN DIARIA - Lo más usado
@@ -34,14 +34,6 @@ export default function InventarioHome() {
             icon: ShoppingCart,
             path: '/compras/nuevo',
             description: 'Productos para venta'
-        },
-        {
-            title: 'Productos Pendientes',
-            icon: Clock,
-            path: '/productos-pendientes',
-            description: 'Crear productos comprados',
-            color: 'orange',
-            badge: true // Mostrará badge si hay pendientes
         }
     ];
 

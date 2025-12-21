@@ -7,7 +7,7 @@ import { productosExternosDB } from '../../../utils/productosExternosNeonClient'
 import { storage } from '../../../firebaseConfig';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { v4 as uuidv4 } from 'uuid';
-import { FaArrowLeft, FaPlus, FaTrash, FaSave, FaBox, FaTools } from 'react-icons/fa';
+import { FaArrowLeft, FaPlus, FaTrash, FaSave, FaBox, FaTools, FaTimes } from 'react-icons/fa';
 import toast, { Toaster } from 'react-hot-toast';
 import { compressAndResizeImage } from '../../../utils/imageOptimizer';
 
@@ -40,6 +40,14 @@ export default function RegistroCompras() {
         costo_unitario: ''
     });
 
+    // Estados para búsqueda inteligente de productos
+    const [searchResults, setSearchResults] = useState([]);
+    const [showSuggestions, setShowSuggestions] = useState(false);
+    const [selectedProduct, setSelectedProduct] = useState(null);
+
+    // Estado para formulario de inventario expandible por item
+    const [expandedItemId, setExpandedItemId] = useState(null);
+
     // Estado para datos de inventario (solo si tipo_item === 'NUEVO_MATERIAL')
     const [datosInventario, setDatosInventario] = useState({
         nombre_producto: '',
@@ -63,6 +71,29 @@ export default function RegistroCompras() {
             console.error('Error cargando proveedores:', error);
         }
     };
+
+    // Búsqueda inteligente de productos
+    useEffect(() => {
+        const searchProducts = async () => {
+            if (currentItem.nombre_item.length >= 3 && formData.tipo_item === 'PRODUCTO_VENTA') {
+                try {
+                    const results = await productosExternosDB.search(currentItem.nombre_item);
+                    setSearchResults(results);
+                    setShowSuggestions(results.length > 0);
+                } catch (error) {
+                    console.error('Error buscando productos:', error);
+                    setSearchResults([]);
+                    setShowSuggestions(false);
+                }
+            } else {
+                setSearchResults([]);
+                setShowSuggestions(false);
+            }
+        };
+
+        const debounceTimer = setTimeout(searchProducts, 300);
+        return () => clearTimeout(debounceTimer);
+    }, [currentItem.nombre_item, formData.tipo_item]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -100,6 +131,38 @@ export default function RegistroCompras() {
         }
     };
 
+    const handleSelectProduct = (product) => {
+        setSelectedProduct(product);
+        setCurrentItem({
+            ...currentItem,
+            nombre_item: product.nombre
+        });
+        setDatosInventario({
+            nombre_producto: product.nombre,
+            categoria: product.categoria,
+            codigo_usuario: product.codigo_usuario,
+            precio_venta: product.precio,
+            stock_minimo: product.stock_minimo,
+            imagen: null
+        });
+        setShowSuggestions(false);
+        toast.success(`Producto "${product.nombre}" seleccionado`);
+    };
+
+    const handleCreateNewProduct = () => {
+        setSelectedProduct(null);
+        setShowSuggestions(false);
+        setDatosInventario({
+            nombre_producto: currentItem.nombre_item,
+            categoria: '',
+            codigo_usuario: '',
+            precio_venta: '',
+            stock_minimo: 1,
+            imagen: null
+        });
+        toast.info('Completa los datos para crear el producto');
+    };
+
     const handleAgregarItem = () => {
         if (!currentItem.nombre_item.trim()) {
             toast.error('El nombre del item es obligatorio');
@@ -123,7 +186,8 @@ export default function RegistroCompras() {
             nombre_item: currentItem.nombre_item,
             cantidad: cantidad,
             costo_unitario: costoUnitario,
-            subtotal: subtotal
+            subtotal: subtotal,
+            inventarioData: null // Inicialmente sin datos de inventario
         };
 
         setItems([...items, nuevoItem]);
@@ -178,8 +242,8 @@ export default function RegistroCompras() {
             return;
         }
 
-        // Validaciones para NUEVO_MATERIAL
-        if (formData.tipo_item === 'NUEVO_MATERIAL') {
+        // Validaciones para PRODUCTO_VENTA
+        if (formData.tipo_item === 'PRODUCTO_VENTA') {
             if (!datosInventario.nombre_producto.trim()) {
                 toast.error('El nombre del producto es obligatorio');
                 return;
@@ -193,9 +257,9 @@ export default function RegistroCompras() {
         setLoading(true);
 
         try {
-            // 1. Crear producto en inventario si es NUEVO_MATERIAL
+            // 1. Crear producto en inventario si es PRODUCTO_VENTA
             let productoId = null;
-            if (formData.tipo_item === 'NUEVO_MATERIAL') {
+            if (formData.tipo_item === 'PRODUCTO_VENTA') {
                 let imagenUrl = null;
                 if (datosInventario.imagen) {
                     const optimizedFile = await compressAndResizeImage(datosInventario.imagen, {
@@ -243,7 +307,7 @@ export default function RegistroCompras() {
                 cantidad: item.cantidad,
                 costo_unitario: item.costo_unitario,
                 subtotal: item.subtotal,
-                producto_externo_id: productoId
+                producto_externo_id: productoId || (selectedProduct ? selectedProduct.id : null)
             }));
 
             await comprasItemsDB.createBatch(compra.id, itemsParaGuardar);
@@ -289,7 +353,7 @@ export default function RegistroCompras() {
         <div className="min-h-screen bg-gray-50">
             {/* Header */}
             <div className="bg-white shadow-sm border-b">
-                <div className="max-w-5xl mx-auto px-4 py-4">
+                <div className="max-w-5xl mx-auto px-4 py-4 relative">
                     <button
                         onClick={() => navigate('/inventario-home')}
                         className="flex items-center text-gray-600 hover:text-slate-700 transition-colors text-sm mb-3"
@@ -297,6 +361,25 @@ export default function RegistroCompras() {
                         <FaArrowLeft className="mr-2" size={14} />
                         Volver al Panel
                     </button>
+
+                    {/* Close button */}
+                    <button
+                        onClick={() => {
+                            const hasData = items.length > 0 || formData.proveedor_id || formData.observaciones;
+                            if (hasData) {
+                                if (window.confirm('¿Deseas salir sin guardar? Se perderán los cambios.')) {
+                                    navigate('/inventario-home');
+                                }
+                            } else {
+                                navigate('/inventario-home');
+                            }
+                        }}
+                        className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition"
+                        title="Cerrar"
+                    >
+                        <FaTimes size={18} />
+                    </button>
+
                     <h1 className="text-2xl font-bold text-gray-800">
                         Registro de Compras
                     </h1>
@@ -340,8 +423,7 @@ export default function RegistroCompras() {
                                     required
                                 >
                                     <option value="MATERIAL">Material/Insumo</option>
-                                    <option value="PRODUCTO_TERMINADO">Producto Terminado</option>
-                                    <option value="NUEVO_MATERIAL">Crear Nuevo Material</option>
+                                    <option value="PRODUCTO_VENTA">Producto para Venta</option>
                                 </select>
                             </div>
 
@@ -419,14 +501,41 @@ export default function RegistroCompras() {
 
                         {/* Formulario para agregar item */}
                         <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4">
-                            <input
-                                type="text"
-                                name="nombre_item"
-                                placeholder="Nombre/Descripción *"
-                                value={currentItem.nombre_item}
-                                onChange={handleItemChange}
-                                className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-slate-500 outline-none"
-                            />
+                            {/* Campo con autocomplete */}
+                            <div className="relative">
+                                <input
+                                    type="text"
+                                    name="nombre_item"
+                                    placeholder="Nombre/Descripción *"
+                                    value={currentItem.nombre_item}
+                                    onChange={handleItemChange}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-slate-500 outline-none"
+                                />
+
+                                {/* Dropdown de sugerencias */}
+                                {showSuggestions && searchResults.length > 0 && (
+                                    <div className="absolute z-10 w-full bg-white border border-gray-300 rounded-lg shadow-lg mt-1 max-h-60 overflow-y-auto">
+                                        {searchResults.map(product => (
+                                            <button
+                                                key={product.id}
+                                                type="button"
+                                                onClick={() => handleSelectProduct(product)}
+                                                className="w-full px-4 py-2 text-left hover:bg-blue-50 transition border-b last:border-b-0"
+                                            >
+                                                <div className="font-medium text-sm text-gray-800">{product.nombre}</div>
+                                                <div className="text-xs text-gray-500">Código: {product.codigo_usuario} | Stock: {product.stock_actual}</div>
+                                            </button>
+                                        ))}
+                                        <button
+                                            type="button"
+                                            onClick={handleCreateNewProduct}
+                                            className="w-full px-4 py-2 text-left text-blue-600 hover:bg-blue-50 transition font-medium text-sm"
+                                        >
+                                            + Crear nuevo producto
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
                             <input
                                 type="number"
                                 name="cantidad"
@@ -450,7 +559,7 @@ export default function RegistroCompras() {
                             <button
                                 type="button"
                                 onClick={handleAgregarItem}
-                                className="px-4 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-800 transition text-sm flex items-center justify-center gap-2"
+                                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm flex items-center justify-center gap-2 font-medium"
                             >
                                 <FaPlus /> Agregar
                             </button>
@@ -466,31 +575,108 @@ export default function RegistroCompras() {
                                             <th className="px-4 py-2 text-right">Cantidad</th>
                                             <th className="px-4 py-2 text-right">Costo Unit.</th>
                                             <th className="px-4 py-2 text-right">Subtotal</th>
+                                            {formData.tipo_item === 'PRODUCTO_VENTA' && (
+                                                <th className="px-4 py-2 text-center">Inventario</th>
+                                            )}
                                             <th className="px-4 py-2 text-center">Acciones</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y">
                                         {items.map(item => (
-                                            <tr key={item.id} className="hover:bg-gray-50">
-                                                <td className="px-4 py-2">{item.nombre_item}</td>
-                                                <td className="px-4 py-2 text-right">{item.cantidad}</td>
-                                                <td className="px-4 py-2 text-right">S/ {item.costo_unitario.toFixed(2)}</td>
-                                                <td className="px-4 py-2 text-right font-semibold">S/ {item.subtotal.toFixed(2)}</td>
-                                                <td className="px-4 py-2 text-center">
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => handleEliminarItem(item.id)}
-                                                        className="text-red-600 hover:text-red-800"
-                                                    >
-                                                        <FaTrash size={14} />
-                                                    </button>
-                                                </td>
-                                            </tr>
+                                            <React.Fragment key={item.id}>
+                                                <tr className="hover:bg-gray-50">
+                                                    <td className="px-4 py-2">{item.nombre_item}</td>
+                                                    <td className="px-4 py-2 text-right">{item.cantidad}</td>
+                                                    <td className="px-4 py-2 text-right">S/ {item.costo_unitario.toFixed(2)}</td>
+                                                    <td className="px-4 py-2 text-right font-semibold">S/ {item.subtotal.toFixed(2)}</td>
+                                                    {formData.tipo_item === 'PRODUCTO_VENTA' && (
+                                                        <td className="px-4 py-2 text-center">
+                                                            {item.inventarioData ? (
+                                                                <span className="text-green-600 text-xs flex items-center justify-center gap-1">
+                                                                    <FaBox /> Configurado
+                                                                </span>
+                                                            ) : (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => setExpandedItemId(expandedItemId === item.id ? null : item.id)}
+                                                                    className="text-blue-600 hover:text-blue-800 text-xs flex items-center justify-center gap-1 mx-auto"
+                                                                >
+                                                                    <FaTools size={12} /> Configurar
+                                                                </button>
+                                                            )}
+                                                        </td>
+                                                    )}
+                                                    <td className="px-4 py-2 text-center">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleEliminarItem(item.id)}
+                                                            className="text-red-600 hover:text-red-800"
+                                                        >
+                                                            <FaTrash size={14} />
+                                                        </button>
+                                                    </td>
+                                                </tr>
+
+                                                {/* Formulario expandible de inventario */}
+                                                {expandedItemId === item.id && formData.tipo_item === 'PRODUCTO_VENTA' && (
+                                                    <tr>
+                                                        <td colSpan={formData.tipo_item === 'PRODUCTO_VENTA' ? "6" : "5"} className="px-4 py-4 bg-blue-50">
+                                                            <div className="border-l-4 border-blue-500 pl-4">
+                                                                <h4 className="text-sm font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                                                                    <FaBox className="text-blue-600" />
+                                                                    Datos para Inventario - {item.nombre_item}
+                                                                </h4>
+                                                                <p className="text-xs text-gray-500 mb-3">Completa estos datos para crear el producto en tu inventario</p>
+
+                                                                {/* Aquí irá el formulario de inventario inline */}
+                                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                                                    <div>
+                                                                        <label className="block text-xs font-medium text-gray-700 mb-1">Nombre Comercial *</label>
+                                                                        <input
+                                                                            type="text"
+                                                                            defaultValue={item.nombre_item}
+                                                                            className="w-full px-2 py-1.5 border border-gray-300 rounded text-xs"
+                                                                            placeholder="Nombre del producto"
+                                                                        />
+                                                                    </div>
+                                                                    <div>
+                                                                        <label className="block text-xs font-medium text-gray-700 mb-1">Categoría *</label>
+                                                                        <select className="w-full px-2 py-1.5 border border-gray-300 rounded text-xs">
+                                                                            <option value="">Seleccionar...</option>
+                                                                            <option value="Materiales">Materiales</option>
+                                                                            <option value="Collares">Collares</option>
+                                                                            <option value="Anillos">Anillos</option>
+                                                                            <option value="Aretes">Aretes</option>
+                                                                            <option value="Pulseras">Pulseras</option>
+                                                                        </select>
+                                                                    </div>
+                                                                </div>
+
+                                                                <div className="mt-3 flex gap-2">
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => setExpandedItemId(null)}
+                                                                        className="px-3 py-1.5 text-xs border border-gray-300 rounded hover:bg-gray-50"
+                                                                    >
+                                                                        Cancelar
+                                                                    </button>
+                                                                    <button
+                                                                        type="button"
+                                                                        className="px-3 py-1.5 text-xs bg-blue-600 text-white rounded hover:bg-blue-700"
+                                                                    >
+                                                                        ✓ Guardar Datos
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                )}
+                                            </React.Fragment>
                                         ))}
                                     </tbody>
                                     <tfoot className="bg-gray-50">
                                         <tr>
-                                            <td colSpan="3" className="px-4 py-3 text-right font-semibold">Total:</td>
+                                            <td colSpan={formData.tipo_item === 'PRODUCTO_VENTA' ? "4" : "3"} className="px-4 py-3 text-right font-semibold">Total:</td>
                                             <td className="px-4 py-3 text-right font-bold text-lg">S/ {totalGeneral.toFixed(2)}</td>
                                             <td></td>
                                         </tr>
@@ -504,14 +690,14 @@ export default function RegistroCompras() {
                         )}
                     </div>
 
-                    {/* DATOS PARA INVENTARIO (solo si tipo_item === 'NUEVO_MATERIAL') */}
-                    {formData.tipo_item === 'NUEVO_MATERIAL' && (
+                    {/* DATOS PARA INVENTARIO (solo si tipo_item === 'PRODUCTO_VENTA' y no hay producto seleccionado) */}
+                    {formData.tipo_item === 'PRODUCTO_VENTA' && !selectedProduct && (searchResults.length === 0 || currentItem.nombre_item.length < 3) && (
                         <div className="bg-white rounded-lg shadow-sm p-6 border-l-4 border-blue-500">
                             <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
                                 <FaBox className="text-blue-600" />
                                 Datos para Inventario
                             </h2>
-                            <p className="text-xs text-gray-500 mb-4">Este bloque aparece solo al crear un nuevo material/producto</p>
+                            <p className="text-xs text-gray-500 mb-4">Completa estos datos para crear el producto en tu inventario</p>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 {/* Nombre Comercial */}
@@ -643,22 +829,14 @@ export default function RegistroCompras() {
                             />
                         </div>
 
-                        {/* Botones */}
-                        <div className="flex gap-3">
-                            <button
-                                type="button"
-                                onClick={() => navigate('/inventario-home')}
-                                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition text-sm"
-                                disabled={loading}
-                            >
-                                Cancelar
-                            </button>
+                        {/* Botón Guardar */}
+                        <div className="flex justify-end">
                             <button
                                 type="submit"
                                 disabled={loading || items.length === 0}
-                                className={`flex-1 px-4 py-2 rounded-lg text-white transition text-sm flex items-center justify-center gap-2 ${loading || items.length === 0
-                                        ? 'bg-gray-400 cursor-not-allowed'
-                                        : 'bg-slate-700 hover:bg-slate-800'
+                                className={`px-10 py-3 rounded-lg text-white transition text-base font-semibold flex items-center justify-center gap-2 shadow-lg ${loading || items.length === 0
+                                    ? 'bg-gray-400 cursor-not-allowed'
+                                    : 'bg-green-600 hover:bg-green-700'
                                     }`}
                             >
                                 <FaSave />

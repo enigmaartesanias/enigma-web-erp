@@ -95,5 +95,24 @@ export const ventasDB = {
             venta.detalles = detalles;
         }
         return venta;
+    },
+
+    // Anular una venta existente
+    async anular(id, data) {
+        try {
+            const [venta] = await sql`
+                UPDATE ventas
+                SET 
+                    estado = ${data.estado},
+                    motivo_anulacion = ${data.motivo_anulacion},
+                    fecha_anulacion = ${data.fecha_anulacion}
+                WHERE id = ${id}
+                RETURNING *
+            `;
+            return venta;
+        } catch (error) {
+            console.error("Error anulando venta:", error);
+            throw error;
+        }
     }
 };

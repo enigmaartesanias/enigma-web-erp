@@ -59,8 +59,8 @@ const NuevaVenta = () => {
         setProcessing(true);
         try {
             const ventaData = {
-                cliente_nombre: config.cliente,
-                cliente_documento: config.documento,
+                cliente_nombre: config.cliente ? config.cliente.nombre : null,
+                cliente_documento: config.cliente ? config.cliente.documento : null,
                 subtotal: totals.subtotal,
                 descuento_monto: totals.descuento,
                 impuesto_monto: totals.impuesto,

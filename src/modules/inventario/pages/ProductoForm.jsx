@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { productosExternosDB } from '../../../utils/productosExternosNeonClient';
 import { tiposProductoDB } from '../../../utils/tiposProductoDB';
 import { produccionDB } from '../../../utils/produccionNeonClient';
@@ -55,12 +55,46 @@ const ProductoForm = () => {
     const [showExternalForm, setShowExternalForm] = useState(true); // Mostrar formulario directo
     const [produccionInfo, setProduccionInfo] = useState(null);
 
+    const [searchParams] = useSearchParams();
+
     useEffect(() => {
         loadCategorias();
         loadProduccionTerminada();
-    }, []);
 
-    // Efecto para manejar datos que vienen desde el botón de Producción
+        // Detectar produccion_id desde URL
+        const produccionId = searchParams.get('produccion_id');
+        if (produccionId) {
+            loadProduccionById(produccionId);
+        }
+    }, [searchParams]);
+
+    // Cargar producción específica por ID
+    const loadProduccionById = async (id) => {
+        try {
+            const data = await produccionDB.getAll();
+            const item = data.find(p => p.id_produccion === parseInt(id));
+
+            if (item) {
+                setIsFromProduction(true);
+                setShowExternalForm(true);
+                setProduccionInfo({
+                    id: item.id_produccion,
+                    fecha: item.fecha_registro,
+                    metal: item.metal,
+                    tipo: item.tipo_producto
+                });
+                applyProduccionData(item);
+            } else {
+                alert('Producción no encontrada');
+                navigate('/produccion');
+            }
+        } catch (error) {
+            console.error('Error cargando producción:', error);
+            alert('Error al cargar datos de producción');
+        }
+    };
+
+    // Efecto para manejar datos que vienen desde el botón de Producción (legacy)
     useEffect(() => {
         if (location.state?.prefill) {
             const item = location.state.prefill;
@@ -214,6 +248,18 @@ const ProductoForm = () => {
             };
 
             await productosExternosDB.create(productData);
+
+            // Si viene de producción, actualizar el campo enviado_a_inventario
+            if (isFromProduction && produccionInfo?.id) {
+                try {
+                    await produccionDB.update(produccionInfo.id, {
+                        enviado_a_inventario: true
+                    });
+                } catch (updateError) {
+                    console.error('Error actualizando producción:', updateError);
+                    // No bloqueamos el flujo si falla la actualización
+                }
+            }
 
             alert('Producto guardado correctamente');
             navigate('/inventario-home');

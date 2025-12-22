@@ -14,8 +14,23 @@ export const ventasDB = {
         // }
 
         try {
-            // 1. Generar código de venta (Simple: V-TIMESTAMP)
-            const codigoVenta = `V-${Date.now()}`;
+            // 1. Generar código de venta correlativo
+            // Obtener el último código de venta
+            const [ultimaVenta] = await sql`
+                SELECT codigo_venta 
+                FROM ventas 
+                WHERE codigo_venta ~ '^[0-9]+$'
+                ORDER BY CAST(codigo_venta AS INTEGER) DESC 
+                LIMIT 1
+            `;
+
+            let nuevoNumero = 1;
+            if (ultimaVenta && ultimaVenta.codigo_venta) {
+                nuevoNumero = parseInt(ultimaVenta.codigo_venta) + 1;
+            }
+
+            // Formatear con ceros a la izquierda (4 dígitos)
+            const codigoVenta = nuevoNumero.toString().padStart(4, '0');
 
             // 2. Insertar cabecera de venta
             const [venta] = await sql`
@@ -46,6 +61,21 @@ export const ventasDB = {
             // 3. Insertar detalles y actualizar stock
             if (venta && venta.id) {
                 for (const detalle of ventaData.detalles) {
+                    // Verificar stock disponible antes de procesar
+                    const [producto] = await sql`
+                        SELECT stock_actual, nombre 
+                        FROM productos_externos 
+                        WHERE id = ${detalle.producto_id}
+                    `;
+
+                    if (!producto) {
+                        throw new Error(`Producto con ID ${detalle.producto_id} no encontrado`);
+                    }
+
+                    if (producto.stock_actual < detalle.cantidad) {
+                        throw new Error(`Stock insuficiente para ${producto.nombre}. Disponible: ${producto.stock_actual}, Solicitado: ${detalle.cantidad}`);
+                    }
+
                     // Insertar detalle
                     await sql`
                         INSERT INTO detalles_venta (
@@ -68,7 +98,6 @@ export const ventasDB = {
                     `;
 
                     // Actualizar stock del producto
-                    // Nota: Esto asume que hay stock suficiente. En producción debería validarse antes.
                     await sql`
                         UPDATE productos_externos
                         SET stock_actual = stock_actual - ${detalle.cantidad}

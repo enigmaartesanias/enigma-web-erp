@@ -213,91 +213,7 @@ const Produccion = () => {
         }
     };
 
-    // Trigger para subir imagen desde tabla
-    const triggerTableImageUpload = (id) => {
-        setUploadingId(id);
-        setTimeout(() => {
-            if (fileInputRef.current) {
-                fileInputRef.current.click();
-            }
-        }, 100);
-    };
-
-    // Manejar subida de imagen directa en tabla
-    const handleTableImageUpload = async (e) => {
-        const file = e.target.files[0];
-        if (!file || !uploadingId) return;
-
-        // Validar archivo
-        const validation = validateImageFile(file, 5);
-        if (!validation.valid) {
-            alert(validation.error);
-            return;
-        }
-
-        try {
-            setLoading(true);
-
-            // Comprimir y redimensionar imagen
-            const optimizedFile = await compressAndResizeImage(file, {
-                maxSizeMB: 1,
-                maxWidth: 1200,
-                maxHeight: 1200,
-                quality: 0.95
-            });
-
-            const fileName = `productos_terminados/${uuidv4()}_${optimizedFile.name}`;
-            const storageRef = ref(storage, fileName);
-
-            await uploadBytes(storageRef, optimizedFile);
-            const url = await getDownloadURL(storageRef);
-
-            // Actualizar registro en BD
-            const item = produccion.find(p => p.id_produccion === uploadingId);
-            if (item) {
-                await produccionDB.update(uploadingId, {
-                    ...item,
-                    imagen_url: url
-                });
-                setMessage({ type: 'success', text: 'Imagen subida correctamente.' });
-                // Actualizar estado local
-                setProduccion(prev => prev.map(p => p.id_produccion === uploadingId ? { ...p, imagen_url: url } : p));
-            }
-
-        } catch (error) {
-            console.error('Error subiendo imagen:', error);
-            toast.error('Error al subir la imagen', { duration: 4000 });
-        } finally {
-            setLoading(false);
-            setUploadingId(null);
-            if (fileInputRef.current) fileInputRef.current.value = '';
-        }
-    };
-
-    const renderImageCell = (item) => {
-        if (item.imagen_url) {
-            return (
-                <div className="relative group w-12 h-12 mx-auto">
-                    <a href={item.imagen_url} target="_blank" rel="noopener noreferrer">
-                        <img src={item.imagen_url} alt="Prod" className="w-full h-full object-cover rounded shadow-sm border" />
-                    </a>
-                </div>
-            );
-        } else {
-            if (item.estado_produccion === 'terminado') {
-                return (
-                    <button
-                        onClick={() => triggerTableImageUpload(item.id_produccion)}
-                        className="w-10 h-10 mx-auto bg-gray-100 rounded-full flex items-center justify-center text-gray-500 hover:bg-blue-50 hover:text-blue-600 transition-colors"
-                        title="Subir Foto"
-                    >
-                        <FaCamera size={16} />
-                    </button>
-                );
-            }
-            return <span className="text-gray-300">-</span>;
-        }
-    };
+    // Funciones de imagen eliminadas - ahora se manejan en ProductoForm
 
     const handleView = (item) => {
         // Cargar item en modo solo lectura
@@ -353,59 +269,6 @@ const Produccion = () => {
         });
         setEditingId(null);
     };
-
-
-    // Manejar subida de imagen
-    const handleImageUpload = async (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-
-        // Validar archivo
-        const validation = validateImageFile(file, 5);
-        if (!validation.valid) {
-            alert(validation.error);
-            return;
-        }
-
-        try {
-            setUploadingImage(true);
-
-            // Comprimir y redimensionar imagen
-            const optimizedFile = await compressAndResizeImage(file, {
-                maxSizeMB: 1,
-                maxWidth: 1200,
-                maxHeight: 1200,
-                quality: 0.95
-            });
-
-            const fileName = `productos_terminados/${uuidv4()}_${optimizedFile.name}`;
-            const storageRef = ref(storage, fileName);
-
-            await uploadBytes(storageRef, optimizedFile);
-            const url = await getDownloadURL(storageRef);
-
-            setFormData(prev => ({ ...prev, imagen_url: url }));
-        } catch (error) {
-            console.error('Error subiendo imagen:', error);
-            alert('Error al subir la imagen. Verifique su conexión y configuración.');
-        } finally {
-            setUploadingImage(false);
-        }
-    };
-
-    // Manejar drag and drop
-    const handleDrop = (e) => {
-        e.preventDefault();
-        const file = e.dataTransfer.files[0];
-        if (file) {
-            handleImageUpload({ target: { files: [file] } });
-        }
-    };
-
-    const handleDragOver = (e) => {
-        e.preventDefault();
-    };
-
 
 
     const handleSubmit = async (e) => {
@@ -539,66 +402,16 @@ const Produccion = () => {
         }
     };
 
-    // Funciones de manejo de Códigos QR
-    const generateRandomCode = (tipoProducto) => {
-        const prefix = tipoProducto.substring(0, 3).toUpperCase();
-        const random = Math.floor(100000 + Math.random() * 900000);
-        return `${prefix}${random}`;
-    };
+    // Funciones de QR eliminadas - ahora se manejan en ProductoForm
 
-    const openQRModal = (item) => {
-        setSelectedItem(item);
-        setQrData({
-            codigo: item.codigo_producto || '',
-            nombre: item.nombre_producto || `${item.tipo_producto} de ${item.metal}`,
-            categoria: item.tipo_producto.toUpperCase()
-        });
-        setShowQRModal(true);
-    };
-
-    const handleSaveQRCode = async () => {
-        if (!qrData.codigo.trim()) {
-            alert('Por favor, ingresa un código');
+    const handleSendToInventory = async (item) => {
+        if (item.enviado_a_inventario) {
+            toast.error('Este producto ya fue enviado al inventario');
             return;
         }
 
-        try {
-            setLoading(true);
-            await produccionDB.update(selectedItem.id_produccion, {
-                ...selectedItem,
-                codigo_producto: qrData.codigo,
-                tiene_codigo_qr: true
-            });
-            setShowQRModal(false);
-            setMessage({ type: 'success', text: 'Código QR guardado correctamente' });
-            fetchData();
-        } catch (error) {
-            console.error('Error al guardar código QR:', error);
-            setMessage({ type: 'error', text: 'Error al guardar el código QR' });
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleSendToInventory = (item) => {
-        setSelectedItem(item);
-        setShowInventoryModal(true);
-    };
-
-    const confirmSendToInventory = () => {
-        navigate('/inventario/nuevo', {
-            state: {
-                prefill: {
-                    nombre: selectedItem.nombre_producto || `${selectedItem.tipo_producto} de ${selectedItem.metal}`,
-                    codigo_usuario: selectedItem.codigo_producto,
-                    categoria: selectedItem.tipo_producto.toUpperCase(),
-                    metal: selectedItem.metal,
-                    cantidad: selectedItem.cantidad,
-                    imagen_url: selectedItem.imagen_url
-                }
-            }
-        });
-        setShowInventoryModal(false);
+        // Redirigir directamente al formulario con el ID de producción
+        navigate(`/producto-form?produccion_id=${item.id_produccion}`);
     };
 
     // Calcular costo total en tiempo real
@@ -850,67 +663,6 @@ const Produccion = () => {
                         />
                     </div>
 
-                    {/* Imagen del Producto */}
-                    <div className="mt-4 border-t pt-4">
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                            {formData.tipo_produccion === 'PEDIDO'
-                                ? '📷 Imagen de Referencia (Opcional)'
-                                : '📷 Imagen del Producto (Opcional)'}
-                        </label>
-
-                        <div className="flex items-center gap-4">
-                            {/* Botón de subida */}
-                            <label className="cursor-pointer bg-gray-100 hover:bg-gray-200 px-4 py-2 rounded-md flex items-center gap-2 transition-colors">
-                                <FaCamera className="text-gray-600" />
-                                <span className="text-sm font-medium text-gray-700">
-                                    {formData.imagen_url ? 'Cambiar Imagen' : 'Subir Imagen'}
-                                </span>
-                                <input
-                                    type="file"
-                                    accept="image/*"
-                                    onChange={handleImageUpload}
-                                    className="hidden"
-                                    disabled={uploadingImage}
-                                />
-                            </label>
-
-                            {uploadingImage && (
-                                <span className="text-sm text-blue-600">Subiendo...</span>
-                            )}
-
-                            {/* Vista previa */}
-                            {formData.imagen_url && !uploadingImage && (
-                                <div className="relative">
-                                    <img
-                                        src={formData.imagen_url}
-                                        alt="Preview"
-                                        className="h-16 w-16 object-cover rounded-md border-2 border-gray-300 shadow-sm"
-                                    />
-                                    <button
-                                        type="button"
-                                        onClick={() => setFormData({ ...formData, imagen_url: '' })}
-                                        className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold shadow-md transition-colors"
-                                        title="Eliminar imagen"
-                                    >
-                                        ×
-                                    </button>
-                                </div>
-                            )}
-                        </div>
-
-                        {/* Texto de ayuda */}
-                        {formData.tipo_produccion === 'PEDIDO' && (
-                            <p className="text-xs text-gray-500 mt-2 italic">
-                                💡 Sube una imagen de referencia del producto fabricado para el cliente
-                            </p>
-                        )}
-                        {formData.tipo_produccion === 'STOCK' && (
-                            <p className="text-xs text-gray-500 mt-2 italic">
-                                💡 Esta imagen se mostrará en el inventario
-                            </p>
-                        )}
-                    </div>
-
                     <div className="pt-2">
                         <button
                             type="submit"
@@ -969,7 +721,6 @@ const Produccion = () => {
                         <thead className="bg-gray-50">
                             <tr>
                                 <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Fecha</th>
-                                <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase">Imagen</th>
                                 <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cliente</th>
                                 <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase w-48">Producto</th>
                                 <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase">Cant</th>
@@ -984,9 +735,6 @@ const Produccion = () => {
                                 <tr key={item.id_produccion} className="hover:bg-gray-50">
                                     <td className="px-3 py-3 whitespace-nowrap text-left text-xs text-gray-700">
                                         {new Date(item.fecha_registro || item.created_at).toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', year: '2-digit' })}
-                                    </td>
-                                    <td className="px-3 py-3 whitespace-nowrap text-center">
-                                        {renderImageCell(item)}
                                     </td>
                                     <td className="px-3 py-3 text-left">
                                         <div className="text-xs text-gray-700">{item.nombre_cliente || 'Stock'}</div>
@@ -1020,99 +768,48 @@ const Produccion = () => {
                                     </td>
                                     <td className="px-4 py-3 text-right">
                                         <div className="flex justify-end space-x-2">
-                                            {['en_proceso', 'pendiente'].includes(item.estado_produccion) ? (
-                                                <>
-                                                    <button
-                                                        onClick={() => handleEdit(item)}
-                                                        className="text-blue-600 hover:text-blue-900"
-                                                        title="Editar"
-                                                    >
-                                                        <FaEdit size={18} />
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleMarkAsComplete(item)}
-                                                        className="text-green-600 hover:text-green-900"
-                                                        title="Marcar como Terminado"
-                                                    >
-                                                        <FaCheck size={18} />
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleDelete(item.id_produccion)}
-                                                        className="text-red-500 hover:text-red-700 ml-1"
-                                                        title="Eliminar"
-                                                    >
-                                                        <FaTrash size={16} />
-                                                    </button>
-                                                </>
-                                            ) : item.estado_produccion === 'terminado' && item.tipo_produccion === 'STOCK' ? (
-                                                <>
-                                                    {/* Botón Ver - Siempre visible */}
-                                                    <button
-                                                        onClick={() => handleView(item)}
-                                                        className="text-gray-600 hover:text-gray-900"
-                                                        title="Editar"
-                                                    >
-                                                        <FaEdit size={18} />
-                                                    </button>
+                                            {/* Editar - Siempre visible */}
+                                            <button
+                                                onClick={() => item.estado_produccion === 'terminado' ? handleView(item) : handleEdit(item)}
+                                                className="text-blue-600 hover:text-blue-900"
+                                                title="Editar"
+                                            >
+                                                <FaEdit size={18} />
+                                            </button>
 
-                                                    {/* Lógica condicional: según si tiene código QR */}
-                                                    {!item.tiene_codigo_qr ? (
-                                                        // Sin código QR: Mostrar botón "Generar QR"
-                                                        <button
-                                                            onClick={() => openQRModal(item)}
-                                                            className="text-blue-600 hover:text-blue-900"
-                                                            title="Generar Código QR"
-                                                        >
-                                                            <FaQrcode size={18} />
-                                                        </button>
-                                                    ) : (
-                                                        // Con código QR: Mostrar "Editar QR" y "Enviar a Inventario"
-                                                        <>
-                                                            <button
-                                                                onClick={() => openQRModal(item)}
-                                                                className="text-gray-600 hover:text-gray-900"
-                                                                title="Editar Código QR"
-                                                            >
-                                                                <FaEdit size={18} />
-                                                            </button>
-                                                            <button
-                                                                onClick={() => handleSendToInventory(item)}
-                                                                className="text-green-600 hover:text-green-900"
-                                                                title="Enviar a Inventario"
-                                                            >
-                                                                <FaBox size={18} />
-                                                            </button>
-                                                        </>
-                                                    )}
-
-                                                    {/* Botón Eliminar - Siempre visible */}
-                                                    <button
-                                                        onClick={() => handleDelete(item.id_produccion)}
-                                                        className="text-red-500 hover:text-red-700"
-                                                        title="Eliminar"
-                                                    >
-                                                        <FaTrash size={16} />
-                                                    </button>
-                                                </>
-                                            ) : (
-                                                // Producto terminado de PEDIDO o cualquier otro caso
-                                                <>
-                                                    <button
-                                                        onClick={() => handleView(item)}
-                                                        className="text-gray-600 hover:text-gray-900"
-                                                        title="Editar"
-                                                    >
-                                                        <FaEdit size={18} />
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleDelete(item.id_produccion)}
-                                                        className="text-red-500 hover:text-red-700"
-                                                        title="Eliminar"
-                                                    >
-                                                        <FaTrash size={16} />
-                                                    </button>
-                                                </>
+                                            {/* Enviar a Inventario - Solo para productos terminados de STOCK */}
+                                            {item.estado_produccion === 'terminado' && item.tipo_produccion === 'STOCK' && (
+                                                <button
+                                                    onClick={() => handleSendToInventory(item)}
+                                                    disabled={item.enviado_a_inventario}
+                                                    className={`${item.enviado_a_inventario
+                                                        ? 'text-gray-300 cursor-not-allowed'
+                                                        : 'text-green-600 hover:text-green-900'}`}
+                                                    title={item.enviado_a_inventario ? 'Ya enviado a inventario' : 'Enviar a Inventario'}
+                                                >
+                                                    <FaBox size={18} />
+                                                </button>
                                             )}
+
+                                            {/* Marcar como Terminado - Solo para productos en proceso */}
+                                            {['en_proceso', 'pendiente'].includes(item.estado_produccion) && (
+                                                <button
+                                                    onClick={() => handleMarkAsComplete(item)}
+                                                    className="text-green-600 hover:text-green-900"
+                                                    title="Marcar como Terminado"
+                                                >
+                                                    <FaCheck size={18} />
+                                                </button>
+                                            )}
+
+                                            {/* Eliminar - Siempre visible */}
+                                            <button
+                                                onClick={() => handleDelete(item.id_produccion)}
+                                                className="text-red-500 hover:text-red-700"
+                                                title="Eliminar"
+                                            >
+                                                <FaTrash size={16} />
+                                            </button>
                                         </div>
                                     </td>
                                 </tr>
@@ -1126,162 +823,10 @@ const Produccion = () => {
                     )}
                 </div>
             </div>
-            {/* Input oculto para subida desde tabla */}
-            <input
-                type="file"
-                ref={fileInputRef}
-                className="hidden"
-                accept="image/*"
-                onChange={handleTableImageUpload}
-            />
 
-            {/* Modal de Generación/Edición de Código QR */}
-            {
-                showQRModal && (
-                    <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50">
-                        <div className="bg-white rounded-lg p-6 shadow-2xl max-w-md w-full mx-4">
-                            <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
-                                <FaQrcode className="mr-2 text-blue-600" />
-                                {selectedItem?.codigo_producto ? 'Editar Código QR' : 'Generar Código QR'}
-                            </h2>
 
-                            <div className="space-y-4">
-                                {/* Nombre del Producto */}
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Producto
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={qrData.nombre}
-                                        disabled
-                                        className="w-full rounded-md border-gray-300 bg-gray-50 shadow-sm p-2 text-sm"
-                                    />
-                                </div>
 
-                                {/* Código */}
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Código Único *
-                                    </label>
-                                    <div className="flex gap-2">
-                                        <input
-                                            type="text"
-                                            value={qrData.codigo}
-                                            onChange={(e) => setQrData({ ...qrData, codigo: e.target.value })}
-                                            placeholder="Ej: PUL722284"
-                                            className="flex-1 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2"
-                                        />
-                                        <button
-                                            type="button"
-                                            onClick={() => setQrData({ ...qrData, codigo: generateRandomCode(selectedItem.tipo_producto) })}
-                                            className="px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-md flex-shrink-0"
-                                            title="Generar código aleatorio"
-                                        >
-                                            🔄
-                                        </button>
-                                    </div>
-                                </div>
 
-                                {/* Categoría */}
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Categoría
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={qrData.categoria}
-                                        disabled
-                                        className="w-full rounded-md border-gray-300 bg-gray-50 shadow-sm p-2 text-sm"
-                                    />
-                                </div>
-
-                                {/* Vista Previa del QR */}
-                                {qrData.codigo && (
-                                    <div className="border-2 border-gray-200 rounded-lg p-4 bg-gray-50">
-                                        <p className="text-xs text-gray-600 mb-2 text-center font-medium">Vista Previa QR:</p>
-                                        <div className="flex justify-center">
-                                            <QRCode value={qrData.codigo} size={128} />
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* Botones */}
-                            <div className="flex gap-3 mt-6">
-                                <button
-                                    onClick={() => setShowQRModal(false)}
-                                    className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
-                                >
-                                    Cancelar
-                                </button>
-                                <button
-                                    onClick={handleSaveQRCode}
-                                    disabled={!qrData.codigo.trim()}
-                                    className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center justify-center"
-                                >
-                                    <FaCheckCircle className="mr-2" />
-                                    Guardar Código QR
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                )
-            }
-
-            {/* Modal de Confirmación de Envío a Inventario */}
-            {
-                showInventoryModal && selectedItem && (
-                    <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50">
-                        <div className="bg-white rounded-lg p-6 shadow-2xl max-w-md w-full mx-4">
-                            <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
-                                <FaBox className="mr-2 text-green-600" />
-                                Enviar a Inventario
-                            </h2>
-
-                            <div className="mb-6">
-                                <p className="text-gray-700 mb-4">¿Confirmar envío a inventario?</p>
-
-                                <div className="bg-gray-50 rounded-lg p-4 space-y-2">
-                                    <div className="flex justify-between">
-                                        <span className="text-sm text-gray-600">Producto:</span>
-                                        <span className="text-sm font-medium text-gray-900">{selectedItem.nombre_producto || `${selectedItem.tipo_producto} de ${selectedItem.metal}`}</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                        <span className="text-sm text-gray-600">Código:</span>
-                                        <span className="text-sm font-medium text-gray-900">{selectedItem.codigo_producto}</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                        <span className="text-sm text-gray-600">Cantidad:</span>
-                                        <span className="text-sm font-medium text-gray-900">{selectedItem.cantidad} unidad(es)</span>
-                                    </div>
-                                </div>
-
-                                <p className="text-xs text-gray-500 mt-4">
-                                    Este producto quedará disponible para venta en el inventario.
-                                </p>
-                            </div>
-
-                            {/* Botones */}
-                            <div className="flex gap-3">
-                                <button
-                                    onClick={() => setShowInventoryModal(false)}
-                                    className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
-                                >
-                                    Cancelar
-                                </button>
-                                <button
-                                    onClick={confirmSendToInventory}
-                                    className="flex-1 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 flex items-center justify-center"
-                                >
-                                    <FaCheckCircle className="mr-2" />
-                                    Confirmar Envío
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                )
-            }
 
             {/* Modal de éxito */}
             {

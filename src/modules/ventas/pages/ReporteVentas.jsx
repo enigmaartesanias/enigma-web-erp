@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { ventasDB } from '../../../utils/ventasClient';
 import { productosExternosDB } from '../../../utils/productosExternosNeonClient';
 import { FaArrowLeft, FaCalendar, FaChartLine, FaDollarSign, FaFileInvoice, FaFilter, FaBan, FaEye, FaExclamationTriangle } from 'react-icons/fa';
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as ChartTooltip, Legend, ResponsiveContainer } from 'recharts';
 import toast, { Toaster } from 'react-hot-toast';
 import ConfirmModal from '../../../components/ui/ConfirmModal';
 import Tooltip from '../../../components/ui/Tooltip';
@@ -36,6 +35,9 @@ export default function ReporteVentas() {
         isOpen: false,
         venta: null
     });
+
+    // Estado para pestañas
+    const [activeTab, setActiveTab] = useState('VENTAS'); // 'VENTAS' o 'ANULADAS'
 
     useEffect(() => {
         loadVentas();
@@ -102,8 +104,13 @@ export default function ReporteVentas() {
         }
     };
 
-    // Filtrar por fechas
+    // Filtrar por fechas y pestaña activa
     const ventasFiltradas = ventas.filter(venta => {
+        // Filtro por pestaña
+        if (activeTab === 'VENTAS' && venta.estado === 'ANULADA') return false;
+        if (activeTab === 'ANULADAS' && venta.estado !== 'ANULADA') return false;
+
+        // Filtro por fechas
         const fechaVenta = new Date(venta.fecha_venta);
         const inicio = fechaInicio ? new Date(fechaInicio) : null;
         const fin = fechaFin ? new Date(fechaFin) : null;
@@ -122,25 +129,6 @@ export default function ReporteVentas() {
             ? ventasFiltradas.reduce((sum, v) => sum + Number(v.total), 0) / ventasFiltradas.length
             : 0
     };
-
-    // Preparar datos para gráfico (agrupado por día)
-    const ventasPorDia = ventasFiltradas.reduce((acc, venta) => {
-        const fecha = new Date(venta.fecha_venta).toISOString().split('T')[0];
-        if (!acc[fecha]) {
-            acc[fecha] = { fecha, total: 0, cantidad: 0 };
-        }
-        acc[fecha].total += Number(venta.total);
-        acc[fecha].cantidad += 1;
-        return acc;
-    }, {});
-
-    const chartData = Object.values(ventasPorDia)
-        .sort((a, b) => new Date(a.fecha) - new Date(b.fecha))
-        .map(d => ({
-            fecha: new Date(d.fecha).toLocaleDateString('es-PE', { month: 'short', day: 'numeric' }),
-            total: Number(d.total.toFixed(2)),
-            cantidad: d.cantidad
-        }));
 
     return (
         <div className="min-h-screen bg-gray-50">
@@ -171,7 +159,7 @@ export default function ReporteVentas() {
                         <div className="flex justify-between items-start">
                             <div>
                                 <p className="text-xs text-gray-500 font-medium">Total Ventas</p>
-                                <p className="text-xl font-bold text-gray-900">S/ {stats.totalVentas.toFixed(2)}</p>
+                                <p className="text-base font-bold text-gray-900">S/ {stats.totalVentas.toFixed(2)}</p>
                             </div>
                             <FaDollarSign className="text-slate-700 text-2xl opacity-50" />
                         </div>
@@ -181,7 +169,7 @@ export default function ReporteVentas() {
                         <div className="flex justify-between items-start">
                             <div>
                                 <p className="text-xs text-gray-500 font-medium">IGV Acumulado</p>
-                                <p className="text-xl font-bold text-gray-900">S/ {stats.totalIGV.toFixed(2)}</p>
+                                <p className="text-base font-bold text-gray-900">S/ {stats.totalIGV.toFixed(2)}</p>
                             </div>
                             <FaFileInvoice className="text-blue-500 text-2xl opacity-50" />
                         </div>
@@ -191,7 +179,7 @@ export default function ReporteVentas() {
                         <div className="flex justify-between items-start">
                             <div>
                                 <p className="text-xs text-gray-500 font-medium">Cantidad</p>
-                                <p className="text-xl font-bold text-gray-900">{stats.cantidadVentas}</p>
+                                <p className="text-base font-bold text-gray-900">{stats.cantidadVentas}</p>
                             </div>
                             <div className="text-2xl opacity-50">📊</div>
                         </div>
@@ -201,7 +189,7 @@ export default function ReporteVentas() {
                         <div className="flex justify-between items-start">
                             <div>
                                 <p className="text-xs text-gray-500 font-medium">Promedio</p>
-                                <p className="text-xl font-bold text-gray-900">S/ {stats.promedioVenta.toFixed(2)}</p>
+                                <p className="text-base font-bold text-gray-900">S/ {stats.promedioVenta.toFixed(2)}</p>
                             </div>
                             <div className="text-2xl opacity-50">📈</div>
                         </div>
@@ -209,19 +197,19 @@ export default function ReporteVentas() {
                 </div>
 
                 {/* Filtros */}
-                <div className="bg-white p-4 rounded-lg shadow-sm mb-6">
-                    <div className="flex items-center gap-2 mb-3">
-                        <FaFilter className="text-gray-500" />
-                        <h2 className="text-sm font-semibold text-gray-700">Filtrar por Fecha</h2>
+                <div className="bg-white p-3 rounded-lg shadow-sm mb-6">
+                    <div className="flex items-center gap-2 mb-2">
+                        <FaFilter className="text-gray-500 text-xs" />
+                        <h2 className="text-xs font-semibold text-gray-700">Filtrar por Fecha</h2>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                         <div>
                             <label className="block text-xs text-gray-600 mb-1">Fecha Inicio</label>
                             <input
                                 type="date"
                                 value={fechaInicio}
                                 onChange={(e) => setFechaInicio(e.target.value)}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-slate-500 outline-none"
+                                className="w-full px-2 py-1.5 border border-gray-300 rounded text-xs focus:ring-2 focus:ring-slate-500 outline-none"
                             />
                         </div>
                         <div>
@@ -230,39 +218,41 @@ export default function ReporteVentas() {
                                 type="date"
                                 value={fechaFin}
                                 onChange={(e) => setFechaFin(e.target.value)}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-slate-500 outline-none"
+                                className="w-full px-2 py-1.5 border border-gray-300 rounded text-xs focus:ring-2 focus:ring-slate-500 outline-none"
                             />
                         </div>
-                        <div className="flex items-end">
-                            <button
-                                onClick={() => { setFechaInicio(''); setFechaFin(''); }}
-                                className="w-full px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition"
-                            >
-                                Limpiar Filtros
-                            </button>
-                        </div>
                     </div>
+                    <button
+                        onClick={() => { setFechaInicio(''); setFechaFin(''); }}
+                        className="mt-2 w-full md:w-auto px-3 py-1.5 bg-gray-100 text-gray-700 rounded text-xs font-medium hover:bg-gray-200 transition"
+                    >
+                        Limpiar Filtros
+                    </button>
                 </div>
 
-                {/* Gráfico */}
-                {chartData.length > 0 && (
-                    <div className="bg-white p-6 rounded-lg shadow-sm mb-6">
-                        <h2 className="text-sm font-semibold text-gray-700 mb-4">Evolución de Ventas</h2>
-                        <ResponsiveContainer width="100%" height={300}>
-                            <LineChart data={chartData}>
-                                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                                <XAxis dataKey="fecha" tick={{ fontSize: 12 }} stroke="#666" />
-                                <YAxis tick={{ fontSize: 12 }} stroke="#666" />
-                                <Tooltip
-                                    contentStyle={{ fontSize: '12px', borderRadius: '8px', border: '1px solid #e5e7eb' }}
-                                    formatter={(value) => `S/ ${Number(value).toFixed(2)}`}
-                                />
-                                <Legend wrapperStyle={{ fontSize: '12px' }} />
-                                <Line type="monotone" dataKey="total" stroke="#475569" strokeWidth={2} name="Total Ventas" />
-                            </LineChart>
-                        </ResponsiveContainer>
+                {/* Pestañas */}
+                <div className="bg-white rounded-lg shadow-sm mb-6 overflow-hidden">
+                    <div className="flex border-b">
+                        <button
+                            onClick={() => setActiveTab('VENTAS')}
+                            className={`flex-1 px-6 py-3 text-sm font-medium transition-colors ${activeTab === 'VENTAS'
+                                ? 'bg-slate-700 text-white border-b-2 border-slate-700'
+                                : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
+                                }`}
+                        >
+                            📊 VENTAS
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('ANULADAS')}
+                            className={`flex-1 px-6 py-3 text-sm font-medium transition-colors ${activeTab === 'ANULADAS'
+                                ? 'bg-slate-700 text-white border-b-2 border-slate-700'
+                                : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
+                                }`}
+                        >
+                            🚫 ANULADAS
+                        </button>
                     </div>
-                )}
+                </div>
 
                 {/* Tabla */}
                 <div className="bg-white rounded-lg shadow-sm overflow-hidden">
@@ -280,44 +270,42 @@ export default function ReporteVentas() {
                             <table className="w-full">
                                 <thead className="bg-gray-50 border-b">
                                     <tr>
-                                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Código</th>
-                                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Fecha</th>
-                                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Cliente</th>
-                                        <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase">Subtotal</th>
-                                        <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase">IGV</th>
-                                        <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase">Descuento</th>
-                                        <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase">Total</th>
-                                        <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase">Estado</th>
-                                        <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase">Acciones</th>
+                                        <th className="px-2 md:px-4 py-2 md:py-3 text-left text-xs font-semibold text-gray-600 uppercase">Código</th>
+                                        <th className="px-2 md:px-4 py-2 md:py-3 text-left text-xs font-semibold text-gray-600 uppercase">Fecha</th>
+                                        <th className="hidden md:table-cell px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Cliente</th>
+                                        <th className="hidden md:table-cell px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase">Subtotal</th>
+                                        <th className="hidden md:table-cell px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase">IGV</th>
+                                        <th className="hidden md:table-cell px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase">Descuento</th>
+                                        <th className="px-2 md:px-4 py-2 md:py-3 text-right text-xs font-semibold text-gray-600 uppercase">Total</th>
+                                        <th className="px-2 md:px-4 py-2 md:py-3 text-center text-xs font-semibold text-gray-600 uppercase">Estado</th>
+                                        <th className="px-2 md:px-4 py-2 md:py-3 text-center text-xs font-semibold text-gray-600 uppercase">Acciones</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-200">
                                     {ventasFiltradas.map((venta) => (
                                         <tr key={venta.id} className="hover:bg-gray-50 transition-colors">
-                                            <td className="px-4 py-3">
+                                            <td className="px-2 md:px-4 py-2 md:py-3">
                                                 <span className="font-mono text-xs text-gray-600">{venta.codigo_venta}</span>
                                             </td>
-                                            <td className="px-4 py-3 text-xs text-gray-700">
-                                                {new Date(venta.fecha_venta).toLocaleString('es-PE', {
-                                                    year: 'numeric',
-                                                    month: 'short',
-                                                    day: 'numeric',
-                                                    hour: '2-digit',
-                                                    minute: '2-digit'
+                                            <td className="px-2 md:px-4 py-2 md:py-3 text-xs text-gray-700">
+                                                {new Date(venta.fecha_venta).toLocaleDateString('es-PE', {
+                                                    day: '2-digit',
+                                                    month: '2-digit',
+                                                    year: '2-digit'
                                                 })}
                                             </td>
-                                            <td className="px-4 py-3 text-xs text-gray-700">{venta.cliente_nombre}</td>
-                                            <td className="px-4 py-3 text-right text-xs text-gray-700">S/ {Number(venta.subtotal).toFixed(2)}</td>
-                                            <td className="px-4 py-3 text-right text-xs text-blue-600">
+                                            <td className="hidden md:table-cell px-4 py-3 text-xs text-gray-700">{venta.cliente_nombre}</td>
+                                            <td className="hidden md:table-cell px-4 py-3 text-right text-xs text-gray-700">S/ {Number(venta.subtotal).toFixed(2)}</td>
+                                            <td className="hidden md:table-cell px-4 py-3 text-right text-xs text-blue-600">
                                                 {Number(venta.impuesto_monto) > 0 ? `S/ ${Number(venta.impuesto_monto).toFixed(2)}` : '-'}
                                             </td>
-                                            <td className="px-4 py-3 text-right text-xs text-red-500">
+                                            <td className="hidden md:table-cell px-4 py-3 text-right text-xs text-red-500">
                                                 {Number(venta.descuento_monto) > 0 ? `- S/ ${Number(venta.descuento_monto).toFixed(2)}` : '-'}
                                             </td>
-                                            <td className="px-4 py-3 text-right text-sm font-bold text-slate-700">
+                                            <td className="px-2 md:px-4 py-2 md:py-3 text-right text-xs md:text-sm font-bold text-slate-700">
                                                 S/ {Number(venta.total).toFixed(2)}
                                             </td>
-                                            <td className="px-4 py-3 text-center">
+                                            <td className="px-2 md:px-4 py-2 md:py-3 text-center">
                                                 {venta.estado === 'ANULADA' ? (
                                                     <span className="inline-flex px-2 py-1 text-xs rounded-full bg-red-100 text-red-700 border border-red-200">
                                                         Anulada
@@ -328,24 +316,24 @@ export default function ReporteVentas() {
                                                     </span>
                                                 )}
                                             </td>
-                                            <td className="px-4 py-3">
-                                                <div className="flex justify-center gap-2">
+                                            <td className="px-2 md:px-4 py-2 md:py-3">
+                                                <div className="flex justify-center gap-1 md:gap-2">
                                                     <Tooltip text="Ver detalle">
                                                         <button
                                                             onClick={() => handleVer(venta)}
-                                                            className="p-2 text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                                                            className="p-1.5 md:p-2 text-blue-600 hover:bg-blue-50 rounded transition-colors"
                                                         >
-                                                            <FaEye size={16} />
+                                                            <FaEye size={14} />
                                                         </button>
                                                     </Tooltip>
 
-                                                    {venta.estado !== 'ANULADA' && (
+                                                    {activeTab === 'VENTAS' && venta.estado !== 'ANULADA' && (
                                                         <Tooltip text="Anular venta">
                                                             <button
                                                                 onClick={() => handleAnular(venta)}
-                                                                className="p-2 text-yellow-600 hover:bg-yellow-50 rounded transition-colors"
+                                                                className="p-1.5 md:p-2 text-yellow-600 hover:bg-yellow-50 rounded transition-colors"
                                                             >
-                                                                <FaBan size={16} />
+                                                                <FaBan size={14} />
                                                             </button>
                                                         </Tooltip>
                                                     )}

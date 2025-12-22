@@ -157,13 +157,24 @@ const ResumenVenta = ({ totals, config, setConfig, onProcess, processing, onClie
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 max-w-md mx-auto">
                     <div className="flex justify-between items-center mb-2">
                         <span className="text-gray-700 text-sm font-semibold">Cliente</span>
-                        <button
-                            onClick={onClienteClick}
-                            className="w-7 h-7 flex items-center justify-center bg-blue-600 text-white rounded-full hover:bg-blue-700 transition font-bold text-lg"
-                            title="Seleccionar cliente"
-                        >
-                            +
-                        </button>
+                        <div className="flex gap-2">
+                            {config.cliente && (
+                                <button
+                                    onClick={() => setConfig({ ...config, cliente: null })}
+                                    className="w-7 h-7 flex items-center justify-center bg-red-500 text-white rounded-full hover:bg-red-600 transition font-bold text-lg"
+                                    title="Remover cliente"
+                                >
+                                    −
+                                </button>
+                            )}
+                            <button
+                                onClick={onClienteClick}
+                                className="w-7 h-7 flex items-center justify-center bg-blue-600 text-white rounded-full hover:bg-blue-700 transition font-bold text-lg"
+                                title="Seleccionar cliente"
+                            >
+                                +
+                            </button>
+                        </div>
                     </div>
 
                     {config.cliente ? (

@@ -1,7 +1,13 @@
 import { Link } from 'react-router-dom';
 import { Package, ShoppingCart, Hammer, BarChart3, FileText, ClipboardList, Users, Database, QrCode, Settings } from 'lucide-react';
+import { useAlerts } from '../../../hooks/useAlerts';
+import SubtleAlert from '../../../components/SubtleAlert';
+
+
 
 export default function InventarioHome() {
+    const { alertMessage, loading } = useAlerts();
+
     // 1. OPERACIÓN DIARIA - Lo más usado
     const operacionDiaria = [
         {
@@ -163,6 +169,9 @@ export default function InventarioHome() {
                         ← Volver al Panel Admin
                     </Link>
                 </div>
+
+                {/* Alerta sutil minimalista */}
+                {!loading && <SubtleAlert message={alertMessage} />}
 
                 {/* Secciones */}
                 <Section

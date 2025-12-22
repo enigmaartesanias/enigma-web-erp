@@ -22,8 +22,21 @@ export const produccionDB = {
 
   async getAll() {
     const produccion = await sql`
-      SELECT * FROM v_produccion_con_precios
-      ORDER BY fecha_produccion DESC, created_at DESC
+      SELECT 
+        pt.*,
+        p.nombre_cliente,
+        p.precio_total as precio_venta_pedido,
+        (pt.costo_materiales + (pt.horas_trabajo * pt.costo_hora) + pt.costo_herramientas + pt.otros_gastos) as costo_mano_obra,
+        (pt.costo_materiales + (pt.horas_trabajo * pt.costo_hora) + pt.costo_herramientas + pt.otros_gastos) / NULLIF(pt.cantidad, 0) as costo_total_unitario,
+        (pt.costo_materiales + (pt.horas_trabajo * pt.costo_hora) + pt.costo_herramientas + pt.otros_gastos) as costo_total_produccion,
+        CASE 
+          WHEN p.precio_total IS NOT NULL THEN 
+            p.precio_total - (pt.costo_materiales + (pt.horas_trabajo * pt.costo_hora) + pt.costo_herramientas + pt.otros_gastos)
+          ELSE NULL
+        END as ganancia_estimada_pedido
+      FROM produccion_taller pt
+      LEFT JOIN pedidos p ON pt.pedido_id = p.id_pedido
+      ORDER BY pt.fecha_produccion DESC, pt.created_at DESC
     `;
 
     // Convertir fechas y números
@@ -43,7 +56,10 @@ export const produccionDB = {
       costo_total_produccion: parseFloat(p.costo_total_produccion) || 0,
       ganancia_estimada_pedido: p.ganancia_estimada_pedido ? parseFloat(p.ganancia_estimada_pedido) : null,
       codigo_producto: p.codigo_producto || '',
-      tiene_codigo_qr: p.tiene_codigo_qr || false
+      tiene_codigo_qr: p.tiene_codigo_qr || false,
+      transferido_inventario: p.transferido_inventario || false,
+      fecha_transferencia: p.fecha_transferencia || null,
+      producto_externo_id: p.producto_externo_id || null
     }));
   },
 
@@ -213,6 +229,22 @@ export const produccionDB = {
       en_proceso: parseInt(stats.en_proceso) || 0,
       terminados: parseInt(stats.terminados) || 0
     };
+  },
+
+  // ========================================
+  // TRANSFERENCIA A INVENTARIO
+  // ========================================
+
+  async markAsTransferred(id_produccion, producto_externo_id) {
+    const [produccion] = await sql`
+      UPDATE produccion_taller SET
+        transferido_inventario = TRUE,
+        fecha_transferencia = CURRENT_TIMESTAMP,
+        producto_externo_id = ${producto_externo_id}
+      WHERE id_produccion = ${id_produccion}
+      RETURNING *
+    `;
+    return produccion;
   }
 };
 

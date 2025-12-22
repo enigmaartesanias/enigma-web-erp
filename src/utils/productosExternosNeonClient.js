@@ -31,7 +31,10 @@ export const productosExternosDB = {
           stock_actual,
           stock_minimo,
           unidad,
-          imagen_url
+          imagen_url,
+          precio_adicional,
+          origen,
+          produccion_id
         ) VALUES (
           ${data.codigo_usuario},
           ${data.nombre},
@@ -42,7 +45,10 @@ export const productosExternosDB = {
           ${data.stock_actual || 0},
           ${data.stock_minimo || 5},
           ${data.unidad || 'Unidad'},
-          ${data.imagen_url || null}
+          ${data.imagen_url || null},
+          ${data.precio_adicional || null},
+          ${data.origen || 'COMPRA'},
+          ${data.produccion_id || null}
         )
         RETURNING *
       `;

@@ -221,6 +221,18 @@ firebase deploy --only hosting
 
 ## 🎯 Mejoras Recientes
 
+### v2.1.0 - Sistema de Alertas + Optimización Responsive (Diciembre 2025)
+- ✅ **Sistema de Alertas Minimalista**: Notificaciones sutiles para pedidos pendientes/atrasados
+- ✅ **Reporte de Producción Responsive**: Optimización completa para móvil
+  - Pestañas compactas con scroll horizontal
+  - Headers sticky con scroll vertical
+  - Título dinámico del filtro activo (solo móvil)
+  - Formato de fecha compacto (DD/MM/YY)
+  - Columna producto con line-clamp-3
+  - Valores monetarios en gris uniforme
+- ✅ **Hook useAlerts**: Verificación automática de pedidos críticos
+- ✅ **Componente SubtleAlert**: Mensajes auto-dismiss sin intrusión
+
 ### v2.0.0 - Rediseño Minimalista (Diciembre 2025)
 - ✅ Panel ERP completamente rediseñado
 - ✅ Paleta monocromática profesional

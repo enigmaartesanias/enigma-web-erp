@@ -74,6 +74,7 @@ const MainContent = () => {
         location.pathname.startsWith('/clientes') ||
         location.pathname.startsWith('/proveedores') ||
         location.pathname.startsWith('/materiales') ||
+        location.pathname.startsWith('/producto-form') ||
 
         location.pathname.startsWith('/stock-inicial');
 
@@ -125,6 +126,7 @@ const MainContent = () => {
                 <Route path="/inventario" element={<PrivateRoute><Inventario /></PrivateRoute>} />
                 <Route path="/stock-inicial" element={<PrivateRoute><StockInicial /></PrivateRoute>} />
                 <Route path="/inventario/nuevo" element={<PrivateRoute><ProductoForm /></PrivateRoute>} />
+                <Route path="/producto-form" element={<PrivateRoute><ProductoForm /></PrivateRoute>} />
                 <Route path="/inventario/editar/:id" element={<PrivateRoute><ProductoEdit /></PrivateRoute>} />
                 <Route path="/ventas/nueva" element={<PrivateRoute><NuevaVenta /></PrivateRoute>} />
                 <Route path="/ventas/reporte" element={<PrivateRoute><ReporteVentas /></PrivateRoute>} />

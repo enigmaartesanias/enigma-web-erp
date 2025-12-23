@@ -1,9 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { produccionDB } from '../../../utils/produccionNeonClient';
 import { Link } from 'react-router-dom';
-import { FaArrowLeft, FaChartLine, FaFileInvoiceDollar, FaBoxOpen } from 'react-icons/fa';
-import { Toaster } from 'react-hot-toast';
-import IngresarAlmacenModal from '../../../components/IngresarAlmacenModal';
+import { FaArrowLeft } from 'react-icons/fa';
 
 const ProduccionReporte = () => {
     const [produccion, setProduccion] = useState([]);
@@ -14,8 +12,6 @@ const ProduccionReporte = () => {
         terminados: 0
     });
     const [loading, setLoading] = useState(true);
-    const [modalOpen, setModalOpen] = useState(false);
-    const [selectedProduccion, setSelectedProduccion] = useState(null);
     const [filtroActivo, setFiltroActivo] = useState('todos');
 
     useEffect(() => {
@@ -36,19 +32,7 @@ const ProduccionReporte = () => {
         }
     };
 
-    const handleOpenModal = (item) => {
-        setSelectedProduccion(item);
-        setModalOpen(true);
-    };
 
-    const handleCloseModal = () => {
-        setModalOpen(false);
-        setSelectedProduccion(null);
-    };
-
-    const handleTransferSuccess = () => {
-        fetchData(); // Refrescar datos después de transferencia exitosa
-    };
 
     // Filtrar producción según pestaña activa
     const produccionFiltrada = useMemo(() => {
@@ -222,7 +206,7 @@ const ProduccionReporte = () => {
                                 {mostrarColumna('estado') && (
                                     <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase">Estado</th>
                                 )}
-                                <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase">Acciones</th>
+
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
@@ -301,26 +285,7 @@ const ProduccionReporte = () => {
                                                 </span>
                                             </td>
                                         )}
-                                        <td className="px-2 py-1 text-center">
-                                            {puedeTransferir ? (
-                                                <button
-                                                    onClick={() => handleOpenModal(item)}
-                                                    className="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700 transition"
-                                                    title="Ingresar a Almacén"
-                                                >
-                                                    <FaBoxOpen size={12} />
-                                                    Ingresar a Almacén
-                                                </button>
-                                            ) : item.tipo_produccion === 'STOCK' && item.estado_produccion === 'terminado' && item.transferido_inventario ? (
-                                                <button
-                                                    disabled
-                                                    className="px-3 py-1.5 bg-gray-300 text-gray-600 text-xs rounded-lg cursor-not-allowed"
-                                                    title="Este producto ya está en el inventario"
-                                                >
-                                                    En Inventario
-                                                </button>
-                                            ) : null}
-                                        </td>
+
                                     </tr>
                                 );
                             })}
@@ -329,39 +294,7 @@ const ProduccionReporte = () => {
                 </div>
             </div>
 
-            {/* Modal de Transferencia */}
-            <IngresarAlmacenModal
-                isOpen={modalOpen}
-                onClose={handleCloseModal}
-                produccionData={selectedProduccion}
-                onSuccess={handleTransferSuccess}
-            />
 
-            {/* Toast Notifications */}
-            <Toaster
-                position="top-right"
-                toastOptions={{
-                    duration: 3000,
-                    style: {
-                        background: '#363636',
-                        color: '#fff',
-                    },
-                    success: {
-                        duration: 4000,
-                        iconTheme: {
-                            primary: '#10b981',
-                            secondary: '#fff',
-                        },
-                    },
-                    error: {
-                        duration: 5000,
-                        iconTheme: {
-                            primary: '#ef4444',
-                            secondary: '#fff',
-                        },
-                    },
-                }}
-            />
         </div>
     );
 };

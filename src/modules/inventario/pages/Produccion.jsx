@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { produccionDB, METALES, TIPOS_PRODUCTO } from '../../../utils/produccionNeonClient';
 import { pedidosDB } from '../../../utils/pedidosNeonClient';
+import { productosExternosDB } from '../../../utils/productosExternosNeonClient';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { FaEdit, FaTrash, FaArrowLeft, FaSave, FaTimes, FaBox, FaMoneyBillWave, FaHammer, FaCheckCircle, FaCamera, FaCheck, FaQrcode, FaExclamationTriangle } from 'react-icons/fa';
 import QRCode from 'react-qr-code';
@@ -20,6 +21,7 @@ const Produccion = () => {
     const [message, setMessage] = useState(null);
     const [produccion, setProduccion] = useState([]);
     const [pedidosPendientes, setPedidosPendientes] = useState([]);
+    const [productosEnInventario, setProductosEnInventario] = useState([]);
     const [editingId, setEditingId] = useState(null);
     const [filterType, setFilterType] = useState('todos');
     const [searchTerm, setSearchTerm] = useState('');
@@ -342,6 +344,7 @@ const Produccion = () => {
         fetchProduccion();
         fetchPedidosPendientes();
         fetchStats();
+        fetchProductosInventario();
     }, []);
 
     const fetchProduccion = async () => {
@@ -359,6 +362,15 @@ const Produccion = () => {
             setPedidosPendientes(data || []);
         } catch (error) {
             console.error('Error al cargar pedidos pendientes:', error);
+        }
+    };
+
+    const fetchProductosInventario = async () => {
+        try {
+            const data = await productosExternosDB.getAll();
+            setProductosEnInventario(data || []);
+        } catch (error) {
+            console.error('Error al cargar inventario:', error);
         }
     };
 
@@ -404,8 +416,30 @@ const Produccion = () => {
 
     // Funciones de QR eliminadas - ahora se manejan en ProductoForm
 
+    // Helper: Verificar si un producto de producción ya está en el inventario
+    const isProductInInventory = (produccionItem) => {
+        // Verificar por código si existe
+        if (produccionItem.codigo_producto) {
+            const existePorCodigo = productosEnInventario.some(p => p.codigo_usuario === produccionItem.codigo_producto);
+            if (existePorCodigo) return true;
+        }
+
+        // Verificar por nombre (normalizado para comparación)
+        if (produccionItem.nombre_producto) {
+            const nombreProduccion = produccionItem.nombre_producto.toLowerCase().trim();
+            const existePorNombre = productosEnInventario.some(p => {
+                const nombreInventario = p.nombre?.toLowerCase().trim();
+                return nombreInventario === nombreProduccion;
+            });
+            if (existePorNombre) return true;
+        }
+
+        return false;
+    };
+
     const handleSendToInventory = async (item) => {
-        if (item.enviado_a_inventario) {
+        // Verificar si ya existe en inventario
+        if (isProductInInventory(item)) {
             toast.error('Este producto ya fue enviado al inventario');
             return;
         }
@@ -777,15 +811,12 @@ const Produccion = () => {
                                                 <FaEdit size={18} />
                                             </button>
 
-                                            {/* Enviar a Inventario - Solo para productos terminados de STOCK */}
-                                            {item.estado_produccion === 'terminado' && item.tipo_produccion === 'STOCK' && (
+                                            {/* Enviar a Inventario - Solo para productos terminados de STOCK que NO están en inventario */}
+                                            {item.estado_produccion === 'terminado' && item.tipo_produccion === 'STOCK' && !isProductInInventory(item) && (
                                                 <button
                                                     onClick={() => handleSendToInventory(item)}
-                                                    disabled={item.enviado_a_inventario}
-                                                    className={`${item.enviado_a_inventario
-                                                        ? 'text-gray-300 cursor-not-allowed'
-                                                        : 'text-green-600 hover:text-green-900'}`}
-                                                    title={item.enviado_a_inventario ? 'Ya enviado a inventario' : 'Enviar a Inventario'}
+                                                    className="text-green-600 hover:text-green-900"
+                                                    title="Enviar a Inventario"
                                                 >
                                                     <FaBox size={18} />
                                                 </button>

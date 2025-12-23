@@ -10,6 +10,45 @@ import ConfirmModal from './ui/ConfirmModal';
 import Tooltip from './ui/Tooltip';
 
 // ========================================
+// UTILIDADES DE FECHA
+// ========================================
+
+// Función para formatear fechas sin problemas de zona horaria
+const formatLocalDate = (dateString) => {
+    if (!dateString) return '';
+
+    try {
+        // Convertir a string si es un objeto Date
+        let dateStr = typeof dateString === 'string' ? dateString : dateString.toString();
+
+        // Si la fecha viene en formato ISO (YYYY-MM-DD), la parseamos directamente
+        // Extraer solo la parte de la fecha (antes de 'T' si existe)
+        const datePart = dateStr.includes('T') ? dateStr.split('T')[0] : dateStr;
+
+        // Verificar que tenga el formato correcto (YYYY-MM-DD)
+        if (!datePart.includes('-')) {
+            // Si no tiene guiones, intentar crear una fecha y formatearla
+            const date = new Date(dateString);
+            if (isNaN(date.getTime())) return '';
+            const day = String(date.getDate()).padStart(2, '0');
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const year = String(date.getFullYear()).slice(-2);
+            return `${day}/${month}/${year}`;
+        }
+
+        const [year, month, day] = datePart.split('-');
+
+        // Validar que tenemos los tres componentes
+        if (!year || !month || !day) return '';
+
+        return `${day}/${month}/${year}`;
+    } catch (error) {
+        console.error('Error formateando fecha:', dateString, error);
+        return '';
+    }
+};
+
+// ========================================
 // COMPONENTES DE BADGE
 // ========================================
 
@@ -1172,7 +1211,7 @@ const Pedidos = () => {
                                     <tr key={pedido.id_pedido} className="hover:bg-gray-50 transition-colors">
                                         {/* FECHA */}
                                         <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
-                                            {new Date(pedido.fecha_pedido).toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', year: '2-digit' })}
+                                            {formatLocalDate(pedido.fecha_pedido)}
                                         </td>
 
                                         {/* CLIENTE */}
@@ -1232,7 +1271,7 @@ const Pedidos = () => {
                                                         </button>
                                                     </Tooltip>
                                                 )}
-                                                {pedido.estado_pedido !== 'entregado' && (
+                                                {pedido.estado_pedido !== 'entregado' && !pedido.cancelado && pedido.monto_saldo > 0 && (
                                                     <Tooltip text="Registrar pago">
                                                         <button
                                                             onClick={() => handleOpenPayModal(pedido)}
@@ -1318,7 +1357,7 @@ const Pedidos = () => {
                                 <div className="text-center mb-6 border-b pb-4">
                                     <p className="text-sm text-gray-500 mb-1">Enigma artesanías y accesorios</p>
                                     <h1 className="text-xl font-bold uppercase tracking-widest text-gray-900">Nota de Pedido</h1>
-                                    <p className="text-sm text-gray-500 mt-1">{new Date(printPedido.fecha_pedido).toLocaleDateString()}</p>
+                                    <p className="text-sm text-gray-500 mt-1">{formatLocalDate(printPedido.fecha_pedido)}</p>
                                 </div>
 
                                 <div className="mb-6 grid grid-cols-2 gap-4 text-sm">
@@ -1417,7 +1456,7 @@ const Pedidos = () => {
                                     {printPedido.pagos && printPedido.pagos.length > 0 ? (
                                         printPedido.pagos.sort((a, b) => new Date(a.fecha_pago) - new Date(b.fecha_pago)).map((pago, idx) => (
                                             <div key={idx} className="flex justify-between text-xs py-1">
-                                                <span>{new Date(pago.fecha_pago).toLocaleDateString()}</span>
+                                                <span>{formatLocalDate(pago.fecha_pago)}</span>
                                                 <span>{pago.metodo_pago}</span>
                                                 <span>S/ {pago.monto.toFixed(2)}</span>
                                             </div>

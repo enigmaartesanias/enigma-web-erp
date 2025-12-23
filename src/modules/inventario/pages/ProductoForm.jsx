@@ -249,18 +249,6 @@ const ProductoForm = () => {
 
             await productosExternosDB.create(productData);
 
-            // Si viene de producción, actualizar el campo enviado_a_inventario
-            if (isFromProduction && produccionInfo?.id) {
-                try {
-                    await produccionDB.update(produccionInfo.id, {
-                        enviado_a_inventario: true
-                    });
-                } catch (updateError) {
-                    console.error('Error actualizando producción:', updateError);
-                    // No bloqueamos el flujo si falla la actualización
-                }
-            }
-
             alert('Producto guardado correctamente');
             navigate('/inventario-home');
 
@@ -273,9 +261,9 @@ const ProductoForm = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 pb-20">
+        <div className="min-h-screen bg-gray-50">
             {/* Header Sticky */}
-            <div className="bg-white shadow-sm sticky top-0 z-10 px-4 py-3 flex justify-between items-center mb-4">
+            <div className="bg-white shadow-sm px-4 py-3 flex justify-between items-center sticky top-0 z-10">
                 <button
                     onClick={() => navigate(-1)}
                     className="p-2 text-gray-500 hover:bg-gray-100 rounded-full transition-colors"
@@ -286,232 +274,235 @@ const ProductoForm = () => {
                 <div className="w-10"></div>
             </div>
 
-            <div className="max-w-2xl mx-auto px-4 space-y-4">
+            {/* Scrollable Content */}
+            <div className="pb-20">
+                <div className="max-w-xl mx-auto px-4 py-3 space-y-3">
 
-                {/* Botón Nuevo Producto (solo si NO es de producción) */}
-                {!isFromProduction && !showExternalForm && (
-                    <div className="flex justify-center py-8">
-                        <button
-                            onClick={() => setShowExternalForm(true)}
-                            className="px-6 py-2.5 bg-gray-200 text-gray-700 rounded-lg font-medium text-sm hover:bg-gray-300 transition"
-                        >
-                            + Nuevo Producto Externo
-                        </button>
-                    </div>
-                )}
+                    {/* Botón Nuevo Producto (solo si NO es de producción) */}
+                    {!isFromProduction && !showExternalForm && (
+                        <div className="flex justify-center py-8">
+                            <button
+                                onClick={() => setShowExternalForm(true)}
+                                className="px-6 py-2.5 bg-gray-200 text-gray-700 rounded-lg font-medium text-sm hover:bg-gray-300 transition"
+                            >
+                                + Nuevo Producto Externo
+                            </button>
+                        </div>
+                    )}
 
-                {/* Formulario expandido */}
-                {showExternalForm && (
-                    <>
-                        {/* Badge indicador - Solo mostrar si es de producción */}
-                        {isFromProduction && (
-                            <div className="flex items-center justify-center gap-2 text-sm">
-                                <span className="px-3 py-1.5 bg-purple-100 text-purple-700 rounded-lg font-medium">
-                                    📦 Producto de Producción
-                                </span>
-                            </div>
-                        )}
-
-                        <div className="h-px bg-gray-200"></div>
-
-                        {/* Info de Producción (si aplica) */}
-                        {isFromProduction && produccionInfo && (
-                            <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
-                                <h3 className="text-xs font-semibold text-gray-600 mb-2">ℹ️ Origen: Producción Taller</h3>
-                                <div className="text-xs text-gray-600 space-y-0.5">
-                                    <p>• ID Producción: #{produccionInfo.id}</p>
-                                    <p>• Metal: {produccionInfo.metal}</p>
-                                    <p>• Tipo: {produccionInfo.tipo}</p>
+                    {/* Formulario expandido */}
+                    {showExternalForm && (
+                        <>
+                            {/* Badge indicador - Solo mostrar si es de producción */}
+                            {isFromProduction && (
+                                <div className="flex items-center justify-center gap-2 text-sm">
+                                    <span className="px-3 py-1.5 bg-purple-100 text-purple-700 rounded-lg font-medium">
+                                        📦 Producto de Producción
+                                    </span>
                                 </div>
-                            </div>
-                        )}
+                            )}
 
-                        {/* 1. Información Principal */}
-                        <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100 space-y-3">
-                            <div>
-                                <label className="block text-xs font-medium text-gray-700 mb-1.5">Nombre *</label>
-                                <input
-                                    type="text"
-                                    name="nombre"
-                                    value={formData.nombre}
-                                    onChange={handleChange}
-                                    disabled={isFromProduction}
-                                    className={`w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-gray-400 outline-none ${isFromProduction ? 'bg-gray-50 text-gray-600 cursor-not-allowed' : ''}`}
-                                />
-                            </div>
+                            <div className="h-px bg-gray-200"></div>
 
-                            <div className="space-y-3">
-                                {/* Código con QR */}
-                                <div>
-                                    <label className="block text-xs font-medium text-gray-700 mb-1.5">Código *</label>
-                                    <div className="flex gap-2 items-center">
-                                        <input
-                                            type="text"
-                                            name="codigo_usuario"
-                                            value={formData.codigo_usuario}
-                                            onChange={handleChange}
-                                            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono uppercase focus:ring-2 focus:ring-gray-400 outline-none"
-                                        />
-                                        {/* QR Code - más pequeño en mobile */}
-                                        <div className="w-16 h-16 md:w-20 md:h-20 bg-white p-1 border border-gray-200 rounded-lg flex items-center justify-center flex-shrink-0">
-                                            {formData.codigo_usuario ? (
-                                                <QRCode value={formData.codigo_usuario} size={56} className="w-full h-full" />
-                                            ) : (
-                                                <FaQrcode className="text-gray-300 text-2xl md:text-3xl" />
-                                            )}
-                                        </div>
+                            {/* Info de Producción (si aplica) */}
+                            {isFromProduction && produccionInfo && (
+                                <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                                    <h3 className="text-xs font-semibold text-gray-600 mb-2">ℹ️ Origen: Producción Taller</h3>
+                                    <div className="text-xs text-gray-600 space-y-0.5">
+                                        <p>• ID Producción: #{produccionInfo.id}</p>
+                                        <p>• Metal: {produccionInfo.metal}</p>
+                                        <p>• Tipo: {produccionInfo.tipo}</p>
                                     </div>
                                 </div>
-                                {/* Categoría */}
+                            )}
+
+                            {/* 1. Información Principal */}
+                            <div className="bg-white p-3 md:p-4 rounded-lg shadow-sm border border-gray-100 space-y-2 md:space-y-3">
                                 <div>
-                                    <label className="block text-xs font-medium text-gray-700 mb-1.5">Categoría</label>
-                                    <select
-                                        name="categoria"
-                                        value={formData.categoria}
+                                    <label className="block text-xs font-medium text-gray-700 mb-1">Nombre *</label>
+                                    <input
+                                        type="text"
+                                        name="nombre"
+                                        value={formData.nombre}
                                         onChange={handleChange}
                                         disabled={isFromProduction}
                                         className={`w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-gray-400 outline-none ${isFromProduction ? 'bg-gray-50 text-gray-600 cursor-not-allowed' : ''}`}
-                                    >
-                                        <option value="">-- Seleccionar --</option>
-                                        {categorias.map(cat => (
-                                            <option key={cat.id} value={cat.nombre}>{cat.nombre}</option>
-                                        ))}
-                                    </select>
+                                    />
                                 </div>
-                            </div>
-                        </div>
 
-                        {/* 2. Imagen */}
-                        <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100 flex justify-center">
-                            <div
-                                className="w-32 h-32 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center cursor-pointer hover:border-gray-400 hover:bg-gray-100 transition-all"
-                                onClick={() => fileInputRef.current.click()}
-                            >
-                                {previewUrl ? (
-                                    <img src={previewUrl} alt="Preview" className="w-full h-full object-cover rounded-lg" />
-                                ) : (
-                                    <div className="text-center text-gray-400">
-                                        <FaCamera size={24} className="mx-auto mb-1" />
-                                        <span className="text-xs">Foto</span>
+                                <div className="space-y-2 md:space-y-3">
+                                    {/* Código con QR */}
+                                    <div>
+                                        <label className="block text-xs font-medium text-gray-700 mb-1">Código *</label>
+                                        <div className="flex gap-2 items-center">
+                                            <input
+                                                type="text"
+                                                name="codigo_usuario"
+                                                value={formData.codigo_usuario}
+                                                onChange={handleChange}
+                                                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono uppercase focus:ring-2 focus:ring-gray-400 outline-none"
+                                            />
+                                            {/* QR Code - más pequeño en mobile */}
+                                            <div className="w-12 h-12 md:w-20 md:h-20 bg-white p-1 border border-gray-200 rounded-lg flex items-center justify-center flex-shrink-0">
+                                                {formData.codigo_usuario ? (
+                                                    <QRCode value={formData.codigo_usuario} size={40} className="w-full h-full" />
+                                                ) : (
+                                                    <FaQrcode className="text-gray-300 text-2xl md:text-3xl" />
+                                                )}
+                                            </div>
+                                        </div>
                                     </div>
-                                )}
-                                <input
-                                    type="file"
-                                    ref={fileInputRef}
-                                    className="hidden"
-                                    accept="image/*"
-                                    onChange={handleImageChange}
-                                />
-                            </div>
-                        </div>
-
-                        {/* 3. Stock y Precios */}
-                        <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100 space-y-3">
-                            <div className="grid grid-cols-2 gap-3">
-                                <div>
-                                    <label className="block text-xs font-medium text-gray-700 mb-1.5">Stock Inicial *</label>
-                                    <input
-                                        type="number"
-                                        name="stock_actual"
-                                        value={formData.stock_actual}
-                                        onChange={handleChange}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-center font-semibold focus:ring-2 focus:ring-gray-400 outline-none"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-medium text-gray-700 mb-1.5">Stock Mínimo</label>
-                                    <input
-                                        type="number"
-                                        name="stock_minimo"
-                                        value={formData.stock_minimo}
-                                        onChange={handleChange}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-center focus:ring-2 focus:ring-gray-400 outline-none"
-                                    />
+                                    {/* Categoría */}
+                                    <div>
+                                        <label className="block text-xs font-medium text-gray-700 mb-1">Categoría</label>
+                                        <select
+                                            name="categoria"
+                                            value={formData.categoria}
+                                            onChange={handleChange}
+                                            disabled={isFromProduction}
+                                            className={`w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-gray-400 outline-none ${isFromProduction ? 'bg-gray-50 text-gray-600 cursor-not-allowed' : ''}`}
+                                        >
+                                            <option value="">-- Seleccionar --</option>
+                                            {categorias.map(cat => (
+                                                <option key={cat.id} value={cat.nombre}>{cat.nombre}</option>
+                                            ))}
+                                        </select>
+                                    </div>
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-3">
-                                <div>
-                                    <label className="block text-xs font-medium text-gray-700 mb-1.5">Costo (S/) *</label>
-                                    <input
-                                        type="number"
-                                        name="costo"
-                                        value={formData.costo}
-                                        onChange={handleChange}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-gray-400 outline-none"
-                                        step="0.01"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-medium text-gray-700 mb-1.5">Precio (S/) *</label>
-                                    <input
-                                        type="number"
-                                        name="precio"
-                                        value={formData.precio}
-                                        onChange={handleChange}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-gray-400 outline-none"
-                                        step="0.01"
-                                    />
-                                </div>
-                            </div>
-
-                            <div>
-                                <label className="block text-xs font-medium text-gray-700 mb-1.5">Precio Oferta (S/)</label>
-                                <input
-                                    type="number"
-                                    name="precio_adicional"
-                                    value={formData.precio_adicional}
-                                    onChange={handleChange}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-gray-400 outline-none"
-                                    step="0.01"
-                                    placeholder="Opcional"
-                                />
-                            </div>
-                        </div>
-
-                        {/* 4. Información Adicional (solo para externos) */}
-                        {!isFromProduction && (
-                            <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100">
-                                <label className="block text-xs font-medium text-gray-700 mb-1.5">Información Adicional</label>
-                                <textarea
-                                    name="descripcion"
-                                    value={formData.descripcion}
-                                    onChange={handleChange}
-                                    rows="2"
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-gray-400 outline-none resize-none"
-                                    placeholder="Notas, características, etc."
-                                />
-                            </div>
-                        )}
-
-                        {/* Botones de Acción */}
-                        <div className="space-y-2 pt-2">
-                            <button
-                                onClick={handleSubmit}
-                                disabled={loading}
-                                className="w-full bg-gray-600 text-white text-sm font-semibold py-2.5 rounded-lg shadow-sm hover:bg-gray-700 transition flex items-center justify-center gap-2"
-                            >
-                                {loading ? (
-                                    <span>Guardando...</span>
-                                ) : (
-                                    <>
-                                        <FaSave size={14} />
-                                        <span>Agregar Producto</span>
-                                    </>
-                                )}
-                            </button>
-                            {!isFromProduction && (
-                                <button
-                                    onClick={() => setShowExternalForm(false)}
-                                    className="w-full bg-gray-200 text-gray-700 text-sm font-medium py-2.5 rounded-lg hover:bg-gray-300 transition"
+                            {/* 2. Imagen */}
+                            <div className="bg-white p-3 md:p-4 rounded-lg shadow-sm border border-gray-100 flex justify-center">
+                                <div
+                                    className="w-24 h-24 md:w-32 md:h-32 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center cursor-pointer hover:border-gray-400 hover:bg-gray-100 transition-all"
+                                    onClick={() => fileInputRef.current.click()}
                                 >
-                                    Cancelar
-                                </button>
-                            )}
-                        </div>
-                    </>
-                )}
+                                    {previewUrl ? (
+                                        <img src={previewUrl} alt="Preview" className="w-full h-full object-cover rounded-lg" />
+                                    ) : (
+                                        <div className="text-center text-gray-400">
+                                            <FaCamera size={24} className="mx-auto mb-1" />
+                                            <span className="text-xs">Foto</span>
+                                        </div>
+                                    )}
+                                    <input
+                                        type="file"
+                                        ref={fileInputRef}
+                                        className="hidden"
+                                        accept="image/*"
+                                        onChange={handleImageChange}
+                                    />
+                                </div>
+                            </div>
 
+                            {/* 3. Stock y Precios */}
+                            <div className="bg-white p-3 md:p-4 rounded-lg shadow-sm border border-gray-100 space-y-2 md:space-y-3">
+                                <div className="grid grid-cols-2 gap-2 md:gap-3">
+                                    <div>
+                                        <label className="block text-xs font-medium text-gray-700 mb-1">Stock Inicial *</label>
+                                        <input
+                                            type="number"
+                                            name="stock_actual"
+                                            value={formData.stock_actual}
+                                            onChange={handleChange}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-center font-semibold focus:ring-2 focus:ring-gray-400 outline-none"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-medium text-gray-700 mb-1">Stock Mínimo</label>
+                                        <input
+                                            type="number"
+                                            name="stock_minimo"
+                                            value={formData.stock_minimo}
+                                            onChange={handleChange}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-center focus:ring-2 focus:ring-gray-400 outline-none"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-2 md:gap-3">
+                                    <div>
+                                        <label className="block text-xs font-medium text-gray-700 mb-1.5">Costo (S/) *</label>
+                                        <input
+                                            type="number"
+                                            name="costo"
+                                            value={formData.costo}
+                                            onChange={handleChange}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-gray-400 outline-none"
+                                            step="0.01"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-medium text-gray-700 mb-1.5">Precio (S/) *</label>
+                                        <input
+                                            type="number"
+                                            name="precio"
+                                            value={formData.precio}
+                                            onChange={handleChange}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-gray-400 outline-none"
+                                            step="0.01"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="block text-xs font-medium text-gray-700 mb-1.5">Precio Oferta (S/)</label>
+                                    <input
+                                        type="number"
+                                        name="precio_adicional"
+                                        value={formData.precio_adicional}
+                                        onChange={handleChange}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-gray-400 outline-none"
+                                        step="0.01"
+                                        placeholder="Opcional"
+                                    />
+                                </div>
+                            </div>
+
+                            {/* 4. Información Adicional (solo para externos) */}
+                            {!isFromProduction && (
+                                <div className="bg-white p-3 md:p-4 rounded-lg shadow-sm border border-gray-100">
+                                    <label className="block text-xs font-medium text-gray-700 mb-1">Información Adicional</label>
+                                    <textarea
+                                        name="descripcion"
+                                        value={formData.descripcion}
+                                        onChange={handleChange}
+                                        rows="2"
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-gray-400 outline-none resize-none"
+                                        placeholder="Notas, características, etc."
+                                    />
+                                </div>
+                            )}
+
+                            {/* Botones de Acción - Sticky en mobile */}
+                            <div className="sticky bottom-0 bg-gray-50 pt-3 pb-2 space-y-2 -mx-4 px-4 md:static md:bg-transparent md:mx-0 md:px-0">
+                                <button
+                                    onClick={handleSubmit}
+                                    disabled={loading}
+                                    className="w-full bg-gray-600 text-white text-sm font-semibold py-2.5 rounded-lg shadow-sm hover:bg-gray-700 transition flex items-center justify-center gap-2"
+                                >
+                                    {loading ? (
+                                        <span>Guardando...</span>
+                                    ) : (
+                                        <>
+                                            <FaSave size={14} />
+                                            <span>Agregar Producto</span>
+                                        </>
+                                    )}
+                                </button>
+                                {!isFromProduction && (
+                                    <button
+                                        onClick={() => setShowExternalForm(false)}
+                                        className="w-full bg-gray-200 text-gray-700 text-sm font-medium py-2.5 rounded-lg hover:bg-gray-300 transition"
+                                    >
+                                        Cancelar
+                                    </button>
+                                )}
+                            </div>
+                        </>
+                    )}
+
+                </div>
             </div>
         </div>
     );

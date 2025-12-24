@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Package, ShoppingCart, Hammer, BarChart3, FileText, ClipboardList, Users, Database, QrCode, Settings } from 'lucide-react';
+import { Package, ShoppingCart, Hammer, BarChart3, FileText, ClipboardList, Users, Database, QrCode, Settings, Tag } from 'lucide-react';
 import { useAlerts } from '../../../hooks/useAlerts';
 import SubtleAlert from '../../../components/SubtleAlert';
 
@@ -100,6 +100,12 @@ export default function InventarioHome() {
             icon: Users,
             path: '/proveedores',
             description: 'Gestión proveedores'
+        },
+        {
+            title: 'Tipos de Producto',
+            icon: Tag,
+            path: '/configuracion/tipos-producto',
+            description: 'Categorías productos'
         },
         {
             title: 'Stock Inicial',

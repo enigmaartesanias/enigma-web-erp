@@ -1,290 +1,277 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { comprasDB } from '../../../utils/comprasClient';
-import { FaArrowLeft, FaChartLine, FaFilter, FaEye, FaTrash, FaTools, FaBox } from 'react-icons/fa';
+import { FaArrowLeft, FaPlus, FaEye, FaFilter, FaEdit, FaTrash } from 'react-icons/fa';
+import { comprasItemsDB } from '../../../utils/comprasItemsClient';
+import ModalInventariar from '../../../components/ModalInventariar';
+import ModalEditarItem from '../../../components/ModalEditarItem';
+import ModalVerProducto from '../../../components/ModalVerProducto';
 import toast, { Toaster } from 'react-hot-toast';
-import ConfirmModal from '../../../components/ui/ConfirmModal';
-import Tooltip from '../../../components/ui/Tooltip';
 
 export default function ReporteCompras() {
     const navigate = useNavigate();
-    const [compras, setCompras] = useState([]);
+
+    const [items, setItems] = useState([]);
+    const [filteredItems, setFilteredItems] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [filtroTipo, setFiltroTipo] = useState('TODOS');
-    const [fechaInicio, setFechaInicio] = useState('');
-    const [fechaFin, setFechaFin] = useState('');
-    const [stats, setStats] = useState({
-        total_compras: 0,
-        total_materiales: 0,
-        total_productos: 0,
-        total_general: 0
-    });
+    const [filtro, setFiltro] = useState('todos'); // todos, pendientes, inventariados
 
-    // Modal de confirmación
-    const [confirmModal, setConfirmModal] = useState({
-        isOpen: false,
-        title: '',
-        message: '',
-        icon: null,
-        confirmText: '',
-        confirmColor: 'blue',
-        onConfirm: () => { }
-    });
+    // Modal Inventariar
+    const [showModal, setShowModal] = useState(false);
+    const [selectedItem, setSelectedItem] = useState(null);
 
-    // Modal de detalle
-    const [detalleModal, setDetalleModal] = useState({
-        isOpen: false,
-        compra: null
-    });
+    // Modal Ver Producto
+    const [showVerModal, setShowVerModal] = useState(false);
+    const [selectedProductoId, setSelectedProductoId] = useState(null);
+
+    // Modal Editar
+    const [showEditModal, setShowEditModal] = useState(false);
+    const [selectedEditItem, setSelectedEditItem] = useState(null);
 
     useEffect(() => {
-        loadCompras();
-        loadStats();
+        loadItems();
     }, []);
 
-    const loadCompras = async () => {
+    useEffect(() => {
+        aplicarFiltro();
+    }, [filtro, items]);
+
+    const loadItems = async () => {
+        setLoading(true);
         try {
-            setLoading(true);
-            const data = await comprasDB.getWithProducts();
-            setCompras(data);
+            const data = await comprasItemsDB.getAll();
+            setItems(data);
         } catch (error) {
-            console.error('Error cargando compras:', error);
-            toast.error('Error al cargar compras');
+            console.error('Error cargando items:', error);
+            toast.error('Error al cargar items de compras');
         } finally {
             setLoading(false);
         }
     };
 
-    const loadStats = async () => {
+    const aplicarFiltro = () => {
+        let filtered = [...items];
+
+        if (filtro === 'pendientes') {
+            filtered = items.filter(item => !item.inventariado);
+        } else if (filtro === 'inventariados') {
+            filtered = items.filter(item => item.inventariado);
+        }
+
+        setFilteredItems(filtered);
+    };
+
+    const handleInventariar = (item) => {
+        setSelectedItem(item);
+        setShowModal(true);
+    };
+
+    const handleVerProducto = (item) => {
+        if (item.producto_externo_id) {
+            setSelectedProductoId(item.producto_externo_id);
+            setShowVerModal(true);
+        } else {
+            toast.error('No se encontró el producto en inventario');
+        }
+    };
+
+    const handleInventariado = () => {
+        loadItems(); // Recargar items
+        toast.success('Item inventariado exitosamente');
+    };
+
+    const handleEdit = (item) => {
+        setSelectedEditItem(item);
+        setShowEditModal(true);
+    };
+
+    const handleItemUpdated = () => {
+        loadItems(); // Recargar items
+        toast.success('Item actualizado exitosamente');
+    };
+
+    const handleDelete = async (item) => {
+        if (!confirm(`¿Estás seguro de eliminar el item "${item.nombre_item}"?`)) {
+            return;
+        }
+
         try {
-            const data = await comprasDB.getStats();
-            setStats(data);
+            await comprasItemsDB.delete(item.id);
+            toast.success('Item eliminado exitosamente');
+            loadItems();
         } catch (error) {
-            console.error('Error cargando estadísticas:', error);
+            console.error('Error eliminando item:', error);
+            toast.error('Error al eliminar el item');
         }
     };
 
-    // Filtrar compras
-    const comprasFiltradas = compras.filter(compra => {
-        // Filtro por tipo
-        if (filtroTipo !== 'TODOS' && compra.tipo_compra !== filtroTipo) {
-            return false;
-        }
-
-        // Filtro por fechas
-        const fechaCompra = new Date(compra.fecha_compra);
-        const inicio = fechaInicio ? new Date(fechaInicio) : null;
-        const fin = fechaFin ? new Date(fechaFin) : null;
-
-        if (inicio && fechaCompra < inicio) return false;
-        if (fin && fechaCompra > fin) return false;
-
-        return true;
-    });
-
-    const handleVer = (compra) => {
-        setDetalleModal({
-            isOpen: true,
-            compra: compra
-        });
+    const formatFecha = (fecha) => {
+        if (!fecha) return '-';
+        const date = new Date(fecha);
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = String(date.getFullYear()).slice(-2);
+        return `${day}/${month}/${year}`;
     };
 
-    const handleEliminar = (compra) => {
-        setConfirmModal({
-            isOpen: true,
-            title: 'Eliminar Compra',
-            message: `¿Estás seguro de eliminar la compra "${compra.codigo_compra}"?\n\nEsta acción no se puede deshacer.`,
-            icon: <FaTrash />,
-            confirmText: 'Sí, eliminar',
-            confirmColor: 'red',
-            onConfirm: async () => {
-                try {
-                    await comprasDB.delete(compra.id);
-                    toast.success('Compra eliminada correctamente');
-                    loadCompras();
-                    loadStats();
-                } catch (error) {
-                    console.error('Error:', error);
-                    toast.error('Error al eliminar compra');
-                }
-            }
-        });
+    const formatMonto = (monto) => {
+        return `S/ ${parseFloat(monto || 0).toFixed(2)}`;
     };
 
     return (
-        <div className="min-h-screen bg-gray-50">
-            {/* Header */}
-            <div className="bg-white shadow-sm border-b">
-                <div className="max-w-7xl mx-auto px-4 py-4">
-                    <button
-                        onClick={() => navigate('/inventario-home')}
-                        className="flex items-center text-gray-600 hover:text-slate-700 transition-colors text-sm mb-3"
-                    >
-                        <FaArrowLeft className="mr-2" size={14} />
-                        Volver al Panel
-                    </button>
-                    <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-                        <FaChartLine className="text-slate-700" />
-                        Reporte de Compras
-                    </h1>
-                    <p className="text-gray-500 text-sm mt-1">Historial de materiales y productos adquiridos</p>
-                </div>
-            </div>
+        <div className="min-h-screen bg-gray-50 p-6">
+            <Toaster position="top-right" />
 
-            {/* Stats Cards */}
-            <div className="max-w-7xl mx-auto px-4 py-6">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                    <div className="bg-white p-4 rounded-lg shadow-sm border-l-4 border-slate-700">
-                        <p className="text-xs text-gray-500 font-medium">Total Compras</p>
-                        <p className="text-xl font-bold text-gray-900">{stats.total_compras || 0}</p>
+            <div className="max-w-7xl mx-auto">
+                {/* Header Compacto */}
+                <div className="mb-6">
+                    <div className="flex items-center gap-3 mb-3">
+                        <button
+                            onClick={() => navigate('/inventario')}
+                            className="p-2 hover:bg-gray-200 rounded-lg transition-colors"
+                        >
+                            <FaArrowLeft size={18} />
+                        </button>
+                        <h1 className="text-xl text-gray-900">
+                            📊 Reporte de Compras
+                        </h1>
                     </div>
-                    <div className="bg-white p-4 rounded-lg shadow-sm border-l-4 border-gray-500">
-                        <p className="text-xs text-gray-500 font-medium">Materiales</p>
-                        <p className="text-xl font-bold text-gray-900">S/ {Number(stats.total_materiales || 0).toFixed(2)}</p>
-                    </div>
-                    <div className="bg-white p-4 rounded-lg shadow-sm border-l-4 border-blue-500">
-                        <p className="text-xs text-gray-500 font-medium">Productos</p>
-                        <p className="text-xl font-bold text-gray-900">S/ {Number(stats.total_productos || 0).toFixed(2)}</p>
-                    </div>
-                    <div className="bg-white p-4 rounded-lg shadow-sm border-l-4 border-green-500">
-                        <p className="text-xs text-gray-500 font-medium">Total General</p>
-                        <p className="text-xl font-bold text-gray-900">S/ {Number(stats.total_general || 0).toFixed(2)}</p>
+
+                    {/* Filtro debajo del título */}
+                    <div className="flex items-center gap-2 ml-11">
+                        <FaFilter className="text-gray-500" size={14} />
+                        <select
+                            value={filtro}
+                            onChange={(e) => setFiltro(e.target.value)}
+                            className="px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                            <option value="todos">Todos los Items</option>
+                            <option value="pendientes">⏳ Pendientes</option>
+                            <option value="inventariados">✅ Inventariados</option>
+                        </select>
                     </div>
                 </div>
 
-                {/* Filtros */}
-                <div className="bg-white p-4 rounded-lg shadow-sm mb-6">
-                    <div className="flex items-center gap-2 mb-3">
-                        <FaFilter className="text-gray-500" />
-                        <h2 className="text-sm font-semibold text-gray-700">Filtros</h2>
+                {/* Estadísticas en 3 columnas responsive */}
+                <div className="grid grid-cols-3 gap-3 mb-6">
+                    <div className="bg-white rounded-lg shadow p-3">
+                        <div className="text-xs text-gray-600 mb-1">Total Items</div>
+                        <div className="text-xl font-bold text-gray-900">{items.length}</div>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-                        <div>
-                            <label className="block text-xs text-gray-600 mb-1">Tipo</label>
-                            <select
-                                value={filtroTipo}
-                                onChange={(e) => setFiltroTipo(e.target.value)}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-slate-500 outline-none"
-                            >
-                                <option value="TODOS">Todos</option>
-                                <option value="MATERIAL">Materiales</option>
-                                <option value="PRODUCTO">Productos</option>
-                            </select>
+                    <div className="bg-orange-50 rounded-lg shadow p-3">
+                        <div className="text-xs text-orange-600 mb-1">Pendientes</div>
+                        <div className="text-xl font-bold text-orange-700">
+                            {items.filter(i => !i.inventariado).length}
                         </div>
-                        <div>
-                            <label className="block text-xs text-gray-600 mb-1">Fecha Inicio</label>
-                            <input
-                                type="date"
-                                value={fechaInicio}
-                                onChange={(e) => setFechaInicio(e.target.value)}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-slate-500 outline-none"
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-xs text-gray-600 mb-1">Fecha Fin</label>
-                            <input
-                                type="date"
-                                value={fechaFin}
-                                onChange={(e) => setFechaFin(e.target.value)}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-slate-500 outline-none"
-                            />
-                        </div>
-                        <div className="flex items-end">
-                            <button
-                                onClick={() => { setFiltroTipo('TODOS'); setFechaInicio(''); setFechaFin(''); }}
-                                className="w-full px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition"
-                            >
-                                Limpiar
-                            </button>
+                    </div>
+                    <div className="bg-green-50 rounded-lg shadow p-3">
+                        <div className="text-xs text-green-600 mb-1">Inventariados</div>
+                        <div className="text-xl font-bold text-green-700">
+                            {items.filter(i => i.inventariado).length}
                         </div>
                     </div>
                 </div>
 
-                {/* Tabla */}
-                <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-                    <div className="p-4 border-b bg-gray-50">
-                        <h2 className="text-sm font-semibold text-gray-700">
-                            Compras Registradas ({comprasFiltradas.length})
-                        </h2>
-                    </div>
+                {/* Tabla GRID */}
+                <div className="bg-white rounded-lg shadow-md overflow-hidden">
                     {loading ? (
-                        <div className="p-8 text-center text-gray-500 text-sm">Cargando compras...</div>
-                    ) : comprasFiltradas.length === 0 ? (
-                        <div className="p-8 text-center text-gray-500 text-sm">
-                            No hay compras registradas.
+                        <div className="p-8 text-center text-gray-500">
+                            Cargando items...
+                        </div>
+                    ) : filteredItems.length === 0 ? (
+                        <div className="p-8 text-center text-gray-500">
+                            No hay items para mostrar
                         </div>
                     ) : (
                         <div className="overflow-x-auto">
                             <table className="w-full">
-                                <thead className="bg-gray-50 border-b">
+                                <thead className="bg-gray-100 border-b">
                                     <tr>
-                                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Código</th>
-                                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Fecha</th>
-                                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Tipo</th>
-                                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Proveedor</th>
-                                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Descripción</th>
-                                        <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase">Cantidad</th>
-                                        <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase">Costo Unit.</th>
-                                        <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase">Total</th>
-                                        <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase">Acciones</th>
+                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                                            Fecha
+                                        </th>
+                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                                            Proveedor
+                                        </th>
+                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                                            Producto
+                                        </th>
+                                        <th className="px-4 py-3 text-center text-xs font-medium text-gray-700 uppercase tracking-wider">
+                                            Cant.
+                                        </th>
+                                        <th className="px-4 py-3 text-right text-xs font-medium text-gray-700 uppercase tracking-wider">
+                                            Subtotal
+                                        </th>
+                                        <th className="px-4 py-3 text-center text-xs font-medium text-gray-700 uppercase tracking-wider">
+                                            Estado
+                                        </th>
+                                        <th className="px-4 py-3 text-center text-xs font-medium text-gray-700 uppercase tracking-wider">
+                                            Acción
+                                        </th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-200">
-                                    {comprasFiltradas.map((compra) => (
-                                        <tr key={compra.id} className="hover:bg-gray-50 transition-colors">
-                                            <td className="px-4 py-3">
-                                                <span className="font-mono text-xs text-gray-600">{compra.codigo_compra}</span>
+                                    {filteredItems.map((item) => (
+                                        <tr key={item.id} className="hover:bg-gray-50 transition-colors">
+                                            <td className="px-4 py-3 text-sm text-gray-600">
+                                                {formatFecha(item.fecha_compra)}
                                             </td>
-                                            <td className="px-4 py-3 text-xs text-gray-700">
-                                                {new Date(compra.fecha_compra).toLocaleDateString('es-PE')}
+                                            <td className="px-4 py-3 text-sm text-gray-600">
+                                                {item.proveedor_nombre || 'Sin proveedor'}
                                             </td>
-                                            <td className="px-4 py-3">
-                                                {compra.tipo_compra === 'MATERIAL' ? (
-                                                    <span className="inline-flex items-center px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-700 border border-gray-200">
-                                                        <FaTools className="mr-1" size={10} />
-                                                        Material
+                                            <td className="px-4 py-3 text-sm text-gray-900">
+                                                {item.nombre_item}
+                                            </td>
+                                            <td className="px-4 py-3 text-sm text-center text-gray-900">
+                                                {item.cantidad}
+                                            </td>
+                                            <td className="px-4 py-3 text-sm text-right font-medium text-gray-900">
+                                                {formatMonto(item.subtotal)}
+                                            </td>
+                                            <td className="px-4 py-3 text-center">
+                                                {item.inventariado ? (
+                                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                                        ✅ OK
                                                     </span>
                                                 ) : (
-                                                    <span className="inline-flex items-center px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-700 border border-blue-200">
-                                                        <FaBox className="mr-1" size={10} />
-                                                        Producto
+                                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                                                        ⏳ Pendiente
                                                     </span>
                                                 )}
                                             </td>
-                                            <td className="px-4 py-3 text-xs text-gray-700">
-                                                {compra.proveedor || '-'}
-                                            </td>
-                                            <td className="px-4 py-3 text-xs text-gray-700 max-w-xs truncate">
-                                                {compra.descripcion}
-                                            </td>
-                                            <td className="px-4 py-3 text-right text-xs text-gray-700">
-                                                {Number(compra.cantidad).toFixed(2)}
-                                            </td>
-                                            <td className="px-4 py-3 text-right text-xs text-gray-700">
-                                                S/ {Number(compra.costo_unitario).toFixed(2)}
-                                            </td>
-                                            <td className="px-4 py-3 text-right text-sm font-bold text-slate-700">
-                                                S/ {Number(compra.total).toFixed(2)}
-                                            </td>
-                                            <td className="px-4 py-3">
-                                                <div className="flex justify-center gap-2">
-                                                    <Tooltip text="Ver detalle">
+                                            <td className="px-4 py-3 text-center">
+                                                {item.inventariado ? (
+                                                    <button
+                                                        onClick={() => handleVerProducto(item)}
+                                                        className="inline-flex items-center gap-1 px-3 py-1 text-sm text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                                                        title="Ver producto en inventario"
+                                                    >
+                                                        <FaEye size={14} /> Ver
+                                                    </button>
+                                                ) : (
+                                                    <div className="flex items-center justify-center gap-2">
                                                         <button
-                                                            onClick={() => handleVer(compra)}
-                                                            className="p-2 text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                                                            onClick={() => handleInventariar(item)}
+                                                            className="px-2 py-1.5 text-xs text-white bg-green-600 hover:bg-green-700 rounded transition-colors"
+                                                            title="Inventariar"
                                                         >
-                                                            <FaEye size={16} />
+                                                            <FaPlus size={12} className="inline mr-1" /> Invent.
                                                         </button>
-                                                    </Tooltip>
-                                                    <Tooltip text="Eliminar compra">
                                                         <button
-                                                            onClick={() => handleEliminar(compra)}
+                                                            onClick={() => handleEdit(item)}
+                                                            className="p-2 text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                                                            title="Editar item"
+                                                        >
+                                                            <FaEdit size={16} />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleDelete(item)}
                                                             className="p-2 text-red-600 hover:bg-red-50 rounded transition-colors"
+                                                            title="Eliminar item"
                                                         >
                                                             <FaTrash size={16} />
                                                         </button>
-                                                    </Tooltip>
-                                                </div>
+                                                    </div>
+                                                )}
                                             </td>
                                         </tr>
                                     ))}
@@ -294,111 +281,43 @@ export default function ReporteCompras() {
                     )}
                 </div>
 
-                {/* Modal de Detalle */}
-                {detalleModal.isOpen && (
-                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-                        <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full p-6">
-                            <div className="flex justify-between items-start mb-4">
-                                <div>
-                                    <h3 className="text-xl font-bold">Detalle de Compra</h3>
-                                    <p className="text-sm text-gray-600">#{detalleModal.compra?.codigo_compra}</p>
-                                </div>
-                                <button
-                                    onClick={() => setDetalleModal({ isOpen: false, compra: null })}
-                                    className="text-gray-400 hover:text-gray-600"
-                                >
-                                    ✕
-                                </button>
-                            </div>
-
-                            {detalleModal.compra && (
-                                <div>
-                                    <div className="grid grid-cols-2 gap-4 mb-4 text-sm">
-                                        <div>
-                                            <p className="text-gray-500">Fecha:</p>
-                                            <p className="font-medium">{new Date(detalleModal.compra.fecha_compra).toLocaleDateString('es-PE')}</p>
-                                        </div>
-                                        <div>
-                                            <p className="text-gray-500">Tipo:</p>
-                                            <p className="font-medium">{detalleModal.compra.tipo_compra}</p>
-                                        </div>
-                                        <div>
-                                            <p className="text-gray-500">Proveedor:</p>
-                                            <p className="font-medium">{detalleModal.compra.proveedor || '-'}</p>
-                                        </div>
-                                        <div>
-                                            <p className="text-gray-500">Cantidad:</p>
-                                            <p className="font-medium">{Number(detalleModal.compra.cantidad).toFixed(2)}</p>
-                                        </div>
-                                    </div>
-
-                                    <div className="mb-4">
-                                        <p className="text-gray-500 text-sm">Descripción:</p>
-                                        <p className="font-medium">{detalleModal.compra.descripcion}</p>
-                                    </div>
-
-                                    {detalleModal.compra.observaciones && (
-                                        <div className="mb-4">
-                                            <p className="text-gray-500 text-sm">Observaciones:</p>
-                                            <p className="text-sm">{detalleModal.compra.observaciones}</p>
-                                        </div>
-                                    )}
-
-                                    {detalleModal.compra.producto_nombre && (
-                                        <div className="mb-4 bg-blue-50 border border-blue-200 rounded p-3">
-                                            <p className="text-sm font-semibold text-blue-800">Producto en Inventario</p>
-                                            <p className="text-xs text-blue-700 mt-1">
-                                                {detalleModal.compra.producto_nombre} ({detalleModal.compra.producto_codigo})
-                                            </p>
-                                        </div>
-                                    )}
-
-                                    <div className="border-t pt-4 space-y-2 text-sm">
-                                        <div className="flex justify-between">
-                                            <span>Costo Unitario:</span>
-                                            <span>S/ {Number(detalleModal.compra.costo_unitario).toFixed(2)}</span>
-                                        </div>
-                                        <div className="flex justify-between font-bold text-lg border-t pt-2">
-                                            <span>Total:</span>
-                                            <span>S/ {Number(detalleModal.compra.total).toFixed(2)}</span>
-                                        </div>
-                                    </div>
-
-                                    <button
-                                        onClick={() => setDetalleModal({ isOpen: false, compra: null })}
-                                        className="w-full mt-4 px-4 py-2 bg-gray-100 rounded-lg hover:bg-gray-200"
-                                    >
-                                        Cerrar
-                                    </button>
-                                </div>
-                            )}
+                {/* Resumen */}
+                {filteredItems.length > 0 && (
+                    <div className="mt-4 bg-white rounded-lg shadow p-4">
+                        <div className="flex justify-between items-center">
+                            <span className="text-sm text-gray-600">
+                                Mostrando {filteredItems.length} de {items.length} items
+                            </span>
+                            <span className="text-lg font-bold text-gray-900">
+                                Total: {formatMonto(filteredItems.reduce((sum, item) => sum + parseFloat(item.subtotal || 0), 0))}
+                            </span>
                         </div>
                     </div>
                 )}
-
-                {/* Toaster */}
-                <Toaster
-                    position="top-right"
-                    toastOptions={{
-                        duration: 3000,
-                        style: { fontSize: '14px', maxWidth: '300px', padding: '12px 16px' },
-                        success: { iconTheme: { primary: '#10b981', secondary: 'white' }, style: { borderLeft: '4px solid #10b981' } },
-                        error: { iconTheme: { primary: '#ef4444', secondary: 'white' }, duration: 4000, style: { borderLeft: '4px solid #ef4444' } }
-                    }}
-                />
-
-                {/* ConfirmModal */}
-                <ConfirmModal
-                    isOpen={confirmModal.isOpen}
-                    onClose={() => setConfirmModal({ ...confirmModal, isOpen: false })}
-                    onConfirm={confirmModal.onConfirm}
-                    title={confirmModal.title}
-                    message={confirmModal.message}
-                    icon={confirmModal.icon}
-                    confirmText={confirmModal.confirmText}
-                    confirmColor={confirmModal.confirmColor}
-                />
             </div>
+
+            {/* Modal de Inventariado */}
+            <ModalInventariar
+                isOpen={showModal}
+                onClose={() => setShowModal(false)}
+                item={selectedItem}
+                onInventariado={handleInventariado}
+            />
+
+            {/* Modal de Edición */}
+            <ModalEditarItem
+                isOpen={showEditModal}
+                onClose={() => setShowEditModal(false)}
+                item={selectedEditItem}
+                onItemUpdated={handleItemUpdated}
+            />
+
+            {/* Modal Ver Producto */}
+            <ModalVerProducto
+                isOpen={showVerModal}
+                onClose={() => setShowVerModal(false)}
+                productoId={selectedProductoId}
+            />
         </div>
     );
 }

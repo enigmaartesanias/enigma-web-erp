@@ -1,62 +1,30 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { FaArrowLeft, FaPlus, FaTrash, FaSave, FaTimes } from 'react-icons/fa';
 import { comprasDB, generarCodigoCompra } from '../../../utils/comprasClient';
 import { comprasItemsDB } from '../../../utils/comprasItemsClient';
 import { proveedoresDB } from '../../../utils/proveedoresNeonClient';
-import { productosExternosDB } from '../../../utils/productosExternosNeonClient';
-import { storage } from '../../../firebaseConfig';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { v4 as uuidv4 } from 'uuid';
-import { FaArrowLeft, FaPlus, FaTrash, FaSave, FaBox, FaTools, FaTimes } from 'react-icons/fa';
+import ModalProveedorRapido from '../../../components/ModalProveedorRapido';
 import toast, { Toaster } from 'react-hot-toast';
-import { compressAndResizeImage } from '../../../utils/imageOptimizer';
 
 export default function RegistroCompras() {
     const navigate = useNavigate();
-    const [loading, setLoading] = useState(false);
-    const [proveedores, setProveedores] = useState([]);
-    const [showNewProveedorForm, setShowNewProveedorForm] = useState(false);
 
-    // Estado del formulario principal
+    // Estado del formulario
+    const [proveedores, setProveedores] = useState([]);
     const [formData, setFormData] = useState({
-        fecha_compra: new Date().toISOString().split('T')[0],
-        tipo_item: 'MATERIAL',
         proveedor_id: '',
         observaciones: ''
     });
 
-    // Estado para nuevo proveedor
-    const [nuevoProveedor, setNuevoProveedor] = useState({
-        nombre: '',
-        contacto: '',
-        telefono: ''
-    });
+    // Estado de items
+    const [items, setItems] = useState([
+        { nombre_item: '', cantidad: '', costo_unitario: '', subtotal: 0 }
+    ]);
 
-    // Estado para items de la compra
-    const [items, setItems] = useState([]);
-    const [currentItem, setCurrentItem] = useState({
-        nombre_item: '',
-        cantidad: '',
-        costo_unitario: ''
-    });
-
-    // Estados para búsqueda inteligente de productos
-    const [searchResults, setSearchResults] = useState([]);
-    const [showSuggestions, setShowSuggestions] = useState(false);
-    const [selectedProduct, setSelectedProduct] = useState(null);
-
-    // Estado para formulario de inventario expandible por item
-    const [expandedItemId, setExpandedItemId] = useState(null);
-
-    // Estado para datos de inventario (solo si tipo_item === 'NUEVO_MATERIAL')
-    const [datosInventario, setDatosInventario] = useState({
-        nombre_producto: '',
-        categoria: '',
-        codigo_usuario: '',
-        precio_venta: '',
-        stock_minimo: 1,
-        imagen: null
-    });
+    // Estado del modal
+    const [showModalProveedor, setShowModalProveedor] = useState(false);
+    const [saving, setSaving] = useState(false);
 
     // Cargar proveedores al montar
     useEffect(() => {
@@ -69,793 +37,326 @@ export default function RegistroCompras() {
             setProveedores(data);
         } catch (error) {
             console.error('Error cargando proveedores:', error);
+            toast.error('Error al cargar proveedores');
         }
     };
 
-    // Búsqueda inteligente de productos
-    useEffect(() => {
-        const searchProducts = async () => {
-            if (currentItem.nombre_item.length >= 3 && formData.tipo_item === 'PRODUCTO_VENTA') {
-                try {
-                    const results = await productosExternosDB.search(currentItem.nombre_item);
-                    setSearchResults(results);
-                    setShowSuggestions(results.length > 0);
-                } catch (error) {
-                    console.error('Error buscando productos:', error);
-                    setSearchResults([]);
-                    setShowSuggestions(false);
-                }
-            } else {
-                setSearchResults([]);
-                setShowSuggestions(false);
-            }
-        };
-
-        const debounceTimer = setTimeout(searchProducts, 300);
-        return () => clearTimeout(debounceTimer);
-    }, [currentItem.nombre_item, formData.tipo_item]);
-
+    // Manejar cambios en cabecera
     const handleChange = (e) => {
         const { name, value } = e.target;
-        setFormData({
-            ...formData,
+        setFormData(prev => ({
+            ...prev,
             [name]: value
-        });
+        }));
     };
 
-    const handleItemChange = (e) => {
-        const { name, value } = e.target;
-        setCurrentItem({
-            ...currentItem,
-            [name]: value
-        });
-    };
+    // Manejar cambios en items
+    const handleItemChange = (index, field, value) => {
+        const newItems = [...items];
+        newItems[index][field] = value;
 
-    const handleInventarioChange = (e) => {
-        const { name, value } = e.target;
-        // Convertir código a mayúsculas automáticamente
-        const finalValue = name === 'codigo_usuario' ? value.toUpperCase() : value;
-        setDatosInventario({
-            ...datosInventario,
-            [name]: finalValue
-        });
-    };
-
-    const handleImageChange = (e) => {
-        const file = e.target.files[0];
-        if (file) {
-            setDatosInventario({
-                ...datosInventario,
-                imagen: file
-            });
+        // Calcular subtotal automáticamente
+        if (field === 'cantidad' || field === 'costo_unitario') {
+            const cantidad = parseFloat(newItems[index].cantidad) || 0;
+            const costo = parseFloat(newItems[index].costo_unitario) || 0;
+            newItems[index].subtotal = (cantidad * costo).toFixed(2);
         }
+
+        setItems(newItems);
     };
 
-    const handleSelectProduct = (product) => {
-        setSelectedProduct(product);
-        setCurrentItem({
-            ...currentItem,
-            nombre_item: product.nombre
-        });
-        setDatosInventario({
-            nombre_producto: product.nombre,
-            categoria: product.categoria,
-            codigo_usuario: product.codigo_usuario,
-            precio_venta: product.precio,
-            stock_minimo: product.stock_minimo,
-            imagen: null
-        });
-        setShowSuggestions(false);
-        toast.success(`Producto "${product.nombre}" seleccionado`);
+    // Agregar nueva fila de item
+    const agregarItem = () => {
+        setItems([...items, { nombre_item: '', cantidad: '', costo_unitario: '', subtotal: 0 }]);
     };
 
-    const handleCreateNewProduct = () => {
-        setSelectedProduct(null);
-        setShowSuggestions(false);
-        setDatosInventario({
-            nombre_producto: currentItem.nombre_item,
-            categoria: '',
-            codigo_usuario: '',
-            precio_venta: '',
-            stock_minimo: 1,
-            imagen: null
-        });
-        toast.info('Completa los datos para crear el producto');
-    };
-
-    const handleAgregarItem = () => {
-        if (!currentItem.nombre_item.trim()) {
-            toast.error('El nombre del item es obligatorio');
+    // Eliminar item
+    const eliminarItem = (index) => {
+        if (items.length === 1) {
+            toast.error('Debe haber al menos un item');
             return;
         }
-        if (!currentItem.cantidad || currentItem.cantidad <= 0) {
-            toast.error('La cantidad debe ser mayor a 0');
-            return;
-        }
-        if (!currentItem.costo_unitario || currentItem.costo_unitario <= 0) {
-            toast.error('El costo unitario debe ser mayor a 0');
-            return;
-        }
-
-        const cantidad = parseFloat(currentItem.cantidad);
-        const costoUnitario = parseFloat(currentItem.costo_unitario);
-        const subtotal = cantidad * costoUnitario;
-
-        const nuevoItem = {
-            id: uuidv4(), // ID temporal para el frontend
-            nombre_item: currentItem.nombre_item,
-            cantidad: cantidad,
-            costo_unitario: costoUnitario,
-            subtotal: subtotal,
-            inventarioData: null // Inicialmente sin datos de inventario
-        };
-
-        setItems([...items, nuevoItem]);
-        setCurrentItem({
-            nombre_item: '',
-            cantidad: '',
-            costo_unitario: ''
-        });
-        toast.success('Item agregado');
+        const newItems = items.filter((_, i) => i !== index);
+        setItems(newItems);
     };
 
-    const handleEliminarItem = (id) => {
-        setItems(items.filter(item => item.id !== id));
-        toast.success('Item eliminado');
+    // Calcular total general
+    const calcularTotal = () => {
+        return items.reduce((sum, item) => sum + (parseFloat(item.subtotal) || 0), 0);
     };
 
-    const handleCrearProveedor = async () => {
-        if (!nuevoProveedor.nombre.trim()) {
-            toast.error('El nombre del proveedor es obligatorio');
-            return;
+    // Manejar creación de proveedor
+    const handleProveedorCreado = (nuevoProveedor) => {
+        setProveedores(prev => [...prev, nuevoProveedor]);
+        setFormData(prev => ({
+            ...prev,
+            proveedor_id: nuevoProveedor.id
+        }));
+    };
+
+    // Validar formulario
+    const validarFormulario = () => {
+        if (!formData.proveedor_id) {
+            toast.error('Debe seleccionar un proveedor');
+            return false;
         }
 
-        try {
-            const proveedor = await proveedoresDB.create(nuevoProveedor);
-            setProveedores([...proveedores, proveedor]);
-            setFormData({ ...formData, proveedor_id: proveedor.id });
-            setNuevoProveedor({ nombre: '', contacto: '', telefono: '' });
-            setShowNewProveedorForm(false);
-            toast.success('Proveedor creado');
-        } catch (error) {
-            console.error('Error creando proveedor:', error);
-            toast.error('Error al crear proveedor');
+        // Validar que haya al menos un item válido
+        const itemsValidos = items.filter(item =>
+            item.nombre_item.trim() &&
+            parseFloat(item.cantidad) > 0 &&
+            parseFloat(item.costo_unitario) > 0
+        );
+
+        if (itemsValidos.length === 0) {
+            toast.error('Debe agregar al menos un item válido');
+            return false;
         }
+
+        return true;
     };
 
-    const generarCodigoAuto = () => {
-        const random = Math.floor(1000 + Math.random() * 9000);
-        return `PROD-${random}`;
-    };
-
+    // Guardar compra
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        // Validaciones
-        if (!formData.proveedor_id) {
-            toast.error('Selecciona un proveedor');
+        if (!validarFormulario()) {
             return;
         }
 
-        if (items.length === 0) {
-            toast.error('Agrega al menos un item');
-            return;
-        }
-
-        // Validaciones para PRODUCTO_VENTA
-        if (formData.tipo_item === 'PRODUCTO_VENTA') {
-            if (!datosInventario.nombre_producto.trim()) {
-                toast.error('El nombre del producto es obligatorio');
-                return;
-            }
-            if (!datosInventario.categoria) {
-                toast.error('La categoría es obligatoria');
-                return;
-            }
-        }
-
-        setLoading(true);
-
+        setSaving(true);
         try {
-            // 1. Crear producto en inventario si es PRODUCTO_VENTA
-            let productoId = null;
-            if (formData.tipo_item === 'PRODUCTO_VENTA') {
-                let imagenUrl = null;
-                if (datosInventario.imagen) {
-                    const optimizedFile = await compressAndResizeImage(datosInventario.imagen, {
-                        maxSizeMB: 1,
-                        maxWidth: 1200,
-                        maxHeight: 1200,
-                        quality: 0.95
-                    });
+            // 1. Crear cabecera de compra
+            const codigoCompra = generarCodigoCompra();
+            const total = calcularTotal();
 
-                    const fileName = `productos_comprados/${uuidv4()}_${optimizedFile.name}`;
-                    const storageRef = ref(storage, fileName);
-                    await uploadBytes(storageRef, optimizedFile);
-                    imagenUrl = await getDownloadURL(storageRef);
-                }
-
-                const producto = await productosExternosDB.create({
-                    nombre: datosInventario.nombre_producto,
-                    codigo_usuario: datosInventario.codigo_usuario || generarCodigoAuto(),
-                    categoria: datosInventario.categoria,
-                    precio: parseFloat(datosInventario.precio_venta) || 0,
-                    costo: items[0]?.costo_unitario || 0,
-                    stock_actual: items[0]?.cantidad || 0,
-                    stock_minimo: parseInt(datosInventario.stock_minimo) || 1,
-                    unidad: 'und',
-                    imagen_url: imagenUrl,
-                    descripcion: items[0]?.nombre_item || ''
-                });
-                productoId = producto.id;
-            }
-
-            // 2. Crear compra (cabecera)
-            const codigo = generarCodigoCompra();
             const compra = await comprasDB.create({
-                codigo_compra: codigo,
-                fecha_compra: formData.fecha_compra + 'T00:00:00',
-                tipo_compra: formData.tipo_item === 'MATERIAL' ? 'MATERIAL' : 'PRODUCTO',
-                tipo_item: formData.tipo_item,
+                codigo_compra: codigoCompra,
+                fecha_compra: new Date().toISOString(),
                 proveedor_id: formData.proveedor_id,
-                observaciones: formData.observaciones.trim() || null
+                observaciones: formData.observaciones || null
             });
 
-            // 3. Crear items de la compra
-            const itemsParaGuardar = items.map(item => ({
-                nombre_item: item.nombre_item,
-                cantidad: item.cantidad,
-                costo_unitario: item.costo_unitario,
-                subtotal: item.subtotal,
-                producto_externo_id: productoId || (selectedProduct ? selectedProduct.id : null)
+            // 2. Crear items de compra
+            const itemsValidos = items.filter(item =>
+                item.nombre_item.trim() &&
+                parseFloat(item.cantidad) > 0 &&
+                parseFloat(item.costo_unitario) > 0
+            );
+
+            const itemsParaGuardar = itemsValidos.map(item => ({
+                nombre_item: item.nombre_item.trim(),
+                cantidad: parseFloat(item.cantidad),
+                costo_unitario: parseFloat(item.costo_unitario),
+                subtotal: parseFloat(item.subtotal)
             }));
 
             await comprasItemsDB.createBatch(compra.id, itemsParaGuardar);
 
-            toast.success('Compra registrada correctamente', { duration: 4000 });
-            resetForm();
+            toast.success(`Compra ${codigoCompra} registrada exitosamente`);
+
+            // Limpiar formulario
+            setFormData({ proveedor_id: '', observaciones: '' });
+            setItems([{ nombre_item: '', cantidad: '', costo_unitario: '', subtotal: 0 }]);
+
         } catch (error) {
-            console.error('Error:', error);
-            toast.error('Error al registrar la compra');
+            console.error('Error guardando compra:', error);
+            toast.error('Error al guardar la compra');
         } finally {
-            setLoading(false);
+            setSaving(false);
         }
     };
 
-    const resetForm = () => {
-        setFormData({
-            fecha_compra: new Date().toISOString().split('T')[0],
-            tipo_item: 'MATERIAL',
-            proveedor_id: '',
-            observaciones: ''
-        });
-        setItems([]);
-        setCurrentItem({
-            nombre_item: '',
-            cantidad: '',
-            costo_unitario: ''
-        });
-        setDatosInventario({
-            nombre_producto: '',
-            categoria: '',
-            codigo_usuario: '',
-            precio_venta: '',
-            stock_minimo: 1,
-            imagen: null
-        });
-        const fileInput = document.querySelector('input[type="file"]');
-        if (fileInput) fileInput.value = '';
-    };
-
-    const totalGeneral = items.reduce((sum, item) => sum + item.subtotal, 0);
-
     return (
-        <div className="min-h-screen bg-gray-50">
-            {/* Header */}
-            <div className="bg-white shadow-sm border-b">
-                <div className="max-w-5xl mx-auto px-4 py-4 relative">
-                    <button
-                        onClick={() => navigate('/inventario-home')}
-                        className="flex items-center text-gray-600 hover:text-slate-700 transition-colors text-sm mb-3"
-                    >
-                        <FaArrowLeft className="mr-2" size={14} />
-                        Volver al Panel
-                    </button>
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+            <Toaster position="top-right" />
 
-                    {/* Close button */}
+            {/* Contenedor con altura fija y scroll */}
+            <div className="w-full max-w-3xl bg-white rounded-lg shadow-lg overflow-hidden" style={{ maxHeight: '90vh' }}>
+                {/* Header fijo */}
+                <div className="sticky top-0 bg-white border-b px-4 py-3 flex items-center gap-3 z-10">
                     <button
-                        onClick={() => {
-                            const hasData = items.length > 0 || formData.proveedor_id || formData.observaciones;
-                            if (hasData) {
-                                if (window.confirm('¿Deseas salir sin guardar? Se perderán los cambios.')) {
-                                    navigate('/inventario-home');
-                                }
-                            } else {
-                                navigate('/inventario-home');
-                            }
-                        }}
-                        className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition"
-                        title="Cerrar"
+                        onClick={() => navigate('/inventario')}
+                        className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
                     >
-                        <FaTimes size={18} />
+                        <FaArrowLeft size={16} />
                     </button>
-
-                    <h1 className="text-2xl font-bold text-gray-800">
-                        Registro de Compras
+                    <h1 className="text-lg font-medium text-gray-900">
+                        🛒 Registro de Compras
                     </h1>
-                    <p className="text-gray-500 text-sm mt-1">Registra compras en 3 pasos: Información → Items → Guardar</p>
                 </div>
-            </div>
 
-            {/* Formulario */}
-            <div className="max-w-5xl mx-auto px-4 py-6">
-                <form onSubmit={handleSubmit} className="space-y-6">
-                    {/* PASO 1: Información General */}
-                    <div className="bg-white rounded-lg shadow-sm p-6">
-                        <h2 className="text-lg font-semibold text-gray-800 mb-4">1. Información General</h2>
-
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            {/* Fecha */}
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Fecha *
-                                </label>
-                                <input
-                                    type="date"
-                                    name="fecha_compra"
-                                    value={formData.fecha_compra}
-                                    onChange={handleChange}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-500 outline-none text-sm"
-                                    required
-                                />
-                            </div>
-
-                            {/* Tipo de Item */}
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Tipo de Compra *
-                                </label>
-                                <select
-                                    name="tipo_item"
-                                    value={formData.tipo_item}
-                                    onChange={handleChange}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-500 outline-none text-sm"
-                                    required
-                                >
-                                    <option value="MATERIAL">Material/Insumo</option>
-                                    <option value="PRODUCTO_VENTA">Producto para Venta</option>
-                                </select>
-                            </div>
+                {/* Contenido con scroll */}
+                <div className="overflow-y-auto p-4" style={{ maxHeight: 'calc(90vh - 60px)' }}>
+                    <form onSubmit={handleSubmit} className="space-y-4">
+                        {/* Información de la Compra */}
+                        <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+                            <h2 className="text-sm font-medium text-gray-700 mb-2">Información de la Compra</h2>
 
                             {/* Proveedor */}
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Proveedor *
+                                <label className="block text-xs font-medium text-gray-600 mb-1">
+                                    Proveedor <span className="text-red-500">*</span>
                                 </label>
                                 <div className="flex gap-2">
                                     <select
                                         name="proveedor_id"
                                         value={formData.proveedor_id}
                                         onChange={handleChange}
-                                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-500 outline-none text-sm"
+                                        className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                         required
                                     >
-                                        <option value="">Seleccionar...</option>
-                                        {proveedores.map(p => (
-                                            <option key={p.id} value={p.id}>{p.nombre}</option>
+                                        <option value="">Seleccionar proveedor...</option>
+                                        {proveedores.map(prov => (
+                                            <option key={prov.id} value={prov.id}>
+                                                {prov.nombre}
+                                            </option>
                                         ))}
                                     </select>
                                     <button
                                         type="button"
-                                        onClick={() => setShowNewProveedorForm(!showNewProveedorForm)}
-                                        className="px-3 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition text-sm"
-                                        title="Nuevo proveedor"
+                                        onClick={() => setShowModalProveedor(true)}
+                                        className="px-3 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
+                                        title="Crear proveedor rápido"
                                     >
-                                        <FaPlus />
+                                        <FaPlus size={14} />
                                     </button>
                                 </div>
                             </div>
+
+                            {/* Observaciones */}
+                            <div>
+                                <label className="block text-xs font-medium text-gray-600 mb-1">
+                                    Observaciones
+                                </label>
+                                <textarea
+                                    name="observaciones"
+                                    value={formData.observaciones}
+                                    onChange={handleChange}
+                                    rows={2}
+                                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    placeholder="Notas adicionales..."
+                                />
+                            </div>
                         </div>
 
-                        {/* Formulario para nuevo proveedor */}
-                        {showNewProveedorForm && (
-                            <div className="mt-4 p-4 bg-slate-50 rounded-lg border border-slate-200">
-                                <h3 className="text-sm font-semibold text-gray-700 mb-3">Nuevo Proveedor</h3>
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                                    <input
-                                        type="text"
-                                        placeholder="Nombre *"
-                                        value={nuevoProveedor.nombre}
-                                        onChange={(e) => setNuevoProveedor({ ...nuevoProveedor, nombre: e.target.value })}
-                                        className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                                    />
-                                    <input
-                                        type="text"
-                                        placeholder="Contacto"
-                                        value={nuevoProveedor.contacto}
-                                        onChange={(e) => setNuevoProveedor({ ...nuevoProveedor, contacto: e.target.value })}
-                                        className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                                    />
-                                    <input
-                                        type="text"
-                                        placeholder="Teléfono"
-                                        value={nuevoProveedor.telefono}
-                                        onChange={(e) => setNuevoProveedor({ ...nuevoProveedor, telefono: e.target.value })}
-                                        className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                                    />
-                                </div>
+                        {/* Items de la Compra */}
+                        <div className="space-y-3">
+                            <div className="flex items-center justify-between">
+                                <h2 className="text-sm font-medium text-gray-700">Items de la Compra</h2>
                                 <button
                                     type="button"
-                                    onClick={handleCrearProveedor}
-                                    className="mt-3 px-4 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-800 transition text-sm"
+                                    onClick={agregarItem}
+                                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
                                 >
-                                    Crear Proveedor
+                                    <FaPlus size={12} /> Agregar Item
                                 </button>
                             </div>
-                        )}
-                    </div>
 
-                    {/* PASO 2: Agregar Items */}
-                    <div className="bg-white rounded-lg shadow-sm p-6">
-                        <h2 className="text-lg font-semibold text-gray-800 mb-4">2. Items de la Compra</h2>
+                            {/* Items - Vista responsive */}
+                            <div className="space-y-3">
+                                {items.map((item, index) => (
+                                    <div key={index} className="border border-gray-200 rounded-lg p-3 bg-white">
+                                        {/* Producto - Fila completa */}
+                                        <div className="mb-2">
+                                            <label className="block text-xs font-medium text-gray-600 mb-1">
+                                                Producto
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={item.nombre_item}
+                                                onChange={(e) => handleItemChange(index, 'nombre_item', e.target.value)}
+                                                className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                                placeholder="Nombre del producto"
+                                            />
+                                        </div>
 
-                        {/* Formulario para agregar item */}
-                        <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4">
-                            {/* Campo con autocomplete */}
-                            <div className="relative">
-                                <input
-                                    type="text"
-                                    name="nombre_item"
-                                    placeholder="Nombre/Descripción *"
-                                    value={currentItem.nombre_item}
-                                    onChange={handleItemChange}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-slate-500 outline-none"
-                                />
+                                        {/* Cantidad, Precio, Subtotal - Grid */}
+                                        <div className="grid grid-cols-3 gap-2 mb-2">
+                                            <div>
+                                                <label className="block text-xs font-medium text-gray-600 mb-1">
+                                                    Cant.
+                                                </label>
+                                                <input
+                                                    type="number"
+                                                    value={item.cantidad}
+                                                    onChange={(e) => handleItemChange(index, 'cantidad', e.target.value)}
+                                                    className="w-full px-2 py-1.5 text-sm text-center border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                                    min="0"
+                                                    step="0.01"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs font-medium text-gray-600 mb-1">
+                                                    Precio
+                                                </label>
+                                                <input
+                                                    type="number"
+                                                    value={item.costo_unitario}
+                                                    onChange={(e) => handleItemChange(index, 'costo_unitario', e.target.value)}
+                                                    className="w-full px-2 py-1.5 text-sm text-center border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                                    min="0"
+                                                    step="0.01"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs font-medium text-gray-600 mb-1">
+                                                    Subtotal
+                                                </label>
+                                                <div className="px-2 py-1.5 text-sm text-center bg-gray-50 border border-gray-200 rounded font-medium text-gray-900">
+                                                    S/ {parseFloat(item.subtotal || 0).toFixed(2)}
+                                                </div>
+                                            </div>
+                                        </div>
 
-                                {/* Dropdown de sugerencias */}
-                                {showSuggestions && searchResults.length > 0 && (
-                                    <div className="absolute z-10 w-full bg-white border border-gray-300 rounded-lg shadow-lg mt-1 max-h-60 overflow-y-auto">
-                                        {searchResults.map(product => (
-                                            <button
-                                                key={product.id}
-                                                type="button"
-                                                onClick={() => handleSelectProduct(product)}
-                                                className="w-full px-4 py-2 text-left hover:bg-blue-50 transition border-b last:border-b-0"
-                                            >
-                                                <div className="font-medium text-sm text-gray-800">{product.nombre}</div>
-                                                <div className="text-xs text-gray-500">Código: {product.codigo_usuario} | Stock: {product.stock_actual}</div>
-                                            </button>
-                                        ))}
+                                        {/* Botón eliminar */}
                                         <button
                                             type="button"
-                                            onClick={handleCreateNewProduct}
-                                            className="w-full px-4 py-2 text-left text-blue-600 hover:bg-blue-50 transition font-medium text-sm"
+                                            onClick={() => eliminarItem(index)}
+                                            className="w-full px-3 py-1.5 text-xs text-red-600 border border-red-200 rounded hover:bg-red-50 transition-colors flex items-center justify-center gap-1.5"
                                         >
-                                            + Crear nuevo producto
+                                            <FaTrash size={12} /> Eliminar
                                         </button>
                                     </div>
-                                )}
+                                ))}
                             </div>
-                            <input
-                                type="number"
-                                name="cantidad"
-                                placeholder="Cantidad *"
-                                value={currentItem.cantidad}
-                                onChange={handleItemChange}
-                                step="0.01"
-                                min="0.01"
-                                className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-slate-500 outline-none"
-                            />
-                            <input
-                                type="number"
-                                name="costo_unitario"
-                                placeholder="Costo Unitario *"
-                                value={currentItem.costo_unitario}
-                                onChange={handleItemChange}
-                                step="0.01"
-                                min="0.01"
-                                className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-slate-500 outline-none"
-                            />
+
+                            {/* Total */}
+                            <div className="bg-blue-50 px-4 py-3 rounded-lg border border-blue-200 flex justify-between items-center">
+                                <span className="text-sm font-medium text-gray-700">Total:</span>
+                                <span className="text-xl font-bold text-blue-600">
+                                    S/ {calcularTotal().toFixed(2)}
+                                </span>
+                            </div>
+                        </div>
+
+                        {/* Botones de acción fijos al fondo */}
+                        <div className="sticky bottom-0 bg-white pt-4 pb-2 flex gap-3">
                             <button
                                 type="button"
-                                onClick={handleAgregarItem}
-                                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm flex items-center justify-center gap-2 font-medium"
+                                onClick={() => navigate('/inventario')}
+                                className="flex-1 px-4 py-2.5 text-sm border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
                             >
-                                <FaPlus /> Agregar
+                                <FaTimes size={14} /> Cancelar
                             </button>
-                        </div>
-
-                        {/* Tabla de items */}
-                        {items.length > 0 && (
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-sm">
-                                    <thead className="bg-gray-100 text-gray-700">
-                                        <tr>
-                                            <th className="px-4 py-2 text-left">Item</th>
-                                            <th className="px-4 py-2 text-right">Cantidad</th>
-                                            <th className="px-4 py-2 text-right">Costo Unit.</th>
-                                            <th className="px-4 py-2 text-right">Subtotal</th>
-                                            {formData.tipo_item === 'PRODUCTO_VENTA' && (
-                                                <th className="px-4 py-2 text-center">Inventario</th>
-                                            )}
-                                            <th className="px-4 py-2 text-center">Acciones</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y">
-                                        {items.map(item => (
-                                            <React.Fragment key={item.id}>
-                                                <tr className="hover:bg-gray-50">
-                                                    <td className="px-4 py-2">{item.nombre_item}</td>
-                                                    <td className="px-4 py-2 text-right">{item.cantidad}</td>
-                                                    <td className="px-4 py-2 text-right">S/ {item.costo_unitario.toFixed(2)}</td>
-                                                    <td className="px-4 py-2 text-right font-semibold">S/ {item.subtotal.toFixed(2)}</td>
-                                                    {formData.tipo_item === 'PRODUCTO_VENTA' && (
-                                                        <td className="px-4 py-2 text-center">
-                                                            {item.inventarioData ? (
-                                                                <span className="text-green-600 text-xs flex items-center justify-center gap-1">
-                                                                    <FaBox /> Configurado
-                                                                </span>
-                                                            ) : (
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => setExpandedItemId(expandedItemId === item.id ? null : item.id)}
-                                                                    className="text-blue-600 hover:text-blue-800 text-xs flex items-center justify-center gap-1 mx-auto"
-                                                                >
-                                                                    <FaTools size={12} /> Configurar
-                                                                </button>
-                                                            )}
-                                                        </td>
-                                                    )}
-                                                    <td className="px-4 py-2 text-center">
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => handleEliminarItem(item.id)}
-                                                            className="text-red-600 hover:text-red-800"
-                                                        >
-                                                            <FaTrash size={14} />
-                                                        </button>
-                                                    </td>
-                                                </tr>
-
-                                                {/* Formulario expandible de inventario */}
-                                                {expandedItemId === item.id && formData.tipo_item === 'PRODUCTO_VENTA' && (
-                                                    <tr>
-                                                        <td colSpan={formData.tipo_item === 'PRODUCTO_VENTA' ? "6" : "5"} className="px-4 py-4 bg-blue-50">
-                                                            <div className="border-l-4 border-blue-500 pl-4">
-                                                                <h4 className="text-sm font-semibold text-gray-800 mb-3 flex items-center gap-2">
-                                                                    <FaBox className="text-blue-600" />
-                                                                    Datos para Inventario - {item.nombre_item}
-                                                                </h4>
-                                                                <p className="text-xs text-gray-500 mb-3">Completa estos datos para crear el producto en tu inventario</p>
-
-                                                                {/* Aquí irá el formulario de inventario inline */}
-                                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                                                    <div>
-                                                                        <label className="block text-xs font-medium text-gray-700 mb-1">Nombre Comercial *</label>
-                                                                        <input
-                                                                            type="text"
-                                                                            defaultValue={item.nombre_item}
-                                                                            className="w-full px-2 py-1.5 border border-gray-300 rounded text-xs"
-                                                                            placeholder="Nombre del producto"
-                                                                        />
-                                                                    </div>
-                                                                    <div>
-                                                                        <label className="block text-xs font-medium text-gray-700 mb-1">Categoría *</label>
-                                                                        <select className="w-full px-2 py-1.5 border border-gray-300 rounded text-xs">
-                                                                            <option value="">Seleccionar...</option>
-                                                                            <option value="Materiales">Materiales</option>
-                                                                            <option value="Collares">Collares</option>
-                                                                            <option value="Anillos">Anillos</option>
-                                                                            <option value="Aretes">Aretes</option>
-                                                                            <option value="Pulseras">Pulseras</option>
-                                                                        </select>
-                                                                    </div>
-                                                                </div>
-
-                                                                <div className="mt-3 flex gap-2">
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() => setExpandedItemId(null)}
-                                                                        className="px-3 py-1.5 text-xs border border-gray-300 rounded hover:bg-gray-50"
-                                                                    >
-                                                                        Cancelar
-                                                                    </button>
-                                                                    <button
-                                                                        type="button"
-                                                                        className="px-3 py-1.5 text-xs bg-blue-600 text-white rounded hover:bg-blue-700"
-                                                                    >
-                                                                        ✓ Guardar Datos
-                                                                    </button>
-                                                                </div>
-                                                            </div>
-                                                        </td>
-                                                    </tr>
-                                                )}
-                                            </React.Fragment>
-                                        ))}
-                                    </tbody>
-                                    <tfoot className="bg-gray-50">
-                                        <tr>
-                                            <td colSpan={formData.tipo_item === 'PRODUCTO_VENTA' ? "4" : "3"} className="px-4 py-3 text-right font-semibold">Total:</td>
-                                            <td className="px-4 py-3 text-right font-bold text-lg">S/ {totalGeneral.toFixed(2)}</td>
-                                            <td></td>
-                                        </tr>
-                                    </tfoot>
-                                </table>
-                            </div>
-                        )}
-
-                        {items.length === 0 && (
-                            <p className="text-gray-400 text-sm text-center py-4">No hay items agregados</p>
-                        )}
-                    </div>
-
-                    {/* DATOS PARA INVENTARIO (solo si tipo_item === 'PRODUCTO_VENTA' y no hay producto seleccionado) */}
-                    {formData.tipo_item === 'PRODUCTO_VENTA' && !selectedProduct && (searchResults.length === 0 || currentItem.nombre_item.length < 3) && (
-                        <div className="bg-white rounded-lg shadow-sm p-6 border-l-4 border-blue-500">
-                            <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                                <FaBox className="text-blue-600" />
-                                Datos para Inventario
-                            </h2>
-                            <p className="text-xs text-gray-500 mb-4">Completa estos datos para crear el producto en tu inventario</p>
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {/* Nombre Comercial */}
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        Nombre Comercial *
-                                    </label>
-                                    <input
-                                        type="text"
-                                        name="nombre_producto"
-                                        value={datosInventario.nombre_producto}
-                                        onChange={handleInventarioChange}
-                                        placeholder="Ej: Collar Elegance Oro 18K"
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-500 outline-none text-sm"
-                                    />
-                                </div>
-
-                                {/* Categoría */}
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        Categoría *
-                                    </label>
-                                    <select
-                                        name="categoria"
-                                        value={datosInventario.categoria}
-                                        onChange={handleInventarioChange}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-500 outline-none text-sm"
-                                    >
-                                        <option value="">Seleccionar...</option>
-                                        <option value="Materiales">Materiales</option>
-                                        <option value="Collares">Collares</option>
-                                        <option value="Anillos">Anillos</option>
-                                        <option value="Aretes">Aretes</option>
-                                        <option value="Pulseras">Pulseras</option>
-                                        <option value="Pendientes">Pendientes</option>
-                                        <option value="Otros">Otros</option>
-                                    </select>
-                                </div>
-
-                                {/* Código de Producto */}
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        Código de Producto <span className="text-gray-400">(auto-generado)</span>
-                                    </label>
-                                    <input
-                                        type="text"
-                                        name="codigo_usuario"
-                                        value={datosInventario.codigo_usuario}
-                                        onChange={handleInventarioChange}
-                                        placeholder="Ej: PROD-001 (MAYÚSCULAS)"
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-500 outline-none text-sm uppercase"
-                                    />
-                                    <p className="text-xs text-gray-500 mt-1">Se auto-genera si se deja vacío. Solo MAYÚSCULAS.</p>
-                                </div>
-
-                                {/* Precio de Venta */}
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        Precio de Venta <span className="text-gray-400">(solo productos terminados)</span>
-                                    </label>
-                                    <div className="relative">
-                                        <span className="absolute left-3 top-2.5 text-gray-500 text-sm">S/</span>
-                                        <input
-                                            type="number"
-                                            name="precio_venta"
-                                            value={datosInventario.precio_venta}
-                                            onChange={handleInventarioChange}
-                                            placeholder="0.00"
-                                            step="0.01"
-                                            min="0"
-                                            className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-500 outline-none text-sm"
-                                        />
-                                    </div>
-                                </div>
-
-                                {/* Stock Mínimo */}
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        Stock Mínimo
-                                    </label>
-                                    <input
-                                        type="number"
-                                        name="stock_minimo"
-                                        value={datosInventario.stock_minimo}
-                                        onChange={handleInventarioChange}
-                                        min="1"
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-500 outline-none text-sm"
-                                    />
-                                    <p className="text-xs text-gray-500 mt-1">Configurable una vez. Opcional en compra.</p>
-                                </div>
-
-                                {/* Imagen del Producto */}
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        Imagen del Producto <span className="text-gray-400">(opcional)</span>
-                                    </label>
-                                    <input
-                                        type="file"
-                                        accept="image/*"
-                                        onChange={handleImageChange}
-                                        className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-slate-50 file:text-slate-700 hover:file:bg-slate-100"
-                                    />
-                                    {datosInventario.imagen && (
-                                        <p className="text-xs text-gray-500 mt-2">
-                                            Archivo: {datosInventario.imagen.name}
-                                        </p>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* PASO 3: Guardar */}
-                    <div className="bg-white rounded-lg shadow-sm p-6">
-                        <h2 className="text-lg font-semibold text-gray-800 mb-4">3. Finalizar</h2>
-
-                        {/* Observaciones */}
-                        <div className="mb-4">
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Observaciones <span className="text-gray-400">(opcional)</span>
-                            </label>
-                            <textarea
-                                name="observaciones"
-                                value={formData.observaciones}
-                                onChange={handleChange}
-                                placeholder="Notas adicionales sobre esta compra"
-                                rows={2}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-500 outline-none text-sm"
-                            />
-                        </div>
-
-                        {/* Botón Guardar */}
-                        <div className="flex justify-end">
                             <button
                                 type="submit"
-                                disabled={loading || items.length === 0}
-                                className={`px-10 py-3 rounded-lg text-white transition text-base font-semibold flex items-center justify-center gap-2 shadow-lg ${loading || items.length === 0
-                                    ? 'bg-gray-400 cursor-not-allowed'
-                                    : 'bg-green-600 hover:bg-green-700'
-                                    }`}
+                                disabled={saving}
+                                className="flex-1 px-4 py-2.5 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                             >
-                                <FaSave />
-                                {loading ? 'Guardando...' : 'Guardar Compra'}
+                                <FaSave size={14} />
+                                {saving ? 'Guardando...' : 'Guardar Compra'}
                             </button>
                         </div>
-                    </div>
-                </form>
+                    </form>
+                </div>
             </div>
 
-            {/* Toaster */}
-            <Toaster
-                position="top-right"
-                toastOptions={{
-                    duration: 3000,
-                    style: { fontSize: '14px', maxWidth: '300px', padding: '12px 16px' },
-                    success: { iconTheme: { primary: '#10b981', secondary: 'white' }, style: { borderLeft: '4px solid #10b981' } },
-                    error: { iconTheme: { primary: '#ef4444', secondary: 'white' }, duration: 4000, style: { borderLeft: '4px solid #ef4444' } }
-                }}
+            {/* Modal de Proveedor Rápido */}
+            <ModalProveedorRapido
+                isOpen={showModalProveedor}
+                onClose={() => setShowModalProveedor(false)}
+                onProveedorCreado={handleProveedorCreado}
             />
         </div>
     );

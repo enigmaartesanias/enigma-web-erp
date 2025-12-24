@@ -63,6 +63,9 @@ import ReporteCompras from './modules/compras/pages/ReporteCompras';
 // Módulo de Materiales
 import RegistroMateriales from './modules/materiales/pages/RegistroMateriales';
 
+// Módulo de Configuración
+import TiposProducto from './modules/configuracion/pages/TiposProducto';
+
 const MainContent = () => {
     const location = useLocation();
     const isAdmin = location.pathname.startsWith('/admin');
@@ -74,6 +77,7 @@ const MainContent = () => {
         location.pathname.startsWith('/clientes') ||
         location.pathname.startsWith('/proveedores') ||
         location.pathname.startsWith('/materiales') ||
+        location.pathname.startsWith('/configuracion') ||
         location.pathname.startsWith('/producto-form') ||
 
         location.pathname.startsWith('/stock-inicial');
@@ -133,6 +137,7 @@ const MainContent = () => {
                 <Route path="/clientes" element={<PrivateRoute><Clientes /></PrivateRoute>} />
                 <Route path="/proveedores" element={<PrivateRoute><Proveedores /></PrivateRoute>} />
                 <Route path="/materiales" element={<PrivateRoute><RegistroMateriales /></PrivateRoute>} />
+                <Route path="/configuracion/tipos-producto" element={<PrivateRoute><TiposProducto /></PrivateRoute>} />
 
             </Routes>
             {!hideHeaderFooter && (

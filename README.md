@@ -46,9 +46,12 @@ Sistema integral de gestión empresarial (ERP) y tienda en línea para artesaní
 
 #### Módulo de Compras
 - **Registro de compras** de productos para venta
-- **Productos pendientes** de creación en inventario
+- **Reporte de compras** con items pendientes/inventariados
+- **Modal de inventariar** simplificado con pre-llenado automático
+- **Edición inline** de items de compra
+- **Modal de visualización** de productos inventariados
 - **Gestión de proveedores** integrada
-- **Historial de compras** con filtros
+- **Historial de compras** con filtros por estado
 
 #### Módulo de Materiales
 - **Registro de gastos** en materias primas
@@ -61,6 +64,13 @@ Sistema integral de gestión empresarial (ERP) y tienda en línea para artesaní
 - **Pagos parciales** y saldo pendiente
 - **Vinculación con producción** automática
 - **Reportes de pedidos** con filtros por estado
+
+#### Módulo de Configuración
+- **Gestión de tipos de producto** (ANILLO, ARETE, COLLAR, etc.)
+- **CRUD completo** con edición inline
+- **Actualización automática** en todos los formularios
+- **Validación de duplicados** y auto-mayúsculas
+- **Gestión de clientes y proveedores**
 
 ## 🚀 Tecnologías
 
@@ -149,6 +159,7 @@ webagosto2025/
 │   │   ├── inventario/      # Módulo de inventario
 │   │   ├── compras/         # Módulo de compras
 │   │   ├── materiales/      # Módulo de materiales
+│   │   ├── configuracion/   # Módulo de configuración
 │   │   ├── clientes/        # Gestión de clientes
 │   │   └── proveedores/     # Gestión de proveedores
 │   ├── pages/               # Páginas públicas
@@ -203,9 +214,11 @@ webagosto2025/
 - `detalles_pedido` - Líneas de pedido
 - `pagos` - Pagos de pedidos
 - `compras` - Compras de productos
+- `compras_items` - Items de compra (pendientes/inventariados)
 - `materiales` - Gastos en materias primas
 - `clientes` - Base de clientes
 - `proveedores` - Base de proveedores
+- `tipos_producto` - Tipos/categorías de productos
 
 ## 🤝 Contribución
 
@@ -218,6 +231,16 @@ Este es un proyecto privado. Para contribuir:
 5. Abre un Pull Request
 
 ## 📝 Changelog
+
+### v2.1.0 (Diciembre 2024)
+- ✨ **Módulo de Compras mejorado** con reporte detallado
+- ✨ **Modal de inventariar** simplificado y prellenado automático
+- ✨ **Edición inline** de items de compra
+- ✨ **Modal de visualización** de productos inventariados (solo lectura)
+- ✨ **Gestión de tipos de producto** con CRUD completo
+- 🎨 Auto-conversión a mayúsculas en códigos IQ
+- 🎨 Stock entero sin decimales
+- 🐛 Corrección de errores en guardado de productos
 
 ### v2.0.0 (Diciembre 2024)
 - ✨ Sistema de pestañas VENTAS/ANULADAS

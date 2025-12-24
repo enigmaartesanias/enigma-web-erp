@@ -20,16 +20,14 @@ export const comprasDB = {
             const [compra] = await sql`
                 INSERT INTO compras (
                     codigo_compra, 
-                    fecha_compra, 
+                    fecha_compra,
                     tipo_compra,
-                    tipo_item,
                     proveedor_id,
                     observaciones
                 ) VALUES (
                     ${data.codigo_compra},
                     ${data.fecha_compra},
-                    ${data.tipo_compra || null},
-                    ${data.tipo_item || null},
+                    ${data.tipo_compra || 'MATERIAL'},
                     ${data.proveedor_id || null},
                     ${data.observaciones || null}
                 )

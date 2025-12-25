@@ -114,7 +114,15 @@ export const ventasDB = {
     },
 
     async getAll() {
-        return await sql`SELECT * FROM ventas ORDER BY fecha_venta DESC`;
+        const ventas = await sql`SELECT * FROM ventas ORDER BY fecha_venta DESC`;
+
+        // Cargar detalles para cada venta
+        for (const venta of ventas) {
+            const detalles = await sql`SELECT * FROM detalles_venta WHERE venta_id = ${venta.id}`;
+            venta.detalles = detalles;
+        }
+
+        return ventas;
     },
 
     async getById(id) {

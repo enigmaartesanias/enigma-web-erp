@@ -106,9 +106,9 @@ const BuscadorProducto = ({ onScan, onSelect, onQRClick }) => {
                 </button>
             )}
 
-            {/* Dropdown de resultados */}
+            {/* Dropdown de resultados - Debajo del input */}
             {showResults && results.length > 0 && (
-                <div className="absolute mt-1 w-full bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden max-h-80 overflow-y-auto">
+                <div className="absolute top-full mt-1 w-full bg-gray-100 rounded shadow-md border border-gray-200 overflow-hidden max-h-64 overflow-y-auto z-50">
                     {results.map(product => (
                         <div
                             key={product.id}
@@ -117,23 +117,13 @@ const BuscadorProducto = ({ onScan, onSelect, onQRClick }) => {
                                 setQuery('');
                                 setShowResults(false);
                             }}
-                            className="p-2.5 hover:bg-gray-50 cursor-pointer flex items-center gap-3 border-b border-gray-100 last:border-0 transition-colors"
+                            className="px-3 py-2 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-0 transition-colors"
                         >
-                            <div className="w-8 h-8 bg-gray-100 rounded flex-shrink-0 overflow-hidden border border-gray-200">
-                                {product.imagen_url ? (
-                                    <img src={product.imagen_url} className="w-full h-full object-cover" alt="" />
-                                ) : (
-                                    <div className="w-full h-full flex items-center justify-center text-[10px] text-gray-400">IMG</div>
-                                )}
+                            <div className="flex items-center justify-between gap-3 text-xs text-gray-600">
+                                <span className="font-mono text-gray-500">{product.codigo_usuario}</span>
+                                <span className="flex-1 truncate">{product.nombre}</span>
+                                <span className="text-gray-700">S/ {product.precio}</span>
                             </div>
-                            <div className="flex-1 min-w-0">
-                                <div className="font-medium text-gray-800 text-sm truncate">{product.nombre}</div>
-                                <div className="text-xs text-gray-500 flex gap-2 items-center">
-                                    <span className="font-mono bg-gray-100 px-1 rounded text-[10px]">{product.codigo_usuario}</span>
-                                    <span>Stock: {product.stock_actual}</span>
-                                </div>
-                            </div>
-                            <div className="text-slate-700 font-bold text-sm">S/ {product.precio}</div>
                         </div>
                     ))}
                 </div>

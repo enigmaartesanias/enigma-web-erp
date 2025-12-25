@@ -9,7 +9,7 @@ import { Toaster, toast } from 'react-hot-toast';
 import { FaArrowLeft, FaHistory, FaShoppingCart } from 'react-icons/fa';
 import QRScanner from '../components/QRScanner';
 import ClienteSelector from '../components/ClienteSelector';
-import NotaVentaModal from '../components/NotaVentaModal';
+
 
 const NuevaVenta = () => {
     const navigate = useNavigate();
@@ -24,7 +24,7 @@ const NuevaVenta = () => {
     const [processing, setProcessing] = useState(false);
     const [showQRScanner, setShowQRScanner] = useState(false);
     const [showClienteSelector, setShowClienteSelector] = useState(false);
-    const [showNotaModal, setShowNotaModal] = useState(false);
+
 
     // Manejo de escaneo (Input manual o búsqueda exacta)
     const handleScan = async (codigo) => {
@@ -91,37 +91,7 @@ const NuevaVenta = () => {
         }
     };
 
-    // Emitir Nota de Venta
-    const handleEmitirNota = () => {
-        setShowNotaModal(true);
-    };
 
-    // Preparar datos para la nota
-    const getNotaData = () => {
-        const fecha = new Date().toLocaleDateString('es-PE', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric'
-        });
-
-        const numeroVenta = `V-${Date.now().toString().slice(-6)}`;
-
-        return {
-            numeroVenta,
-            fecha,
-            cliente: config.cliente || null,
-            productos: cart.map(item => ({
-                nombre: item.nombre,
-                cantidad: item.cantidad,
-                precioUnitario: item.precio
-            })),
-            subtotal: totals.subtotal,
-            igv: totals.impuesto,
-            descuento: totals.descuento,
-            total: totals.total,
-            formaPago
-        };
-    };
 
     return (
         <div className="min-h-screen bg-gray-50 flex flex-col h-screen overflow-hidden">
@@ -141,12 +111,7 @@ const NuevaVenta = () => {
                 onSelect={handleSelectCliente}
             />
 
-            {/* Nota de Venta Modal */}
-            <NotaVentaModal
-                isOpen={showNotaModal}
-                onClose={() => setShowNotaModal(false)}
-                ventaData={getNotaData()}
-            />
+
 
             {/* Navbar Simple */}
             <header className="bg-white border-b border-gray-200 px-3 py-2 flex justify-between items-center shadow-sm z-30 flex-shrink-0">
@@ -217,7 +182,6 @@ const NuevaVenta = () => {
                         onRemove={removeFromCart}
                         formaPago={formaPago}
                         setFormaPago={setFormaPago}
-                        onEmitirNota={handleEmitirNota}
                     />
                 </section>
 

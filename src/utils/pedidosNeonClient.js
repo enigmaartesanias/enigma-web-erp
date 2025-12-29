@@ -219,10 +219,11 @@ export const pedidosDB = {
   },
 
   // Actualizar estado del pedido
-  async updateEstadoPedido(id, nuevoEstado) {
+  async updateEstadoPedido(id, nuevoEstado, fechaEntrega = null) {
     const [pedido] = await sql`
       UPDATE pedidos 
-      SET estado_pedido = ${nuevoEstado}
+      SET estado_pedido = ${nuevoEstado},
+          fecha_entrega = ${nuevoEstado === 'entregado' && fechaEntrega ? fechaEntrega : sql`fecha_entrega`}
       WHERE id_pedido = ${id}
       RETURNING *
     `;

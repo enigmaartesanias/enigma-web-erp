@@ -165,7 +165,8 @@ export const produccionDB = {
   async updateEstado(id, nuevoEstado) {
     const [produccion] = await sql`
       UPDATE produccion_taller SET
-        estado_produccion = ${nuevoEstado}
+        estado_produccion = ${nuevoEstado},
+        fecha_terminado = ${nuevoEstado === 'terminado' ? new Date().toISOString() : null}
       WHERE id_produccion = ${id}
       RETURNING *
     `;

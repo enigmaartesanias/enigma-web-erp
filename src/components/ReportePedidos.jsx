@@ -43,13 +43,9 @@ const ReportePedidos = () => {
     const [allOrders, setAllOrders] = useState([]); // Store all fetched orders
     const [filteredOrders, setFilteredOrders] = useState([]); // Store currently filtered orders for table
 
-    // Filtros - Por defecto mostrar TODOS los pedidos
-    const today = new Date();
-    const oneYearAgo = new Date();
-    oneYearAgo.setFullYear(today.getFullYear() - 1);
-
-    const [fechaInicio, setFechaInicio] = useState('');
-    const [fechaFin, setFechaFin] = useState('');
+    // Filtros - Por defecto mostrar Año 2026
+    const [fechaInicio, setFechaInicio] = useState('2026-01-01');
+    const [fechaFin, setFechaFin] = useState('2026-12-31');
 
     // Estado para tabs
     const [activeTab, setActiveTab] = useState('Todos');
@@ -85,7 +81,17 @@ const ReportePedidos = () => {
                     // Extract YYYY-MM-DD from the timestamp for accurate date-only comparison
                     const fechaPedidoStr = new Date(p.fecha_pedido).toISOString().split('T')[0];
                     const enRango = fechaPedidoStr >= start && fechaPedidoStr <= end;
-                    return enRango;
+
+                    // Lógica Híbrida 2026: Incluir pedidos antiguos si están "activos"
+                    // Activo = Con saldo pendiente O en producción (no terminado/entregado)
+                    const esAntiguoActivo = !enRango &&
+                        fechaPedidoStr < start &&
+                        (
+                            (Number(p.monto_saldo) > 0) ||
+                            (p.estado_produccion && p.estado_produccion !== 'terminado' && p.estado_produccion !== 'entregado')
+                        );
+
+                    return enRango || esAntiguoActivo;
                 });
             }
 

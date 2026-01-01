@@ -4,8 +4,12 @@ const sql = neon(import.meta.env.VITE_DATABASE_URL);
 
 export const productosExternosDB = {
   async getAll() {
-    // Retorna todos los productos ordenados por fecha creación
-    const productos = await sql`SELECT * FROM productos_externos ORDER BY fecha_registro DESC`;
+    // Retorna solo productos activos (2026 en adelante)
+    const productos = await sql`
+      SELECT * FROM productos_externos 
+      WHERE estado_activo = TRUE 
+      ORDER BY fecha_registro DESC
+    `;
     return productos;
   },
 
@@ -85,8 +89,10 @@ export const productosExternosDB = {
       const productos = await sql`
         SELECT * FROM productos_externos
         WHERE 
-          LOWER(nombre) LIKE ${`%${query.toLowerCase()}%`}
-          OR LOWER(codigo_usuario) LIKE ${`%${query.toLowerCase()}%`}
+          estado_activo = TRUE AND (
+            LOWER(nombre) LIKE ${`%${query.toLowerCase()}%`}
+            OR LOWER(codigo_usuario) LIKE ${`%${query.toLowerCase()}%`}
+          )
         ORDER BY nombre
         LIMIT 10
       `;

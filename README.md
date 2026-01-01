@@ -232,6 +232,15 @@ Este es un proyecto privado. Para contribuir:
 
 ## 📝 Changelog
 
+### v2.3.0 (Enero 2026) - Transición 2026 ✨
+- 🚀 **Transición al Año 2026**: Sistema de filtrado inteligente para iniciar el nuevo año con datos limpios
+  - 📦 **Inventario Archivado**: Columna `estado_activo` en `productos_externos` para archivo automático de productos 2025
+  - 📊 **Reportes 2026 por Defecto**: Los reportes y dashboards muestran año 2026 por defecto
+  - 🔄 **Vista Híbrida de Pedidos**: Muestra pedidos de 2026 + pedidos activos pendientes de 2025
+  - 🗂️ **Filtros Inteligentes**: Los datos históricos siguen accesibles mediante filtros de fecha
+- 🐛 **Fix**: Corrección de timezone en Reporte de Ventas (zona horaria America/Lima)
+- 🎨 **UI**: Reducción de tamaño de fuente en disclaimer de Nota de Pedido (más compacto)
+
 ### v2.2.0 (Enero 2026)
 - 🚀 **Migración a Neon DB**: Módulo de Pedidos migrado exitosamente de Supabase a Neon PostgreSQL
 - ✨ **Gestión de Entregas**: Flujo separado para pedidos terminados vs entregados

@@ -241,7 +241,7 @@ Este es un proyecto privado. Para contribuir:
 - 🐛 **Fix**: Corrección de timezone en Reporte de Ventas (zona horaria America/Lima)
 - 🎨 **UI**: Reducción de tamaño de fuente en disclaimer de Nota de Pedido (más compacto)
 
-### v2.2.0 (Enero 2026)
+### v2.2.0 (Diciembre 2025)
 - 🚀 **Migración a Neon DB**: Módulo de Pedidos migrado exitosamente de Supabase a Neon PostgreSQL
 - ✨ **Gestión de Entregas**: Flujo separado para pedidos terminados vs entregados
 - 🎨 **Nota de Pedido Rediseñada**: Formato minimalista, alineación optimizada y disclaimer compacto

@@ -58,12 +58,12 @@ Sistema integral de gestión empresarial (ERP) y tienda en línea para artesaní
 - **Control de insumos** para producción
 - **Reportes de costos** de materiales
 
-#### Gestión de Pedidos
-- **Creación de pedidos** con múltiples productos
-- **Estados de pedido** (Pendiente, En Proceso, Entregado)
-- **Pagos parciales** y saldo pendiente
-- **Vinculación con producción** automática
-- **Reportes de pedidos** con filtros por estado
+#### Módulo de Pedidos (Refactorizado)
+- **Registro optimizado** con selección de Tipo y Metal
+- **Flujo de estados**: Pendiente -> Producción -> Terminado -> Entregado
+- **Control de entregas**: Validación de saldos y registro de fecha de entrega
+- **Nota de Pedido**: Diseño minimalista para impresión térmica
+- **Historial de entregas**: Vista de solo lectura para pedidos pasados
 
 #### Módulo de Configuración
 - **Gestión de tipos de producto** (ANILLO, ARETE, COLLAR, etc.)
@@ -231,6 +231,13 @@ Este es un proyecto privado. Para contribuir:
 5. Abre un Pull Request
 
 ## 📝 Changelog
+
+### v2.2.0 (Enero 2026)
+- 🚀 **Migración a Neon DB**: Módulo de Pedidos migrado exitosamente de Supabase a Neon PostgreSQL
+- ✨ **Gestión de Entregas**: Flujo separado para pedidos terminados vs entregados
+- 🎨 **Nota de Pedido Rediseñada**: Formato minimalista, alineación optimizada y disclaimer compacto
+- 🛠️ **Refactorización UI**: Tablas de historial de entregas sin botones de acción (seguridad)
+- 🐛 Corrección de lógica en filtros de producción
 
 ### v2.1.0 (Diciembre 2024)
 - ✨ **Módulo de Compras mejorado** con reporte detallado

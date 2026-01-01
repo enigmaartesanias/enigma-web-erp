@@ -41,6 +41,14 @@ npm run dev
 
 ## 📖 Novedades
 
+### Enero 2026 - v2.2.0
+
+#### Migración a Neon DB y Mejoras en Pedidos
+- 🚀 **Base de datos unificada**: Pedidos ahora opera 100% en Neon DB
+- ✨ **Flujo de Entrega**: Nueva distinción entre "Terminado" (taller) y "Entregado" (cliente)
+- 🎨 **Nota de Pedido**: Rediseño visual para mayor claridad y formato compacto
+- 🛡️ **Seguridad**: Bloqueo de edición en historial de entregas
+
 ### Diciembre 2024 - v2.0.0
 
 #### Sistema de Ventas Mejorado

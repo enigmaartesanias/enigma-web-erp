@@ -641,9 +641,9 @@ const ReportePedidos = () => {
 
 
                             <div className="mt-8 pt-4 border-t text-center">
-                                <p className="text-[6px] text-gray-500">ACLARACIÓN IMPORTANTE</p>
-                                <p className="text-[5px] text-gray-500">Esta Nota de Pedido no tiene validez como comprobante de pago.</p>
-                                <p className="text-[6px] text-gray-500 font-semibold mt-1">¡Gracias por tu pedido!</p>
+                                <p className="text-xs text-gray-500 uppercase tracking-wide">Aclaración Importante</p>
+                                <p className="text-xs text-gray-500 leading-snug">Esta Nota de Pedido no tiene validez como comprobante de pago.</p>
+                                <p className="text-xs text-gray-600 font-semibold mt-0.5">¡Gracias por tu pedido!</p>
                             </div>
                         </div>
 

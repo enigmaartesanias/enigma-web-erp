@@ -12,8 +12,8 @@ export default function ReporteVentas() {
     const navigate = useNavigate();
     const [ventas, setVentas] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [fechaInicio, setFechaInicio] = useState('');
-    const [fechaFin, setFechaFin] = useState('');
+    const [fechaInicio, setFechaInicio] = useState('2026-01-01');
+    const [fechaFin, setFechaFin] = useState('2026-12-31');
 
     // Estados para modales de gestión
     const [confirmModal, setConfirmModal] = useState({
@@ -173,17 +173,15 @@ export default function ReporteVentas() {
         if (activeTab === 'VENTAS' && venta.estado === 'ANULADA') return false;
         if (activeTab === 'ANULADAS' && venta.estado !== 'ANULADA') return false;
 
-        // Filtro por fechas
-        const fechaVenta = new Date(venta.fecha_venta);
+        // Filtro por fechas (Usando zona horaria Perú)
+        // Convertir la fecha de venta a String YYYY-MM-DD en Perú
+        const fechaVentaDate = new Date(venta.fecha_venta);
+        const fechaVentaPeru = fechaVentaDate.toLocaleDateString('en-CA', { timeZone: 'America/Lima' });
 
-        // Configurar inicio del día (00:00:00)
-        const inicio = fechaInicio ? new Date(fechaInicio + 'T00:00:00') : null;
+        // Comparar strings de fecha (YYYY-MM-DD)
+        if (fechaInicio && fechaVentaPeru < fechaInicio) return false;
+        if (fechaFin && fechaVentaPeru > fechaFin) return false;
 
-        // Configurar fin del día (23:59:59)
-        const fin = fechaFin ? new Date(fechaFin + 'T23:59:59') : null;
-
-        if (inicio && fechaVenta < inicio) return false;
-        if (fin && fechaVenta > fin) return false;
         return true;
     });
 
@@ -343,7 +341,7 @@ export default function ReporteVentas() {
                                                 <span className="font-mono text-xs text-gray-900">{venta.codigo_venta}</span>
                                             </td>
                                             <td className="px-2 md:px-4 py-2 md:py-3 text-xs text-gray-900">
-                                                {new Date(venta.fecha_venta + 'Z').toLocaleDateString('es-PE', {
+                                                {new Date(venta.fecha_venta).toLocaleDateString('es-PE', {
                                                     day: '2-digit',
                                                     month: '2-digit',
                                                     year: '2-digit',

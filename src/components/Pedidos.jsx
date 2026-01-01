@@ -767,8 +767,8 @@ const Pedidos = () => {
                 return false;
             }
         } else if (activeTab === 'terminados') {
-            // Tab Terminados: TODOS los pedidos con producción terminada (histórico completo)
-            if (p.estado_produccion !== 'terminado') {
+            // Tab Terminados: TODOS los pedidos con producción terminada pero NO entregados
+            if (p.estado_produccion !== 'terminado' || p.estado_pedido === 'entregado') {
                 return false;
             }
         } else if (activeTab === 'entregados') {
@@ -1041,7 +1041,7 @@ const Pedidos = () => {
                     {/* Sección Pago */}
                     <div className="md:col-span-2">
                         <h3 className="text-lg md:text-xl font-semibold mb-3 text-blue-600">Pago y Totales</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+                        <div className="grid grid-cols-2 md:grid-cols-2 gap-3 md:gap-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700">Forma de Pago</label>
                                 <select
@@ -1057,7 +1057,7 @@ const Pedidos = () => {
                                 </select>
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700">Comprobante de Pago</label>
+                                <label className="block text-sm font-medium text-gray-700">N° Comprobante</label>
                                 <input
                                     type="text"
                                     name="comprobante_pago"
@@ -1079,7 +1079,7 @@ const Pedidos = () => {
                                 <label htmlFor="incluye_igv" className="ml-2 block text-sm text-gray-900">Incluye IGV (18%)</label>
                             </div>
 
-                            <div>
+                            <div className="col-span-2">
                                 <label className="block text-sm font-medium text-gray-700 mb-2">Monto a Cuenta ó Pagado</label>
                                 <div className="flex space-x-2">
                                     <input
@@ -1142,7 +1142,13 @@ const Pedidos = () => {
             </div >
 
             {/* Listado de Pedidos */}
-            <div className="bg-white shadow-lg rounded-lg p-6 max-w-6xl mx-auto">
+            <div className="bg-white shadow-lg rounded-lg p-6 max-w-6xl mx-auto pb-8 md:pb-6">
+                {/* Título de la sección */}
+                <h2 className="text-xl md:text-2xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                    <span>🧾</span>
+                    <span>Gestión de Pedidos</span>
+                </h2>
+
                 {/* FASE 2: Navegación de Tabs - Pendientes y Producción */}
                 <div className="border-b border-gray-200 mb-6">
                     <nav className="-mb-px flex space-x-8">
@@ -1154,7 +1160,7 @@ const Pedidos = () => {
                                 }`}
                         >
                             <span className="flex items-center gap-2">
-                                <span className="text-lg">🕒</span>
+                                <span className="text-2xl">🕒</span>
                                 <span className="hidden md:inline">Pendientes</span>
                             </span>
                         </button>
@@ -1166,7 +1172,7 @@ const Pedidos = () => {
                                 }`}
                         >
                             <span className="flex items-center gap-2">
-                                <span className="text-lg">⚒</span>
+                                <span className="text-2xl">⚒</span>
                                 <span className="hidden md:inline">Producción</span>
                             </span>
                         </button>
@@ -1178,7 +1184,7 @@ const Pedidos = () => {
                                 }`}
                         >
                             <span className="flex items-center gap-2">
-                                <span className="text-lg">✅</span>
+                                <span className="text-2xl">✅</span>
                                 <span className="hidden md:inline">Terminados</span>
                             </span>
                         </button>
@@ -1190,7 +1196,7 @@ const Pedidos = () => {
                                 }`}
                         >
                             <span className="flex items-center gap-2">
-                                <span className="text-lg">🚚</span>
+                                <span className="text-2xl">🚚</span>
                                 <span className="hidden md:inline">Entregados</span>
                             </span>
                         </button>
@@ -1249,24 +1255,32 @@ const Pedidos = () => {
                                         <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">Acciones</th>
                                     </>
                                 ) : activeTab === 'entregados' ? (
-                                    // Grid simplificado para Entregados (4 columnas)
                                     <>
-                                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Fecha</th>
+                                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">FECHA ENTREGA</th>
                                         <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Cliente</th>
                                         <th className="hidden md:table-cell px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider w-1/4">Producto</th>
-                                        <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">Acciones</th>
+                                    </>
+                                ) : activeTab === 'produccion' ? (
+                                    // Grid simplificado para Producción (4 columnas)
+                                    <>
+                                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                            <div>Fecha</div>
+                                            <div>Ingreso</div>
+                                        </th>
+                                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Cliente</th>
+                                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider w-1/4">Producto</th>
+                                        <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">Producción</th>
                                     </>
                                 ) : (
-                                    // Grid completo para otros tabs (9 columnas)
+                                    // Grid completo para Pendientes (8 columnas)
                                     <>
                                         <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Fecha</th>
                                         <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Cliente</th>
-                                        <th className="hidden md:table-cell px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider w-1/4">Producto</th>
+                                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider w-1/2 md:w-2/5">Producto</th>
                                         <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">Total</th>
                                         <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">Producción</th>
                                         <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">Pago</th>
                                         <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">Saldo</th>
-                                        <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">Estado Pedido</th>
                                         <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">Acciones</th>
                                     </>
                                 )}
@@ -1275,7 +1289,7 @@ const Pedidos = () => {
                         <tbody className="bg-white divide-y divide-gray-200">
                             {filteredPedidos.length === 0 ? (
                                 <tr>
-                                    <td colSpan={activeTab === 'terminados' ? "5" : activeTab === 'entregados' ? "4" : "9"} className="px-6 py-4 text-center text-gray-500">No hay pedidos registrados en esta categoría.</td>
+                                    <td colSpan={activeTab === 'terminados' ? "5" : activeTab === 'entregados' ? "3" : activeTab === 'produccion' ? "4" : "8"} className="px-6 py-4 text-center text-gray-500">No hay pedidos registrados en esta categoría.</td>
                                 </tr>
                             ) : (
                                 filteredPedidos.map((pedido) => (
@@ -1298,9 +1312,8 @@ const Pedidos = () => {
                                                     {pedido.detalles_pedido && pedido.detalles_pedido.length > 0 ? (
                                                         <div className="space-y-1">
                                                             {pedido.detalles_pedido.map((d, idx) => (
-                                                                <div key={idx} className="flex justify-between border-b last:border-0 border-gray-100 pb-1 last:pb-0 text-xs">
-                                                                    <span className="font-medium text-gray-800">{d.nombre_producto}</span>
-                                                                    <span className="text-gray-500 ml-2">x{d.cantidad}</span>
+                                                                <div key={idx} className="border-b last:border-0 border-gray-100 pb-1 last:pb-0 text-xs">
+                                                                    <span className="font-normal text-gray-800">{pedido.tipo_producto} - {pedido.metal} x{d.cantidad}</span>
                                                                 </div>
                                                             ))}
                                                         </div>
@@ -1312,15 +1325,24 @@ const Pedidos = () => {
                                                     S/ {pedido.precio_total?.toFixed(2)}
                                                 </td>
 
-                                                {/* ACCIONES - Solo eliminar */}
+                                                {/* ACCIONES - Solo Entregar */}
                                                 <td className="px-4 py-3 whitespace-nowrap text-right text-sm font-medium">
                                                     <div className="flex justify-end">
-                                                        <Tooltip text="Eliminar pedido">
+                                                        <Tooltip
+                                                            text={pedido.estado_pedido === 'entregado'
+                                                                ? 'Ya entregado'
+                                                                : 'Entregar pedido'
+                                                            }
+                                                        >
                                                             <button
-                                                                onClick={() => handleDelete(pedido.id_pedido)}
-                                                                className="text-red-600 hover:text-red-900 transition-colors"
+                                                                onClick={() => handleEntregar(pedido)}
+                                                                disabled={pedido.estado_pedido === 'entregado'}
+                                                                className={`transition-colors ${pedido.estado_pedido === 'entregado'
+                                                                    ? 'text-gray-300 cursor-not-allowed'
+                                                                    : 'text-green-600 hover:text-green-900 cursor-pointer'
+                                                                    }`}
                                                             >
-                                                                <FaTrash className="h-5 w-5" />
+                                                                <FaCar className="h-5 w-5" />
                                                             </button>
                                                         </Tooltip>
                                                     </div>
@@ -1329,9 +1351,9 @@ const Pedidos = () => {
                                         ) : activeTab === 'entregados' ? (
                                             // Grid simplificado para Entregados (4 columnas)
                                             <>
-                                                {/* FECHA */}
+                                                {/* FECHA ENTREGA */}
                                                 <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
-                                                    {formatLocalDate(pedido.fecha_pedido)}
+                                                    {formatLocalDate(pedido.fecha_entrega)}
                                                 </td>
 
                                                 {/* CLIENTE */}
@@ -1344,37 +1366,51 @@ const Pedidos = () => {
                                                     {pedido.detalles_pedido && pedido.detalles_pedido.length > 0 ? (
                                                         <div className="space-y-1">
                                                             {pedido.detalles_pedido.map((d, idx) => (
-                                                                <div key={idx} className="flex justify-between border-b last:border-0 border-gray-100 pb-1 last:pb-0 text-xs">
-                                                                    <span className="font-medium text-gray-800">{d.nombre_producto}</span>
-                                                                    <span className="text-gray-500 ml-2">x{d.cantidad}</span>
+                                                                <div key={idx} className="border-b last:border-0 border-gray-100 pb-1 last:pb-0 text-xs">
+                                                                    <span className="font-normal text-gray-800">{pedido.tipo_producto} - {pedido.metal} x{d.cantidad}</span>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    ) : '-'}
+                                                </td>
+                                            </>
+                                        ) : activeTab === 'produccion' ? (
+                                            // Grid simplificado para Producción (4 columnas)
+                                            <>
+                                                {/* FECHA INGRESO PRODUCCIÓN */}
+                                                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
+                                                    {formatLocalDate(pedido.fecha_pedido)}
+                                                </td>
+
+                                                {/* CLIENTE */}
+                                                <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
+                                                    {pedido.nombre_cliente}
+                                                </td>
+
+                                                {/* PRODUCTO */}
+                                                <td className="px-4 py-3 text-sm text-gray-600">
+                                                    {pedido.detalles_pedido && pedido.detalles_pedido.length > 0 ? (
+                                                        <div className="space-y-1">
+                                                            {pedido.detalles_pedido.map((d, idx) => (
+                                                                <div key={idx} className="border-b last:border-0 border-gray-100 pb-1 last:pb-0 text-xs">
+                                                                    <span className="font-normal text-gray-800">{pedido.tipo_producto} - {pedido.metal} x{d.cantidad}</span>
                                                                 </div>
                                                             ))}
                                                         </div>
                                                     ) : '-'}
                                                 </td>
 
-                                                {/* ACCIONES - Check y Eliminar */}
-                                                <td className="px-4 py-3 whitespace-nowrap text-right text-sm font-medium">
-                                                    <div className="flex justify-end space-x-2">
-                                                        {pedido.estado_pedido !== 'entregado' && (
-                                                            <Tooltip text="Marcar como entregado">
-                                                                <button
-                                                                    onClick={() => handleEntregar(pedido)}
-                                                                    className="text-green-600 hover:text-green-900 transition-colors"
-                                                                >
-                                                                    <FaCheck className="h-5 w-5" />
-                                                                </button>
-                                                            </Tooltip>
-                                                        )}
-                                                        <Tooltip text="Eliminar pedido">
-                                                            <button
-                                                                onClick={() => handleDelete(pedido.id_pedido)}
-                                                                className="text-red-600 hover:text-red-900 transition-colors"
-                                                            >
-                                                                <FaTrash className="h-5 w-5" />
-                                                            </button>
-                                                        </Tooltip>
-                                                    </div>
+                                                {/* PRODUCCIÓN */}
+                                                <td className="px-4 py-3 whitespace-nowrap text-center">
+                                                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${pedido.estado_produccion === 'terminado'
+                                                        ? 'bg-green-100 text-green-800'
+                                                        : pedido.estado_produccion === 'en_proceso'
+                                                            ? 'bg-blue-100 text-blue-800'
+                                                            : 'bg-yellow-100 text-yellow-800'
+                                                        }`}>
+                                                        {pedido.estado_produccion === 'terminado' ? '● Terminado' :
+                                                            pedido.estado_produccion === 'en_proceso' ? '● En Proceso' : '● No Iniciado'}
+                                                    </span>
                                                 </td>
                                             </>
                                         ) : (
@@ -1391,13 +1427,14 @@ const Pedidos = () => {
                                                 </td>
 
                                                 {/* PRODUCTO */}
-                                                <td className="hidden md:table-cell px-4 py-3 text-sm text-gray-600">
+                                                <td className="px-4 py-3 text-sm text-gray-600">
                                                     {pedido.detalles_pedido && pedido.detalles_pedido.length > 0 ? (
                                                         <div className="space-y-1">
                                                             {pedido.detalles_pedido.map((d, idx) => (
-                                                                <div key={idx} className="flex justify-between border-b last:border-0 border-gray-100 pb-1 last:pb-0 text-xs">
-                                                                    <span className="font-medium text-gray-800">{d.nombre_producto}</span>
-                                                                    <span className="text-gray-500 ml-2">x{d.cantidad}</span>
+                                                                <div key={idx} className="border-b last:border-0 border-gray-100 pb-1 last:pb-0 mb-1 last:mb-0">
+                                                                    <div className="font-normal text-gray-800 text-xs">
+                                                                        {pedido.tipo_producto} - {pedido.metal} x{d.cantidad}
+                                                                    </div>
                                                                 </div>
                                                             ))}
                                                         </div>
@@ -1424,10 +1461,6 @@ const Pedidos = () => {
                                                     S/ {pedido.monto_saldo.toFixed(2)}
                                                 </td>
 
-                                                {/* ESTADO PEDIDO */}
-                                                <td className="px-4 py-3 whitespace-nowrap text-center">
-                                                    <EstadoPedidoBadge estado={pedido.estado_pedido || 'aceptado'} />
-                                                </td>
 
                                                 {/* ACCIONES */}
                                                 <td className="px-4 py-3 whitespace-nowrap text-right text-sm font-medium">
@@ -1472,26 +1505,6 @@ const Pedidos = () => {
                                                                 <FaEdit className="h-5 w-5" />
                                                             </button>
                                                         </Tooltip>
-                                                        {/* NUEVO: Botón Entregar */}
-                                                        {pedido.estado_pedido !== 'entregado' && (
-                                                            <Tooltip
-                                                                text={pedido.estado_produccion === 'terminado'
-                                                                    ? 'Entregar pedido'
-                                                                    : 'Producción no terminada'
-                                                                }
-                                                            >
-                                                                <button
-                                                                    onClick={() => handleEntregar(pedido)}
-                                                                    disabled={pedido.estado_produccion !== 'terminado'}
-                                                                    className={`transition-colors ${pedido.estado_produccion === 'terminado'
-                                                                        ? 'text-green-600 hover:text-green-900 cursor-pointer'
-                                                                        : 'text-gray-300 cursor-not-allowed'
-                                                                        }`}
-                                                                >
-                                                                    <FaCar className="h-5 w-5" />
-                                                                </button>
-                                                            </Tooltip>
-                                                        )}
                                                         <Tooltip text="Eliminar pedido">
                                                             <button
                                                                 onClick={() => handleDelete(pedido.id_pedido)}
@@ -1552,42 +1565,34 @@ const Pedidos = () => {
                                     </div>
                                 </div>
 
-                                <table className="w-full mb-6 text-sm">
-                                    <thead className="bg-gray-100">
-                                        <tr>
-                                            <th className="py-2 px-3 text-left">Producto</th>
-                                            <th className="py-2 px-3 text-center">Cant.</th>
-                                            <th className="py-2 px-3 text-right">P.Unit</th>
-                                            <th className="py-2 px-3 text-right">Total</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y">
-                                        {printPedido.detalles_pedido.map((d, i) => (
-                                            <tr key={i}>
-                                                <td className="py-2 px-3">{d.nombre_producto}</td>
-                                                <td className="py-2 px-3 text-center">{d.cantidad}</td>
-                                                <td className="py-2 px-3 text-right">{d.precio_unitario.toFixed(2)}</td>
-                                                <td className="py-2 px-3 text-right">{(d.cantidad * d.precio_unitario).toFixed(2)}</td>
-                                            </tr>
+                                <div className="mb-6 text-left">
+                                    <h4 className="font-bold text-gray-700 text-xs mb-2 uppercase tracking-wider text-teal-600 text-left">Productos</h4>
+                                    <div className="space-y-3">
+                                        {printPedido.detalles_pedido.map((d, index) => (
+                                            <div key={index} className="pl-0 text-left">
+                                                <div className="text-[7px] font-normal text-teal-800 flex items-center mb-0.5 text-left">
+                                                    <span className="mr-1">•</span>
+                                                    {d.tipo_producto || 'Producto'} - {d.metal || 'Metal'}
+                                                    {d.cantidad > 1 && <span className="text-gray-600 ml-1">(x{d.cantidad})</span>}
+                                                </div>
+                                                <div className="text-[7px] text-gray-800 font-normal pl-2 leading-tight text-left">
+                                                    {d.nombre_producto}
+                                                </div>
+                                            </div>
                                         ))}
-                                    </tbody>
-                                </table>
+                                    </div>
+                                </div>
 
-                                <div className="flex justify-end">
-                                    <div className="w-full md:w-1/2 space-y-1 text-sm">
-                                        {/* Sección 1: Desglose de Venta */}
-                                        {/* Mostrar detalle solo si hay IGV */}
+                                <div className="border-t border-gray-200 mt-4 pt-2">
+                                    <div className="w-full max-w-[200px] ml-auto text-[10px]">
+                                        {/* Totals Section */}
                                         {printPedido.incluye_igv && (
                                             <>
-                                                <div className="flex justify-between text-gray-800">
-                                                    <span>Valor Venta:</span>
-                                                    <span>S/ {printPedido.precio_total_sin_igv.toFixed(2)}</span>
-                                                </div>
-                                                <div className="flex justify-between text-gray-800">
+                                                <div className="flex justify-between text-gray-600 mb-1">
                                                     <span>IGV (18%):</span>
                                                     <span>S/ {printPedido.monto_igv.toFixed(2)}</span>
                                                 </div>
-                                                <div className="flex justify-between text-gray-800">
+                                                <div className="flex justify-between text-gray-800 font-semibold">
                                                     <span>Total Venta:</span>
                                                     <span>S/ {(printPedido.precio_total_sin_igv + printPedido.monto_igv).toFixed(2)}</span>
                                                 </div>
@@ -1646,29 +1651,15 @@ const Pedidos = () => {
 
 
                                 <div className="mt-8 pt-4 border-t text-center">
-                                    <p className="text-[4px] text-gray-500">ACLARACIÓN IMPORTANTE</p>
-                                    <p className="text-[2px] text-gray-500">Esta Nota de Pedido no tiene validez como comprobante de pago o factura.</p>
-                                    <p className="text-[4px] text-gray-500 font-semibold mt-1">¡Gracias por tu pedido!</p>
+                                    <p className="text-[6px] text-gray-500">ACLARACIÓN IMPORTANTE</p>
+                                    <p className="text-[5px] text-gray-500">Esta Nota de Pedido no tiene validez como comprobante de pago.</p>
+                                    <p className="text-[6px] text-gray-500 font-semibold mt-1">¡Gracias por tu pedido!</p>
                                 </div>
                             </div>
 
                             {/* Footer Modal */}
                             {/* Footer Modal */}
-                            <div className="px-6 py-4 border-t bg-gray-50 rounded-b-lg flex justify-between items-center">
-                                {/* Botón WhatsApp (Izquierda) */}
-                                <button
-                                    onClick={() => {
-                                        const phone = printPedido.telefono ? printPedido.telefono.replace(/\D/g, '') : '';
-                                        if (phone) {
-                                            window.open(`https://wa.me/51${phone}`, '_blank');
-                                        }
-                                    }}
-                                    className="p-2 bg-green-500 text-white rounded hover:bg-green-600 flex items-center justify-center transition-colors"
-                                    title="Abrir WhatsApp"
-                                >
-                                    <FaWhatsapp className="h-5 w-5" />
-                                </button>
-
+                            <div className="px-6 py-4 border-t bg-gray-50 rounded-b-lg flex justify-end items-center">
                                 {/* Botones de Acción (Derecha) */}
                                 <div className="flex space-x-3">
                                     <button

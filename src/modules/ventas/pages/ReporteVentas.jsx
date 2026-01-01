@@ -175,8 +175,12 @@ export default function ReporteVentas() {
 
         // Filtro por fechas
         const fechaVenta = new Date(venta.fecha_venta);
-        const inicio = fechaInicio ? new Date(fechaInicio) : null;
-        const fin = fechaFin ? new Date(fechaFin) : null;
+
+        // Configurar inicio del día (00:00:00)
+        const inicio = fechaInicio ? new Date(fechaInicio + 'T00:00:00') : null;
+
+        // Configurar fin del día (23:59:59)
+        const fin = fechaFin ? new Date(fechaFin + 'T23:59:59') : null;
 
         if (inicio && fechaVenta < inicio) return false;
         if (fin && fechaVenta > fin) return false;
@@ -211,7 +215,6 @@ export default function ReporteVentas() {
                         <FaChartLine className="text-slate-700" />
                         Reporte de Ventas
                     </h1>
-                    <p className="text-gray-500 text-sm mt-1">Análisis y seguimiento de ventas realizadas</p>
                 </div>
             </div>
 
@@ -220,11 +223,17 @@ export default function ReporteVentas() {
                 <div className="max-w-sm mx-auto mb-6">
                     <div className="bg-white p-4 rounded-lg shadow-sm border-l-4 border-slate-700">
                         <div className="flex justify-between items-start">
-                            <div>
-                                <p className="text-xs text-gray-500 font-medium">Total Ventas</p>
+                            <div className="flex-1">
+                                <p className="text-xs text-gray-500 font-medium">
+                                    {(fechaInicio || fechaFin || activeTab === 'ANULADAS') ? 'Total (Filtrado)' : 'Total Ventas'}
+                                </p>
                                 <p className="text-base font-bold text-gray-900">S/ {stats.totalVentas.toFixed(2)}</p>
+                                {(fechaInicio || fechaFin) && (
+                                    <p className="text-[10px] text-gray-400 mt-0.5">
+                                        {fechaInicio && fechaFin ? `${fechaInicio} - ${fechaFin}` : fechaInicio || fechaFin}
+                                    </p>
+                                )}
                             </div>
-                            <FaDollarSign className="text-slate-700 text-2xl opacity-50" />
                         </div>
                     </div>
                 </div>
@@ -269,30 +278,33 @@ export default function ReporteVentas() {
 
                 {/* Pestañas */}
                 <div className="bg-white rounded-lg shadow-sm mb-6 overflow-hidden">
-                    <div className="px-4 pt-3 pb-2">
-                        <h3 className="text-xs font-semibold text-gray-700">Filtrar por Estado</h3>
-                    </div>
-                    {/* Pestañas de filtro - Actualizado */}
+                    {/* Pestañas de filtro - Mejorado para mejor visibilidad */}
                     <div className="flex border-b">
                         <button
                             onClick={() => setActiveTab('VENTAS')}
-                            className={`flex-1 px-3 md:px-6 py-3 text-xs md:text-sm font-medium transition-colors flex items-center justify-center gap-1 ${activeTab === 'VENTAS'
-                                ? 'bg-slate-700 text-white border-b-2 border-slate-700'
-                                : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
+                            className={`flex-1 px-3 py-2.5 font-bold transition-all flex items-center justify-center gap-1.5 ${activeTab === 'VENTAS'
+                                ? 'bg-blue-600 border-b-4 border-blue-800'
+                                : 'bg-gray-100 border-b-2 border-gray-200 hover:bg-gray-200'
                                 }`}
                         >
-                            <span>📊</span>
-                            <span>VENTAS</span>
+                            <span className="text-base">📊</span>
+                            <span className={`text-sm uppercase tracking-wide ${activeTab === 'VENTAS' ? 'text-white' : 'text-gray-600'
+                                }`}>
+                                Ventas
+                            </span>
                         </button>
                         <button
                             onClick={() => setActiveTab('ANULADAS')}
-                            className={`flex-1 px-3 md:px-6 py-3 text-xs md:text-sm font-medium transition-colors flex items-center justify-center gap-1 ${activeTab === 'ANULADAS'
-                                ? 'bg-slate-700 text-white border-b-2 border-slate-700'
-                                : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
+                            className={`flex-1 px-3 py-2.5 font-bold transition-all flex items-center justify-center gap-1.5 ${activeTab === 'ANULADAS'
+                                ? 'bg-red-600 border-b-4 border-red-800'
+                                : 'bg-gray-100 border-b-2 border-gray-200 hover:bg-gray-200'
                                 }`}
                         >
-                            <span>🚫</span>
-                            <span>ANULADAS</span>
+                            <span className="text-base">🚫</span>
+                            <span className={`text-sm uppercase tracking-wide ${activeTab === 'ANULADAS' ? 'text-white' : 'text-gray-600'
+                                }`}>
+                                Anuladas
+                            </span>
                         </button>
                     </div>
                 </div>

@@ -21,7 +21,9 @@ export const pedidosDB = {
             'id_detalle', d.id_detalle,
             'nombre_producto', d.nombre_producto,
             'cantidad', d.cantidad,
-            'precio_unitario', d.precio_unitario
+            'precio_unitario', d.precio_unitario,
+            'tipo_producto', d.tipo_producto,
+            'metal', d.metal
           )) FILTER (WHERE d.id_detalle IS NOT NULL),
           '[]'::json
         ) as detalles_pedido,

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useVentas } from '../hooks/useVentas';
 import { ventasDB } from '../../../utils/ventasClient';
+import { cuentasPorCobrarDB } from '../../../utils/cuentasPorCobrarClient';
 import BuscadorProducto from '../components/BuscadorProducto';
 import ItemVenta from '../components/ItemVenta';
 import ResumenVenta from '../components/ResumenVenta';
@@ -9,6 +10,7 @@ import { Toaster, toast } from 'react-hot-toast';
 import { FaArrowLeft, FaHistory, FaShoppingCart } from 'react-icons/fa';
 import QRScanner from '../components/QRScanner';
 import ClienteSelector from '../components/ClienteSelector';
+import ModalCredito from '../components/ModalCredito';
 
 
 const NuevaVenta = () => {
@@ -24,6 +26,7 @@ const NuevaVenta = () => {
     const [processing, setProcessing] = useState(false);
     const [showQRScanner, setShowQRScanner] = useState(false);
     const [showClienteSelector, setShowClienteSelector] = useState(false);
+    const [showModalCredito, setShowModalCredito] = useState(false);
 
 
     // Manejo de escaneo (Input manual o búsqueda exacta)
@@ -91,6 +94,62 @@ const NuevaVenta = () => {
         }
     };
 
+    // Procesar Venta a Crédito
+    const handleProcessVentaCredito = async (datosCredito) => {
+        if (cart.length === 0) return;
+
+        setProcessing(true);
+        try {
+            // Calcular saldo pendiente inicial
+            const adelanto = datosCredito.a_cuenta || 0;
+            const saldoPendiente = totals.total - adelanto;
+
+            // 1. Crear venta con campos de crédito
+            const ventaData = {
+                cliente_nombre: config.cliente?.nombre || 'Cliente General',
+                cliente_documento: config.cliente?.documento || '',
+                subtotal: totals.subtotal,
+                descuento_monto: totals.descuento,
+                impuesto_monto: totals.impuesto,
+                total: totals.total,
+                forma_pago: 'Crédito',
+                observaciones: datosCredito.observaciones || '',
+                // Campos de crédito
+                es_credito: true,
+                saldo_pendiente: saldoPendiente,
+                fecha_vencimiento: datosCredito.fecha_vencimiento,
+                detalles: cart.map(item => ({
+                    producto_id: item.id,
+                    cantidad: item.cantidad,
+                    precio_unitario: item.precio,
+                    producto_nombre: item.nombre,
+                    producto_codigo: item.codigo
+                }))
+            }; const venta = await ventasDB.createVenta(ventaData);
+
+            // 2. Si hubo adelanto, registrar pago inicial
+            if (adelanto > 0) {
+                await ventasDB.registrarPago(
+                    venta.id,
+                    adelanto,
+                    'Efectivo',
+                    'Pago inicial / Adelanto'
+                );
+            }
+
+            toast.success('¡Venta a crédito registrada!', {
+                duration: 3000,
+                icon: '💳'
+            });
+            clearCart();
+        } catch (error) {
+            console.error(error);
+            toast.error('Error al registrar venta a crédito');
+        } finally {
+            setProcessing(false);
+        }
+    };
+
 
 
     return (
@@ -109,6 +168,16 @@ const NuevaVenta = () => {
                 isOpen={showClienteSelector}
                 onClose={() => setShowClienteSelector(false)}
                 onSelect={handleSelectCliente}
+            />
+
+            {/* Modal Crédito */}
+            <ModalCredito
+                isOpen={showModalCredito}
+                onClose={() => setShowModalCredito(false)}
+                total={totals.total}
+                cliente={config.cliente}
+                detallesProductos={cart}
+                onConfirmar={handleProcessVentaCredito}
             />
 
 
@@ -182,6 +251,7 @@ const NuevaVenta = () => {
                         onRemove={removeFromCart}
                         formaPago={formaPago}
                         setFormaPago={setFormaPago}
+                        onCreditoClick={() => setShowModalCredito(true)}
                     />
                 </section>
 

@@ -53,6 +53,7 @@ import ProductoForm from './modules/inventario/pages/ProductoForm';
 import ProductoEdit from './modules/inventario/pages/ProductoEdit';
 import NuevaVenta from './modules/ventas/pages/NuevaVenta';
 import ReporteVentas from './modules/ventas/pages/ReporteVentas';
+import CuentasPorCobrar from './modules/ventas/pages/CuentasPorCobrar';
 import Clientes from './modules/clientes/pages/Clientes';
 import Proveedores from './modules/proveedores/pages/Proveedores';
 
@@ -72,6 +73,7 @@ const MainContent = () => {
     const isInventarioModule = location.pathname.startsWith('/inventario') ||
         location.pathname.startsWith('/produccion') ||
         location.pathname.startsWith('/ventas') ||
+        location.pathname.startsWith('/cuentas-por-cobrar') ||
         location.pathname.startsWith('/catalogo-inventario') ||
         location.pathname.startsWith('/compras') ||
         location.pathname.startsWith('/clientes') ||
@@ -134,6 +136,7 @@ const MainContent = () => {
                 <Route path="/inventario/editar/:id" element={<PrivateRoute><ProductoEdit /></PrivateRoute>} />
                 <Route path="/ventas/nueva" element={<PrivateRoute><NuevaVenta /></PrivateRoute>} />
                 <Route path="/ventas/reporte" element={<PrivateRoute><ReporteVentas /></PrivateRoute>} />
+                <Route path="/cuentas-por-cobrar" element={<PrivateRoute><CuentasPorCobrar /></PrivateRoute>} />
                 <Route path="/clientes" element={<PrivateRoute><Clientes /></PrivateRoute>} />
                 <Route path="/proveedores" element={<PrivateRoute><Proveedores /></PrivateRoute>} />
                 <Route path="/materiales" element={<PrivateRoute><RegistroMateriales /></PrivateRoute>} />

@@ -3,7 +3,7 @@ import { FaMoneyBillWave, FaCalculator, FaPercentage, FaShoppingCart } from 'rea
 import BuscadorProducto from './BuscadorProducto';
 import ItemVenta from './ItemVenta';
 
-const ResumenVenta = ({ totals, config, setConfig, onProcess, processing, onClienteClick, onScan, onSelect, onQRClick, cart, onUpdateQuantity, onRemove, formaPago, setFormaPago }) => {
+const ResumenVenta = ({ totals, config, setConfig, onProcess, processing, onClienteClick, onScan, onSelect, onQRClick, cart, onUpdateQuantity, onRemove, formaPago, setFormaPago, onCreditoClick }) => {
     const [showDiscountInput, setShowDiscountInput] = useState(false);
 
     return (
@@ -146,12 +146,19 @@ const ResumenVenta = ({ totals, config, setConfig, onProcess, processing, onClie
                     </div>
                 </div>
 
-                {/* Botón COBRAR */}
-                <div className="max-w-md mx-auto mt-2">
+                {/* Botones de Cobro */}
+                <div className="max-w-md mx-auto mt-2 flex gap-2">
+                    <button
+                        onClick={onCreditoClick}
+                        disabled={totals.total === 0 || processing}
+                        className="flex-1 bg-blue-600 text-white py-2 rounded font-semibold text-xs shadow hover:bg-blue-700 transition-all disabled:bg-gray-300 disabled:cursor-not-allowed flex justify-center items-center gap-1"
+                    >
+                        💳 Crédito
+                    </button>
                     <button
                         onClick={onProcess}
                         disabled={totals.total === 0 || processing}
-                        className="w-full bg-gray-600 text-white py-2 rounded font-semibold text-xs shadow hover:bg-gray-700 transition-all disabled:bg-gray-300 disabled:cursor-not-allowed flex justify-center items-center gap-2"
+                        className="flex-1 bg-gray-600 text-white py-2 rounded font-semibold text-xs shadow hover:bg-gray-700 transition-all disabled:bg-gray-300 disabled:cursor-not-allowed flex justify-center items-center gap-2"
                     >
                         {processing ? (
                             <>

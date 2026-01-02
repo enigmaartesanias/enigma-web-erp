@@ -43,7 +43,10 @@ export const ventasDB = {
                     impuesto_monto,
                     total,
                     forma_pago,
-                    observaciones
+                    observaciones,
+                    es_credito,
+                    saldo_pendiente,
+                    fecha_vencimiento
                 ) VALUES (
                     ${codigoVenta},
                     ${ventaData.cliente_nombre || 'Cliente General'},
@@ -53,7 +56,10 @@ export const ventasDB = {
                     ${ventaData.impuesto_monto || 0},
                     ${ventaData.total},
                     ${ventaData.forma_pago || 'Efectivo'},
-                    ${ventaData.observaciones || ''}
+                    ${ventaData.observaciones || ''},
+                    ${ventaData.es_credito || false},
+                    ${ventaData.saldo_pendiente || 0},
+                    ${ventaData.fecha_vencimiento || null}
                 )
                 RETURNING *
             `;
@@ -149,6 +155,80 @@ export const ventasDB = {
             return venta;
         } catch (error) {
             console.error("Error anulando venta:", error);
+            throw error;
+        }
+    },
+
+    // Registrar pago a venta a crédito
+    async registrarPago(ventaId, montoPago, metodoPago = 'Efectivo', observaciones = '') {
+        try {
+            // 1. Obtener venta
+            const [venta] = await sql`SELECT * FROM ventas WHERE id = ${ventaId}`;
+
+            if (!venta) {
+                throw new Error('Venta no encontrada');
+            }
+
+            if (!venta.es_credito) {
+                throw new Error('Esta venta no es a crédito');
+            }
+
+            // 2. Validar monto
+            if (montoPago > venta.saldo_pendiente) {
+                throw new Error('El monto del pago no puede ser mayor al saldo pendiente');
+            }
+
+            if (montoPago <= 0) {
+                throw new Error('El monto debe ser mayor a cero');
+            }
+
+            // 3. Registrar pago en tabla pagos
+            await sql`
+                INSERT INTO pagos (venta_id, monto, metodo_pago, observaciones)
+                VALUES (${ventaId}, ${montoPago}, ${metodoPago}, ${observaciones})
+            `;
+
+            // 4. Calcular nuevo saldo y actualizar fechas
+            const nuevoSaldo = Math.max(0, venta.saldo_pendiente - montoPago);
+            const ahora = new Date().toISOString();
+
+            if (nuevoSaldo === 0) {
+                // Crédito cancelado completamente
+                await sql`
+                    UPDATE ventas
+                    SET saldo_pendiente = ${nuevoSaldo},
+                        fecha_ultimo_pago = ${ahora},
+                        fecha_cancelacion = ${ahora}
+                    WHERE id = ${ventaId}
+                `;
+            } else {
+                // Pago parcial
+                await sql`
+                    UPDATE ventas
+                    SET saldo_pendiente = ${nuevoSaldo},
+                        fecha_ultimo_pago = ${ahora}
+                    WHERE id = ${ventaId}
+                `;
+            }
+
+            return nuevoSaldo;
+        } catch (error) {
+            console.error('Error registrando pago:', error);
+            throw error;
+        }
+    },
+
+    // Obtener historial de pagos de una venta
+    async getHistorialPagos(ventaId) {
+        try {
+            const pagos = await sql`
+                SELECT * FROM pagos 
+                WHERE venta_id = ${ventaId} 
+                ORDER BY fecha_pago ASC
+            `;
+            return pagos;
+        } catch (error) {
+            console.error('Error obteniendo historial de pagos:', error);
             throw error;
         }
     }

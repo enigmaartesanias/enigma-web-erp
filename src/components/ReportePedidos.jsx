@@ -78,14 +78,26 @@ const ReportePedidos = () => {
                 console.log('📅 Filtrando por rango:', { start, end });
                 data = allPedidos.filter(p => {
                     if (!p.fecha_pedido) return false;
-                    // Extract YYYY-MM-DD from the timestamp for accurate date-only comparison
-                    const fechaPedidoStr = new Date(p.fecha_pedido).toISOString().split('T')[0];
-                    const enRango = fechaPedidoStr >= start && fechaPedidoStr <= end;
+
+                    // Usar fecha local Y UTC para comparación, cubriendo cualquier desviación horaria
+                    const d = new Date(p.fecha_pedido);
+
+                    // Local
+                    const year = d.getFullYear();
+                    const month = String(d.getMonth() + 1).padStart(2, '0');
+                    const day = String(d.getDate()).padStart(2, '0');
+                    const fechaLocal = `${year}-${month}-${day}`;
+
+                    // UTC
+                    const fechaUTC = d.toISOString().split('T')[0];
+
+                    // Si CUALQUIERA de las dos fechas cae en el rango, lo incluimos
+                    const enRango = (fechaLocal >= start && fechaLocal <= end) || (fechaUTC >= start && fechaUTC <= end);
 
                     // Lógica Híbrida 2026: Incluir pedidos antiguos si están "activos"
                     // Activo = Con saldo pendiente O en producción (no terminado/entregado)
                     const esAntiguoActivo = !enRango &&
-                        fechaPedidoStr < start &&
+                        fechaLocal < start &&
                         (
                             (Number(p.monto_saldo) > 0) ||
                             (p.estado_produccion && p.estado_produccion !== 'terminado' && p.estado_produccion !== 'entregado')
@@ -194,7 +206,7 @@ const ReportePedidos = () => {
                 // Pedidos nuevos: no entregados, y produccion en status inicial o no iniciado
                 filtered = allOrders.filter(p =>
                     p.estado_pedido !== 'entregado' &&
-                    (p.estado_produccion === 'no_iniciado' || p.estado_produccion === 'pendiente')
+                    (!p.estado_produccion || p.estado_produccion === 'no_iniciado' || p.estado_produccion === 'pendiente')
                 );
                 break;
             case 'Producción':

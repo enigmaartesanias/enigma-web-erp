@@ -13,7 +13,10 @@ const sql = neon(DATABASE_URL);
 export const pedidosDB = {
   // Obtener todos los pedidos con sus relaciones
   async getAll() {
-    const pedidos = await sql`
+    console.log('🔄 DEBUG: Iniciando getAll() en Neon Client...');
+    try {
+      const pedidos = await sql`
+
       SELECT 
         p.*,
         COALESCE(
@@ -27,16 +30,7 @@ export const pedidosDB = {
           )) FILTER (WHERE d.id_detalle IS NOT NULL),
           '[]'::json
         ) as detalles_pedido,
-        COALESCE(
-          json_agg(DISTINCT jsonb_build_object(
-            'id_pago', pa.id_pago,
-            'monto', pa.monto,
-            'fecha_pago', pa.fecha_pago,
-            'metodo_pago', pa.metodo_pago,
-            'referencia', pa.referencia
-          )) FILTER (WHERE pa.id_pago IS NOT NULL),
-          '[]'::json
-        ) as pagos,
+        '[]'::json as pagos,
         EXISTS (
           SELECT 1 FROM produccion_taller pt 
           WHERE pt.pedido_id = p.id_pedido 
@@ -70,33 +64,36 @@ export const pedidosDB = {
         ) as tiene_productos_pendientes
       FROM pedidos p
       LEFT JOIN detalles_pedido d ON p.id_pedido = d.id_pedido
-      LEFT JOIN pagos pa ON p.id_pedido = pa.id_pedido
+      -- LEFT JOIN pagos pa ON p.id_pedido = pa.pedido_id -- CAUSA ERROR: col no existe
       GROUP BY p.id_pedido
       ORDER BY p.fecha_pedido DESC
     `;
 
-    // Convertir strings numéricos a números
-    return pedidos.map(p => ({
-      ...p,
-      en_produccion: p.en_produccion || false,
-      estado_produccion: p.estado_produccion_calculado || p.estado_produccion || 'no_iniciado',
-      precio_total_sin_igv: parseFloat(p.precio_total_sin_igv) || 0,
-      precio_total: parseFloat(p.precio_total) || 0,
-      monto_a_cuenta: parseFloat(p.monto_a_cuenta) || 0,
-      monto_igv: parseFloat(p.monto_igv) || 0,
-      monto_saldo: parseFloat(p.monto_saldo) || 0,
-      envio_cobrado_al_cliente: parseFloat(p.envio_cobrado_al_cliente) || 0,
-      envio_referencia: parseFloat(p.envio_referencia) || 0,
-      detalles_pedido: p.detalles_pedido?.map(d => ({
-        ...d,
-        cantidad: parseInt(d.cantidad) || 0,
-        precio_unitario: parseFloat(d.precio_unitario) || 0
-      })) || [],
-      pagos: p.pagos?.map(pa => ({
-        ...pa,
-        monto: parseFloat(pa.monto) || 0
-      })) || []
-    }));
+      // Convertir strings numéricos a números
+      return pedidos.map(p => ({
+        ...p,
+        en_produccion: p.en_produccion || false,
+        estado_pedido: p.estado_pedido || 'aceptado',
+        estado_produccion: p.estado_produccion_calculado || p.estado_produccion || 'no_iniciado',
+        precio_total_sin_igv: parseFloat(p.precio_total_sin_igv) || 0,
+        precio_total: parseFloat(p.precio_total) || 0,
+        monto_a_cuenta: parseFloat(p.monto_a_cuenta) || 0,
+        monto_igv: parseFloat(p.monto_igv) || 0,
+        monto_saldo: parseFloat(p.monto_saldo) || 0,
+        envio_cobrado_al_cliente: parseFloat(p.envio_cobrado_al_cliente) || 0,
+        envio_referencia: parseFloat(p.envio_referencia) || 0,
+        detalles_pedido: p.detalles_pedido?.map(d => ({
+          ...d,
+          cantidad: parseInt(d.cantidad) || 0,
+          precio_unitario: parseFloat(d.precio_unitario) || 0
+        })) || [],
+        pagos: [] // JOIN roto, desactivado temporalmente
+      }));
+    } catch (error) {
+      console.error('❌ ERROR CRÍTICO en getAll:', error);
+      console.error('URL Env:', import.meta.env.VITE_DATABASE_URL ? 'DEFINIDA' : 'FALTANTE');
+      return [];
+    }
   },
 
   // Crear nuevo pedido

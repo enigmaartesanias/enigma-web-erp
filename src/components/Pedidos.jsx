@@ -751,29 +751,35 @@ const Pedidos = () => {
 
     // Filter Logic
     const filteredPedidos = pedidos.filter(p => {
+        const estadoProd = (p.estado_produccion || 'no_iniciado').trim(); // Removed toLowerCase as values are likely case-sensitive logic dependent or already lower
+        // actually existing logic compares with 'no_iniciado', so let's keep it exact match but trimmed.
+        const estadoPed = (p.estado_pedido || 'aceptado').trim();
+
         // FASE 3: Filtrado por tab (Pendientes, Producción, Terminados)
         if (activeTab === 'pendientes') {
-            // Tab Pendientes: pedidos aceptados sin iniciar producción
-            if (p.cancelado ||
-                p.estado_pedido !== 'aceptado' ||
-                p.estado_produccion !== 'no_iniciado') {
+            // Tab Pendientes: pedidos aceptados (o sin estado) sin iniciar producción
+            // NOTA: No filtrar por p.cancelado (que significa pagado), ya que un pedido pagado debe producirse
+            // Relajamos estado_pedido para incluir antiguos que quizás no sean exactamente 'aceptado'
+
+            // Si estatus prod es cualquiera de estos variaciones de "no iniciado"
+            const isNoIniciado = estadoProd === 'no_iniciado' || estadoProd === 'pendiente' || !estadoProd;
+
+            if (!isNoIniciado || estadoPed === 'entregado') {
                 return false;
             }
         } else if (activeTab === 'produccion') {
             // Tab Producción: pedidos EN PROCESO (no terminados)
-            if (p.cancelado ||
-                p.estado_pedido !== 'aceptado' ||
-                p.estado_produccion !== 'en_proceso') {
+            if (estadoProd !== 'en_proceso' || estadoPed === 'entregado') {
                 return false;
             }
         } else if (activeTab === 'terminados') {
             // Tab Terminados: TODOS los pedidos con producción terminada pero NO entregados
-            if (p.estado_produccion !== 'terminado' || p.estado_pedido === 'entregado') {
+            if (estadoProd !== 'terminado' || estadoPed === 'entregado') {
                 return false;
             }
         } else if (activeTab === 'entregados') {
             // Tab Entregados: TODOS los pedidos entregados (histórico de entregas)
-            if (p.estado_pedido !== 'entregado') {
+            if (estadoPed !== 'entregado') {
                 return false;
             }
         }
@@ -790,6 +796,8 @@ const Pedidos = () => {
     });
 
 
+
+
     // Prevent mouse wheel from changing number inputs
     const handleWheel = (e) => {
         e.target.blur();
@@ -797,6 +805,8 @@ const Pedidos = () => {
 
     return (
         <div className="container mx-auto p-4 md:p-6 bg-gray-50 min-h-screen">
+
+
             <div className="mb-6">
                 <Link to="/inventario-home" className="flex items-center text-gray-600 hover:text-blue-600 transition-colors w-fit">
                     <FaArrowLeft className="mr-2" />

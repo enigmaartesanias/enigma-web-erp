@@ -13,6 +13,8 @@ const ProduccionReporte = () => {
     });
     const [loading, setLoading] = useState(true);
     const [filtroActivo, setFiltroActivo] = useState('todos');
+    const [fechaInicio, setFechaInicio] = useState('2026-01-01');
+    const [fechaFin, setFechaFin] = useState('2026-12-31');
 
     useEffect(() => {
         fetchData();
@@ -34,41 +36,68 @@ const ProduccionReporte = () => {
 
 
 
-    // Filtrar producción según pestaña activa
+    // Filtrar producción por fechas (con excepción de "En Proceso")
+    const produccionConFiltroFecha = useMemo(() => {
+        return produccion.filter(p => {
+            // Siempre incluir items "en_proceso"
+            if (p.estado_produccion === 'en_proceso') return true;
+
+            // Para el resto, aplicar filtro de fechas
+            const fechaProduccion = new Date(p.fecha_produccion || p.created_at);
+            const fechaProduccionStr = fechaProduccion.toLocaleDateString('en-CA');
+
+            if (fechaInicio && fechaProduccionStr < fechaInicio) return false;
+            if (fechaFin && fechaProduccionStr > fechaFin) return false;
+
+            return true;
+        });
+    }, [produccion, fechaInicio, fechaFin]);
+
+    // Recalcular stats basado en producción filtrada por fecha
+    const statsCalculados = useMemo(() => {
+        return {
+            total_registros: produccionConFiltroFecha.length,
+            pendientes: produccionConFiltroFecha.filter(p => p.estado_produccion === 'pendiente').length,
+            en_proceso: produccionConFiltroFecha.filter(p => p.estado_produccion === 'en_proceso').length,
+            terminados: produccionConFiltroFecha.filter(p => p.estado_produccion === 'terminado').length
+        };
+    }, [produccionConFiltroFecha]);
+
+    // Filtrar por pestaña activa
     const produccionFiltrada = useMemo(() => {
         switch (filtroActivo) {
             case 'pendientes':
-                return produccion.filter(p => p.estado_produccion === 'pendiente');
+                return produccionConFiltroFecha.filter(p => p.estado_produccion === 'pendiente');
             case 'en_proceso':
-                return produccion.filter(p => p.estado_produccion === 'en_proceso');
+                return produccionConFiltroFecha.filter(p => p.estado_produccion === 'en_proceso');
             case 'terminados':
-                return produccion.filter(p => p.estado_produccion === 'terminado');
+                return produccionConFiltroFecha.filter(p => p.estado_produccion === 'terminado');
             case 'por_ingresar':
-                return produccion.filter(p =>
+                return produccionConFiltroFecha.filter(p =>
                     p.estado_produccion === 'terminado' &&
                     p.tipo_produccion === 'STOCK' &&
                     !p.transferido_inventario
                 );
             default:
-                return produccion;
+                return produccionConFiltroFecha;
         }
-    }, [produccion, filtroActivo]);
+    }, [produccionConFiltroFecha, filtroActivo]);
 
-    // Calcular contador para "Por Ingresar a Stock"
+    // Calcular contador para "Por Ingresar a Stock" basado en filtro de fecha
     const porIngresarCount = useMemo(() => {
-        return produccion.filter(p =>
+        return produccionConFiltroFecha.filter(p =>
             p.estado_produccion === 'terminado' &&
             p.tipo_produccion === 'STOCK' &&
             !p.transferido_inventario
         ).length;
-    }, [produccion]);
+    }, [produccionConFiltroFecha]);
 
-    // Definir pestañas
+    // Definir pestañas con stats calculados
     const pestanas = [
-        { id: 'todos', label: 'Todos', icon: '📋', count: stats.total_registros, color: 'purple' },
-        { id: 'pendientes', label: 'Pendientes', icon: '⏳', count: stats.pendientes, color: 'yellow' },
-        { id: 'en_proceso', label: 'En Proceso', icon: '🔨', count: stats.en_proceso, color: 'orange' },
-        { id: 'terminados', label: 'Terminados', icon: '✅', count: stats.terminados, color: 'green' },
+        { id: 'todos', label: 'Todos', icon: '📋', count: statsCalculados.total_registros, color: 'purple' },
+        { id: 'pendientes', label: 'Pendientes', icon: '⏳', count: statsCalculados.pendientes, color: 'yellow' },
+        { id: 'en_proceso', label: 'En Proceso', icon: '🔨', count: statsCalculados.en_proceso, color: 'orange' },
+        { id: 'terminados', label: 'Terminados', icon: '✅', count: statsCalculados.terminados, color: 'green' },
         { id: 'por_ingresar', label: 'Por Ingresar a Stock', icon: '📦', count: porIngresarCount, color: 'blue' }
     ];
 
@@ -125,6 +154,39 @@ const ProduccionReporte = () => {
                     <span className="font-medium">Volver</span>
                 </Link>
                 <h1 className="text-xl font-light text-gray-800">Reporte de Producción</h1>
+            </div>
+
+            {/* Filtros de Fecha */}
+            <div className="mb-4 bg-white rounded-lg shadow-sm p-4">
+                <div className="flex flex-col md:flex-row gap-3 items-center">
+                    <div className="flex items-center gap-2 w-full md:w-auto">
+                        <label className="text-sm font-medium text-gray-700 whitespace-nowrap">Del</label>
+                        <input
+                            type="date"
+                            value={fechaInicio}
+                            onChange={(e) => setFechaInicio(e.target.value)}
+                            className="border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                        />
+                    </div>
+                    <div className="flex items-center gap-2 w-full md:w-auto">
+                        <label className="text-sm font-medium text-gray-700 whitespace-nowrap">Al</label>
+                        <input
+                            type="date"
+                            value={fechaFin}
+                            onChange={(e) => setFechaFin(e.target.value)}
+                            className="border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                        />
+                    </div>
+                    <button
+                        onClick={() => {
+                            setFechaInicio('2026-01-01');
+                            setFechaFin('2026-12-31');
+                        }}
+                        className="px-4 py-1.5 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-md text-sm font-medium transition-colors w-full md:w-auto"
+                    >
+                        🗑️ Borrar
+                    </button>
+                </div>
             </div>
 
             {/* Pestañas de Filtrado - Responsive */}

@@ -398,7 +398,20 @@ const Produccion = () => {
                 p.nombre_cliente?.toLowerCase().includes(term);
         }
 
-        return matchesType && matchesSearch;
+        // Filtro de año: 2026 OR en_proceso
+        let matchesYear = true;
+        const fechaProduccion = new Date(p.fecha_registro || p.created_at);
+        const year = fechaProduccion.getFullYear();
+
+        // Siempre mostrar items en proceso
+        if (p.estado_produccion === 'en_proceso') {
+            matchesYear = true;
+        } else {
+            // Para el resto, solo mostrar 2026 en adelante
+            matchesYear = year >= 2026;
+        }
+
+        return matchesType && matchesSearch && matchesYear;
     });
 
     const handleTerminar = async (item) => {

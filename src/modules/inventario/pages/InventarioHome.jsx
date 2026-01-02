@@ -68,6 +68,12 @@ export default function InventarioHome() {
             description: 'Estadísticas ventas'
         },
         {
+            title: 'Cuentas por Cobrar',
+            icon: FileText,
+            path: '/cuentas-por-cobrar',
+            description: 'Gestión de créditos'
+        },
+        {
             title: 'Reporte Compras',
             icon: BarChart3,
             path: '/compras/reporte',

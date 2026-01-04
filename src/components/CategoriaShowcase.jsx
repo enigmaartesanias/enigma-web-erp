@@ -50,7 +50,7 @@ const CategoriaShowcase = () => {
             {
                 breakpoint: 768,
                 settings: {
-                    slidesToShow: 2,
+                    slidesToShow: 1,
                     slidesToScroll: 1,
                     infinite: true,
                     draggable: true,
@@ -143,17 +143,13 @@ const CategoriaShowcase = () => {
                 <div className="overflow-hidden">
                     <Slider {...settings}>
                         {productos.map((producto) => {
-                            // Lógica para formatear la fecha
-                            const date = new Date(producto.created_at);
-                            const month = date.toLocaleString('es-ES', { month: 'short' });
-                            const year = date.getFullYear();
-                            const formattedDate = `${month.charAt(0).toUpperCase() + month.slice(1)}. ${year}`;
+                            // Lógica para formatear la fecha (ELIMINADA)
 
                             return (
                                 <div key={producto.id} className="px-2 md:px-3">
                                     <Link to={`/producto/${producto.id}`} className="block pb-4">
                                         {/* Contenedor de producto */}
-                                        <div className="w-full h-[400px] bg-black rounded overflow-hidden flex items-center justify-center" style={{ height: '250px' }}>
+                                        <div className="w-full h-[400px] bg-black rounded overflow-hidden flex items-center justify-center" style={{ height: '320px' }}>
                                             <img
                                                 src={producto.imagen_principal_url}
                                                 alt={producto.titulo}
@@ -164,11 +160,7 @@ const CategoriaShowcase = () => {
                                             {producto.titulo}
                                         </div>
                                         <div className="mt-1 text-sm text-black text-left mb-2">
-                                            S/ {producto.precio?.toFixed(2)} PEN
-                                        </div>
-                                        {/* Nuevo div para la fecha (más pequeño) */}
-                                        <div className="text-xs text-black text-opacity-70 text-left mt-1">
-                                            {formattedDate}
+                                            Desde S/ {Number(producto.precio)}
                                         </div>
                                     </Link>
                                 </div>

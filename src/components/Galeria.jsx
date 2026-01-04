@@ -42,13 +42,13 @@ const CATEGORIES = [
 
 const MATERIAL_CARDS = [
     {
-        name: "Colección Plata",
-        key: "plata",
+        name: "Colección Cobre",
+        key: "cobre",
 
         // ---------------------------------------------------------
-        // CAMBIA LA RUTA DE LA IMAGEN AQUÍ PARA LA COLECCIÓN PLATA
+        // CAMBIA LA RUTA DE LA IMAGEN AQUÍ PARA LA COLECCIÓN COBRE
         // ---------------------------------------------------------
-        image: "/images/anillo2.jpg",
+        image: "/images/pulsera3.jpg",
         categories: CATEGORIES,
         isCustom: false,
     },
@@ -64,13 +64,13 @@ const MATERIAL_CARDS = [
         isCustom: false,
     },
     {
-        name: "Colección Cobre",
-        key: "cobre",
+        name: "Colección Plata",
+        key: "plata",
 
         // ---------------------------------------------------------
-        // CAMBIA LA RUTA DE LA IMAGEN AQUÍ PARA LA COLECCIÓN COBRE
+        // CAMBIA LA RUTA DE LA IMAGEN AQUÍ PARA LA COLECCIÓN PLATA
         // ---------------------------------------------------------
-        image: "/images/pulsera3.jpg",
+        image: "/images/anillo2.jpg",
         categories: CATEGORIES,
         isCustom: false,
     },
@@ -99,7 +99,7 @@ const MaterialCard = ({ card, isActive, isAnyCardActive, onToggle }) => {
         return BASE_ROUTES[materialKey]?.[categorySlug] || "#";
     };
 
-    // Detectar si estamos en modo móvil usando useMediaQuery (mejor práctica)
+    // Detectar si estamos en modo móvil
     const [isMobile, setIsMobile] = useState(false);
 
     useEffect(() => {
@@ -112,7 +112,15 @@ const MaterialCard = ({ card, isActive, isAnyCardActive, onToggle }) => {
         return () => mediaQuery.removeEventListener("change", listener);
     }, []);
 
-    // En móviles, mostramos los enlaces directamente debajo de la imagen
+    // Helper para agrupar categorías en pares
+    const chunkedCategories = [];
+    if (categories) {
+        for (let i = 0; i < categories.length; i += 2) {
+            chunkedCategories.push(categories.slice(i, i + 2));
+        }
+    }
+
+    // En móviles
     if (isMobile) {
         return (
             <div className="w-full relative overflow-hidden rounded-xl transition-shadow duration-300 cursor-pointer">
@@ -121,37 +129,49 @@ const MaterialCard = ({ card, isActive, isAnyCardActive, onToggle }) => {
                     <img
                         src={image}
                         alt={name}
-                        className="w-full h-full object-cover brightness-90 hover:brightness-100 transition-all duration-500"
+                        className="w-full h-full object-cover transition-all duration-500"
                     />
+                    {/* Overlay suave para móvil */}
+                    <div className="absolute inset-0 bg-black/10 pointer-events-none" />
                 </div>
 
                 {/* Enlaces debajo de la imagen (solo en móvil) */}
-                <div className="mt-3 grid grid-cols-2 gap-x-2 gap-y-1.5 justify-center">
+                <div className="mt-5 flex flex-col items-center gap-2">
                     {isCustom ? (
                         <Link
                             to={link}
-                            className="px-6 py-2 bg-gray-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-full shadow-md transition-colors duration-300 no-underline uppercase col-span-2 text-center"
+                            className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-full text-sm font-medium transition-colors shadow-sm"
                         >
-                            Ver Modelos
+                            Cotizar Diseño
                         </Link>
                     ) : (
-                        categories.map((cat) => (
-                            <Link
-                                key={cat.slug}
-                                to={getRoute(key, cat.slug)}
-                                className="px-4 py-2 text-xs font-bold text-white bg-gray-700 hover:bg-gray-900 rounded-full border border-gray-600 shadow-md transition-colors duration-300 no-underline uppercase text-center"
-                            >
-                                {cat.name}
-                            </Link>
-                        ))
+                        <>
+                            {chunkedCategories.map((chunk, i) => (
+                                <div key={i} className="flex items-center gap-2 text-gray-700 font-medium text-base">
+                                    {chunk.map((cat, j) => (
+                                        <div key={cat.slug} className="flex items-center">
+                                            <Link
+                                                to={getRoute(key, cat.slug)}
+                                                className="hover:text-black hover:underline transition-colors"
+                                            >
+                                                {cat.name}
+                                            </Link>
+                                            {j < chunk.length - 1 && <span className="text-gray-400 mx-2">|</span>}
+                                        </div>
+                                    ))}
+                                </div>
+                            ))}
+                        </>
                     )}
+
                     {/* Botón Ver Todo para Móvil */}
                     {!isCustom && (
                         <Link
                             to={getRoute(key, "all")}
-                            className="col-span-2 px-4 py-2 text-xs font-bold text-white bg-gray-700 hover:bg-gray-900 rounded-full border border-gray-600 shadow-md transition-colors duration-300 no-underline uppercase text-center mt-0.5"
+                            className="mt-3 text-sm text-gray-500 hover:text-indigo-600 font-normal transition-colors flex items-center gap-1 group"
                         >
-                            Ver Todo
+                            Ver toda la colección
+                            <span className="group-hover:translate-x-1 transition-transform duration-300">→</span>
                         </Link>
                     )}
                 </div>
@@ -159,7 +179,7 @@ const MaterialCard = ({ card, isActive, isAnyCardActive, onToggle }) => {
         );
     }
 
-    // En desktop, mantenemos el overlay
+    // En desktop
     const shouldShowOverlay = isActive || isHovered;
 
     return (
@@ -181,8 +201,8 @@ const MaterialCard = ({ card, isActive, isAnyCardActive, onToggle }) => {
                     className="w-full h-full object-cover transition-transform duration-700 ease-in-out transform hover:scale-105"
                 />
 
-                {/* Fondo base oscuro siempre presente */}
-                <div className="absolute inset-0 bg-black/40 pointer-events-none" />
+                {/* Fondo base suave (gris/negro al 10-15%) para contexto, sin oscurecer demasiado */}
+                <div className="absolute inset-0 bg-black/10 pointer-events-none" />
 
                 {/* Overlay de categorías (aparece al activar o hacer hover) */}
                 <div
@@ -214,40 +234,43 @@ const MaterialCard = ({ card, isActive, isAnyCardActive, onToggle }) => {
                         }}
                     >
                         <div
-                            style={{
-                                display: "flex",
-                                flexWrap: "wrap",
-                                justifyContent: "center",
-                                gap: "0.75rem",
-                            }}
+                            className="flex flex-col items-center gap-3"
                             onClick={(e) => e.stopPropagation()}
                         >
                             {isCustom ? (
                                 <Link
                                     to={link}
-                                    className="px-8 py-3 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold rounded-lg shadow-md transition-colors duration-300 no-underline uppercase"
+                                    className="bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-3 rounded-lg text-sm font-bold shadow-md transition-colors"
                                 >
                                     Cotizar Diseño
                                 </Link>
                             ) : (
-                                categories.map((cat) => (
+                                <>
+                                    {chunkedCategories.map((chunk, i) => (
+                                        <div key={i} className="flex items-center gap-2 text-gray-200 font-medium text-lg">
+                                            {chunk.map((cat, j) => (
+                                                <div key={cat.slug} className="flex items-center">
+                                                    <Link
+                                                        to={getRoute(key, cat.slug)}
+                                                        className="hover:text-white hover:underline transition-colors"
+                                                    >
+                                                        {cat.name}
+                                                    </Link>
+                                                    {j < chunk.length - 1 && <span className="text-gray-500 mx-3">|</span>}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ))}
+
+                                    {/* Botón Ver Todo para Desktop */}
                                     <Link
-                                        key={cat.slug}
-                                        to={getRoute(key, cat.slug)}
-                                        className="px-6 py-2.5 text-xs font-bold text-white bg-gray-700 hover:bg-gray-900 rounded-full border border-gray-600 shadow-md transition-colors duration-300 no-underline uppercase"
+                                        to={getRoute(key, "all")}
+                                        className="mt-4 text-sm text-gray-400 hover:text-white font-normal transition-colors flex items-center gap-1 group"
                                     >
-                                        {cat.name}
+                                        Ver toda la colección
+                                        <span className="group-hover:translate-x-1 transition-transform duration-300">→</span>
                                     </Link>
-                                ))
-                            )}
-                            {/* Botón Ver Todo para Desktop */}
-                            {!isCustom && (
-                                <Link
-                                    to={getRoute(key, "all")}
-                                    className="px-8 py-2.5 text-xs font-bold text-white bg-gray-900 hover:bg-black rounded-full border border-gray-700 shadow-md transition-colors duration-300 no-underline uppercase w-full max-w-[200px]"
-                                >
-                                    Ver Colección
-                                </Link>
+                                </>
                             )}
                         </div>
                     </div>

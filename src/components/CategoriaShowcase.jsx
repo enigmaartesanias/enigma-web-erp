@@ -41,7 +41,8 @@ const CategoriaShowcase = () => {
         speed: 500,
         slidesToShow: 4,
         slidesToScroll: 1,
-        autoplay: false,
+        autoplay: true,
+        autoplaySpeed: 3000,
         draggable: true,
         swipe: true,
         dots: true,
@@ -56,6 +57,8 @@ const CategoriaShowcase = () => {
                     draggable: true,
                     swipe: true,
                     dots: true,
+                    autoplay: true,
+                    autoplaySpeed: 3000,
                 },
             },
         ],
@@ -107,7 +110,7 @@ const CategoriaShowcase = () => {
             <div className="container mx-auto px-3">
                 {/* Título del showcase */}
                 <div className="text-left mb-4">
-                    <h2 className="text-2xl font-bold text-gray-900">
+                    <h2 className="text-2xl font-normal text-gray-900">
                         Creaciones del Momento
                     </h2>
                 </div>

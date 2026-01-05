@@ -140,9 +140,10 @@ const MaterialCard = ({ card, isActive, isAnyCardActive, onToggle }) => {
                     {isCustom ? (
                         <Link
                             to={link}
-                            className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-full text-sm font-medium transition-colors shadow-sm"
+                            className="mt-3 text-sm text-gray-500 hover:text-indigo-600 font-normal transition-colors flex items-center gap-1 group"
                         >
-                            Cotizar Diseño
+                            Ver algunos diseños
+                            <span className="group-hover:translate-x-1 transition-transform duration-300">→</span>
                         </Link>
                     ) : (
                         <>
@@ -240,9 +241,10 @@ const MaterialCard = ({ card, isActive, isAnyCardActive, onToggle }) => {
                             {isCustom ? (
                                 <Link
                                     to={link}
-                                    className="bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-3 rounded-lg text-sm font-bold shadow-md transition-colors"
+                                    className="mt-4 text-sm text-gray-400 hover:text-white font-normal transition-colors flex items-center gap-1 group"
                                 >
-                                    Cotizar Diseño
+                                    Ver algunos diseños
+                                    <span className="group-hover:translate-x-1 transition-transform duration-300">→</span>
                                 </Link>
                             ) : (
                                 <>
@@ -297,12 +299,12 @@ const Galeria = () => {
 
     return (
         <section
-            className="py-8 bg-gray-100 font-sans"
+            className="pt-2 pb-8 lg:py-8 bg-gray-100 font-sans"
             onClick={() => setActiveCard(null)}
         >
             <div className="container mx-auto px-3">
                 <div className="text-center mb-10">
-                    <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 tracking-tight">
+                    <h2 className="text-3xl sm:text-4xl font-normal text-gray-900 tracking-tight">
                         Colecciones Artesanales
                     </h2>
                     <p className="mt-2 text-lg text-gray-600">

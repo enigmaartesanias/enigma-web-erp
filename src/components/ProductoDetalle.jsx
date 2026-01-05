@@ -269,44 +269,60 @@ const ProductoDetalle = () => {
                 </div>
 
                 {/* Detalles - Orden reorganizado */}
-                <div className="py-4 mb-4">
-                    <h2 className="text-xl mb-2 text-left">{producto.titulo}</h2>
+                {/* Detalles - Nuevo Diseño Minimalista y Elegante */}
+                <div className="py-2 mb-8 space-y-8">
+                    {/* Título */}
+                    <h2 className="text-2xl md:text-3xl font-light text-gray-900 tracking-wide text-left">{producto.titulo}</h2>
 
-                    {/* Precio y Material reorganizados */}
-                    <div className="flex justify-between items-center mb-4">
+                    {/* Precio y Disclaimer */}
+                    <div className="text-left space-y-2">
                         {producto.precio && (
-                            <div className="text-left">
-                                <span className="text-gray-600">Precio:</span>
-                                <p className="text-lg">
-                                    S/ {producto.precio?.toFixed(2)} PEN
+                            <div>
+                                <p className="text-xl md:text-2xl font-light text-gray-800">
+                                    Desde S/ {Number(producto.precio).toFixed(2)} PEN
+                                </p>
+                                <p className="text-xs text-gray-500 font-light mt-1 max-w-lg">
+                                    Precio referencial. Puede variar según material, piedra, acabado y talla. Se realiza a pedido según diseño y medida.
                                 </p>
                             </div>
                         )}
-                        <div className="text-right">
-                            <span className="text-gray-600">Material:</span>
-                            <p className="text-lg">{producto.material_principal}</p>
-                        </div>
+                        {/* Material (opcional, si se desea menos prominente) */}
+                        {/* <p className="text-sm text-gray-500 uppercase tracking-widest">{producto.material_principal}</p> */}
                     </div>
 
                     {/* Descripción */}
                     {producto.descripcion && (
-                        <div className="py-4 text-left mb-2">
-                            <span className="text-gray-600">Descripción:</span>
+                        <div className="text-left text-gray-700 font-light leading-relaxed">
                             <p>{producto.descripcion}</p>
                         </div>
                     )}
 
-                    {/* Información adicional con enlace a políticas de envío */}
-                    <div className="text-left mb-4">
-                        <span className="text-gray-600">Información adicional:</span>
-                        <p>
-                            "El precio no incluye IGV. Para más detalles sobre tallas o disponibilidad, por favor, contáctame por WhatsApp.
+                    {/* Nota Artesanal */}
+                    <div className="text-left border-l-2 border-gray-200 pl-4 py-1">
+                        <h3 className="text-sm font-medium text-gray-900 mb-1 flex items-center gap-2">
+                            🔹 Nota artesanal
+                        </h3>
+                        <p className="text-sm text-gray-600 font-light italic">
+                            🛠 Imagen referencial. Cada pieza se elabora de forma artesanal, por lo que puede presentar ligeras variaciones.
                         </p>
-                        <p className="mt-2">
-                            <Link to="/PoliticasEnvios" className="text-blue-600 hover:underline font-semibold">
-                                Más detalles de envío
-                            </Link> o consulta el producto en el enlace de arriba.
-                        </p>
+                    </div>
+
+                    {/* Información Adicional */}
+                    <div className="text-left bg-gray-50 p-6 rounded-lg">
+                        <h3 className="text-sm font-medium text-gray-900 mb-3 flex items-center gap-2">
+                            🔹 Información adicional
+                        </h3>
+                        <div className="space-y-2 text-sm text-gray-600 font-light">
+                            <p>• El precio no incluye IGV</p>
+                            <p>• Tiempo de elaboración según pedido</p>
+                            <p>• Para tallas, disponibilidad o envíos, contáctame por WhatsApp</p>
+                            <div className="pt-2">
+                                <Link to="/PoliticasEnvios" className="text-indigo-600 hover:text-indigo-800 hover:underline transition-colors font-medium">
+                                    Más detalles de envío
+                                </Link>
+                                <span className="text-gray-500 ml-1">o consulta el producto en el enlace de arriba.</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
 

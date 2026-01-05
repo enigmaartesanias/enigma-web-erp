@@ -295,7 +295,7 @@ const ProductGridPage = () => {
 
             {/* Main Title Centered */}
             <div className="text-center mb-8">
-                <h1 className="text-2xl md:text-3xl font-serif font-medium tracking-widest text-gray-900 uppercase">
+                <h1 className="text-3xl sm:text-4xl font-normal text-gray-900 tracking-tight font-sans">
                     {material !== 'all' ? `Colección ${material}` : pageTitle}
                 </h1>
             </div>
@@ -322,7 +322,7 @@ const ProductGridPage = () => {
                                 <div className="p-4 flex flex-col flex-grow">
                                     <h3 className="text-xs md:text-base font-semibold truncate text-black">{product.titulo}</h3>
                                     {product.precio && (
-                                        <p className="text-sm md:text-lg font-normal text-black mt-2">S/ {product.precio.toFixed(2)}</p>
+                                        <p className="text-sm md:text-lg font-normal text-black mt-2">Desde S/ {product.precio.toFixed(2)}</p>
                                     )}
                                 </div>
                             </div>

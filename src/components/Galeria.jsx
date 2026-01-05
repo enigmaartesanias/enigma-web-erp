@@ -148,7 +148,7 @@ const MaterialCard = ({ card, isActive, isAnyCardActive, onToggle }) => {
                     ) : (
                         <>
                             {chunkedCategories.map((chunk, i) => (
-                                <div key={i} className="flex items-center gap-2 text-gray-700 font-medium text-base">
+                                <div key={i} className="flex items-center gap-4 text-gray-700 font-medium text-lg">
                                     {chunk.map((cat, j) => (
                                         <div key={cat.slug} className="flex items-center">
                                             <Link
@@ -157,7 +157,7 @@ const MaterialCard = ({ card, isActive, isAnyCardActive, onToggle }) => {
                                             >
                                                 {cat.name}
                                             </Link>
-                                            {j < chunk.length - 1 && <span className="text-gray-400 mx-2">|</span>}
+                                            {j < chunk.length - 1 && <span className="text-gray-400 mx-4">|</span>}
                                         </div>
                                     ))}
                                 </div>

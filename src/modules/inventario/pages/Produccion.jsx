@@ -64,13 +64,15 @@ const Produccion = () => {
         nombre_producto: '',
         cantidad: '',
         costo_materiales: '',
-        horas_trabajo: '',
-        costo_hora: '',
+        costo_materiales: '',
+        mano_de_obra: '',
+        porcentaje_alquiler: '',
         costo_herramientas: '',
         otros_gastos: '',
         estado_produccion: 'en_proceso', // Valor por defecto automatico
         observaciones: '',
-        imagen_url: '' // Nuevo campo imagen
+        imagen_url: '', // Nuevo campo imagen
+        codigo_producto: '' // Nuevo campo codigo
     };
 
     const [formData, setFormData] = useState(initialFormState);
@@ -163,12 +165,14 @@ const Produccion = () => {
             nombre_producto: item.nombre_producto || '',
             cantidad: item.cantidad || '',
             costo_materiales: item.costo_materiales || '',
-            horas_trabajo: item.horas_trabajo || '',
-            costo_hora: item.costo_hora || '0',
+            mano_de_obra: item.mano_de_obra || '',
+            porcentaje_alquiler: item.porcentaje_alquiler || '',
             costo_herramientas: item.costo_herramientas || '',
             otros_gastos: item.otros_gastos || '',
             estado_produccion: item.estado_produccion || 'pendiente',
-            observaciones: item.observaciones || ''
+            observaciones: item.observaciones || '',
+            imagen_url: item.imagen_url || '',
+            codigo_producto: item.codigo_producto || ''
         });
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
@@ -215,7 +219,51 @@ const Produccion = () => {
         }
     };
 
-    // Funciones de imagen eliminadas - ahora se manejan en ProductoForm
+    // Handlers de Imagen y QR
+    const handleImageChange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        // Validar
+        const validation = validateImageFile(file, 5); // Max 5MB
+        if (!validation.valid) {
+            toast.error(validation.error);
+            return;
+        }
+
+        setUploadingImage(true);
+        try {
+            // Comprimir
+            const optimizedFile = await compressAndResizeImage(file, {
+                maxSizeMB: 0.5,
+                maxWidth: 1024,
+                quality: 0.8
+            });
+
+            // Subir a Firebase
+            const fileName = `produccion/${uuidv4()}_${optimizedFile.name}`;
+            const storageRef = ref(storage, fileName);
+            await uploadBytes(storageRef, optimizedFile);
+            const downloadURL = await getDownloadURL(storageRef);
+
+            setFormData(prev => ({
+                ...prev,
+                imagen_url: downloadURL
+            }));
+            toast.success('Imagen subida correctamente');
+
+        } catch (error) {
+            console.error('Error al subir imagen:', error);
+            toast.error('Error al subir la imagen');
+        } finally {
+            setUploadingImage(false);
+            if (fileInputRef.current) fileInputRef.current.value = '';
+        }
+    };
+
+    const handleRemoveImage = () => {
+        setFormData(prev => ({ ...prev, imagen_url: '' }));
+    };
 
     const handleView = (item) => {
         // Cargar item en modo solo lectura
@@ -228,12 +276,14 @@ const Produccion = () => {
             nombre_producto: item.nombre_producto || '',
             cantidad: item.cantidad || '',
             costo_materiales: item.costo_materiales || '',
-            horas_trabajo: item.horas_trabajo || '',
-            costo_hora: item.costo_hora || '0',
+            mano_de_obra: item.mano_de_obra || '',
+            porcentaje_alquiler: item.porcentaje_alquiler || '',
             costo_herramientas: item.costo_herramientas || '',
             otros_gastos: item.otros_gastos || '',
             estado_produccion: item.estado_produccion || 'en_proceso',
-            observaciones: item.observaciones || ''
+            observaciones: item.observaciones || '',
+            imagen_url: item.imagen_url || '',
+            codigo_producto: item.codigo_producto || ''
         });
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
@@ -262,12 +312,14 @@ const Produccion = () => {
             nombre_producto: '',
             cantidad: '',
             costo_materiales: '',
-            horas_trabajo: '',
-            costo_hora: '0',
+            mano_de_obra: '',
+            porcentaje_alquiler: '',
             costo_herramientas: '',
             otros_gastos: '',
             estado_produccion: 'en_proceso',
-            observaciones: ''
+            observaciones: '',
+            imagen_url: '',
+            codigo_producto: ''
         });
         setEditingId(null);
     };
@@ -286,12 +338,15 @@ const Produccion = () => {
                     nombre_producto: formData.nombre_producto,
                     cantidad: parseInt(formData.cantidad),
                     costo_materiales: parseFloat(formData.costo_materiales) || 0,
-                    horas_trabajo: parseFloat(formData.horas_trabajo) || 0,
-                    costo_hora: parseFloat(formData.costo_hora) || 0,
+                    mano_de_obra: parseFloat(formData.mano_de_obra) || 0,
+                    porcentaje_alquiler: parseFloat(formData.porcentaje_alquiler) || 0,
                     costo_herramientas: parseFloat(formData.costo_herramientas) || 0,
                     otros_gastos: parseFloat(formData.otros_gastos) || 0,
                     estado_produccion: formData.estado_produccion,
-                    observaciones: formData.observaciones
+                    estado_produccion: formData.estado_produccion,
+                    observaciones: formData.observaciones,
+                    imagen_url: formData.imagen_url,
+                    codigo_producto: formData.codigo_producto
                 });
 
                 setShowSuccessModal(true);
@@ -312,12 +367,14 @@ const Produccion = () => {
                     nombre_producto: formData.nombre_producto,
                     cantidad: parseInt(formData.cantidad),
                     costo_materiales: parseFloat(formData.costo_materiales) || 0,
-                    horas_trabajo: parseFloat(formData.horas_trabajo) || 0,
-                    costo_hora: parseFloat(formData.costo_hora) || 0,
+                    mano_de_obra: parseFloat(formData.mano_de_obra) || 0,
+                    porcentaje_alquiler: parseFloat(formData.porcentaje_alquiler) || 0,
                     costo_herramientas: parseFloat(formData.costo_herramientas) || 0,
                     otros_gastos: parseFloat(formData.otros_gastos) || 0,
                     estado_produccion: formData.estado_produccion,
-                    observaciones: formData.observaciones
+                    observaciones: formData.observaciones,
+                    imagen_url: formData.imagen_url,
+                    codigo_producto: formData.codigo_producto
                 });
 
                 setShowSuccessModal(true);
@@ -461,14 +518,18 @@ const Produccion = () => {
         navigate(`/producto-form?produccion_id=${item.id_produccion}`);
     };
 
-    // Calcular costo total en tiempo real
-    const costoManoObra = (parseFloat(formData.horas_trabajo) || 0) * (parseFloat(formData.costo_hora) || 0);
+    // Calcular costo total en tiempo real (Modelo Artesanal: Suma Directa)
     const costoTotalUnitario =
         (parseFloat(formData.costo_materiales) || 0) +
-        costoManoObra +
+        (parseFloat(formData.mano_de_obra) || 0) +
         (parseFloat(formData.costo_herramientas) || 0) +
         (parseFloat(formData.otros_gastos) || 0);
+
     const costoTotalProduccion = costoTotalUnitario * (parseInt(formData.cantidad) || 1);
+
+    // Cálculo Referencial de Alquiler
+    const porcentajeAlquiler = parseFloat(formData.porcentaje_alquiler) || 0;
+    const montoAlquilerEstimado = (costoTotalProduccion * porcentajeAlquiler) / 100;
 
     return (
         <div className="container mx-auto p-4 md:p-6 bg-gray-50 min-h-screen">
@@ -606,96 +667,98 @@ const Produccion = () => {
                     </div>
 
                     {/* Costos */}
-                    <div className="bg-blue-50/50 p-4 rounded-xl border border-blue-100">
-                        <h3 className="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">
-                            <FaMoneyBillWave className="text-blue-600" />
-                            Costos de Fabricación
-                        </h3>
-
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                            <div>
-                                <label className="block text-xs font-medium text-gray-700 mb-1">Materiales (S/)</label>
-                                <input
-                                    type="number"
-                                    step="0.01"
-                                    name="costo_materiales"
-                                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2 bg-white"
-                                    placeholder="0.00"
-                                    value={formData.costo_materiales}
-                                    onChange={handleChange}
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-xs font-medium text-gray-700 mb-1">Horas</label>
-                                <input
-                                    type="number"
-                                    step="0.5"
-                                    name="horas_trabajo"
-                                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2 bg-white"
-                                    placeholder="0.0"
-                                    value={formData.horas_trabajo}
-                                    onChange={handleChange}
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-xs font-medium text-gray-700 mb-1">Costo/Hora (S/) - Opcional</label>
-                                <input
-                                    type="number"
-                                    step="0.01"
-                                    name="costo_hora"
-                                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2 bg-white"
-                                    value={formData.costo_hora}
-                                    onChange={handleChange}
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-xs font-medium text-gray-700 mb-1">Herramientas (S/)</label>
-                                <input
-                                    type="number"
-                                    step="0.01"
-                                    name="costo_herramientas"
-                                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2 bg-white"
-                                    placeholder="0.00"
-                                    value={formData.costo_herramientas}
-                                    onChange={handleChange}
-                                />
-                            </div>
-
-                            <div className="md:col-span-2">
-                                <label className="block text-xs font-medium text-gray-700 mb-1">Otros Gastos (S/)</label>
-                                <input
-                                    type="number"
-                                    step="0.01"
-                                    name="otros_gastos"
-                                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2 bg-white"
-                                    placeholder="0.00"
-                                    value={formData.otros_gastos}
-                                    onChange={handleChange}
-                                />
-                            </div>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                        <div>
+                            <label className="block text-xs font-semibold text-gray-700 mb-1">Materiales (S/)</label>
+                            <input
+                                type="number"
+                                step="0.01"
+                                name="costo_materiales"
+                                className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2 bg-white"
+                                placeholder="0.00"
+                                value={formData.costo_materiales}
+                                onChange={handleChange}
+                            />
                         </div>
 
-                        {/* Cálculos */}
-                        <div className="mt-4 bg-white rounded-lg p-3 border-2 border-blue-200">
-                            <div className="grid grid-cols-2 gap-2 text-sm">
-                                <div className="flex justify-between">
-                                    <span className="text-gray-600">Mano de Obra:</span>
-                                    <span className="font-semibold">S/ {costoManoObra.toFixed(2)}</span>
-                                </div>
-                                <div className="flex justify-between">
-                                    <span className="text-gray-600">Costo Unitario:</span>
-                                    <span className="font-semibold">S/ {costoTotalUnitario.toFixed(2)}</span>
-                                </div>
-                                <div className="flex justify-between col-span-2 pt-2 border-t">
-                                    <span className="text-gray-800 font-semibold">Costo Total Producción:</span>
-                                    <span className="font-bold text-lg text-red-600">S/ {costoTotalProduccion.toFixed(2)}</span>
-                                </div>
+                        <div>
+                            <label className="block text-xs font-semibold text-gray-700 mb-1">Mano de Obra (S/)</label>
+                            <input
+                                type="number"
+                                step="0.01"
+                                name="mano_de_obra"
+                                className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2 bg-white"
+                                placeholder="0.00"
+                                value={formData.mano_de_obra}
+                                onChange={handleChange}
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-xs font-semibold text-gray-700 mb-1">Herramientas (S/)</label>
+                            <input
+                                type="number"
+                                step="0.01"
+                                name="costo_herramientas"
+                                className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2 bg-white"
+                                placeholder="0.00"
+                                value={formData.costo_herramientas}
+                                onChange={handleChange}
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-xs font-semibold text-gray-700 mb-1">Otros Gastos (S/)</label>
+                            <input
+                                type="number"
+                                step="0.01"
+                                name="otros_gastos"
+                                className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2 bg-white"
+                                placeholder="0.00"
+                                value={formData.otros_gastos}
+                                onChange={handleChange}
+                            />
+                        </div>
+
+                        {/* Campo Referencial de Alquiler */}
+                        <div className="col-span-2 md:col-span-1 bg-amber-50 p-2 rounded-lg border border-amber-200">
+                            <label className="block text-xs font-semibold text-gray-700 mb-1 flex justify-between">
+                                <span>% Alquiler (Ref)</span>
+                                <span className="text-amber-700">{montoAlquilerEstimado > 0 ? `S/ ${montoAlquilerEstimado.toFixed(2)}` : ''}</span>
+                            </label>
+                            <div className="flex items-center gap-2">
+                                <input
+                                    type="number"
+                                    step="1"
+                                    name="porcentaje_alquiler"
+                                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-amber-500 focus:ring-amber-500 border p-2 bg-white text-center font-medium"
+                                    placeholder="%"
+                                    value={formData.porcentaje_alquiler}
+                                    onChange={handleChange}
+                                />
+                            </div>
+                            <p className="text-[9px] text-gray-500 mt-1 leading-tight text-center">
+                                * Cálculo referencial. No afecta el costo total.
+                            </p>
+                        </div>
+
+                        {/* Info de Costos en Mobile ocupa 2 col, desktop 1 */}
+                    </div>
+
+                    {/* Cálculos */}
+                    <div className="mt-4 bg-white rounded-lg p-3 border-2 border-blue-200 shadow-sm">
+                        <div className="grid grid-cols-2 gap-2 text-sm">
+                            <div className="flex justify-between items-center pb-2 border-b border-gray-100 col-span-2">
+                                <span className="text-gray-600 font-medium">Costo Total Unitario:</span>
+                                <span className="font-bold text-gray-800">S/ {costoTotalUnitario.toFixed(2)}</span>
+                            </div>
+                            <div className="flex justify-between items-center col-span-2 pt-2">
+                                <span className="text-gray-800 font-bold text-base">COSTO TOTAL PRODUCCIÓN:</span>
+                                <span className="font-bold text-xl text-blue-700">S/ {costoTotalProduccion.toFixed(2)}</span>
                             </div>
                         </div>
                     </div>
+
 
                     {/* Observaciones */}
                     <div>
@@ -708,6 +771,64 @@ const Produccion = () => {
                             onChange={handleChange}
                             placeholder="Notas sobre la producción..."
                         />
+                    </div>
+
+                    {/* Imagen y Código */}
+                    <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
+                        <h3 className="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">
+                            <FaCamera className="text-gray-600" />
+                            Detalles Visuales e Identificación
+                        </h3>
+                        <div className="grid grid-cols-1 gap-6">
+                            {/* Carga de Imagen */}
+                            <div>
+                                <label className="block text-xs font-semibold text-gray-700 mb-2">Imagen del Producto</label>
+                                <div className="flex items-start gap-4">
+                                    <div className="w-24 h-24 bg-gray-200 rounded-lg border border-gray-300 flex items-center justify-center overflow-hidden relative">
+                                        {formData.imagen_url ? (
+                                            <>
+                                                <img src={formData.imagen_url} alt="Prod" className="w-full h-full object-cover" />
+                                                {!editingId && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={handleRemoveImage}
+                                                        className="absolute top-0 right-0 bg-red-500 text-white p-1 rounded-bl-lg hover:bg-red-600"
+                                                    >
+                                                        <FaTimes size={10} />
+                                                    </button>
+                                                )}
+                                            </>
+                                        ) : (
+                                            <FaCamera className="text-gray-400 text-2xl" />
+                                        )}
+                                        {uploadingImage && (
+                                            <div className="absolute inset-0 bg-black/50 flex items-center justify-center text-white text-xs">
+                                                Subiendo...
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="flex-1">
+                                        <input
+                                            type="file"
+                                            ref={fileInputRef}
+                                            className="hidden"
+                                            accept="image/*"
+                                            onChange={handleImageChange}
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => fileInputRef.current.click()}
+                                            disabled={uploadingImage}
+                                            className="px-3 py-2 bg-white border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                                        >
+                                            <FaCamera />
+                                            {formData.imagen_url ? 'Cambiar Imagen' : 'Subir Imagen'}
+                                        </button>
+                                        <p className="text-[10px] text-gray-500 mt-1">Máx 5MB. JPG, PNG.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <div className="pt-2">
@@ -724,10 +845,10 @@ const Produccion = () => {
                         </button>
                     </div>
                 </form>
-            </div>
+            </div >
 
             {/* Lista de Producción */}
-            <div className="bg-white shadow-lg rounded-lg p-6 max-w-7xl mx-auto">
+            < div className="bg-white shadow-lg rounded-lg p-6 max-w-7xl mx-auto" >
                 <h3 className="text-2xl font-bold mb-4 text-gray-800">Registros de Producción</h3>
 
                 {/* Filtros */}
@@ -768,6 +889,7 @@ const Produccion = () => {
                         <thead className="bg-gray-50">
                             <tr>
                                 <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Fecha</th>
+                                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Img</th>
                                 <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cliente</th>
                                 <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase w-48">Producto</th>
                                 <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase">Cant</th>
@@ -782,6 +904,13 @@ const Produccion = () => {
                                 <tr key={item.id_produccion} className="hover:bg-gray-50">
                                     <td className="px-3 py-3 whitespace-nowrap text-left text-xs text-gray-700">
                                         {new Date(item.fecha_registro || item.created_at).toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', year: '2-digit' })}
+                                    </td>
+                                    <td className="px-3 py-3 text-left">
+                                        {item.imagen_url ? (
+                                            <img src={item.imagen_url} alt="img" className="w-8 h-8 rounded-full object-cover border border-gray-200" />
+                                        ) : (
+                                            <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 text-xs">camera</div>
+                                        )}
                                     </td>
                                     <td className="px-3 py-3 text-left">
                                         <div className="text-xs text-gray-700">{item.nombre_cliente || 'Stock'}</div>
@@ -866,7 +995,7 @@ const Produccion = () => {
                         </div>
                     )}
                 </div>
-            </div>
+            </div >
 
 
 

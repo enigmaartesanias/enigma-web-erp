@@ -569,9 +569,12 @@ export default function ReporteVentas() {
                                             <p className="text-sm font-semibold text-gray-700 mb-2">Productos:</p>
                                             <div className="space-y-1.5">
                                                 {detalleModal.venta.detalles.map((item, idx) => (
-                                                    <div key={idx} className="flex items-center text-xs text-gray-700 py-0.5">
-                                                        <span className="w-1.5 h-1.5 rounded-full bg-gray-600 mr-2 flex-shrink-0"></span>
-                                                        <span>{item.cantidad}x {item.producto_nombre || 'Producto'}</span>
+                                                    <div key={idx} className="flex justify-between items-center text-xs text-gray-700 py-0.5">
+                                                        <div className="flex items-center">
+                                                            <span className="w-1.5 h-1.5 rounded-full bg-gray-600 mr-2 flex-shrink-0"></span>
+                                                            <span>{item.cantidad}x {item.producto_nombre || 'Producto'}</span>
+                                                        </div>
+                                                        <span className="font-medium">S/ {Number(item.subtotal).toFixed(2)}</span>
                                                     </div>
                                                 ))}
                                             </div>
@@ -579,14 +582,13 @@ export default function ReporteVentas() {
                                     )}
 
                                     <div className="border-t pt-2 space-y-1 text-xs">
-                                        <div className="flex justify-between">
-                                            <span>Subtotal:</span>
-                                            <span>S/ {Number(detalleModal.venta.subtotal).toFixed(2)}</span>
-                                        </div>
-                                        <div className="flex justify-between text-blue-600">
-                                            <span>IGV:</span>
-                                            <span>S/ {Number(detalleModal.venta.impuesto_monto).toFixed(2)}</span>
-                                        </div>
+
+                                        {Number(detalleModal.venta.impuesto_monto) > 0 && (
+                                            <div className="flex justify-between text-blue-600">
+                                                <span>IGV:</span>
+                                                <span>S/ {Number(detalleModal.venta.impuesto_monto).toFixed(2)}</span>
+                                            </div>
+                                        )}
                                         {Number(detalleModal.venta.descuento_monto) > 0 && (
                                             <div className="flex justify-between text-red-600">
                                                 <span>Descuento:</span>

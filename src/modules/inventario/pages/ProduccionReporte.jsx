@@ -245,6 +245,7 @@ const ProduccionReporte = () => {
                                     <span className="hidden md:inline">Fecha</span>
                                     <span className="md:hidden">Fec.</span>
                                 </th>
+                                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Código</th>
                                 <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase min-w-[200px]">Producto</th>
                                 {mostrarColumna('tipo') && (
                                     <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase">Tipo</th>
@@ -296,6 +297,9 @@ const ProduccionReporte = () => {
                                                 const year = String(date.getFullYear()).slice(-2);
                                                 return `${day}/${month}/${year}`;
                                             })()}
+                                        </td>
+                                        <td className="px-3 py-2 text-xs font-mono text-purple-700 font-semibold">
+                                            {item.codigo_producto || '-'}
                                         </td>
                                         <td className="px-3 py-2 text-xs text-gray-600">
                                             <div className="line-clamp-3">{item.nombre_producto}</div>

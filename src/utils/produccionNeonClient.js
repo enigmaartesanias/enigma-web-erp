@@ -26,12 +26,12 @@ export const produccionDB = {
         pt.*,
         p.nombre_cliente,
         p.precio_total as precio_venta_pedido,
-        (pt.costo_materiales + (pt.horas_trabajo * pt.costo_hora) + pt.costo_herramientas + pt.otros_gastos) as costo_mano_obra,
-        (pt.costo_materiales + (pt.horas_trabajo * pt.costo_hora) + pt.costo_herramientas + pt.otros_gastos) / NULLIF(pt.cantidad, 0) as costo_total_unitario,
-        (pt.costo_materiales + (pt.horas_trabajo * pt.costo_hora) + pt.costo_herramientas + pt.otros_gastos) as costo_total_produccion,
+        pt.mano_de_obra as costo_mano_obra,
+        (pt.costo_materiales + pt.mano_de_obra + pt.costo_herramientas + pt.otros_gastos) as costo_total_unitario,
+        (pt.costo_materiales + pt.mano_de_obra + pt.costo_herramientas + pt.otros_gastos) * pt.cantidad as costo_total_produccion,
         CASE 
           WHEN p.precio_total IS NOT NULL THEN 
-            p.precio_total - (pt.costo_materiales + (pt.horas_trabajo * pt.costo_hora) + pt.costo_herramientas + pt.otros_gastos)
+            p.precio_total - ((pt.costo_materiales + pt.mano_de_obra + pt.costo_herramientas + pt.otros_gastos) * pt.cantidad)
           ELSE NULL
         END as ganancia_estimada_pedido
       FROM produccion_taller pt
@@ -47,8 +47,8 @@ export const produccionDB = {
         : null,
       cantidad: parseInt(p.cantidad) || 0,
       costo_materiales: parseFloat(p.costo_materiales) || 0,
-      horas_trabajo: parseFloat(p.horas_trabajo) || 0,
-      costo_hora: parseFloat(p.costo_hora) || 0,
+      mano_de_obra: parseFloat(p.mano_de_obra) || 0,
+      porcentaje_alquiler: parseFloat(p.porcentaje_alquiler) || 0,
       costo_herramientas: parseFloat(p.costo_herramientas) || 0,
       otros_gastos: parseFloat(p.otros_gastos) || 0,
       costo_mano_obra: parseFloat(p.costo_mano_obra) || 0,
@@ -84,7 +84,7 @@ export const produccionDB = {
     const [produccion] = await sql`
       INSERT INTO produccion_taller (
         pedido_id, tipo_produccion, metal, tipo_producto, nombre_producto,
-        cantidad, costo_materiales, horas_trabajo, costo_hora,
+        cantidad, costo_materiales, mano_de_obra, porcentaje_alquiler,
         costo_herramientas, otros_gastos, estado_produccion, observaciones, imagen_url
       ) VALUES (
         ${pedidoId},
@@ -94,8 +94,8 @@ export const produccionDB = {
         ${pedido.nombre_cliente + ' - Pedido ' + pedidoId},
         ${costos.cantidad || 1},
         ${costos.costo_materiales || 0},
-        ${costos.horas_trabajo || 0},
-        ${costos.costo_hora || 0},
+        ${costos.mano_de_obra || 0},
+        ${costos.porcentaje_alquiler || 0},
         ${costos.costo_herramientas || 0},
         ${costos.otros_gastos || 0},
         'pendiente',
@@ -112,7 +112,7 @@ export const produccionDB = {
     const [produccion] = await sql`
       INSERT INTO produccion_taller (
         pedido_id, tipo_produccion, metal, tipo_producto, nombre_producto,
-        cantidad, costo_materiales, horas_trabajo, costo_hora,
+        cantidad, costo_materiales, mano_de_obra, porcentaje_alquiler,
         costo_herramientas, otros_gastos, estado_produccion, observaciones, fecha_produccion, imagen_url,
         codigo_producto, tiene_codigo_qr
       ) VALUES (
@@ -123,8 +123,8 @@ export const produccionDB = {
         ${produccionData.nombre_producto || ''},
         ${produccionData.cantidad || 1},
         ${produccionData.costo_materiales || 0},
-        ${produccionData.horas_trabajo || 0},
-        ${produccionData.costo_hora || 0},
+        ${produccionData.mano_de_obra || 0},
+        ${produccionData.porcentaje_alquiler || 0},
         ${produccionData.costo_herramientas || 0},
         ${produccionData.otros_gastos || 0},
         ${produccionData.estado_produccion || 'pendiente'},
@@ -147,8 +147,8 @@ export const produccionDB = {
         nombre_producto = ${produccionData.nombre_producto},
         cantidad = ${produccionData.cantidad},
         costo_materiales = ${produccionData.costo_materiales || 0},
-        horas_trabajo = ${produccionData.horas_trabajo || 0},
-        costo_hora = ${produccionData.costo_hora || 0},
+        mano_de_obra = ${produccionData.mano_de_obra || 0},
+        porcentaje_alquiler = ${produccionData.porcentaje_alquiler || 0},
         costo_herramientas = ${produccionData.costo_herramientas || 0},
         otros_gastos = ${produccionData.otros_gastos || 0},
         estado_produccion = ${produccionData.estado_produccion},

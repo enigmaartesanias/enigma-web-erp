@@ -124,10 +124,10 @@ const ProductoForm = () => {
     const applyProduccionData = (item) => {
         setSelectedProduccion(item.id_produccion);
 
-        // Generar código único basado en el tipo y timestamp
-        const timestamp = Date.now().toString().slice(-6); // Últimos 6 dígitos
-        const tipoPrefix = item.tipo_producto.substring(0, 3).toUpperCase();
-        const codigoUnico = `${tipoPrefix}${timestamp}`;
+        // Generar código vacío para ingreso manual
+        // const timestamp = Date.now().toString().slice(-6); 
+        // const tipoPrefix = item.tipo_producto.substring(0, 3).toUpperCase();
+        // const codigoUnico = `${tipoPrefix}${timestamp}`;
 
         setFormData(prev => ({
             ...prev,
@@ -137,7 +137,7 @@ const ProductoForm = () => {
             categoria: mapTipoToCategoria(item.tipo_producto), // Auto-mapear categoría
             descripcion: `Producto fabricado en taller. Metal: ${item.metal}. Tipo: ${item.tipo_producto}.`,
             origen: 'PRODUCCION',
-            codigo_usuario: codigoUnico // Código único autogenerado
+            codigo_usuario: '' // Código vacío para ingreso manual
         }));
         if (item.imagen_url) {
             setPreviewUrl(item.imagen_url);

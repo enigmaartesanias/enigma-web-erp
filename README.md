@@ -232,6 +232,18 @@ Este es un proyecto privado. Para contribuir:
 
 ## 📝 Changelog
 
+### v2.4.0 (Enero 2026) - Modelo de Producción Artesanal 🛠️
+- 🎨 **Modelo de Costos Simplificado**:
+  - Eliminación de cálculo por horas (`horas_trabajo` * `costo_hora`).
+  - Nuevo campo **Mano de Obra Directa** (input monetario directo).
+  - Nuevo campo referencial **% Alquiler** (calculado sobre el costo base).
+- 🔄 **Refactorización de Producción**:
+  - Eliminación de campos QR/Código visuales en formulario y tablas (gestión interna).
+  - Generación de códigos vacíos por defecto al pasar a inventario (ingreso manual).
+- 📊 **Mejoras en Reportes**:
+  - **Reporte de Ventas**: Ocultamiento automático de IGV si es 0.00.
+  - **Detalle de Venta**: Precios unitarios inline y eliminación de subtotal redundante.
+
 ### v2.3.0 (Enero 2026) - Transición 2026 ✨
 - 🚀 **Transición al Año 2026**: Sistema de filtrado inteligente para iniciar el nuevo año con datos limpios
   - 📦 **Inventario Archivado**: Columna `estado_activo` en `productos_externos` para archivo automático de productos 2025

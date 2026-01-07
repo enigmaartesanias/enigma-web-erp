@@ -132,11 +132,13 @@ La tabla se adapta automáticamente al tamaño de pantalla:
 2. Click en botón "Ver detalle" (ícono ojo azul)
 3. Se abre modal con información completa
 
-**Información mostrada**:
+**Información mostrada (Actualizado Enero 2026)**:
 - Código de venta
 - Fecha y hora
 - Cliente (si existe)
-- Subtotal, IGV, Descuento
+- **Lista de Productos**: Con precio total inline por item
+- **IGV**: Solo se muestra si es mayor a 0.00
+- Descuento (si aplica)
 - Total
 - Estado
 - Motivo de anulación (si está anulada)

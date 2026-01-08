@@ -22,8 +22,10 @@ const ModalCredito = ({ isOpen, onClose, total, cliente, detallesProductos, onCo
         if (isOpen && !fechaVencimiento) {
             const fecha = new Date();
             fecha.setDate(fecha.getDate() + 7);
-            const fechaStr = fecha.toISOString().split('T')[0];
-            setFechaVencimiento(fechaStr);
+            const year = fecha.getFullYear();
+            const month = String(fecha.getMonth() + 1).padStart(2, '0');
+            const day = String(fecha.getDate()).padStart(2, '0');
+            setFechaVencimiento(`${year}-${month}-${day}`);
         }
     }, [isOpen]);
 

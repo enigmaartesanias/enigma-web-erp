@@ -46,7 +46,8 @@ export const ventasDB = {
                     observaciones,
                     es_credito,
                     saldo_pendiente,
-                    fecha_vencimiento
+                    fecha_vencimiento,
+                    fecha_venta
                 ) VALUES (
                     ${codigoVenta},
                     ${ventaData.cliente_nombre || 'Cliente General'},
@@ -59,7 +60,9 @@ export const ventasDB = {
                     ${ventaData.observaciones || ''},
                     ${ventaData.es_credito || false},
                     ${ventaData.saldo_pendiente || 0},
-                    ${ventaData.fecha_vencimiento || null}
+                    ${ventaData.saldo_pendiente || 0},
+                    ${ventaData.fecha_vencimiento || null},
+                    ${ventaData.fecha_venta || 'NOW()'}
                 )
                 RETURNING *
             `;

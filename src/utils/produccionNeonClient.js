@@ -1,6 +1,7 @@
 // Cliente de Neon DB para Producción (Rediseñado)
 // Producción = Solo costos, NO precios ni ganancias
 import { neon } from '@neondatabase/serverless';
+import { getLocalDate } from './dateUtils';
 
 const DATABASE_URL = import.meta.env.VITE_DATABASE_URL;
 
@@ -129,7 +130,7 @@ export const produccionDB = {
         ${produccionData.otros_gastos || 0},
         ${produccionData.estado_produccion || 'pendiente'},
         ${produccionData.observaciones || ''},
-        ${produccionData.fecha_produccion || new Date().toISOString().split('T')[0]},
+        ${produccionData.fecha_produccion || getLocalDate()},
         ${produccionData.imagen_url || ''},
         ${produccionData.codigo_producto || ''},
         ${produccionData.tiene_codigo_qr || false}

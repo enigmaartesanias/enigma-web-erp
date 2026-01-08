@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { materialesDB, materialesItemsDB, generarCodigoMaterial } from '../../../utils/materialesNeonClient';
 import { proveedoresDB } from '../../../utils/proveedoresNeonClient';
+import { getLocalDate } from '../../../utils/dateUtils';
 import { FaArrowLeft, FaPlus, FaTrash, FaSave, FaTimes } from 'react-icons/fa';
 import toast, { Toaster } from 'react-hot-toast';
 
@@ -9,7 +10,7 @@ export default function RegistroMateriales() {
     const navigate = useNavigate();
     const [proveedores, setProveedores] = useState([]);
     const [formData, setFormData] = useState({
-        fecha: new Date().toISOString().split('T')[0],
+        fecha: getLocalDate(),
         proveedor_id: '',
         observaciones: ''
     });

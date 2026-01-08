@@ -11,6 +11,7 @@ import { FaArrowLeft, FaHistory, FaShoppingCart } from 'react-icons/fa';
 import QRScanner from '../components/QRScanner';
 import ClienteSelector from '../components/ClienteSelector';
 import ModalCredito from '../components/ModalCredito';
+import { getLocalDate } from '../../../utils/dateUtils';
 
 
 const NuevaVenta = () => {
@@ -22,6 +23,7 @@ const NuevaVenta = () => {
     } = useVentas();
 
     const [formaPago, setFormaPago] = useState('Efectivo');
+    const [fechaVenta, setFechaVenta] = useState(getLocalDate());
 
     const [processing, setProcessing] = useState(false);
     const [showQRScanner, setShowQRScanner] = useState(false);
@@ -69,6 +71,7 @@ const NuevaVenta = () => {
                 impuesto_monto: totals.impuesto,
                 total: totals.total,
                 forma_pago: formaPago, // Usar forma de pago del estado
+                fecha_venta: fechaVenta,
                 observaciones: '',
                 detalles: cart.map(item => ({
                     producto_id: item.id,
@@ -113,6 +116,7 @@ const NuevaVenta = () => {
                 impuesto_monto: totals.impuesto,
                 total: totals.total,
                 forma_pago: 'Crédito',
+                fecha_venta: fechaVenta,
                 observaciones: datosCredito.observaciones || '',
                 // Campos de crédito
                 es_credito: true,
@@ -195,6 +199,15 @@ const NuevaVenta = () => {
                         <span className="bg-gray-700 text-white px-2 py-0.5 rounded text-xs">POS</span>
                         Punto de Venta
                     </h1>
+                </div>
+
+                <div className="flex items-center">
+                    <input
+                        type="date"
+                        value={fechaVenta}
+                        onChange={(e) => setFechaVenta(e.target.value)}
+                        className="text-xs border border-gray-300 rounded px-2 py-1 text-gray-600 focus:outline-none focus:border-blue-500 bg-transparent"
+                    />
                 </div>
                 {/* Espacio para futuros botones si es necesario */}
             </header>

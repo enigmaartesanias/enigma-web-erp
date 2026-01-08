@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { pedidosDB } from '../utils/pedidosNeonClient';
 import { produccionDB, METALES, TIPOS_PRODUCTO } from '../utils/produccionNeonClient';
+import { getLocalDate } from '../utils/dateUtils';
 import { Link, useNavigate } from 'react-router-dom';
 import { FaEdit, FaTrash, FaCheckCircle, FaTimesCircle, FaPlus, FaWhatsapp, FaPrint, FaSearch, FaMoneyBillWave, FaShareAlt, FaImage, FaPhone, FaArrowLeft, FaHammer, FaCar, FaExclamationTriangle, FaCheck } from 'react-icons/fa';
 import html2canvas from 'html2canvas';
@@ -151,14 +152,14 @@ const Pedidos = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [showPrintModal, setShowPrintModal] = useState(false);
     const [printPedido, setPrintPedido] = useState(null);
-    const [fechaPago, setFechaPago] = useState(new Date().toISOString().split('T')[0]);
+    const [fechaPago, setFechaPago] = useState(getLocalDate());
 
     // Quick Pay Modal State
     const [showPayModal, setShowPayModal] = useState(false);
     const [payPedido, setPayPedido] = useState(null);
     const [payData, setPayData] = useState({
         monto: '',
-        fecha: new Date().toISOString().split('T')[0],
+        fecha: getLocalDate(),
         metodo: 'Efectivo'
     });
 
@@ -488,7 +489,7 @@ const Pedidos = () => {
         setListaProductos([]);
         setEditingId(null);
         setTipoPagoInicial('adelanto');
-        setFechaPago(new Date().toISOString().split('T')[0]);
+        setFechaPago(getLocalDate());
     };
 
     const handleSubmit = async (e) => {
@@ -583,7 +584,7 @@ const Pedidos = () => {
                     await pedidosDB.createPago({
                         id_pedido: pedidoId,
                         monto: pedidoData.monto_a_cuenta,
-                        fecha_pago: new Date().toISOString().split('T')[0],
+                        fecha_pago: getLocalDate(),
                         metodo_pago: formData.forma_pago,
                         referencia: formData.comprobante_pago || ''
                     });
@@ -642,7 +643,7 @@ const Pedidos = () => {
         setPayPedido(pedido);
         setPayData({
             monto: pedido.monto_saldo,
-            fecha: new Date().toISOString().split('T')[0],
+            fecha: getLocalDate(),
             metodo: 'Efectivo'
         });
         setShowPayModal(true);

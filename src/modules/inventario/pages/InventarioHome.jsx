@@ -40,6 +40,13 @@ export default function InventarioHome() {
             icon: ShoppingCart,
             path: '/compras/nuevo',
             description: 'Productos para venta'
+        },
+        {
+            title: 'Control de Gastos',
+            icon: FileText,
+            path: '/gastos',
+            description: 'Fijos y variables',
+            color: 'purple'
         }
     ];
 
@@ -66,6 +73,13 @@ export default function InventarioHome() {
             icon: BarChart3,
             path: '/ventas/reporte',
             description: 'Estadísticas ventas'
+        },
+        {
+            title: 'Reporte Insumos',
+            icon: BarChart3,
+            path: '/materiales/reporte',
+            description: 'Historial de compras',
+            color: 'amber'
         },
         {
             title: 'Cuentas por Cobrar',
@@ -112,6 +126,13 @@ export default function InventarioHome() {
             icon: Tag,
             path: '/configuracion/tipos-producto',
             description: 'Categorías productos'
+        },
+        {
+            title: 'Tipos de Material/Insumo',
+            icon: Tag,
+            path: '/config/tipos-materiales',
+            description: 'Catálogo materiales',
+            color: 'amber'
         },
         {
             title: 'Stock Inicial',

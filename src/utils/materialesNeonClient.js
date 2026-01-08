@@ -29,12 +29,9 @@ export const materialesDB = {
     async getAll() {
         try {
             const compras = await sql`
-                SELECT 
-                    mc.*,
-                    p.nombre as proveedor_nombre
-                FROM materiales_compras mc
-                LEFT JOIN proveedores p ON mc.proveedor_id = p.id
-                ORDER BY mc.fecha_compra DESC, mc.fecha_registro DESC
+                SELECT *
+                FROM materiales_compras
+                ORDER BY fecha_compra DESC, fecha_registro DESC
             `;
             return compras;
         } catch (error) {

@@ -63,6 +63,11 @@ import ReporteCompras from './modules/compras/pages/ReporteCompras';
 
 // Módulo de Materiales
 import RegistroMateriales from './modules/materiales/pages/RegistroMateriales';
+import ReporteMateriales from './modules/materiales/pages/ReporteMateriales';
+import TiposMateriales from './modules/materiales/pages/TiposMateriales';
+
+// Módulo de Gastos
+import Gastos from './modules/gastos/pages/Gastos';
 
 // Módulo de Configuración
 import TiposProducto from './modules/configuracion/pages/TiposProducto';
@@ -79,7 +84,9 @@ const MainContent = () => {
         location.pathname.startsWith('/clientes') ||
         location.pathname.startsWith('/proveedores') ||
         location.pathname.startsWith('/materiales') ||
+        location.pathname.startsWith('/gastos') ||
         location.pathname.startsWith('/configuracion') ||
+        location.pathname.startsWith('/config') ||
         location.pathname.startsWith('/producto-form') ||
 
         location.pathname.startsWith('/stock-inicial');
@@ -140,6 +147,9 @@ const MainContent = () => {
                 <Route path="/clientes" element={<PrivateRoute><Clientes /></PrivateRoute>} />
                 <Route path="/proveedores" element={<PrivateRoute><Proveedores /></PrivateRoute>} />
                 <Route path="/materiales" element={<PrivateRoute><RegistroMateriales /></PrivateRoute>} />
+                <Route path="/materiales/reporte" element={<PrivateRoute><ReporteMateriales /></PrivateRoute>} />
+                <Route path="/config/tipos-materiales" element={<PrivateRoute><TiposMateriales /></PrivateRoute>} />
+                <Route path="/gastos" element={<PrivateRoute><Gastos /></PrivateRoute>} />
                 <Route path="/configuracion/tipos-producto" element={<PrivateRoute><TiposProducto /></PrivateRoute>} />
 
             </Routes>

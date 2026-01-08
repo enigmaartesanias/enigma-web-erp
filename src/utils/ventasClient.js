@@ -81,7 +81,7 @@ export const ventasDB = {
                         throw new Error(`Producto con ID ${detalle.producto_id} no encontrado`);
                     }
 
-                    if (producto.stock_actual < detalle.cantidad) {
+                    if (Number(producto.stock_actual) < Number(detalle.cantidad)) {
                         throw new Error(`Stock insuficiente para ${producto.nombre}. Disponible: ${producto.stock_actual}, Solicitado: ${detalle.cantidad}`);
                     }
 

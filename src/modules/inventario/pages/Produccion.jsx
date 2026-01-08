@@ -66,7 +66,6 @@ const Produccion = () => {
         costo_materiales: '',
         costo_materiales: '',
         mano_de_obra: '',
-        porcentaje_alquiler: '',
         costo_herramientas: '',
         otros_gastos: '',
         estado_produccion: 'en_proceso', // Valor por defecto automatico
@@ -166,7 +165,6 @@ const Produccion = () => {
             cantidad: item.cantidad || '',
             costo_materiales: item.costo_materiales || '',
             mano_de_obra: item.mano_de_obra || '',
-            porcentaje_alquiler: item.porcentaje_alquiler || '',
             costo_herramientas: item.costo_herramientas || '',
             otros_gastos: item.otros_gastos || '',
             estado_produccion: item.estado_produccion || 'pendiente',
@@ -277,7 +275,6 @@ const Produccion = () => {
             cantidad: item.cantidad || '',
             costo_materiales: item.costo_materiales || '',
             mano_de_obra: item.mano_de_obra || '',
-            porcentaje_alquiler: item.porcentaje_alquiler || '',
             costo_herramientas: item.costo_herramientas || '',
             otros_gastos: item.otros_gastos || '',
             estado_produccion: item.estado_produccion || 'en_proceso',
@@ -313,7 +310,6 @@ const Produccion = () => {
             cantidad: '',
             costo_materiales: '',
             mano_de_obra: '',
-            porcentaje_alquiler: '',
             costo_herramientas: '',
             otros_gastos: '',
             estado_produccion: 'en_proceso',
@@ -527,9 +523,7 @@ const Produccion = () => {
 
     const costoTotalProduccion = costoTotalUnitario * (parseInt(formData.cantidad) || 1);
 
-    // Cálculo Referencial de Alquiler
-    const porcentajeAlquiler = parseFloat(formData.porcentaje_alquiler) || 0;
-    const montoAlquilerEstimado = (costoTotalProduccion * porcentajeAlquiler) / 100;
+
 
     return (
         <div className="container mx-auto p-4 md:p-6 bg-gray-50 min-h-screen">
@@ -720,27 +714,7 @@ const Produccion = () => {
                             />
                         </div>
 
-                        {/* Campo Referencial de Alquiler */}
-                        <div className="col-span-2 md:col-span-1 bg-amber-50 p-2 rounded-lg border border-amber-200">
-                            <label className="block text-xs font-semibold text-gray-700 mb-1 flex justify-between">
-                                <span>% Alquiler (Ref)</span>
-                                <span className="text-amber-700">{montoAlquilerEstimado > 0 ? `S/ ${montoAlquilerEstimado.toFixed(2)}` : ''}</span>
-                            </label>
-                            <div className="flex items-center gap-2">
-                                <input
-                                    type="number"
-                                    step="1"
-                                    name="porcentaje_alquiler"
-                                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-amber-500 focus:ring-amber-500 border p-2 bg-white text-center font-medium"
-                                    placeholder="%"
-                                    value={formData.porcentaje_alquiler}
-                                    onChange={handleChange}
-                                />
-                            </div>
-                            <p className="text-[9px] text-gray-500 mt-1 leading-tight text-center">
-                                * Cálculo referencial. No afecta el costo total.
-                            </p>
-                        </div>
+
 
                         {/* Info de Costos en Mobile ocupa 2 col, desktop 1 */}
                     </div>

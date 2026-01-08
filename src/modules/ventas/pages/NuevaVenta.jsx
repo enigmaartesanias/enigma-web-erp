@@ -91,7 +91,8 @@ const NuevaVenta = () => {
             clearCart();
         } catch (error) {
             console.error(error);
-            toast.error('Error al registrar la venta. Verifica el stock e intenta de nuevo.');
+            const errorMsg = error?.message || 'Error desconocido';
+            toast.error(`Error: ${errorMsg}`, { duration: 4000 });
         } finally {
             setProcessing(false);
         }

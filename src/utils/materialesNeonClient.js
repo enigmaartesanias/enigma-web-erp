@@ -29,13 +29,41 @@ export const materialesDB = {
     async getAll() {
         try {
             const compras = await sql`
-                SELECT *
-                FROM materiales_compras
-                ORDER BY fecha_compra DESC, fecha_registro DESC
+                SELECT 
+                    mc.*,
+                    p.nombre as proveedor_nombre,
+                    COALESCE(
+                        (SELECT COUNT(*) FROM materiales_items mi WHERE mi.compra_id = mc.id),
+                        0
+                    ) as items_count
+                FROM materiales_compras mc
+                LEFT JOIN proveedores p ON mc.proveedor_id = p.id
+                ORDER BY mc.fecha_compra DESC, mc.fecha_registro DESC
             `;
             return compras;
         } catch (error) {
             console.error('Error obteniendo compras de materiales:', error);
+            throw error;
+        }
+    },
+
+    // Obtener todos los items detallados para reporte
+    async getAllItems() {
+        try {
+            const items = await sql`
+                SELECT 
+                    mi.*,
+                    mc.fecha_compra,
+                    mc.codigo_compra,
+                    p.nombre as proveedor_nombre
+                FROM materiales_items mi
+                INNER JOIN materiales_compras mc ON mi.compra_id = mc.id
+                LEFT JOIN proveedores p ON mc.proveedor_id = p.id
+                ORDER BY mc.fecha_compra DESC, mc.fecha_registro DESC
+            `;
+            return items;
+        } catch (error) {
+            console.error('Error obteniendo items de materiales:', error);
             throw error;
         }
     },

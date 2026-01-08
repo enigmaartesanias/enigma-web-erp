@@ -244,6 +244,14 @@ Este es un proyecto privado. Para contribuir:
   - **Reporte de Ventas**: Ocultamiento automático de IGV si es 0.00.
   - **Detalle de Venta**: Precios unitarios inline y eliminación de subtotal redundante.
 
+### v2.5.0 (Enero 2026) - Reporte Materiales UX 📱
+- 📊 **Reporte de Materiales Renovado**:
+  - **Diseño Híbrido**: Tabla tradicional en desktop, Scroll horizontal en móviles ("Hoja de cálculo").
+  - **Optimización de Columnas**:
+    - ✅ Nueva columna **Proveedor** visible.
+    - ❌ Columna **Precio Unitario** eliminada (foco en totales).
+  - **Interacción**: Eliminación directa de items desde el reporte.
+
 ### v2.3.0 (Enero 2026) - Transición 2026 ✨
 - 🚀 **Transición al Año 2026**: Sistema de filtrado inteligente para iniciar el nuevo año con datos limpios
   - 📦 **Inventario Archivado**: Columna `estado_activo` en `productos_externos` para archivo automático de productos 2025

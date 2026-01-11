@@ -13,8 +13,11 @@ const ProduccionReporte = () => {
     });
     const [loading, setLoading] = useState(true);
     const [filtroActivo, setFiltroActivo] = useState('todos');
-    const [fechaInicio, setFechaInicio] = useState('2026-01-01');
-    const [fechaFin, setFechaFin] = useState('2026-12-31');
+
+    // Fechas dinámicas: inicio y fin del año actual
+    const currentYear = new Date().getFullYear();
+    const [fechaInicio, setFechaInicio] = useState(`${currentYear}-01-01`);
+    const [fechaFin, setFechaFin] = useState(`${currentYear}-12-31`);
 
     useEffect(() => {
         fetchData();
@@ -57,7 +60,6 @@ const ProduccionReporte = () => {
     const statsCalculados = useMemo(() => {
         return {
             total_registros: produccionConFiltroFecha.length,
-            pendientes: produccionConFiltroFecha.filter(p => p.estado_produccion === 'pendiente').length,
             en_proceso: produccionConFiltroFecha.filter(p => p.estado_produccion === 'en_proceso').length,
             terminados: produccionConFiltroFecha.filter(p => p.estado_produccion === 'terminado').length
         };
@@ -66,54 +68,23 @@ const ProduccionReporte = () => {
     // Filtrar por pestaña activa
     const produccionFiltrada = useMemo(() => {
         switch (filtroActivo) {
-            case 'pendientes':
-                return produccionConFiltroFecha.filter(p => p.estado_produccion === 'pendiente');
             case 'en_proceso':
                 return produccionConFiltroFecha.filter(p => p.estado_produccion === 'en_proceso');
             case 'terminados':
                 return produccionConFiltroFecha.filter(p => p.estado_produccion === 'terminado');
-            case 'por_ingresar':
-                return produccionConFiltroFecha.filter(p =>
-                    p.estado_produccion === 'terminado' &&
-                    p.tipo_produccion === 'STOCK' &&
-                    !p.transferido_inventario
-                );
             default:
                 return produccionConFiltroFecha;
         }
     }, [produccionConFiltroFecha, filtroActivo]);
 
-    // Calcular contador para "Por Ingresar a Stock" basado en filtro de fecha
-    const porIngresarCount = useMemo(() => {
-        return produccionConFiltroFecha.filter(p =>
-            p.estado_produccion === 'terminado' &&
-            p.tipo_produccion === 'STOCK' &&
-            !p.transferido_inventario
-        ).length;
-    }, [produccionConFiltroFecha]);
-
     // Definir pestañas con stats calculados
     const pestanas = [
         { id: 'todos', label: 'Todos', icon: '📋', count: statsCalculados.total_registros, color: 'purple' },
-        { id: 'pendientes', label: 'Pendientes', icon: '⏳', count: statsCalculados.pendientes, color: 'yellow' },
         { id: 'en_proceso', label: 'En Proceso', icon: '🔨', count: statsCalculados.en_proceso, color: 'orange' },
-        { id: 'terminados', label: 'Terminados', icon: '✅', count: statsCalculados.terminados, color: 'green' },
-        { id: 'por_ingresar', label: 'Por Ingresar a Stock', icon: '📦', count: porIngresarCount, color: 'blue' }
+        { id: 'terminados', label: 'Terminados', icon: '✅', count: statsCalculados.terminados, color: 'green' }
     ];
 
-    // Determinar si mostrar columna según filtro activo
-    const mostrarColumna = (columna) => {
-        // Siempre ocultar margen
-        if (columna === 'margen_est') {
-            return false;
-        }
 
-        if (filtroActivo === 'por_ingresar') {
-            const columnasOcultas = ['tipo', 'precio_pedido', 'estado'];
-            return !columnasOcultas.includes(columna);
-        }
-        return true;
-    };
 
     // Obtener estilos de pestaña según color
     const getTabStyles = (tabColor, isActive) => {
@@ -179,8 +150,9 @@ const ProduccionReporte = () => {
                     </div>
                     <button
                         onClick={() => {
-                            setFechaInicio('2026-01-01');
-                            setFechaFin('2026-12-31');
+                            const currentYear = new Date().getFullYear();
+                            setFechaInicio(`${currentYear}-01-01`);
+                            setFechaFin(`${currentYear}-12-31`);
                         }}
                         className="px-4 py-1.5 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-md text-sm font-medium transition-colors w-full md:w-auto"
                     >
@@ -225,6 +197,8 @@ const ProduccionReporte = () => {
             {/* Tabla Detallada */}
             <div className="bg-white shadow-lg rounded-lg overflow-hidden">
                 {/* Título del filtro activo - Solo móvil */}
+
+                {/* Título del filtro activo - Solo móvil */}
                 <div className="md:hidden px-3 py-2 bg-gray-100 border-b border-gray-200">
                     <span className="text-sm font-semibold text-gray-700">
                         {pestanas.find(p => p.id === filtroActivo)?.icon} {pestanas.find(p => p.id === filtroActivo)?.label}
@@ -237,130 +211,97 @@ const ProduccionReporte = () => {
                     <span className="text-xs text-gray-500 font-normal md:hidden">(S/)</span>
                 </h3>
 
-                <div className="overflow-auto max-h-[500px]">
-                    <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50 sticky top-0 z-10 shadow-sm">
-                            <tr>
-                                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                                    <span className="hidden md:inline">Fecha</span>
-                                    <span className="md:hidden">Fec.</span>
-                                </th>
-                                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Código</th>
-                                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase min-w-[200px]">Producto</th>
-                                {mostrarColumna('tipo') && (
-                                    <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase">Tipo</th>
-                                )}
-                                {mostrarColumna('precio_pedido') && (
-                                    <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase" title="Precio del Pedido">
-                                        <span className="hidden md:inline">Precio Pedido</span>
-                                        <span className="md:hidden">Pedido</span>
+                {/* Tabla con Scroll Horizontal en Mobile */}
+                <div className="bg-white rounded-lg shadow overflow-hidden border border-gray-200">
+                    <div className="overflow-x-auto">
+                        <table className="min-w-full divide-y divide-gray-200">
+                            <thead className="bg-gray-50 sticky top-0 z-10 shadow-sm">
+                                <tr>
+                                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
+                                        Inicio Prod.
                                     </th>
-                                )}
-                                <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase" title="Costo de Producción">
-                                    <span className="hidden md:inline">Costo Prod.</span>
-                                    <span className="md:hidden">Costo</span>
-                                </th>
-                                {mostrarColumna('margen_est') && (
-                                    <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase" title="Margen Estimado">
-                                        <span className="hidden md:inline">Margen Est.</span>
-                                        <span className="md:hidden">Margen</span>
+                                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
+                                        Fin Prod.
                                     </th>
-                                )}
-                                {mostrarColumna('estado') && (
-                                    <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase">Estado</th>
-                                )}
+                                    <th className="px-2 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-[50px]">
+                                        Tipo
+                                    </th>
+                                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Producto
+                                    </th>
+                                    <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
+                                        Costo Prod.
+                                    </th>
+                                    <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
+                                        Estado
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody className="bg-white divide-y divide-gray-200">
+                                {produccionFiltrada.map((item) => {
+                                    const costoProduccion = item.costo_total_produccion || 0;
 
-                            </tr>
-                        </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
-                            {produccionFiltrada.map((item) => {
-                                const precioPedido = item.precio_venta_pedido || 0;
-                                // Nota: item.precio_total suele incluir envío si no está desglosado, pero intentaremos usar el sin IGV si está disponible o el total.
-                                // Idealmente v_produccion_con_precios debería tener estos campos. Si no, saldrá 0.
+                                    return (
+                                        <tr key={item.id_produccion} className="hover:bg-gray-50">
 
-                                const costoProduccion = item.costo_total_produccion || 0;
-                                const esPedido = item.tipo_produccion === 'PEDIDO';
-                                const margen = esPedido ? (precioPedido - costoProduccion) : 0;
+                                            <td className="px-3 py-3 text-xs text-gray-600 whitespace-nowrap align-top">
+                                                {(() => {
+                                                    const date = item.fecha_inicio_produccion ? new Date(item.fecha_inicio_produccion + 'T00:00:00') : (item.fecha_produccion ? new Date(item.fecha_produccion) : new Date(item.created_at));
+                                                    return date.toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', year: '2-digit' });
+                                                })()}
+                                            </td>
+                                            <td className="px-3 py-3 text-xs text-gray-600 whitespace-nowrap align-top">
+                                                {(() => {
+                                                    if (!item.fecha_fin_produccion) return '-';
+                                                    const date = new Date(item.fecha_fin_produccion + 'T00:00:00');
+                                                    return date.toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', year: '2-digit' });
+                                                })()}
+                                            </td>
 
-                                // Determinar si puede transferirse a inventario
-                                const puedeTransferir = item.estado_produccion === 'terminado' &&
-                                    item.tipo_produccion === 'STOCK' &&
-                                    !item.transferido_inventario;
-
-                                return (
-                                    <tr key={item.id_produccion} className="hover:bg-gray-50">
-                                        <td className="px-3 py-2 text-xs text-gray-500">
-                                            {(() => {
-                                                const date = item.fecha_produccion ? new Date(item.fecha_produccion) : new Date(item.created_at);
-                                                const day = String(date.getDate()).padStart(2, '0');
-                                                const month = String(date.getMonth() + 1).padStart(2, '0');
-                                                const year = String(date.getFullYear()).slice(-2);
-                                                return `${day}/${month}/${year}`;
-                                            })()}
-                                        </td>
-                                        <td className="px-3 py-2 text-xs font-mono text-purple-700 font-semibold">
-                                            {item.codigo_producto || '-'}
-                                        </td>
-                                        <td className="px-3 py-2 text-xs text-gray-600">
-                                            <div className="line-clamp-3">{item.nombre_producto}</div>
-                                            {item.nombre_cliente && (
-                                                <div className="text-xs text-gray-500 hidden md:block">
-                                                    Cliente: {item.nombre_cliente}
-                                                </div>
-                                            )}
-                                        </td>
-                                        {mostrarColumna('tipo') && (
-                                            <td className="px-3 py-2 text-center">
-                                                <span className={`px-2 py-1 text-xs rounded-full ${item.tipo_produccion === 'PEDIDO' ? 'bg-amber-100 text-amber-800' : 'bg-blue-100 text-blue-800'
-                                                    }`}>
-                                                    {item.tipo_produccion}
+                                            <td className="px-2 py-3 text-center align-top">
+                                                <span className={`inline-flex items-center justify-center w-6 h-6 text-[10px] font-bold rounded-full border ${item.tipo_produccion === 'PEDIDO'
+                                                    ? 'bg-amber-50 text-amber-700 border-amber-200'
+                                                    : 'bg-blue-50 text-blue-700 border-blue-200'
+                                                    }`} title={item.tipo_produccion === 'PEDIDO' ? 'Pedido' : 'Stock'}>
+                                                    {item.tipo_produccion === 'PEDIDO' ? 'P' : 'S'}
                                                 </span>
                                             </td>
-                                        )}
-                                        {mostrarColumna('precio_pedido') && (
-                                            <td className="px-3 py-2 text-right text-xs text-gray-600">
-                                                {esPedido ? (
-                                                    <>
-                                                        <span className="hidden md:inline">S/ </span>
-                                                        {parseFloat(precioPedido).toFixed(2)}
-                                                    </>
-                                                ) : '-'}
+
+                                            <td className="px-3 py-3 text-sm text-gray-800 align-top">
+                                                <div className="flex flex-col whitespace-normal" style={{ minWidth: '350px' }}>
+                                                    <span className="font-normal text-gray-600 leading-snug">
+                                                        {item.nombre_producto}
+                                                    </span>
+                                                    {item.nombre_cliente && (
+                                                        <span className="text-xs text-gray-500 mt-1">
+                                                            Cliente: {item.nombre_cliente}
+                                                        </span>
+                                                    )}
+                                                </div>
                                             </td>
-                                        )}
-                                        <td className="px-3 py-2 text-right text-xs text-gray-600">
-                                            <span className="hidden md:inline">S/ </span>
-                                            {parseFloat(costoProduccion).toFixed(2)}
-                                        </td>
-                                        {mostrarColumna('margen_est') && (
-                                            <td className="px-3 py-2 text-right text-xs text-gray-600">
-                                                {esPedido ? (
-                                                    <>
-                                                        <span className="hidden md:inline">S/ </span>
-                                                        {margen.toFixed(2)}
-                                                    </>
-                                                ) : '-'}
+
+                                            <td className="px-3 py-3 text-right text-xs text-gray-600 font-mono align-top whitespace-nowrap">
+                                                <span className="text-gray-400 mr-1">S/</span>
+                                                {parseFloat(costoProduccion).toFixed(2)}
                                             </td>
-                                        )}
-                                        {mostrarColumna('estado') && (
-                                            <td className="px-2 py-1 text-center">
-                                                <span className={`px-2 py-0.5 text-xs rounded-full capitalize ${item.estado_produccion === 'terminado' ? 'bg-green-100 text-green-800' :
+                                            <td className="px-2 py-3 text-center align-top whitespace-nowrap">
+                                                <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${item.estado_produccion === 'terminado' ? 'bg-green-100 text-green-800' :
                                                     item.estado_produccion === 'en_proceso' ? 'bg-orange-100 text-orange-800' :
                                                         'bg-yellow-100 text-yellow-800'
                                                     }`}>
-                                                    {item.estado_produccion?.replace('_', ' ')}
+                                                    {item.estado_produccion === 'terminado' ? 'Terminado' : 'En Proc.'}
                                                 </span>
                                             </td>
-                                        )}
-
-                                    </tr>
-                                );
-                            })}
-                        </tbody>
-                    </table>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
+
+
             </div>
-
-
         </div>
     );
 };

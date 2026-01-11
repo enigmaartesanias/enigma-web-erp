@@ -5,6 +5,13 @@ import { FaArrowLeft, FaFilter, FaChartLine, FaMoneyBillWave, FaExclamationCircl
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import html2canvas from 'html2canvas';
+import { Toaster, toast } from 'react-hot-toast';
+
+const getLocalDate = () => {
+    const d = new Date();
+    d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+    return d.toISOString().split('T')[0];
+};
 
 // Helper date formatter
 const formatLocalDate = (dateString) => {
@@ -53,6 +60,15 @@ const ReportePedidos = () => {
     // Estado para modal de detalles
     const [showDetailModal, setShowDetailModal] = useState(false);
     const [selectedPedido, setSelectedPedido] = useState(null);
+
+    // Estado para Modal de Pago
+    const [showPayModal, setShowPayModal] = useState(false);
+    const [payPedido, setPayPedido] = useState(null);
+    const [payData, setPayData] = useState({
+        monto: '',
+        fecha: '',
+        metodo: 'Efectivo'
+    });
 
     useEffect(() => {
         if (stats.ventasBrutas === 0 && loading === false) {
@@ -304,6 +320,65 @@ const ReportePedidos = () => {
         setSelectedPedido(null);
     };
 
+    // ========================================
+    // PAYMENT HANDLERS (Duplicados de Pedidos.jsx)
+    // ========================================
+    const handleOpenPayModal = (pedido) => {
+        setPayPedido(pedido);
+        setPayData({
+            monto: pedido.monto_saldo > 0 ? pedido.monto_saldo : '',
+            fecha: getLocalDate(),
+            metodo: 'Efectivo'
+        });
+        setShowPayModal(true);
+    };
+
+    const handleClosePayModal = () => {
+        setShowPayModal(false);
+        setPayPedido(null);
+    };
+
+    const handleQuickPay = async () => {
+        if (!payPedido || !payData.monto) return;
+
+        try {
+            const montoPago = parseFloat(payData.monto);
+            const nuevoAcuenta = (Number(payPedido.monto_a_cuenta) || 0) + montoPago;
+            const nuevoSaldo = Number(payPedido.precio_total) - nuevoAcuenta;
+            // logic de Pedidos.jsx: const cancelado = nuevoSaldo <= 0.05;
+            // Pero aqui "cancelado" (paid) field meaning might be different?
+            // "cancelado" in this system means FULLY PAID.
+            const cancelado = nuevoSaldo <= 0.05;
+
+            // Update pedido
+            await pedidosDB.update(payPedido.id_pedido, {
+                ...payPedido,
+                monto_a_cuenta: nuevoAcuenta,
+                monto_saldo: nuevoSaldo < 0 ? 0 : nuevoSaldo,
+                cancelado: cancelado
+            });
+
+            // Insert payment record
+            await pedidosDB.createPago({
+                id_pedido: payPedido.id_pedido,
+                monto: montoPago,
+                fecha_pago: payData.fecha,
+                metodo_pago: payData.metodo,
+                referencia: 'Pago desde Reporte'
+            });
+
+            toast.success('Pago registrado correctamente');
+            handleClosePayModal();
+
+            // Refresh Data
+            fetchReportData();
+
+        } catch (error) {
+            console.error('Error al registrar pago:', error);
+            toast.error('Error al registrar pago');
+        }
+    };
+
     return (
         <div className="bg-gray-100 min-h-screen p-6">
             <div className="max-w-7xl mx-auto">
@@ -497,12 +572,27 @@ const ReportePedidos = () => {
                                                 </td>
                                             )}
                                             <td className="px-4 py-2 whitespace-nowrap text-left">
-                                                <button
-                                                    onClick={() => handleVerDetalles(pedido)}
-                                                    className="text-gray-400 hover:text-gray-600 transition-colors"
-                                                >
-                                                    <FaEye className="h-5 w-5" />
-                                                </button>
+                                                <div className="flex items-center space-x-2">
+                                                    {Number(pedido.monto_saldo) > 0.1 && (
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                handleOpenPayModal(pedido);
+                                                            }}
+                                                            className="text-green-600 hover:text-green-800 transition-colors"
+                                                            title="Registrar Pago"
+                                                        >
+                                                            <FaMoneyBillWave className="h-5 w-5" />
+                                                        </button>
+                                                    )}
+                                                    <button
+                                                        onClick={() => handleVerDetalles(pedido)}
+                                                        className="text-blue-600 hover:text-blue-800 transition-colors"
+                                                        title="Ver Detalle"
+                                                    >
+                                                        <FaEye className="h-5 w-5" />
+                                                    </button>
+                                                </div>
                                             </td>
                                         </tr>
                                     ))
@@ -707,6 +797,73 @@ const ReportePedidos = () => {
                     </div >
                 </div >
             )}
+
+            {/* Modal de Pago Rápido (Duplicado) */}
+            {
+                showPayModal && payPedido && (
+                    <div className="fixed inset-0 bg-gray-600 bg-opacity-75 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
+                        <div className="bg-white rounded-lg shadow-xl w-full max-w-md flex flex-col">
+                            <div className="px-6 py-4 border-b flex justify-between items-center bg-gray-50 rounded-t-lg">
+                                <h3 className="text-lg font-bold text-gray-800">Registrar Pago / Adelanto</h3>
+                                <button onClick={handleClosePayModal} className="text-gray-600 hover:text-gray-800">
+                                    <FaTimesCircle size={24} />
+                                </button>
+                            </div>
+                            <div className="p-6">
+                                <p className="mb-4 text-sm text-gray-600">
+                                    Cliente: <span className="font-bold">{payPedido.nombre_cliente}</span><br />
+                                    Saldo Pendiente: <span className="font-bold text-red-600">S/ {Number(payPedido.monto_saldo).toFixed(2)}</span>
+                                </p>
+
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700">Monto a Pagar</label>
+                                        <input
+                                            type="number"
+                                            step="0.01"
+                                            value={payData.monto}
+                                            onChange={(e) => setPayData({ ...payData, monto: e.target.value })}
+                                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700">Fecha</label>
+                                        <input
+                                            type="date"
+                                            value={payData.fecha}
+                                            onChange={(e) => setPayData({ ...payData, fecha: e.target.value })}
+                                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700">Método de Pago</label>
+                                        <select
+                                            value={payData.metodo}
+                                            onChange={(e) => setPayData({ ...payData, metodo: e.target.value })}
+                                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2"
+                                        >
+                                            <option value="Efectivo">Efectivo</option>
+                                            <option value="Yape">Yape</option>
+                                            <option value="Plin">Plin</option>
+                                            <option value="Transferencia">Transferencia</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="px-6 py-4 border-t bg-gray-50 rounded-b-lg flex justify-end space-x-3">
+                                <button onClick={handleClosePayModal} className="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400">
+                                    Cancelar
+                                </button>
+                                <button onClick={handleQuickPay} className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
+                                    Confirmar Pago
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )
+            }
+
+            <Toaster position="top-right" />
         </div>
     );
 };

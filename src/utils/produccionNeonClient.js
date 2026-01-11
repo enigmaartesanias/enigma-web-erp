@@ -46,28 +46,25 @@ export const produccionDB = {
       fecha_produccion: p.fecha_produccion ?
         (typeof p.fecha_produccion === 'string' ? p.fecha_produccion : new Date(p.fecha_produccion).toISOString().split('T')[0])
         : null,
+      fecha_inicio_produccion: p.fecha_inicio_produccion ?
+        (typeof p.fecha_inicio_produccion === 'string' ? p.fecha_inicio_produccion : new Date(p.fecha_inicio_produccion).toISOString().split('T')[0])
+        : null,
+      fecha_fin_produccion: p.fecha_fin_produccion ?
+        (typeof p.fecha_fin_produccion === 'string' ? p.fecha_fin_produccion : new Date(p.fecha_fin_produccion).toISOString().split('T')[0])
+        : null,
       cantidad: parseInt(p.cantidad) || 0,
       costo_materiales: parseFloat(p.costo_materiales) || 0,
-      mano_de_obra: parseFloat(p.mano_de_obra) || 0,
-      porcentaje_alquiler: parseFloat(p.porcentaje_alquiler) || 0,
+      mano_de_obra: parseFloat(p.mano_de_obra) || 0, // Mapear correctamente
       costo_herramientas: parseFloat(p.costo_herramientas) || 0,
       otros_gastos: parseFloat(p.otros_gastos) || 0,
-      costo_mano_obra: parseFloat(p.costo_mano_obra) || 0,
       costo_total_unitario: parseFloat(p.costo_total_unitario) || 0,
-      costo_total_produccion: parseFloat(p.costo_total_produccion) || 0,
-      ganancia_estimada_pedido: p.ganancia_estimada_pedido ? parseFloat(p.ganancia_estimada_pedido) : null,
-      codigo_producto: p.codigo_producto || '',
-      tiene_codigo_qr: p.tiene_codigo_qr || false,
-      transferido_inventario: p.transferido_inventario || false,
-      fecha_transferencia: p.fecha_transferencia || null,
-      producto_externo_id: p.producto_externo_id || null
+      costo_total_produccion: parseFloat(p.costo_total_produccion) || 0
     }));
   },
 
   async getById(id) {
     const [produccion] = await sql`
-      SELECT * FROM v_produccion_con_precios
-      WHERE id_produccion = ${id}
+      SELECT * FROM produccion_taller WHERE id_produccion = ${id}
     `;
     return produccion;
   },
@@ -99,7 +96,7 @@ export const produccionDB = {
         ${costos.porcentaje_alquiler || 0},
         ${costos.costo_herramientas || 0},
         ${costos.otros_gastos || 0},
-        'pendiente',
+        'en_proceso',
         ${costos.observaciones || 'Producción creada desde pedido'},
         ${costos.imagen_url || ''}
       )
@@ -108,74 +105,80 @@ export const produccionDB = {
     return produccion;
   },
 
-  // Crear producción para stock
-  async create(produccionData) {
-    const [produccion] = await sql`
-      INSERT INTO produccion_taller (
-        pedido_id, tipo_produccion, metal, tipo_producto, nombre_producto,
-        cantidad, costo_materiales, mano_de_obra, porcentaje_alquiler,
-        costo_herramientas, otros_gastos, estado_produccion, observaciones, fecha_produccion, imagen_url,
-        codigo_producto, tiene_codigo_qr
-      ) VALUES (
-        ${produccionData.pedido_id || null},
-        ${produccionData.tipo_produccion || 'STOCK'},
-        ${produccionData.metal},
-        ${produccionData.tipo_producto},
-        ${produccionData.nombre_producto || ''},
-        ${produccionData.cantidad || 1},
-        ${produccionData.costo_materiales || 0},
-        ${produccionData.mano_de_obra || 0},
-        ${produccionData.porcentaje_alquiler || 0},
-        ${produccionData.costo_herramientas || 0},
-        ${produccionData.otros_gastos || 0},
-        ${produccionData.estado_produccion || 'pendiente'},
-        ${produccionData.observaciones || ''},
-        ${produccionData.fecha_produccion || getLocalDate()},
-        ${produccionData.imagen_url || ''},
-        ${produccionData.codigo_producto || ''},
-        ${produccionData.tiene_codigo_qr || false}
+  async create(data) {
+    const {
+      pedido_id, tipo_produccion, metal, tipo_producto,
+      nombre_producto, cantidad, costo_materiales,
+      mano_de_obra, costo_herramientas, otros_gastos,
+      estado_produccion, observaciones, imagen_url, codigo_producto
+    } = data;
+
+    // Calcular fecha inicio: si inicia en proceso, es HOY. Sino (pendiente), es NULL o fecha futura
+    let fechaInicio = null;
+    let fechaFin = null;
+
+    if (estado_produccion === 'en_proceso' || estado_produccion === 'terminado') {
+      fechaInicio = new Date().toISOString().split('T')[0];
+    }
+    if (estado_produccion === 'terminado') {
+      fechaFin = new Date().toISOString().split('T')[0];
+    }
+
+    const [newProduccion] = await sql`
+      INSERT INTO produccion_taller(
+      pedido_id, tipo_produccion, metal, tipo_producto,
+      nombre_producto, cantidad, costo_materiales,
+      mano_de_obra, costo_herramientas, otros_gastos,
+      estado_produccion, observaciones, imagen_url, codigo_producto,
+      fecha_inicio_produccion, fecha_fin_produccion
+    ) VALUES(
+      ${pedido_id || null}, ${tipo_produccion}, ${metal}, ${tipo_producto},
+  ${nombre_producto}, ${cantidad}, ${costo_materiales || 0},
+        ${mano_de_obra || 0}, ${costo_herramientas || 0}, ${otros_gastos || 0},
+        ${estado_produccion}, ${observaciones}, ${imagen_url}, ${codigo_producto},
+        ${fechaInicio}, ${fechaFin}
       )
-      RETURNING *
-    `;
-    return produccion;
+RETURNING *
+  `;
+    return newProduccion;
   },
 
   async update(id, produccionData) {
     const [produccion] = await sql`
       UPDATE produccion_taller SET
-        metal = ${produccionData.metal},
-        tipo_producto = ${produccionData.tipo_producto},
-        nombre_producto = ${produccionData.nombre_producto},
-        cantidad = ${produccionData.cantidad},
-        costo_materiales = ${produccionData.costo_materiales || 0},
-        mano_de_obra = ${produccionData.mano_de_obra || 0},
-        porcentaje_alquiler = ${produccionData.porcentaje_alquiler || 0},
-        costo_herramientas = ${produccionData.costo_herramientas || 0},
-        otros_gastos = ${produccionData.otros_gastos || 0},
-        estado_produccion = ${produccionData.estado_produccion},
-        observaciones = ${produccionData.observaciones || ''},
-        imagen_url = ${produccionData.imagen_url || ''},
-        codigo_producto = COALESCE(${produccionData.codigo_producto}, codigo_producto),
-        tiene_codigo_qr = COALESCE(${produccionData.tiene_codigo_qr}, tiene_codigo_qr)
+metal = ${produccionData.metal},
+tipo_producto = ${produccionData.tipo_producto},
+nombre_producto = ${produccionData.nombre_producto},
+cantidad = ${produccionData.cantidad},
+costo_materiales = ${produccionData.costo_materiales || 0},
+mano_de_obra = ${produccionData.mano_de_obra || 0},
+porcentaje_alquiler = ${produccionData.porcentaje_alquiler || 0},
+costo_herramientas = ${produccionData.costo_herramientas || 0},
+otros_gastos = ${produccionData.otros_gastos || 0},
+estado_produccion = ${produccionData.estado_produccion},
+observaciones = ${produccionData.observaciones || ''},
+imagen_url = ${produccionData.imagen_url || ''},
+codigo_producto = COALESCE(${produccionData.codigo_producto}, codigo_producto),
+  tiene_codigo_qr = COALESCE(${produccionData.tiene_codigo_qr}, tiene_codigo_qr)
       WHERE id_produccion = ${id}
-      RETURNING *
-    `;
+RETURNING *
+  `;
     return produccion;
   },
 
   async updateEstado(id, nuevoEstado) {
     const [produccion] = await sql`
       UPDATE produccion_taller SET
-        estado_produccion = ${nuevoEstado},
-        fecha_terminado = ${nuevoEstado === 'terminado' ? new Date().toISOString() : null}
+estado_produccion = ${nuevoEstado},
+fecha_terminado = ${nuevoEstado === 'terminado' ? new Date().toISOString() : null}
       WHERE id_produccion = ${id}
-      RETURNING *
-    `;
+RETURNING *
+  `;
     return produccion;
   },
 
   async delete(id) {
-    await sql`DELETE FROM produccion_taller WHERE id_produccion = ${id}`;
+    await sql`DELETE FROM produccion_taller WHERE id_produccion = ${id} `;
   },
 
   // ========================================
@@ -184,24 +187,24 @@ export const produccionDB = {
 
   async getPedidosPendientes() {
     const productos = await sql`
-      SELECT 
-        p.id_pedido,
-        p.nombre_cliente,
-        p.telefono,
-        p.metal,
-        p.tipo_producto,
-        p.fecha_pedido,
-        d.id_detalle,
-        d.nombre_producto,
-        d.cantidad,
-        d.precio_unitario
+SELECT
+p.id_pedido,
+  p.nombre_cliente,
+  p.telefono,
+  p.metal,
+  p.tipo_producto,
+  p.fecha_pedido,
+  d.id_detalle,
+  d.nombre_producto,
+  d.cantidad,
+  d.precio_unitario
       FROM pedidos p
       INNER JOIN detalles_pedido d ON p.id_pedido = d.id_pedido
       LEFT JOIN produccion_taller pr ON pr.pedido_id = p.id_pedido 
         AND pr.nombre_producto LIKE '%' || d.nombre_producto || '%'
       WHERE pr.id_produccion IS NULL
       ORDER BY p.fecha_pedido DESC, d.id_detalle
-    `;
+  `;
 
     return productos.map(prod => ({
       ...prod,
@@ -216,14 +219,14 @@ export const produccionDB = {
 
   async getStats() {
     const [stats] = await sql`
-      SELECT
-        COUNT(*) as total_registros,
-        COUNT(*) FILTER (WHERE estado_produccion = 'pendiente') as pendientes,
-        COUNT(*) FILTER (WHERE estado_produccion = 'en_proceso') as en_proceso,
-        COUNT(*) FILTER (WHERE estado_produccion = 'terminado') as terminados
+SELECT
+COUNT(*) as total_registros,
+  COUNT(*) FILTER(WHERE estado_produccion = 'pendiente') as pendientes,
+    COUNT(*) FILTER(WHERE estado_produccion = 'en_proceso') as en_proceso,
+      COUNT(*) FILTER(WHERE estado_produccion = 'terminado') as terminados
       FROM v_produccion_con_precios
       WHERE fecha_produccion >= CURRENT_DATE - INTERVAL '30 days'
-    `;
+  `;
 
     return {
       total_registros: parseInt(stats.total_registros) || 0,
@@ -240,12 +243,12 @@ export const produccionDB = {
   async markAsTransferred(id_produccion, producto_externo_id) {
     const [produccion] = await sql`
       UPDATE produccion_taller SET
-        transferido_inventario = TRUE,
-        fecha_transferencia = CURRENT_TIMESTAMP,
-        producto_externo_id = ${producto_externo_id}
+transferido_inventario = TRUE,
+  fecha_transferencia = CURRENT_TIMESTAMP,
+  producto_externo_id = ${producto_externo_id}
       WHERE id_produccion = ${id_produccion}
-      RETURNING *
-    `;
+RETURNING *
+  `;
     return produccion;
   }
 };

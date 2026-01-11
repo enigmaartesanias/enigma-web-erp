@@ -451,20 +451,16 @@ const Produccion = () => {
                 p.nombre_cliente?.toLowerCase().includes(term);
         }
 
-        // Filtro de año: 2026 OR en_proceso
-        let matchesYear = true;
-        const fechaProduccion = new Date(p.fecha_registro || p.created_at);
-        const year = fechaProduccion.getFullYear();
-
-        // Siempre mostrar items en proceso
-        if (p.estado_produccion === 'en_proceso') {
-            matchesYear = true;
-        } else {
-            // Para el resto, solo mostrar 2026 en adelante
-            matchesYear = year >= 2026;
-        }
+        // Filtro de año: Eliminado para permitir consistencia histórica
+        // Antes: matchesYear = year >= 2026;
+        const matchesYear = true; // Mostrar todo siempre, el filtro principal será el estado/tipo
 
         return matchesType && matchesSearch && matchesYear;
+    }).sort((a, b) => {
+        // Ordenar por fecha de producción (más reciente primero)
+        const dateA = new Date(a.fecha_produccion || a.created_at);
+        const dateB = new Date(b.fecha_produccion || b.created_at);
+        return dateB - dateA;
     });
 
     const handleTerminar = async (item) => {
@@ -990,6 +986,19 @@ const Produccion = () => {
                     </div>
                 )
             }
+
+            {/* Modal de Confirmación para eliminar */}
+            <ConfirmModal
+                isOpen={confirmModal.isOpen}
+                onClose={() => setConfirmModal({ ...confirmModal, isOpen: false })}
+                title={confirmModal.title}
+                message={confirmModal.message}
+                icon={confirmModal.icon}
+                confirmText={confirmModal.confirmText}
+                confirmColor={confirmModal.confirmColor}
+                onConfirm={confirmModal.onConfirm}
+            />
+
         </div >
     );
 };

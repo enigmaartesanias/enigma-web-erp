@@ -232,6 +232,19 @@ Este es un proyecto privado. Para contribuir:
 
 ## 📝 Changelog
 
+### v2.6.0 (Enero 2026) - Flujo de Pedidos 2.0 💸
+- 💳 **Pagos Flexibles**:
+  - Habilitado registro de pagos en cualquier estado del pedido (incluido Entregado).
+  - Nuevo botón de pago (`FaMoneyBillWave`) en todas las vistas si existe saldo pendiente.
+  - Pagos integrados directamente en el **Reporte de Pedidos**.
+- 🚚 **Control de Entregas Estricto**:
+  - Botón de entrega (`FaCar`) restringido solo a pedidos "Listos" (Terminados).
+  - Eliminación de acciones de entrega desde la fase de "Producción" para evitar errores.
+- 👁️ **Mejoras UX**:
+  - Nuevo botón de acceso rápido al detalle (`FaEye`) en la grilla principal.
+  - Columnas de acción estandarizadas en todas las pestañas.
+  - Corrección de bugs visuales en tablas de producción.
+
 ### v2.4.0 (Enero 2026) - Modelo de Producción Artesanal 🛠️
 - 🎨 **Modelo de Costos Simplificado**:
   - Eliminación de cálculo por horas (`horas_trabajo` * `costo_hora`).

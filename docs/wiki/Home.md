@@ -41,6 +41,13 @@ npm run dev
 
 ## 📖 Novedades
 
+### Enero 2026 - v2.6.0
+ 
+#### Flujo de Pedidos 2.0 💸
+- 💳 **Pagos Flexibles**: Registro de pagos en cualquier estado, cobro post-entrega y botón de pago omnipresente.
+- 🚚 **Entregas Seguras**: Restricción de entregas solo a pedidos "Listos" para evitar errores operativos.
+- 👁️ **UX Mejorada**: Novedades visuales en botones de acción y reporte integrado.
+
 ### Enero 2026 - v2.2.0
 
 #### Migración a Neon DB y Mejoras en Pedidos

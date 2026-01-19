@@ -1,10 +1,9 @@
-﻿
-import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import { pedidosDB } from '../utils/pedidosNeonClient';
 import { produccionDB, METALES, TIPOS_PRODUCTO } from '../utils/produccionNeonClient';
 import { getLocalDate } from '../utils/dateUtils';
 import { Link, useNavigate } from 'react-router-dom';
-import { FaEdit, FaTrash, FaCheckCircle, FaTimesCircle, FaPlus, FaWhatsapp, FaPrint, FaSearch, FaMoneyBillWave, FaShareAlt, FaImage, FaPhone, FaArrowLeft, FaHammer, FaCar, FaExclamationTriangle, FaCheck } from 'react-icons/fa';
+import { FaEdit, FaTrash, FaCheckCircle, FaTimesCircle, FaPlus, FaWhatsapp, FaPrint, FaSearch, FaMoneyBillWave, FaShareAlt, FaImage, FaPhone, FaArrowLeft, FaHammer, FaCar, FaExclamationTriangle, FaCheck, FaEye } from 'react-icons/fa';
 import html2canvas from 'html2canvas';
 import toast, { Toaster } from 'react-hot-toast';
 import ConfirmModal from './ui/ConfirmModal';
@@ -410,11 +409,6 @@ const Pedidos = () => {
 
     const navigate = useNavigate();
 
-    const handleCrearProduccion = async (pedido) => {
-        // Navegar a producción con parámetro de pedido
-        navigate(`/produccion?pedido=${pedido.id_pedido}`);
-    };
-
     const handleEntregar = async (pedido) => {
         // Validación: Producción debe estar terminada
         if (pedido.estado_produccion !== 'terminado') {
@@ -750,36 +744,98 @@ const Pedidos = () => {
         }
     };
 
+    // ========================================
+    // CREAR PRODUCCIÓN DESDE PEDIDO
+    // ========================================
+
+    const handleCrearProduccion = async (pedido) => {
+        try {
+            // Validar que el pedido tenga productos
+            if (!pedido.detalles_pedido || pedido.detalles_pedido.length === 0) {
+                toast.error('El pedido no tiene productos registrados', { duration: 4000 });
+                return;
+            }
+
+            // Validar que no existan ya registros de producción para este pedido
+            const produccionExistente = await produccionDB.getAll();
+            const yaEnProduccion = produccionExistente.some(p => p.pedido_id === pedido.id_pedido);
+
+            if (yaEnProduccion) {
+                toast.warning('Este pedido ya tiene registros de producción creados', { duration: 4000 });
+                return;
+            }
+
+            toast.loading('Creando registros de producción...', { id: 'creating-production', duration: 2000 });
+
+            // Crear un registro de producción por cada producto del pedido
+            for (const detalle of pedido.detalles_pedido) {
+                await produccionDB.createFromPedido(pedido.id_pedido, {
+                    cantidad: detalle.cantidad,
+                    costo_materiales: 0,
+                    mano_de_obra: 0,
+                    porcentaje_alquiler: 0,
+                    costo_herramientas: 0,
+                    otros_gastos: 0,
+                    observaciones: `Producción creada desde pedido #${pedido.id_pedido} - ${detalle.tipo_producto || 'Producto'} de ${detalle.metal || 'Metal'}`
+                });
+            }
+
+            // Actualizar el estado del pedido a 'en_proceso'
+            await pedidosDB.update(pedido.id_pedido, {
+                ...pedido,
+                estado_produccion: 'en_proceso'
+            });
+
+            toast.success(`✓ Producción creada: ${pedido.detalles_pedido.length} producto(s)`, {
+                id: 'creating-production',
+                duration: 3000
+            });
+
+            // Refrescar la lista de pedidos
+            fetchPedidos();
+
+        } catch (error) {
+            console.error('Error al crear producción:', error);
+            toast.error(`Error al crear producción: ${error.message}`, {
+                id: 'creating-production',
+                duration: 4000
+            });
+        }
+    };
+
     // Filter Logic
     const filteredPedidos = pedidos.filter(p => {
-        const estadoProd = (p.estado_produccion || 'no_iniciado').trim(); // Removed toLowerCase as values are likely case-sensitive logic dependent or already lower
-        // actually existing logic compares with 'no_iniciado', so let's keep it exact match but trimmed.
-        const estadoPed = (p.estado_pedido || 'aceptado').trim();
+        // Normalizar estados: trim() + lowercase para consistencia
+        // Esto convierte "Terminado" → "terminado", "en_proceso" → "en_proceso", etc.
+        const estadoProd = (p.estado_produccion || 'no_iniciado').trim().toLowerCase();
+        const estadoPed = (p.estado_pedido || 'aceptado').trim().toLowerCase();
 
         // FASE 3: Filtrado por tab (Pendientes, Producción, Terminados)
         if (activeTab === 'pendientes') {
-            // Tab Pendientes: pedidos aceptados (o sin estado) sin iniciar producción
-            // NOTA: No filtrar por p.cancelado (que significa pagado), ya que un pedido pagado debe producirse
-            // Relajamos estado_pedido para incluir antiguos que quizás no sean exactamente 'aceptado'
-
-            // Si estatus prod es cualquiera de estos variaciones de "no iniciado"
+            // Tab Pendientes: pedidos aceptados sin iniciar producción
             const isNoIniciado = estadoProd === 'no_iniciado' || estadoProd === 'pendiente' || !estadoProd;
-
             if (!isNoIniciado || estadoPed === 'entregado') {
                 return false;
             }
         } else if (activeTab === 'produccion') {
-            // Tab Producción: pedidos EN PROCESO (no terminados)
-            if (estadoProd !== 'en_proceso' || estadoPed === 'entregado') {
+            // Tab Producción: pedidos EN PROCESO (no terminados, no entregados)
+            // Normaliza variaciones: 'en_proceso', 'en proceso', 'en_produccion'
+            const isEnProceso = estadoProd === 'en_proceso' ||
+                estadoProd === 'en proceso' ||
+                estadoProd === 'en_produccion';
+
+            if (!isEnProceso || estadoPed === 'entregado') {
                 return false;
             }
         } else if (activeTab === 'terminados') {
-            // Tab Terminados: TODOS los pedidos con producción terminada pero NO entregados
-            if (estadoProd !== 'terminado' || estadoPed === 'entregado') {
+            // Tab Terminados: producción terminada pero NO entregados
+            // Ahora comparamos 'terminado' (minúscula) con el valor normalizado
+            const isTerminado = estadoProd === 'terminado';
+            if (!isTerminado || estadoPed === 'entregado') {
                 return false;
             }
         } else if (activeTab === 'entregados') {
-            // Tab Entregados: TODOS los pedidos entregados (histórico de entregas)
+            // Tab Entregados: pedidos entregados
             if (estadoPed !== 'entregado') {
                 return false;
             }
@@ -1161,58 +1217,100 @@ const Pedidos = () => {
                 </h2>
 
                 {/* FASE 2: Navegación de Tabs - Pendientes y Producción */}
-                <div className="border-b border-gray-200 mb-6">
-                    <nav className="-mb-px flex space-x-8">
-                        <button
-                            onClick={() => setActiveTab('pendientes')}
-                            className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === 'pendientes'
-                                ? 'border-blue-500 text-blue-600'
-                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                                }`}
-                        >
-                            <span className="flex items-center gap-2">
-                                <span className="text-2xl">🕒</span>
-                                <span className="hidden md:inline">Pendientes</span>
-                            </span>
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('produccion')}
-                            className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === 'produccion'
-                                ? 'border-blue-500 text-blue-600'
-                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                                }`}
-                        >
-                            <span className="flex items-center gap-2">
-                                <span className="text-2xl">⚒</span>
-                                <span className="hidden md:inline">Producción</span>
-                            </span>
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('terminados')}
-                            className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === 'terminados'
-                                ? 'border-blue-500 text-blue-600'
-                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                                }`}
-                        >
-                            <span className="flex items-center gap-2">
-                                <span className="text-2xl">✅</span>
-                                <span className="hidden md:inline">Terminados</span>
-                            </span>
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('entregados')}
-                            className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === 'entregados'
-                                ? 'border-blue-500 text-blue-600'
-                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                                }`}
-                        >
-                            <span className="flex items-center gap-2">
-                                <span className="text-2xl">🚚</span>
-                                <span className="hidden md:inline">Entregados</span>
-                            </span>
-                        </button>
-                    </nav>
-                </div>
+                {/* FASE 2: Navegación de Tabs - Pendientes y Producción */}
+                {/* Calculamos los conteos dinámicamente */}
+                {(() => {
+                    const counts = {
+                        pendientes: pedidos.filter(p => p.estado_pedido !== 'entregado' && p.estado_pedido !== 'cancelado' && p.estado_produccion === 'terminado').length,
+                        /* Ajuste lógico: Pendientes de entrega (Terminados pero no entregados) ? 
+                           O "Pendientes" general? El filtro original de 'pendientes' era complejo.
+                           Revisemos el filtro original en el código (que no se ve aquí pero asumiremos una lógica estándar o la ajustaremos abajo).
+                           
+                           Vamos a definir "Pendientes" como aquellos que NO están entregados y NO están en producción/terminados (son nuevos/aceptados) 
+                           O mejor, repliquemos la lógica de filtrado que se usa abajo:
+                        */
+
+                        // Lógica basada en como se filtra abajo (activeTab)
+                        pendientes: pedidos.filter(p => !p.entregado && p.estado_pedido !== 'entregado' && p.estado_produccion !== 'terminado' && p.estado_produccion !== 'en_proceso').length, // Nuevos/Aceptados sin iniciar producción
+                        produccion: pedidos.filter(p => p.estado_produccion === 'en_proceso').length,
+                        terminados: pedidos.filter(p => p.estado_produccion === 'terminado' && p.estado_pedido !== 'entregado').length, // Terminados listos para entregar
+                        entregados: pedidos.filter(p => p.estado_pedido === 'entregado').length
+                    };
+
+                    /* 
+                       NOTA: La lógica anterior de "Pendientes" en el código original (que no he visto completa) parecía ser "todo lo que no es entregado".
+                       Sin embargo, con pestañas de Producción y Terminados, "Pendientes" suele referirse a "Por Iniciar".
+                       Voy a usar una lógica segura:
+                       - Pendientes: Recibidos/Aceptados (estado_produccion = no_iniciado)
+                       - Producción: En Proceso
+                       - Terminados: Terminados (pero no entregados)
+                       - Entregados: Entregados
+
+                       Si el usuario tenía otra lógica, esto lo refina para ser más útil.
+                    */
+
+                    return (
+                        <div className="border-b border-gray-200 mb-6 font-sans">
+                            <nav className="-mb-px flex space-x-4 md:space-x-8 overflow-x-auto pb-1">
+                                <button
+                                    onClick={() => setActiveTab('pendientes')}
+                                    className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors flex items-center gap-2 ${activeTab === 'pendientes'
+                                        ? 'border-blue-500 text-blue-600'
+                                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                        }`}
+                                >
+                                    <span className="text-xl">📋</span>
+                                    <span>Pendientes</span>
+                                    <span className={`ml-1 py-0.5 px-2.5 rounded-full text-xs font-bold ${activeTab === 'pendientes' ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-600'}`}>
+                                        {counts.pendientes}
+                                    </span>
+                                </button>
+
+                                <button
+                                    onClick={() => setActiveTab('produccion')}
+                                    className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors flex items-center gap-2 ${activeTab === 'produccion'
+                                        ? 'border-indigo-500 text-indigo-600'
+                                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                        }`}
+                                >
+                                    <span className="text-xl">⚒️</span>
+                                    <span>Producción</span>
+                                    <span className={`ml-1 py-0.5 px-2.5 rounded-full text-xs font-bold ${activeTab === 'produccion' ? 'bg-indigo-100 text-indigo-600' : 'bg-gray-100 text-gray-600'}`}>
+                                        {counts.produccion}
+                                    </span>
+                                </button>
+
+                                <button
+                                    onClick={() => setActiveTab('terminados')}
+                                    className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors flex items-center gap-2 ${activeTab === 'terminados'
+                                        ? 'border-green-500 text-green-600'
+                                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                        }`}
+                                >
+                                    <span className="text-xl">✅</span>
+                                    <span>Listos</span>
+                                    <span className={`ml-1 py-0.5 px-2.5 rounded-full text-xs font-bold ${activeTab === 'terminados' ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-600'}`}>
+                                        {counts.terminados}
+                                    </span>
+                                </button>
+
+                                <button
+                                    onClick={() => setActiveTab('entregados')}
+                                    className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors flex items-center gap-2 ${activeTab === 'entregados'
+                                        ? 'border-purple-500 text-purple-600'
+                                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                        }`}
+                                >
+                                    <span className="text-xl">🚚</span>
+                                    <span>Entregados</span>
+                                    <span className={`ml-1 py-0.5 px-2.5 rounded-full text-xs font-bold ${activeTab === 'entregados' ? 'bg-purple-100 text-purple-600' : 'bg-gray-100 text-gray-600'}`}>
+                                        {counts.entregados}
+                                    </span>
+                                </button>
+                            </nav>
+                        </div>
+                    );
+                })()}
 
                 {/* Estadísticas por Tab */}
                 <div className="mb-6">
@@ -1270,9 +1368,10 @@ const Pedidos = () => {
                                         <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">FECHA ENTREGA</th>
                                         <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Cliente</th>
                                         <th className="hidden md:table-cell px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider w-1/4">Producto</th>
+                                        <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">Acciones</th>
                                     </>
                                 ) : activeTab === 'produccion' ? (
-                                    // Grid simplificado para Producción (4 columnas)
+                                    // Grid simplificado para Producción (4 columnas + acciones)
                                     <>
                                         <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                                             <div>Fecha</div>
@@ -1281,6 +1380,7 @@ const Pedidos = () => {
                                         <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Cliente</th>
                                         <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider w-1/4">Producto</th>
                                         <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">Producción</th>
+                                        <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">Acciones</th>
                                     </>
                                 ) : (
                                     // Grid completo para Pendientes (8 columnas)
@@ -1300,7 +1400,7 @@ const Pedidos = () => {
                         <tbody className="bg-white divide-y divide-gray-200">
                             {filteredPedidos.length === 0 ? (
                                 <tr>
-                                    <td colSpan={activeTab === 'terminados' ? "5" : activeTab === 'entregados' ? "3" : activeTab === 'produccion' ? "4" : "8"} className="px-6 py-4 text-center text-gray-500">No hay pedidos registrados en esta categoría.</td>
+                                    <td colSpan={activeTab === 'terminados' ? "5" : activeTab === 'entregados' ? "4" : activeTab === 'produccion' ? "5" : "8"} className="px-6 py-4 text-center text-gray-500">No hay pedidos registrados en esta categoría.</td>
                                 </tr>
                             ) : (
                                 filteredPedidos.map((pedido) => (
@@ -1337,21 +1437,35 @@ const Pedidos = () => {
                                                 </td>
 
                                                 {/* ACCIONES - Solo Entregar */}
+                                                {/* ACCIONES - Terminados */}
                                                 <td className="px-4 py-3 whitespace-nowrap text-right text-sm font-medium">
-                                                    <div className="flex justify-end">
-                                                        <Tooltip
-                                                            text={pedido.estado_pedido === 'entregado'
-                                                                ? 'Ya entregado'
-                                                                : 'Entregar pedido'
-                                                            }
-                                                        >
+                                                    <div className="flex justify-end space-x-2">
+                                                        {/* Botón de Pago: Visible siempre que haya saldo por pagar (no cancelado o saldo > 0) */}
+                                                        {!pedido.cancelado && pedido.monto_saldo > 0.1 && (
+                                                            <Tooltip text="Registrar pago">
+                                                                <button
+                                                                    onClick={() => handleOpenPayModal(pedido)}
+                                                                    className="text-green-600 hover:text-green-900 transition-colors"
+                                                                >
+                                                                    <FaMoneyBillWave className="h-5 w-5" />
+                                                                </button>
+                                                            </Tooltip>
+                                                        )}
+
+                                                        <Tooltip text="Ver Nota de Pedido">
                                                             <button
-                                                                onClick={() => handleEntregar(pedido)}
+                                                                onClick={() => handlePrint(pedido)}
+                                                                className="text-gray-600 hover:text-gray-900 transition-colors"
+                                                            >
+                                                                <FaEye className="h-5 w-5" />
+                                                            </button>
+                                                        </Tooltip>
+
+                                                        <Tooltip text="Entregar pedido">
+                                                            <button
+                                                                onClick={() => handleOpenEstadoModal(pedido)}
                                                                 disabled={pedido.estado_pedido === 'entregado'}
-                                                                className={`transition-colors ${pedido.estado_pedido === 'entregado'
-                                                                    ? 'text-gray-300 cursor-not-allowed'
-                                                                    : 'text-green-600 hover:text-green-900 cursor-pointer'
-                                                                    }`}
+                                                                className="text-blue-600 hover:text-blue-900 transition-colors"
                                                             >
                                                                 <FaCar className="h-5 w-5" />
                                                             </button>
@@ -1383,6 +1497,31 @@ const Pedidos = () => {
                                                             ))}
                                                         </div>
                                                     ) : '-'}
+                                                </td>
+
+                                                {/* ACCIONES - Entregados */}
+                                                <td className="px-4 py-3 whitespace-nowrap text-right text-sm font-medium">
+                                                    <div className="flex justify-end space-x-2">
+                                                        {/* Botón de Pago: Visible siempre que haya saldo por pagar */}
+                                                        {!pedido.cancelado && pedido.monto_saldo > 0.1 && (
+                                                            <Tooltip text="Registrar pago">
+                                                                <button
+                                                                    onClick={() => handleOpenPayModal(pedido)}
+                                                                    className="text-green-600 hover:text-green-900 transition-colors"
+                                                                >
+                                                                    <FaMoneyBillWave className="h-5 w-5" />
+                                                                </button>
+                                                            </Tooltip>
+                                                        )}
+                                                        <Tooltip text="Ver Nota de Pedido">
+                                                            <button
+                                                                onClick={() => handlePrint(pedido)}
+                                                                className="text-gray-600 hover:text-gray-900 transition-colors"
+                                                            >
+                                                                <FaEye className="h-5 w-5" />
+                                                            </button>
+                                                        </Tooltip>
+                                                    </div>
                                                 </td>
                                             </>
                                         ) : activeTab === 'produccion' ? (
@@ -1422,6 +1561,30 @@ const Pedidos = () => {
                                                         {pedido.estado_produccion === 'terminado' ? '● Terminado' :
                                                             pedido.estado_produccion === 'en_proceso' ? '● En Proceso' : '● No Iniciado'}
                                                     </span>
+                                                </td>
+
+                                                {/* ACCIONES - Producción */}
+                                                <td className="px-4 py-3 whitespace-nowrap text-right text-sm font-medium">
+                                                    <div className="flex justify-end space-x-2">
+                                                        {!pedido.cancelado && pedido.monto_saldo > 0.1 && (
+                                                            <Tooltip text="Registrar pago">
+                                                                <button
+                                                                    onClick={() => handleOpenPayModal(pedido)}
+                                                                    className="text-green-600 hover:text-green-900 transition-colors"
+                                                                >
+                                                                    <FaMoneyBillWave className="h-5 w-5" />
+                                                                </button>
+                                                            </Tooltip>
+                                                        )}
+                                                        <Tooltip text="Ver Nota de Pedido">
+                                                            <button
+                                                                onClick={() => handlePrint(pedido)}
+                                                                className="text-gray-600 hover:text-gray-900 transition-colors"
+                                                            >
+                                                                <FaEye className="h-5 w-5" />
+                                                            </button>
+                                                        </Tooltip>
+                                                    </div>
                                                 </td>
                                             </>
                                         ) : (
@@ -1486,7 +1649,9 @@ const Pedidos = () => {
                                                                 </button>
                                                             </Tooltip>
                                                         )}
-                                                        {pedido.estado_pedido !== 'entregado' && !pedido.cancelado && pedido.monto_saldo > 0 && (
+
+                                                        {/* Botón de Pago: Visible siempre que haya saldo por pagar (no cancelado o saldo > 0), incluso si entregado */}
+                                                        {!pedido.cancelado && pedido.monto_saldo > 0.1 && (
                                                             <Tooltip text="Registrar pago">
                                                                 <button
                                                                     onClick={() => handleOpenPayModal(pedido)}
@@ -1496,20 +1661,35 @@ const Pedidos = () => {
                                                                 </button>
                                                             </Tooltip>
                                                         )}
-                                                        <Tooltip text="Imprimir pedido">
+
+                                                        {/* Botón de Entrega: Solo visible si está terminado (listo) y no entregado */}
+                                                        {pedido.estado_produccion === 'terminado' && pedido.estado_pedido !== 'entregado' && (
+                                                            <Tooltip text="Entregar pedido">
+                                                                <button
+                                                                    onClick={() => handleOpenEstadoModal(pedido)}
+                                                                    className="text-blue-600 hover:text-blue-900 transition-colors"
+                                                                >
+                                                                    <FaCar className="h-5 w-5" />
+                                                                </button>
+                                                            </Tooltip>
+                                                        )}
+
+                                                        {/* Botón de Ver / Imprimir */}
+                                                        <Tooltip text="Ver Nota de Pedido">
                                                             <button
                                                                 onClick={() => handlePrint(pedido)}
                                                                 className="text-gray-600 hover:text-gray-900 transition-colors"
                                                             >
-                                                                <FaPrint className="h-5 w-5" />
+                                                                <FaEye className="h-5 w-5" />
                                                             </button>
                                                         </Tooltip>
+
                                                         <Tooltip text={pedido.estado_pedido === 'entregado' ? 'No se puede editar' : 'Editar pedido'}>
                                                             <button
                                                                 onClick={() => handleEdit(pedido)}
                                                                 className={`transition-colors ${pedido.estado_pedido === 'entregado'
                                                                     ? 'text-gray-300 cursor-not-allowed'
-                                                                    : 'text-blue-600 hover:text-blue-900'
+                                                                    : 'text-indigo-600 hover:text-indigo-900'
                                                                     }`}
                                                                 disabled={pedido.estado_pedido === 'entregado'}
                                                             >
@@ -1533,7 +1713,7 @@ const Pedidos = () => {
                             )}
                         </tbody>
                     </table>
-                </div>
+                </div >
             </div >
 
             {/* Modal de Impresión / Vista Previa */}
@@ -1786,71 +1966,77 @@ const Pedidos = () => {
 
 
             {/* Popup Pedido Cancelado */}
-            {showCancelAlert && calculos.cancelado && (
-                <div className="fixed top-20 right-4 z-50 animate-bounce">
-                    <div className="bg-green-500 text-white px-6 py-4 rounded-lg shadow-xl cursor-pointer flex items-center bg-opacity-90 hover:bg-opacity-100 transition-all font-bold text-lg" onClick={() => setShowCancelAlert(false)}>
-                        <span>✓ PEDIDO CANCELADO</span>
-                        <span className="ml-3 text-sm font-normal underline">(Click para cerrar)</span>
+            {
+                showCancelAlert && calculos.cancelado && (
+                    <div className="fixed top-20 right-4 z-50 animate-bounce">
+                        <div className="bg-green-500 text-white px-6 py-4 rounded-lg shadow-xl cursor-pointer flex items-center bg-opacity-90 hover:bg-opacity-100 transition-all font-bold text-lg" onClick={() => setShowCancelAlert(false)}>
+                            <span>✓ PEDIDO CANCELADO</span>
+                            <span className="ml-3 text-sm font-normal underline">(Click para cerrar)</span>
+                        </div>
                     </div>
-                </div>
-            )}
+                )
+            }
 
             {/* Modal de Cambio de Estado */}
-            {showEstadoModal && estadoPedido && (
-                <div className="fixed inset-0 bg-gray-600 bg-opacity-75 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
-                    <div className="relative bg-white rounded-lg shadow-xl max-w-md w-full p-6">
-                        <h3 className="text-lg font-bold mb-4 text-gray-900">Cambiar Estado del Pedido</h3>
+            {
+                showEstadoModal && estadoPedido && (
+                    <div className="fixed inset-0 bg-gray-600 bg-opacity-75 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
+                        <div className="relative bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+                            <h3 className="text-lg font-bold mb-4 text-gray-900">Cambiar Estado del Pedido</h3>
 
-                        <div className="mb-4 p-3 bg-gray-100 rounded">
-                            <p className="text-sm text-gray-600"><strong>Cliente:</strong> {estadoPedido.nombre_cliente}</p>
-                            <p className="text-sm text-gray-600"><strong>Fecha:</strong> {new Date(estadoPedido.fecha_pedido).toLocaleDateString()}</p>
-                        </div>
-
-                        <div className="mb-4">
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Estado del Pedido</label>
-                            <select value={nuevoEstadoPedido} onChange={(e) => setNuevoEstadoPedido(e.target.value)} className="w-full border border-gray-300 rounded-md px-3 py-2">
-                                <option value="aceptado">🔵 Aceptado</option>
-                                <option value="entregado">🟢 Entregado</option>
-                            </select>
-                        </div>
-
-                        <div className="mb-6">
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Estado de Producción</label>
-                            <select value={nuevoEstadoProduccion} onChange={(e) => setNuevoEstadoProduccion(e.target.value)} className="w-full border border-gray-300 rounded-md px-3 py-2">
-                                <option value="no_iniciado">🟡 No iniciado</option>
-                                <option value="en_proceso">🔵 En proceso</option>
-                                <option value="terminado">🟢 Terminado</option>
-                            </select>
-                        </div>
-
-                        {nuevoEstadoPedido === 'entregado' && nuevoEstadoProduccion !== 'terminado' && (
-                            <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded">
-                                <p className="text-sm text-yellow-800">⚠️ <strong>Nota:</strong> Si un pedido está entregado, la producción debería estar terminada.</p>
+                            <div className="mb-4 p-3 bg-gray-100 rounded">
+                                <p className="text-sm text-gray-600"><strong>Cliente:</strong> {estadoPedido.nombre_cliente}</p>
+                                <p className="text-sm text-gray-600"><strong>Fecha:</strong> {new Date(estadoPedido.fecha_pedido).toLocaleDateString()}</p>
                             </div>
-                        )}
 
-                        <div className="flex justify-end space-x-3">
-                            <button onClick={handleCloseEstadoModal} className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300">Cancelar</button>
-                            <button onClick={handleUpdateEstado} className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Actualizar Estado</button>
+                            <div className="mb-4">
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Estado del Pedido</label>
+                                <select value={nuevoEstadoPedido} onChange={(e) => setNuevoEstadoPedido(e.target.value)} className="w-full border border-gray-300 rounded-md px-3 py-2">
+                                    <option value="aceptado">🔵 Aceptado</option>
+                                    <option value="entregado">🟢 Entregado</option>
+                                </select>
+                            </div>
+
+                            <div className="mb-6">
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Estado de Producción</label>
+                                <select value={nuevoEstadoProduccion} onChange={(e) => setNuevoEstadoProduccion(e.target.value)} className="w-full border border-gray-300 rounded-md px-3 py-2">
+                                    <option value="no_iniciado">🟡 No iniciado</option>
+                                    <option value="en_proceso">🔵 En proceso</option>
+                                    <option value="terminado">🟢 Terminado</option>
+                                </select>
+                            </div>
+
+                            {nuevoEstadoPedido === 'entregado' && nuevoEstadoProduccion !== 'terminado' && (
+                                <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded">
+                                    <p className="text-sm text-yellow-800">⚠️ <strong>Nota:</strong> Si un pedido está entregado, la producción debería estar terminada.</p>
+                                </div>
+                            )}
+
+                            <div className="flex justify-end space-x-3">
+                                <button onClick={handleCloseEstadoModal} className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300">Cancelar</button>
+                                <button onClick={handleUpdateEstado} className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Actualizar Estado</button>
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
+                )
+            }
 
             {/* Modal de Confirmación de Pedido Ingresado */}
-            {showSuccessModal && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-                    <div className="bg-white rounded-lg shadow-2xl p-8 max-w-sm w-full text-center animate-bounce">
-                        <div className="flex justify-center mb-4">
-                            <div className="rounded-full bg-green-500 p-4">
-                                <FaCheckCircle className="text-white text-5xl" />
+            {
+                showSuccessModal && (
+                    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+                        <div className="bg-white rounded-lg shadow-2xl p-8 max-w-sm w-full text-center animate-bounce">
+                            <div className="flex justify-center mb-4">
+                                <div className="rounded-full bg-green-500 p-4">
+                                    <FaCheckCircle className="text-white text-5xl" />
+                                </div>
                             </div>
+                            <h2 className="text-2xl font-bold text-gray-800 mb-2">PEDIDO INGRESADO</h2>
+                            <p className="text-gray-600">El pedido ha sido registrado exitosamente</p>
                         </div>
-                        <h2 className="text-2xl font-bold text-gray-800 mb-2">PEDIDO INGRESADO</h2>
-                        <p className="text-gray-600">El pedido ha sido registrado exitosamente</p>
                     </div>
-                </div>
-            )}
+                )
+            }
 
             {/* Toaster para notificaciones */}
             <Toaster

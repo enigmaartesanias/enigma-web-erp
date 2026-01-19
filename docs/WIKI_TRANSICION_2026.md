@@ -171,6 +171,20 @@ if (fechaFin && fechaVentaPeru > fechaFin) return false;
 
 **Motivo**: Los tamaños arbitrarios muy pequeños (`text-[3px]`, `text-[4px]`) no se renderizan correctamente en todos los navegadores.
 
+### Reporte de Materiales - UX Móvil
+
+**Archivo**: `src/modules/materiales/pages/ReporteMateriales.jsx`
+
+**Nuevo Layout Responsivo**:
+- **Desktop**: Grid/Tabla vertical estándar.
+- **Móvil**: Contenedor con `overflow-x-auto` (Scroll Horizontal).
+  - Permite visualizar todas las columnas (Fecha, Material, Proveedor, Cantidad, Total, Acciones) sin romper el diseño "card".
+  - Estilo similar a una hoja de cálculo compacta.
+
+**Cambios en Columnas**:
+- **Agregado**: Columna `Proveedor` para rápida identificación.
+- **Removido**: Columna `P. Unit` para simplificar la vista (se mantiene Cantidad y Total).
+
 ## Flujo de Trabajo para Nuevos Años
 
 Para replicar esta transición en años futuros (ej. 2027):

@@ -1,0 +1,21 @@
+🔍 INICIANDO DIAGNÓSTICO DE INCONSISTENCIA PEDIDOS-PRODUCCIÓN 🔍
+===============================================================
+
+1. Buscando pedidos HUÉRFANOS (Estado Producción sin registros en Taller)...
+✅ No se encontraron pedidos huérfanos. Todo pedido en producción tiene registros.
+
+2. Buscando producción OCULTA por filtros de año (2025)...
+ℹ️  No hay registros de producción de 2025 que no estén "en_proceso".
+
+3. Revisión de Pedidos de Diciembre 2025...
+- Pedido #1 (Carolina): 1 registros en producción. Estado Actual: terminado
+- Pedido #2 (Helga): 2 registros en producción. Estado Actual: terminado
+- Pedido #13 (Elizabeth ): 0 registros en producción. Estado Actual: no_iniciado
+- Pedido #14 (Liliana): 3 registros en producción. Estado Actual: terminado
+- Pedido #15 (Shirley ): 2 registros en producción. Estado Actual: en_proceso
+- Pedido #17 (Edilberto ): 0 registros en producción. Estado Actual: no_iniciado
+- Pedido #12 (Gary Coronel ): 0 registros en producción. Estado Actual: no_iniciado
+- Pedido #16 (Hugo ): 0 registros en producción. Estado Actual: no_iniciado
+
+===============================================================
+✅ DIAGNÓSTICO COMPLETADO

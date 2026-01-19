@@ -30,7 +30,16 @@ export const pedidosDB = {
           )) FILTER (WHERE d.id_detalle IS NOT NULL),
           '[]'::json
         ) as detalles_pedido,
-        '[]'::json as pagos,
+        COALESCE(
+          json_agg(DISTINCT jsonb_build_object(
+            'id', pa.id,
+            'monto', pa.monto,
+            'fecha_pago', pa.fecha_pago,
+            'metodo_pago', pa.metodo_pago,
+            'referencia', pa.referencia
+          )) FILTER (WHERE pa.id IS NOT NULL),
+          '[]'::json
+        ) as pagos,
         EXISTS (
           SELECT 1 FROM produccion_taller pt 
           WHERE pt.pedido_id = p.id_pedido 
@@ -64,7 +73,7 @@ export const pedidosDB = {
         ) as tiene_productos_pendientes
       FROM pedidos p
       LEFT JOIN detalles_pedido d ON p.id_pedido = d.id_pedido
-      -- LEFT JOIN pagos pa ON p.id_pedido = pa.pedido_id -- CAUSA ERROR: col no existe
+      LEFT JOIN pagos pa ON p.id_pedido = pa.id_pedido 
       GROUP BY p.id_pedido
       ORDER BY p.fecha_pedido DESC
     `;
@@ -87,7 +96,10 @@ export const pedidosDB = {
           cantidad: parseInt(d.cantidad) || 0,
           precio_unitario: parseFloat(d.precio_unitario) || 0
         })) || [],
-        pagos: [] // JOIN roto, desactivado temporalmente
+        pagos: p.pagos?.map(pg => ({
+          ...pg,
+          monto: parseFloat(pg.monto) || 0
+        })) || []
       }));
     } catch (error) {
       console.error('❌ ERROR CRÍTICO en getAll:', error);

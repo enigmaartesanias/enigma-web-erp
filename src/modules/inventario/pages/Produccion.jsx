@@ -3,7 +3,7 @@ import { produccionDB, METALES, TIPOS_PRODUCTO } from '../../../utils/produccion
 import { pedidosDB } from '../../../utils/pedidosNeonClient';
 import { productosExternosDB } from '../../../utils/productosExternosNeonClient';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { FaEdit, FaTrash, FaArrowLeft, FaSave, FaTimes, FaBox, FaMoneyBillWave, FaHammer, FaCheckCircle, FaCamera, FaCheck, FaQrcode, FaExclamationTriangle } from 'react-icons/fa';
+import { FaEdit, FaTrash, FaArrowLeft, FaSave, FaTimes, FaBox, FaMoneyBillWave, FaHammer, FaCheckCircle, FaCamera, FaCheck, FaQrcode, FaExclamationTriangle, FaBan } from 'react-icons/fa';
 import QRCode from 'react-qr-code';
 import { storage } from '../../../firebaseConfig';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -175,24 +175,69 @@ const Produccion = () => {
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
-    const handleDelete = (id) => {
+    const handleAnular = (item) => {
+        setConfirmModal({
+            isOpen: true,
+            title: 'Anular Producción',
+            message: `¿Estás seguro de anular esta producción? El registro se marcará como "Anulado" y permanecerá en el historial.`,
+            icon: <FaBan />,
+            confirmText: 'Sí, anular',
+            confirmColor: 'yellow',
+            onConfirm: async () => {
+                try {
+                    await produccionDB.anular(item.id_produccion);
+                    toast.success('Producción anulada correctamente');
+                    fetchProduccion();
+                    fetchStats();
+                    setConfirmModal(prev => ({ ...prev, isOpen: false }));
+                } catch (error) {
+                    console.error('Error al anular:', error);
+                    toast.error('Error al anular: ' + error.message);
+                    setConfirmModal(prev => ({ ...prev, isOpen: false }));
+                }
+            }
+        });
+    };
+
+    const handleDelete = (item) => {
+        // Verificar restricciones
+        if (item.estado_produccion === 'terminado') {
+            toast.error('No se puede eliminar un registro terminado. Usa "Anular" en su lugar.');
+            return;
+        }
+
+        if (item.transferido_inventario) {
+            toast.error('No se puede eliminar: el registro ya fue transferido al inventario.');
+            return;
+        }
+
+        if (item.pedido_id) {
+            toast.error('No se puede eliminar: el registro está asociado a un pedido.');
+            return;
+        }
+
+        // Si pasa todas las validaciones, mostrar confirmación
         setConfirmModal({
             isOpen: true,
             title: 'Eliminar Producción',
-            message: '¿Estás seguro? Esta acción no se puede deshacer.',
+            message: '¿Estás seguro? Esta acción no se puede deshacer y el registro será eliminado permanentemente.',
             icon: <FaTrash />,
             confirmText: 'Sí, eliminar',
             confirmColor: 'red',
             onConfirm: async () => {
                 try {
-                    await produccionDB.delete(id);
+                    await produccionDB.delete(item.id_produccion);
                     toast.success('Producción eliminada correctamente');
                     fetchProduccion();
                     fetchStats();
                     fetchPedidosPendientes();
+                    // Cerrar el modal
+                    setConfirmModal(prev => ({ ...prev, isOpen: false }));
                 } catch (error) {
                     console.error('Error al eliminar:', error);
                     toast.error('Error al eliminar: ' + error.message);
+                    // Cerrar el modal incluso si hay error
+                    setConfirmModal(prev => ({ ...prev, isOpen: false }));
                 }
             }
         });
@@ -899,10 +944,13 @@ const Produccion = () => {
                                     <td className="px-4 py-3 text-center">
                                         <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${item.estado_produccion === 'terminado' ? 'bg-green-100 text-green-800' :
                                             item.estado_produccion === 'en_proceso' ? 'bg-orange-100 text-orange-800' :
-                                                'bg-yellow-100 text-yellow-800'
+                                                item.estado_produccion === 'anulado' ? 'bg-gray-100 text-gray-800' :
+                                                    'bg-yellow-100 text-yellow-800'
                                             }`}>
                                             {item.estado_produccion === 'terminado' ? 'Terminado' :
-                                                item.estado_produccion === 'en_proceso' ? 'En proceso' : item.estado_produccion}
+                                                item.estado_produccion === 'en_proceso' ? 'En proceso' :
+                                                    item.estado_produccion === 'anulado' ? 'Anulado' :
+                                                        item.estado_produccion}
                                         </span>
                                     </td>
                                     <td className="hidden lg:table-cell px-4 py-3 text-center">
@@ -949,14 +997,27 @@ const Produccion = () => {
                                                 </button>
                                             )}
 
-                                            {/* Eliminar - Siempre visible */}
-                                            <button
-                                                onClick={() => handleDelete(item.id_produccion)}
-                                                className="text-red-500 hover:text-red-700"
-                                                title="Eliminar"
-                                            >
-                                                <FaTrash size={16} />
-                                            </button>
+                                            {/* Anular - Solo para productos terminados */}
+                                            {item.estado_produccion === 'terminado' && (
+                                                <button
+                                                    onClick={() => handleAnular(item)}
+                                                    className="text-orange-600 hover:text-orange-900"
+                                                    title="Anular"
+                                                >
+                                                    <FaBan size={18} />
+                                                </button>
+                                            )}
+
+                                            {/* Eliminar - Solo para productos NO terminados */}
+                                            {item.estado_produccion !== 'terminado' && (
+                                                <button
+                                                    onClick={() => handleDelete(item)}
+                                                    className="text-red-500 hover:text-red-700"
+                                                    title="Eliminar"
+                                                >
+                                                    <FaTrash size={16} />
+                                                </button>
+                                            )}
                                         </div>
                                     </td>
                                 </tr>
@@ -990,6 +1051,44 @@ const Produccion = () => {
                     </div>
                 )
             }
+
+            {/* Modal de Confirmación */}
+            <ConfirmModal
+                isOpen={confirmModal.isOpen}
+                onClose={() => setConfirmModal({ ...confirmModal, isOpen: false })}
+                onConfirm={confirmModal.onConfirm}
+                title={confirmModal.title}
+                message={confirmModal.message}
+                confirmText={confirmModal.confirmText}
+                confirmColor={confirmModal.confirmColor}
+                icon={confirmModal.icon}
+            />
+
+            {/* Toast Notifications */}
+            <Toaster
+                position="top-right"
+                toastOptions={{
+                    duration: 3000,
+                    style: {
+                        background: '#363636',
+                        color: '#fff',
+                    },
+                    success: {
+                        duration: 3000,
+                        iconTheme: {
+                            primary: '#10b981',
+                            secondary: '#fff',
+                        },
+                    },
+                    error: {
+                        duration: 4000,
+                        iconTheme: {
+                            primary: '#ef4444',
+                            secondary: '#fff',
+                        },
+                    },
+                }}
+            />
         </div >
     );
 };

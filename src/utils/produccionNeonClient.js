@@ -178,6 +178,16 @@ export const produccionDB = {
     await sql`DELETE FROM produccion_taller WHERE id_produccion = ${id}`;
   },
 
+  async anular(id) {
+    const [produccion] = await sql`
+      UPDATE produccion_taller SET
+        estado_produccion = 'anulado'
+      WHERE id_produccion = ${id}
+      RETURNING *
+    `;
+    return produccion;
+  },
+
   // ========================================
   // PEDIDOS PENDIENTES (para selector)
   // ========================================

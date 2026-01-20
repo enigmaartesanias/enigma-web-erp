@@ -60,7 +60,6 @@ export const ventasDB = {
                     ${ventaData.observaciones || ''},
                     ${ventaData.es_credito || false},
                     ${ventaData.saldo_pendiente || 0},
-                    ${ventaData.saldo_pendiente || 0},
                     ${ventaData.fecha_vencimiento || null},
                     ${ventaData.fecha_venta || 'NOW()'}
                 )

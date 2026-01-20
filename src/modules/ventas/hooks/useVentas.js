@@ -25,15 +25,18 @@ export const useVentas = () => {
 
     // Calcular totales cada vez que cambia el carrito o la configuración
     useEffect(() => {
-        const subtotal = cart.reduce((acc, item) => acc + (item.precio * item.cantidad), 0);
+        const subtotal = cart.reduce((acc, item) => {
+            return acc + (parseFloat(item.precio_venta) * item.cantidad);
+        }, 0);
+
         const impuesto = config.impuesto ? subtotal * config.impuestoTasa : 0;
-        const descuento = parseFloat(config.descuento) || 0;
-        const total = Math.max(0, subtotal + impuesto - descuento);
+        const descuentoGlobal = parseFloat(config.descuento) || 0;
+        const total = Math.max(0, subtotal + impuesto - descuentoGlobal);
 
         setTotales({
             subtotal,
             impuesto,
-            descuento,
+            descuento: descuentoGlobal,
             total,
             items: cart.reduce((acc, item) => acc + item.cantidad, 0)
         });
@@ -66,20 +69,29 @@ export const useVentas = () => {
         setCart(prev => {
             const existing = prev.find(item => item.id === producto.id);
             if (existing) {
-                // Si ya existe, aumentar cantidad
                 return prev.map(item =>
                     item.id === producto.id
                         ? { ...item, cantidad: item.cantidad + 1 }
                         : item
                 );
             } else {
-                // Nuevo item
+                const precioBase = parseFloat(producto.precio) || 0;
+                const precioAlt = parseFloat(producto.precio_adicional) || null;
+
+                // Limpiar nombre si trae el código pegado para la visualización UX
+                let nombreLimpio = producto.nombre;
+                if (producto.codigo_usuario && nombreLimpio.includes(producto.codigo_usuario)) {
+                    nombreLimpio = nombreLimpio.replace(`- ${producto.codigo_usuario}`, '').replace(producto.codigo_usuario, '').trim();
+                }
+
                 return [...prev, {
                     id: producto.id,
                     codigo: producto.codigo_usuario,
-                    nombre: producto.nombre,
+                    nombre: nombreLimpio,
                     imagen: producto.imagen_url,
-                    precio: parseFloat(producto.precio),
+                    precio_base: precioBase,
+                    precio_alternativo: precioAlt,
+                    precio_venta: precioBase,
                     cantidad: 1,
                     stockMax: producto.stock_actual,
                     categoria: producto.categoria
@@ -88,29 +100,30 @@ export const useVentas = () => {
         });
     };
 
-    // Modificar cantidad
-    const updateQuantity = (productId, newQuantity) => {
-        if (newQuantity < 1) return;
-
+    // Función para actualizar campos de un item
+    const updateItem = (productId, changes) => {
         setCart(prev => prev.map(item => {
             if (item.id === productId) {
-                // Validar stock si se desea (opcional)
-                // if (newQuantity > item.stockMax) return item;
-                return { ...item, cantidad: newQuantity };
+                const updated = { ...item, ...changes };
+                if (updated.cantidad < 1) updated.cantidad = 1;
+                if (updated.precio_venta < 0) updated.precio_venta = 0;
+                return updated;
             }
             return item;
         }));
     };
 
-    // Eliminar item
+    const updateQuantity = (productId, newQuantity) => {
+        updateItem(productId, { cantidad: newQuantity });
+    };
+
     const removeFromCart = (productId) => {
         setCart(prev => prev.filter(item => item.id !== productId));
     };
 
-    // Limpiar carrito
     const clearCart = () => {
         setCart([]);
-        setConfig(prev => ({ ...prev, cliente: 'Cliente General', documento: '', descuento: 0 }));
+        setConfig(prev => ({ ...prev, cliente: null, documento: '', descuento: 0 }));
     };
 
     return {
@@ -121,6 +134,7 @@ export const useVentas = () => {
         loadingProducto,
         scanProduct,
         addProductToCart,
+        updateItem,
         updateQuantity,
         removeFromCart,
         clearCart

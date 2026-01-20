@@ -389,7 +389,7 @@ const Pedidos = () => {
     const handleDelete = async (id) => {
         setConfirmModal({
             isOpen: true,
-            title: 'Eliminar Pedido',
+            title: 'Eliminar / Cancelar Pedido',
             message: '¿Estás seguro? Esta acción no se puede deshacer.',
             icon: <FaTrash />,
             confirmText: 'Sí, eliminar',
@@ -1440,17 +1440,15 @@ const Pedidos = () => {
                                                 {/* ACCIONES - Terminados */}
                                                 <td className="px-4 py-3 whitespace-nowrap text-right text-sm font-medium">
                                                     <div className="flex justify-end space-x-2">
-                                                        {/* Botón de Pago: Visible siempre que haya saldo por pagar (no cancelado o saldo > 0) */}
-                                                        {!pedido.cancelado && pedido.monto_saldo > 0.1 && (
-                                                            <Tooltip text="Registrar pago">
-                                                                <button
-                                                                    onClick={() => handleOpenPayModal(pedido)}
-                                                                    className="text-green-600 hover:text-green-900 transition-colors"
-                                                                >
-                                                                    <FaMoneyBillWave className="h-5 w-5" />
-                                                                </button>
-                                                            </Tooltip>
-                                                        )}
+                                                        {/* Botón de Pago */}
+                                                        <Tooltip text="Registrar pago">
+                                                            <button
+                                                                onClick={() => handleOpenPayModal(pedido)}
+                                                                className="text-green-600 hover:text-green-900 transition-colors"
+                                                            >
+                                                                <FaMoneyBillWave className="h-5 w-5" />
+                                                            </button>
+                                                        </Tooltip>
 
                                                         <Tooltip text="Ver Nota de Pedido">
                                                             <button
@@ -1463,7 +1461,7 @@ const Pedidos = () => {
 
                                                         <Tooltip text="Entregar pedido">
                                                             <button
-                                                                onClick={() => handleOpenEstadoModal(pedido)}
+                                                                onClick={() => handleEntregar(pedido)}
                                                                 disabled={pedido.estado_pedido === 'entregado'}
                                                                 className="text-blue-600 hover:text-blue-900 transition-colors"
                                                             >
@@ -1566,16 +1564,15 @@ const Pedidos = () => {
                                                 {/* ACCIONES - Producción */}
                                                 <td className="px-4 py-3 whitespace-nowrap text-right text-sm font-medium">
                                                     <div className="flex justify-end space-x-2">
-                                                        {!pedido.cancelado && pedido.monto_saldo > 0.1 && (
-                                                            <Tooltip text="Registrar pago">
-                                                                <button
-                                                                    onClick={() => handleOpenPayModal(pedido)}
-                                                                    className="text-green-600 hover:text-green-900 transition-colors"
-                                                                >
-                                                                    <FaMoneyBillWave className="h-5 w-5" />
-                                                                </button>
-                                                            </Tooltip>
-                                                        )}
+                                                        <Tooltip text="Registrar pago">
+                                                            <button
+                                                                onClick={() => handleOpenPayModal(pedido)}
+                                                                className="text-green-600 hover:text-green-900 transition-colors"
+                                                            >
+                                                                <FaMoneyBillWave className="h-5 w-5" />
+                                                            </button>
+                                                        </Tooltip>
+
                                                         <Tooltip text="Ver Nota de Pedido">
                                                             <button
                                                                 onClick={() => handlePrint(pedido)}
@@ -1666,7 +1663,7 @@ const Pedidos = () => {
                                                         {pedido.estado_produccion === 'terminado' && pedido.estado_pedido !== 'entregado' && (
                                                             <Tooltip text="Entregar pedido">
                                                                 <button
-                                                                    onClick={() => handleOpenEstadoModal(pedido)}
+                                                                    onClick={() => handleEntregar(pedido)}
                                                                     className="text-blue-600 hover:text-blue-900 transition-colors"
                                                                 >
                                                                     <FaCar className="h-5 w-5" />

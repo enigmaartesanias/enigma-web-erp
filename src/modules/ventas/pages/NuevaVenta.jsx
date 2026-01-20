@@ -19,7 +19,7 @@ const NuevaVenta = () => {
     const {
         cart, config, setConfig, totals,
         loadingProducto, scanProduct, addProductToCart,
-        updateQuantity, removeFromCart, clearCart
+        updateItem, removeFromCart, clearCart
     } = useVentas();
 
     const [formaPago, setFormaPago] = useState('Efectivo');
@@ -76,7 +76,8 @@ const NuevaVenta = () => {
                 detalles: cart.map(item => ({
                     producto_id: item.id,
                     cantidad: item.cantidad,
-                    precio_unitario: item.precio,
+                    precio_unitario: item.precio_venta,
+                    descuento_unitario: item.descuento,
                     producto_nombre: item.nombre,
                     producto_codigo: item.codigo
                 }))
@@ -126,7 +127,8 @@ const NuevaVenta = () => {
                 detalles: cart.map(item => ({
                     producto_id: item.id,
                     cantidad: item.cantidad,
-                    precio_unitario: item.precio,
+                    precio_unitario: item.precio_venta,
+                    descuento_unitario: item.descuento,
                     producto_nombre: item.nombre,
                     producto_codigo: item.codigo
                 }))
@@ -185,41 +187,12 @@ const NuevaVenta = () => {
                 onConfirmar={handleProcessVentaCredito}
             />
 
-
-
-            {/* Navbar Simple */}
-            <header className="bg-white border-b border-gray-200 px-3 py-2 flex justify-between items-center shadow-sm z-30 flex-shrink-0">
-                <div className="flex items-center gap-2">
-                    <button
-                        onClick={() => navigate('/inventario-home')}
-                        className="p-1.5 hover:bg-gray-100 rounded-full text-gray-600 transition"
-                    >
-                        <FaArrowLeft size={16} />
-                    </button>
-                    <h1 className="text-base font-bold text-gray-800 flex items-center gap-2">
-                        <span className="bg-gray-700 text-white px-2 py-0.5 rounded text-xs">POS</span>
-                        Punto de Venta
-                    </h1>
-                </div>
-
-                <div className="flex items-center">
-                    <input
-                        type="date"
-                        value={fechaVenta}
-                        onChange={(e) => setFechaVenta(e.target.value)}
-                        className="text-xs border border-gray-300 rounded px-2 py-1 text-gray-600 focus:outline-none focus:border-blue-500 bg-transparent"
-                    />
-                </div>
-                {/* Espacio para futuros botones si es necesario */}
-            </header>
-
             {/* Main Content - Grid Layout */}
             <main className="flex-1 overflow-hidden flex flex-col md:flex-row">
 
-                {/* Columna Izquierda: Buscador y Carrito */}
-                <section className="hidden md:flex flex-1 flex-col h-full md:h-auto relative overflow-hidden order-2 md:order-1">
-                    {/* Buscador Fijo - Solo visible en desktop */}
-                    <div className="p-3 bg-white border-b border-gray-100 shadow-sm z-20 flex-shrink-0">
+                {/* Columna Izquierda (Desktop): Buscador y Lista de Items */}
+                <section className="hidden md:flex flex-1 flex-col h-full bg-white relative overflow-hidden order-2 md:order-1 border-r border-gray-100">
+                    <div className="p-4 bg-white border-b border-gray-100 z-20 flex-shrink-0">
                         <BuscadorProducto
                             onScan={handleScan}
                             onSelect={handleSelectProduct}
@@ -227,29 +200,30 @@ const NuevaVenta = () => {
                         />
                     </div>
 
-                    {/* Lista de Items (Scrollable) */}
-                    <div className="flex-1 overflow-y-auto p-3 space-y-2 bg-gray-50">
+                    <div className="flex-1 overflow-y-auto bg-gray-50/10">
                         {cart.length === 0 ? (
-                            <div className="h-full flex flex-col items-center justify-center text-gray-400 opacity-60">
-                                <FaShoppingCart size={64} className="mb-4 text-gray-300" />
-                                <p className="text-lg font-medium">Carrito Vacío</p>
-                                <p className="text-sm">Escanea un código o busca un producto</p>
+                            <div className="h-full flex flex-col items-center justify-center text-gray-200 opacity-50">
+                                <FaShoppingCart size={48} className="mb-3 opacity-10" />
+                                <p className="text-[11px] uppercase tracking-[0.2em] font-light">Esperando productos...</p>
                             </div>
                         ) : (
-                            cart.map(item => (
-                                <ItemVenta
-                                    key={item.id}
-                                    item={item}
-                                    onUpdateQuantity={updateQuantity}
-                                    onRemove={removeFromCart}
-                                />
-                            ))
+                            <div className="divide-y divide-gray-50">
+                                {cart.map(item => (
+                                    <ItemVenta
+                                        key={item.id}
+                                        item={item}
+                                        onUpdateItem={updateItem}
+                                        onRemove={removeFromCart}
+                                    />
+                                ))}
+                            </div>
                         )}
                     </div>
                 </section>
 
-                {/* Columna Derecha: Totales */}
-                <section className="w-full md:w-80 bg-white border-l border-gray-200 shadow-xl z-30 flex-shrink-0 flex flex-col h-auto md:h-auto order-1 md:order-2">
+                {/* Columna Derecha (Mobile & Desktop): Resumen y Totales */}
+                {/* En Mobile ocupa 100%. En Desktop ocupa 320px (w-80) */}
+                <section className="w-full md:w-80 bg-white shadow-xl z-30 flex-shrink-0 flex flex-col h-full order-1 md:order-2">
                     <ResumenVenta
                         totals={totals}
                         config={config}
@@ -261,11 +235,14 @@ const NuevaVenta = () => {
                         onSelect={handleSelectProduct}
                         onQRClick={() => setShowQRScanner(true)}
                         cart={cart}
-                        onUpdateQuantity={updateQuantity}
+                        onUpdateItem={updateItem}
                         onRemove={removeFromCart}
                         formaPago={formaPago}
                         setFormaPago={setFormaPago}
                         onCreditoClick={() => setShowModalCredito(true)}
+                        // En desktop pasamos false implícitamente si quisiéramos controlar, pero aquí pasamos true.
+                        // El truco es que ResumenVenta oculte la lista en MD.
+                        showCartList={true}
                     />
                 </section>
 

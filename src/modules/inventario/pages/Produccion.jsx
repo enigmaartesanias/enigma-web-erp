@@ -42,6 +42,30 @@ const Produccion = () => {
         nombre: '',
         categoria: ''
     });
+
+    // Nuevo estado para modal "Enviar a Stock" (Lógica Simplificada)
+    const [showStockModal, setShowStockModal] = useState(false);
+    const [stockFormData, setStockFormData] = useState({
+        codigo: '',
+        cantidad: '',
+        precio: '',
+        precioReferencial: '',
+        tipo_producto: ''
+    });
+    const [sendingToStockItem, setSendingToStockItem] = useState(null);
+
+    // Bloquear scroll cuando el modal está abierto
+    useEffect(() => {
+        if (showStockModal) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = 'unset';
+        }
+        return () => {
+            document.body.style.overflow = 'unset';
+        };
+    }, [showStockModal]);
+
     const fileInputRef = React.useRef(null);
 
     // Estado para Confirm Modal
@@ -544,15 +568,52 @@ const Produccion = () => {
         return false;
     };
 
-    const handleSendToInventory = async (item) => {
-        // Verificar si ya existe en inventario
-        if (isProductInInventory(item)) {
-            toast.error('Este producto ya fue enviado al inventario');
+    const handleSendToInventory = (item) => {
+        // En lugar de redirigir, abrimos el nuevo modal simplificado
+        setSendingToStockItem(item);
+        setStockFormData({
+            codigo: item.codigo_producto || '',
+            cantidad: item.cantidad || '',
+            precio: '',
+            precioReferencial: '',
+            tipo_producto: item.tipo_producto || ''
+        });
+        setShowStockModal(true);
+    };
+
+    const handleConfirmSendToStock = async (e) => {
+        e.preventDefault();
+        if (!stockFormData.codigo || !stockFormData.cantidad) {
+            toast.error('Código y Cantidad son obligatorios');
             return;
         }
 
-        // Redirigir directamente al formulario con el ID de producción
-        navigate(`/producto-form?produccion_id=${item.id_produccion}`);
+        setLoading(true);
+        try {
+            const result = await productosExternosDB.enviarAStock({
+                codigo: stockFormData.codigo,
+                cantidad: parseInt(stockFormData.cantidad),
+                precio: stockFormData.precio ? parseFloat(stockFormData.precio) : null,
+                precioReferencial: stockFormData.precioReferencial ? parseFloat(stockFormData.precioReferencial) : null,
+                produccionId: sendingToStockItem.id_produccion,
+                tipo_producto: stockFormData.tipo_producto
+            });
+
+            // Marcar el registro de producción como transferido en la base de datos
+            if (result) {
+                await produccionDB.markAsTransferred(sendingToStockItem.id_produccion, result.id);
+            }
+
+            toast.success('Producto enviado a stock correctamente');
+            setShowStockModal(false);
+            fetchProduccion();
+            fetchProductosInventario();
+        } catch (error) {
+            console.error('Error al enviar a stock:', error);
+            toast.error(error.message || 'Error al procesar el ingreso a stock');
+        } finally {
+            setLoading(false);
+        }
     };
 
     // Calcular costo total en tiempo real (Modelo Artesanal: Suma Directa)
@@ -971,8 +1032,8 @@ const Produccion = () => {
                                                 <FaEdit size={18} />
                                             </button>
 
-                                            {/* Enviar a Inventario - Solo para productos terminados de STOCK que NO están en inventario */}
-                                            {item.estado_produccion === 'terminado' && item.tipo_produccion === 'STOCK' && !isProductInInventory(item) && (
+                                            {/* Enviar a Inventario - Solo para productos terminados de STOCK que NO han sido transferidos */}
+                                            {item.estado_produccion === 'terminado' && item.tipo_produccion === 'STOCK' && !item.transferido_inventario && !isProductInInventory(item) && (
                                                 <button
                                                     onClick={() => handleSendToInventory(item)}
                                                     className="text-green-600 hover:text-green-900"
@@ -1047,6 +1108,119 @@ const Produccion = () => {
                     </div>
                 )
             }
+
+            {/* Modal Enviar a Stock (Simplificado) */}
+            {showStockModal && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
+                        <div className="bg-gradient-to-r from-blue-600 to-indigo-700 p-6 text-white">
+                            <h3 className="text-xl font-bold flex items-center gap-2">
+                                <FaBox /> Enviar a Stock
+                            </h3>
+                            <p className="text-blue-100 text-sm mt-1">
+                                Incrementa el stock de un producto existente en el inventario.
+                            </p>
+                        </div>
+
+                        <div className="bg-blue-50 px-6 py-2 border-b border-blue-100 flex items-center justify-between">
+                            <span className="text-xs font-bold text-blue-700 uppercase tracking-wider">Producto:</span>
+                            <span className="text-sm font-semibold text-blue-900">{stockFormData.tipo_producto}</span>
+                        </div>
+
+                        <form onSubmit={handleConfirmSendToStock} className="p-6 space-y-4">
+                            <div className="flex gap-4 items-start">
+                                <div className="flex-1">
+                                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Código QR / Único *</label>
+                                    <div className="relative">
+                                        <FaQrcode className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                                        <input
+                                            type="text"
+                                            required
+                                            className="w-full pl-10 p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none font-mono"
+                                            placeholder="Ingresa o escanea el código"
+                                            value={stockFormData.codigo}
+                                            onChange={(e) => setStockFormData({ ...stockFormData, codigo: e.target.value.toUpperCase() })}
+                                        />
+                                    </div>
+                                </div>
+                                <div className="w-24 h-24 bg-white p-2 border border-gray-200 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm">
+                                    {stockFormData.codigo ? (
+                                        <QRCode value={stockFormData.codigo} size={80} className="w-full h-full" />
+                                    ) : (
+                                        <div className="text-[10px] text-gray-400 text-center">Sin código</div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Aviso informativo si el código no existe */}
+                            {stockFormData.codigo && !productosEnInventario.some(p => p.codigo_usuario === stockFormData.codigo) && (
+                                <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-start gap-3 animate-pulse">
+                                    <FaExclamationTriangle className="text-amber-500 mt-1 shrink-0" />
+                                    <div className="text-xs text-amber-800">
+                                        <p className="font-bold uppercase mb-0.5">Nuevo Producto Detectado</p>
+                                        <p>El código <strong>{stockFormData.codigo}</strong> no existe. Se creará un nuevo registro en el inventario al confirmar.</p>
+                                    </div>
+                                </div>
+                            )}
+
+                            <div>
+                                <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Cantidad *</label>
+                                <input
+                                    type="number"
+                                    required
+                                    min="1"
+                                    className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none"
+                                    value={stockFormData.cantidad}
+                                    onChange={(e) => setStockFormData({ ...stockFormData, cantidad: e.target.value })}
+                                />
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Precio de Venta</label>
+                                    <input
+                                        type="number"
+                                        step="0.01"
+                                        className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none"
+                                        placeholder="0.00"
+                                        value={stockFormData.precio}
+                                        onChange={(e) => setStockFormData({ ...stockFormData, precio: e.target.value })}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Precio Opcional</label>
+                                    <input
+                                        type="number"
+                                        step="0.01"
+                                        className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none"
+                                        placeholder="0.00"
+                                        value={stockFormData.precioReferencial}
+                                        onChange={(e) => setStockFormData({ ...stockFormData, precioReferencial: e.target.value })}
+                                    />
+                                </div>
+                            </div>
+
+
+                            <div className="pt-4 flex gap-3">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowStockModal(false)}
+                                    className="flex-1 py-3 px-4 border border-gray-200 text-gray-600 font-bold rounded-xl hover:bg-gray-50 transition-colors"
+                                >
+                                    CANCELAR
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={loading}
+                                    className={`flex-1 py-3 px-4 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 shadow-lg shadow-blue-200 transition-all flex items-center justify-center gap-2 ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                >
+                                    {loading ? 'PROCESANDO...' : 'CONFIRMAR'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
             {/* Modal de Confirmación */}
             <ConfirmModal
                 isOpen={confirmModal.isOpen}

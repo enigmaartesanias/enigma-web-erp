@@ -133,6 +133,63 @@ export const productosExternosDB = {
       console.error('Error incrementando stock:', error);
       throw error;
     }
+  },
+
+  // Proceso especial: Enviar desde Producción a Stock (Actualiza o Crea)
+  async enviarAStock(data) {
+    const { codigo, cantidad, precio, precioReferencial, produccionId, tipo_producto } = data;
+
+    // Buscar si ya existe el producto
+    const [producto] = await sql`SELECT * FROM productos_externos WHERE codigo_usuario = ${codigo} AND estado_activo = TRUE`;
+
+    if (producto) {
+      // CASO A: ACTUALIZAR EXISTENTE (Incrementar stock)
+      const [result] = await sql`
+        UPDATE productos_externos SET
+          stock_actual = stock_actual + ${cantidad},
+          fecha_registro = CURRENT_TIMESTAMP,
+          origen = 'PRODUCCION',
+          produccion_id = ${produccionId},
+          precio = COALESCE(${precio}, precio),
+          precio_adicional = COALESCE(${precioReferencial}, precio_adicional)
+        WHERE id = ${producto.id}
+        RETURNING *
+      `;
+      return result;
+    } else {
+      // CASO B: CREAR NUEVO (Si el código no existe)
+      const [result] = await sql`
+        INSERT INTO productos_externos (
+          codigo_usuario,
+          nombre,
+          categoria,
+          costo,
+          precio,
+          stock_actual,
+          stock_minimo,
+          origen,
+          produccion_id,
+          precio_adicional,
+          fecha_registro,
+          estado_activo
+        ) VALUES (
+          ${codigo},
+          ${`${tipo_producto} - ${codigo}`},
+          ${tipo_producto.toUpperCase()},
+          0,
+          ${precio || 0},
+          ${cantidad},
+          5,
+          'PRODUCCION',
+          ${produccionId},
+          ${precioReferencial || null},
+          CURRENT_TIMESTAMP,
+          TRUE
+        )
+        RETURNING *
+      `;
+      return result;
+    }
   }
 };
 

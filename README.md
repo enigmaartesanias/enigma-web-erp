@@ -232,6 +232,20 @@ Este es un proyecto privado. Para contribuir:
 
 ## 📝 Changelog
 
+### v2.8.0 (Enero 2026) - POS UI Redesign & UX Elegance ✨
+- 🎨 **Rediseño Total del Punto de Venta**:
+  - **Light Style & Minimalismo**: Interfaz más limpia, con paleta de colores curada y enfoque en el espacio en blanco.
+  - **Mobile-First UX**: Optimización completa para dispositivos táctiles; la lista de productos se integra fluidamente en el resumen en vistas móviles.
+  - **Pagos Simplificados**: Nuevo selector de 3 opciones (EFEC, DIGIT, CRED) con iconos minimalistas y tipografía reducida.
+  - **Acceso Rápido a Clientes**: Botón dedicado en la cabecera del resumen para selección inmediata de clientes.
+  - **Botón de Acción Unificado**: Botón "Cobrar / Confirmar Crédito" en gris oscuro/negro, dinámico según el método de pago elegido.
+- 🛠️ **Refinamiento de Detalles**:
+  - **Legibilidad**: Reducción de tamaños de fuente y eliminación de textos en negrita innecesarios para una estética premium.
+  - **Inputs Limpios**: Eliminación de solapamiento de símbolos "S/" en los campos de edición de precio de cada ítem.
+- 🐛 **Estabilidad**:
+  - Corrección de error crítico de "pantalla blanca" al acceder a propiedades de cliente inexistentes.
+  - Mejora en la lógica de visualización para evitar duplicidad de listas de productos en modo desktop.
+
 ### v2.7.0 (Enero 2026) - Enviar a Stock 3.0 🚀
 - 📦 **Flujo de Ingreso "Zero-Click"**:
   - Nuevo modal dedicado para enviar producción de STOCK directamente al inventario.

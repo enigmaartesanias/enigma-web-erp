@@ -97,20 +97,26 @@ La tabla se adapta automáticamente al tamaño de pantalla:
 
 ## 🎯 Casos de Uso
 
-### Registrar una Nueva Venta
+### Registrar una Nueva Venta (Rediseño Enero 2026) ✨
 
-1. Ir a **Ventas** → **Nueva Venta**
-2. Buscar productos por nombre o código
-3. Agregar productos al carrito
-4. Seleccionar cliente (opcional)
-5. Aplicar descuento si es necesario
-6. Confirmar venta
+El proceso de venta ha sido optimizado con una interfaz minimalista y **mobile-first**:
 
-**Resultado**:
-- Se genera código correlativo automáticamente
-- Se descuenta stock del inventario
-- Se registra en base de datos
-- Aparece en pestaña VENTAS del reporte
+1.  **Entorno**: Ir a **Ventas** → **Nueva Venta**.
+2.  **Búsqueda**: Buscar productos por nombre o código (compatible con escáner QR).
+3.  **Carrito Dinámico**:
+    *   **En Desktop**: Lista de productos a la izquierda y resumen a la derecha.
+    *   **En Móvil**: Lista integrada directamente en el resumen para una gestión táctil fluida.
+4.  **Selección de Cliente**: Acceso instantáneo desde la cabecera del resumen para asignar el cliente.
+5.  **Forma de Pago**: Selección visual rápida entre:
+    *   **EFEC (Efectivo)**
+    *   **DIGIT (Digital - Yape/Plin/Transf)**
+    *   **CRED (Crédito)**: Activa el flujo de confirmación de crédito.
+6.  **Acción Final**: Botón unificado "Cobrar / Confirmar Crédito" con diseño minimalista oscuro.
+
+**Mejoras UX Recientes**:
+- ✅ **Sin distracciones**: Eliminación de negritas innecesarias y reducción de tamaños de fuente.
+- ✅ **Inputs limpios**: El símbolo "S/" ya no se solapa con el precio en la edición por ítem.
+- ✅ **Estabilidad**: Protección contra errores de carga si el cliente no está seleccionado.
 
 ### Anular una Venta
 
@@ -222,4 +228,4 @@ El sistema muestra un mensaje de error y no realiza cambios.
 
 ---
 
-**Última actualización**: Diciembre 2024
+**Última actualización**: Enero 2026

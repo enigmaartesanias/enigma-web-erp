@@ -41,6 +41,14 @@ npm run dev
 
 ## 📖 Novedades
 
+### Enero 2026 - v2.8.0 ✨
+
+#### POS UI Redesign & UX Elegance
+- 🎨 **Rediseño Minimalista**: Nueva interfaz "Light Style" con enfoque mobile-first y paleta de colores curada.
+- 📱 **UX Mobile**: Lista de productos integrada en el resumen para dispositivos táctiles.
+- 💳 **Pagos Simplificados**: Selector visual de 3 opciones (Efectivo, Digital, Crédito) con iconos minimalistas.
+- 🛠️ **Refinamiento UX**: Arreglo de bugs visuales (overlap de símbolos) y estabilidad en la selección de clientes.
+
 ### Enero 2026 - v2.6.0
  
 #### Flujo de Pedidos 2.0 💸
@@ -107,4 +115,4 @@ Sistema de numeración profesional:
 
 ---
 
-**Última actualización**: Diciembre 2024
+**Última actualización**: Enero 2026

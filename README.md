@@ -232,6 +232,21 @@ Este es un proyecto privado. Para contribuir:
 
 ## 📝 Changelog
 
+### v2.7.0 (Enero 2026) - Enviar a Stock 3.0 🚀
+- 📦 **Flujo de Ingreso "Zero-Click"**:
+  - Nuevo modal dedicado para enviar producción de STOCK directamente al inventario.
+  - **Detección Automática**: El sistema verifica la existencia del producto en tiempo real mientras se escribe el código.
+  - **Creación Híbrida**: Si el código no existe, el sistema lo crea automáticamente; si existe, incrementa el stock.
+  - **Aviso Informativo**: Alerta visual en color ámbar (`⚠️`) ante códigos nuevos para evitar errores.
+- 🎨 **UI Premium & UX**:
+  - **QR en Tiempo Real**: Generación visual del código QR dentro del modal a medida que se escribe.
+  - **Auto-Capitalización**: Conversión automática a MAYÚSCULAS en el campo de código.
+  - **Filtro de Enfoque**: Fondo con desenfoque (`backdrop-blur`) y bloqueo de scroll al abrir el modal.
+  - **Carga de Datos Automática**: El tipo de producto se precarga desde el registro de producción.
+- 🛠️ **Limpieza & Optimización**:
+  - **Grid Inteligente**: Desaparición automática del icono "Enviar a Stock" una vez que el registro ha sido transferido.
+  - **Consistencia de Datos**: Corrección de tipos de datos en la base de datos (Integer vs UUID) para total compatibilidad.
+
 ### v2.6.0 (Enero 2026) - Flujo de Pedidos 2.0 💸
 - 💳 **Pagos Flexibles**:
   - Habilitado registro de pagos en cualquier estado del pedido (incluido Entregado).

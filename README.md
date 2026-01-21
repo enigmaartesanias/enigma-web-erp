@@ -232,6 +232,23 @@ Este es un proyecto privado. Para contribuir:
 
 ## 📝 Changelog
 
+### v2.9.0 (Enero 2026) - Inventario Consolidado & UX Ágil 🚀
+- 📦 **Inventario por Código Único**:
+  - **Agrupación Inteligente**: El reporte de inventario ahora consolida registros automáticamente por `codigo_usuario`.
+  - **Saldo Total Acumulado**: Muestra la suma real de stock (Producido + Comprado) en una sola fila por código.
+  - **Consistencia en Ventas**: El módulo de ventas consume ahora este inventario consolidado para una selección precisa.
+- 🖼️ **Diseño "No-Images" en Reportes**:
+  - Eliminación total de la columna de imágenes en el reporte de inventario para una carga instantánea y vista técnica.
+  - Removida toda dependencia lógica de imágenes en el flujo inventario-ventas.
+- 📝 **Nuevo Formulario de Producto (Stock)**:
+  - **Registro Ultra-Rápido**: Nombre opcional y eliminación del campo "Stock Mínimo" para agilizar el ingreso.
+  - **Grid de Precios Simétrico**: Cuadrícula de 2 columnas para campos numéricos (Stock, Costo, Precio, Oferta).
+  - **Prioridad al Código**: El campo "Código" ahora es el primer campo del formulario con vista previa de QR.
+- 🎨 **UI Técnica & Premium**:
+  - **Estandarización de Fuentes**: Todo el reporte usa fuente pequeña (`text-xs`) sin negritas para una visualización uniforme.
+  - **Origen Simplificado**: Visualización de origen (Prod./Compra) como texto plano pequeño, eliminando el formato de botón.
+  - **Limpieza de Símbolos**: Remoción de símbolos monetarios "S/" de las celdas, moviéndolos a los encabezados de columna.
+
 ### v2.8.0 (Enero 2026) - POS UI Redesign & UX Elegance ✨
 - 🎨 **Rediseño Total del Punto de Venta**:
   - **Light Style & Minimalismo**: Interfaz más limpia, con paleta de colores curada y enfoque en el espacio en blanco.

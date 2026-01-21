@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { productosExternosDB } from '../../../utils/productosExternosNeonClient';
 import { FaPlus, FaEdit, FaTrash, FaSearch, FaQrcode, FaArrowLeft, FaBox, FaDollarSign, FaWarehouse } from 'react-icons/fa';
 import QRCode from 'react-qr-code';
@@ -34,7 +34,28 @@ export default function Inventario() {
         try {
             setLoading(true);
             const data = await productosExternosDB.getAll();
-            setProductos(data);
+
+            // Agrupar por código de usuario
+            const agruparPorCodigo = data.reduce((acc, current) => {
+                const codigo = current.codigo_usuario;
+                if (!acc[codigo]) {
+                    acc[codigo] = {
+                        ...current,
+                        stock_actual: Number(current.stock_actual) || 0,
+                        costo: Number(current.costo) || 0,
+                        precio: Number(current.precio) || 0
+                    };
+                } else {
+                    acc[codigo].stock_actual += (Number(current.stock_actual) || 0);
+                    // Mantenemos el último precio/nombre/categoría encontrado para el código
+                    acc[codigo].nombre = current.nombre || acc[codigo].nombre;
+                    acc[codigo].categoria = current.categoria || acc[codigo].categoria;
+                    acc[codigo].precio = current.precio || acc[codigo].precio;
+                }
+                return acc;
+            }, {});
+
+            setProductos(Object.values(agruparPorCodigo));
         } catch (error) {
             console.error('Error cargando productos:', error);
         } finally {
@@ -72,11 +93,11 @@ export default function Inventario() {
 
     const categorias = [...new Set(productos.map(p => p.categoria).filter(Boolean))];
 
-    // Calcular estadísticas
+    // Calcular estadísticas sobre productos consolidados
     const stats = {
-        total: productos.length,
-        valorTotal: productos.reduce((sum, p) => sum + (p.stock_actual * p.precio), 0),
-        stockBajo: productos.filter(p => p.stock_actual <= p.stock_minimo).length
+        total: filteredProductos.length,
+        valorTotal: filteredProductos.reduce((sum, p) => sum + (p.stock_actual * p.precio), 0),
+        stockBajo: filteredProductos.filter(p => p.stock_actual <= (p.stock_minimo || 0)).length
     };
 
     return (
@@ -86,13 +107,10 @@ export default function Inventario() {
             <div className="bg-gray-100 text-gray-900 shadow-sm border-b border-gray-200">
                 <div className="max-w-7xl mx-auto px-4 py-4 sm:py-6">
                     <div className="flex justify-between items-center mb-4">
-                        <button
-                            onClick={() => navigate('/inventario-home')}
-                            className="flex items-center text-gray-600 hover:text-blue-600 transition-colors"
-                        >
+                        <Link to="/inventario-home" className="flex items-center text-gray-600 hover:text-blue-600 transition-colors w-fit">
                             <FaArrowLeft className="mr-2" />
-                            <span className="font-medium">Volver al Panel</span>
-                        </button>
+                            <span className="font-semibold text-sm">Enigma Sistema ERP</span>
+                        </Link>
                         <button
                             onClick={() => navigate('/inventario/nuevo')}
                             className="bg-slate-800 text-white px-3 py-1.5 rounded-md text-xs font-medium flex items-center hover:bg-slate-700 transition-all shadow-sm"
@@ -116,7 +134,7 @@ export default function Inventario() {
                         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center">
                             <div>
                                 <p className="text-[10px] sm:text-sm text-gray-500 font-medium">Total</p>
-                                <p className="text-sm sm:text-2xl font-bold text-gray-900">{stats.total}</p>
+                                <p className="text-sm sm:text-lg text-gray-900">{stats.total}</p>
                             </div>
                             <FaWarehouse className="text-blue-500 text-lg sm:text-3xl opacity-50 hidden sm:block" />
                         </div>
@@ -126,7 +144,7 @@ export default function Inventario() {
                         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center">
                             <div>
                                 <p className="text-[10px] sm:text-sm text-gray-500 font-medium">Valor Stock</p>
-                                <p className="text-xs sm:text-2xl font-bold text-gray-900 break-words">S/ {stats.valorTotal.toFixed(2)}</p>
+                                <p className="text-xs sm:text-lg text-gray-900 break-words">S/ {stats.valorTotal.toFixed(2)}</p>
                             </div>
                             <FaDollarSign className="text-green-500 text-lg sm:text-3xl opacity-50 hidden sm:block" />
                         </div>
@@ -136,7 +154,7 @@ export default function Inventario() {
                         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center">
                             <div>
                                 <p className="text-[10px] sm:text-sm text-gray-500 font-medium">Bajo Stock</p>
-                                <p className="text-sm sm:text-2xl font-bold text-gray-900">{stats.stockBajo}</p>
+                                <p className="text-sm sm:text-lg text-gray-900">{stats.stockBajo}</p>
                             </div>
                             <div className="text-red-500 text-lg sm:text-2xl opacity-50 hidden sm:block">⚠️</div>
                         </div>
@@ -188,38 +206,23 @@ export default function Inventario() {
                             <table className="w-full">
                                 <thead className="bg-gray-50 border-b">
                                     <tr>
-                                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Imagen</th>
                                         <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Código</th>
                                         <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Producto</th>
-                                        {/* <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Categoría</th> */}
-                                        <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase">Saldo</th>
-                                        <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase">Costo</th>
+                                        <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase">Saldo Total</th>
+                                        <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase">Costo Prom. (S/)</th>
                                         <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase">Origen</th>
-                                        <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase">Precio</th>
+                                        <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase">Precio (S/)</th>
                                         <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase">Acciones</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-200">
                                     {filteredProductos.map((producto) => (
-                                        <tr key={producto.id} className="hover:bg-gray-50 transition-colors">
-                                            <td className="px-4 py-3">
-                                                {producto.imagen_url ? (
-                                                    <img
-                                                        src={producto.imagen_url}
-                                                        alt={producto.nombre}
-                                                        className="w-10 h-10 object-cover rounded border"
-                                                    />
-                                                ) : (
-                                                    <div className="w-10 h-10 bg-gray-100 rounded border flex items-center justify-center text-gray-400 text-[10px]">
-                                                        Sin foto
-                                                    </div>
-                                                )}
-                                            </td>
+                                        <tr key={producto.codigo_usuario} className="hover:bg-gray-50 transition-colors">
                                             <td className="px-4 py-3">
                                                 <span className="font-mono text-gray-600 text-xs">{producto.codigo_usuario}</span>
                                             </td>
                                             <td className="px-4 py-3">
-                                                <div className="text-gray-700 text-xs">{producto.nombre}</div>
+                                                <div className="text-gray-700 text-xs uppercase">{producto.categoria}</div>
                                             </td>
                                             {/* <td className="px-4 py-3">
                                                 <span className="px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs">
@@ -227,29 +230,28 @@ export default function Inventario() {
                                                 </span>
                                             </td> */}
                                             <td className="px-4 py-3 text-center">
-                                                <span className={`text-xs ${producto.stock_actual <= producto.stock_minimo
+                                                <span className={`text-xs ${producto.stock_actual <= (producto.stock_minimo || 0)
                                                     ? 'text-red-600'
                                                     : 'text-green-600'
                                                     }`}>
                                                     {producto.stock_actual}
                                                 </span>
-                                                <span className="text-[10px] text-gray-400 ml-1">{producto.unidad}</span>
                                             </td>
                                             <td className="px-4 py-3 text-right text-gray-600 text-xs">
-                                                S/ {Number(producto.costo).toFixed(2)}
+                                                {Number(producto.costo).toFixed(2)}
                                             </td>
                                             <td className="px-4 py-3 text-center">
-                                                <span className={`inline-flex px-2 py-1 text-[10px] rounded-full border ${producto.origen === 'PRODUCCION' ? 'bg-purple-50 text-purple-700 border-purple-100' :
-                                                    producto.origen === 'COMPRA' ? 'bg-green-50 text-green-700 border-green-100' :
-                                                        'bg-gray-50 text-gray-600 border-gray-100'
+                                                <span className={`text-[10px] uppercase ${producto.origen === 'PRODUCCION' ? 'text-purple-600' :
+                                                    producto.origen === 'COMPRA' ? 'text-green-600' :
+                                                        'text-gray-500'
                                                     }`}>
                                                     {producto.origen === 'PRODUCCION' ? 'Prod.' :
                                                         producto.origen === 'COMPRA' ? 'Compra' :
                                                             'Otro'}
                                                 </span>
                                             </td>
-                                            <td className="px-4 py-3 text-right text-gray-700 text-xs">
-                                                S/ {Number(producto.precio).toFixed(2)}
+                                            <td className="px-4 py-3 text-right text-gray-700 text-xs text-black">
+                                                {Number(producto.precio).toFixed(2)}
                                             </td>
                                             <td className="px-4 py-3">
                                                 <div className="flex justify-center gap-2">

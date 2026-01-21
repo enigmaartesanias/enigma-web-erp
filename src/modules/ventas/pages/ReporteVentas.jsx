@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { ventasDB } from '../../../utils/ventasClient';
 import { productosExternosDB } from '../../../utils/productosExternosNeonClient';
 import { FaArrowLeft, FaCalendar, FaChartLine, FaDollarSign, FaFileInvoice, FaFilter, FaBan, FaEye, FaExclamationTriangle, FaImage, FaMoneyBillWave } from 'react-icons/fa';
@@ -250,13 +250,10 @@ export default function ReporteVentas() {
             <div className="bg-white shadow-sm border-b">
                 <div className="max-w-7xl mx-auto px-4 py-4">
                     <div className="flex justify-between items-center mb-3">
-                        <button
-                            onClick={() => navigate('/inventario-home')}
-                            className="flex items-center text-gray-600 hover:text-slate-700 transition-colors text-sm"
-                        >
+                        <Link to="/inventario-home" className="flex items-center text-gray-600 hover:text-blue-600 transition-colors w-fit">
                             <FaArrowLeft className="mr-2" size={14} />
-                            Volver al Panel
-                        </button>
+                            <span className="font-semibold text-sm">Enigma Sistema ERP</span>
+                        </Link>
                     </div>
                     <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
                         <FaChartLine className="text-slate-700" />

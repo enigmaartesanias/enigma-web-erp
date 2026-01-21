@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { cuentasPorCobrarDB } from '../../../utils/cuentasPorCobrarClient';
 import ModalRegistrarPago from '../components/ModalRegistrarPago';
 import { FaArrowLeft, FaCreditCard, FaMoneyBillWave, FaExclamationTriangle } from 'react-icons/fa';
@@ -104,14 +104,12 @@ const CuentasPorCobrar = () => {
 
             {/* Header */}
             <header className="bg-white border-b border-gray-200 px-4 py-3 sticky top-0 z-10 shadow-sm">
-                <div className="max-w-7xl mx-auto flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                        <button
-                            onClick={() => navigate('/inventario-home')}
-                            className="p-2 hover:bg-gray-100 rounded-full transition"
-                        >
-                            <FaArrowLeft size={18} className="text-gray-600" />
-                        </button>
+                <div className="max-w-7xl mx-auto flex flex-col gap-2">
+                    <Link to="/inventario-home" className="flex items-center text-gray-600 hover:text-blue-600 transition-colors w-fit">
+                        <FaArrowLeft className="mr-2" size={14} />
+                        <span className="font-semibold text-sm">Enigma Sistema ERP</span>
+                    </Link>
+                    <div className="flex items-center gap-3 mt-1">
                         <div>
                             <h1 className="text-xl font-bold text-gray-800 flex items-center gap-2">
                                 <FaCreditCard className="text-blue-600" />
@@ -274,8 +272,8 @@ const CuentasPorCobrar = () => {
                         </table>
                     </div>
                 </div>
-            </div>
-        </div>
+            </div >
+        </div >
     );
 };
 

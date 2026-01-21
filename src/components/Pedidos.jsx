@@ -1355,12 +1355,14 @@ const Pedidos = () => {
                         <thead className="bg-gray-100">
                             <tr>
                                 {activeTab === 'terminados' ? (
-                                    // Grid simplificado para Terminados (5 columnas)
+                                    // Grid simplificado para Terminados (7 columnas)
                                     <>
                                         <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Fecha</th>
                                         <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Cliente</th>
                                         <th className="hidden md:table-cell px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider w-1/4">Producto</th>
                                         <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">Total</th>
+                                        <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">Pago</th>
+                                        <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">Saldo</th>
                                         <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">Acciones</th>
                                     </>
                                 ) : activeTab === 'entregados' ? (
@@ -1371,7 +1373,7 @@ const Pedidos = () => {
                                         <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">Acciones</th>
                                     </>
                                 ) : activeTab === 'produccion' ? (
-                                    // Grid simplificado para Producción (4 columnas + acciones)
+                                    // Grid simplificado para Producción (6 columnas + acciones)
                                     <>
                                         <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                                             <div>Fecha</div>
@@ -1380,6 +1382,8 @@ const Pedidos = () => {
                                         <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Cliente</th>
                                         <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider w-1/4">Producto</th>
                                         <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">Producción</th>
+                                        <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">Pago</th>
+                                        <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">Saldo</th>
                                         <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">Acciones</th>
                                     </>
                                 ) : (
@@ -1400,7 +1404,7 @@ const Pedidos = () => {
                         <tbody className="bg-white divide-y divide-gray-200">
                             {filteredPedidos.length === 0 ? (
                                 <tr>
-                                    <td colSpan={activeTab === 'terminados' ? "5" : activeTab === 'entregados' ? "4" : activeTab === 'produccion' ? "5" : "8"} className="px-6 py-4 text-center text-gray-500">No hay pedidos registrados en esta categoría.</td>
+                                    <td colSpan={activeTab === 'terminados' ? "7" : activeTab === 'entregados' ? "4" : activeTab === 'produccion' ? "7" : "8"} className="px-6 py-4 text-center text-gray-500">No hay pedidos registrados en esta categoría.</td>
                                 </tr>
                             ) : (
                                 filteredPedidos.map((pedido) => (
@@ -1436,7 +1440,16 @@ const Pedidos = () => {
                                                     S/ {pedido.precio_total?.toFixed(2)}
                                                 </td>
 
-                                                {/* ACCIONES - Solo Entregar */}
+                                                {/* PAGO */}
+                                                <td className="px-4 py-3 whitespace-nowrap text-center">
+                                                    <EstadoPagoBadge pedido={pedido} />
+                                                </td>
+
+                                                {/* SALDO */}
+                                                <td className={`px-4 py-3 whitespace-nowrap text-sm font-bold text-right ${pedido.monto_saldo > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                                                    S/ {pedido.monto_saldo.toFixed(2)}
+                                                </td>
+
                                                 {/* ACCIONES - Terminados */}
                                                 <td className="px-4 py-3 whitespace-nowrap text-right text-sm font-medium">
                                                     <div className="flex justify-end space-x-2">
@@ -1561,18 +1574,19 @@ const Pedidos = () => {
                                                     </span>
                                                 </td>
 
+                                                {/* PAGO */}
+                                                <td className="px-4 py-3 whitespace-nowrap text-center">
+                                                    <EstadoPagoBadge pedido={pedido} />
+                                                </td>
+
+                                                {/* SALDO */}
+                                                <td className={`px-4 py-3 whitespace-nowrap text-sm font-bold text-right ${pedido.monto_saldo > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                                                    S/ {pedido.monto_saldo.toFixed(2)}
+                                                </td>
+
                                                 {/* ACCIONES - Producción */}
                                                 <td className="px-4 py-3 whitespace-nowrap text-right text-sm font-medium">
                                                     <div className="flex justify-end space-x-2">
-                                                        <Tooltip text="Registrar pago">
-                                                            <button
-                                                                onClick={() => handleOpenPayModal(pedido)}
-                                                                className="text-green-600 hover:text-green-900 transition-colors"
-                                                            >
-                                                                <FaMoneyBillWave className="h-5 w-5" />
-                                                            </button>
-                                                        </Tooltip>
-
                                                         <Tooltip text="Ver Nota de Pedido">
                                                             <button
                                                                 onClick={() => handlePrint(pedido)}

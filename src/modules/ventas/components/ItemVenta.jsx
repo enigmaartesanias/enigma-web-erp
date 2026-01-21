@@ -31,10 +31,10 @@ const ItemVenta = ({ item, onUpdateItem, onRemove }) => {
         <div className="flex items-center gap-3 py-2 px-3 border-b border-gray-50 hover:bg-gray-50 transition-all">
             {/* 1. Detalle: Nombre y Código */}
             <div className="flex-1 min-w-0 flex flex-col">
-                <span className="text-[13px] text-gray-700 truncate leading-tight">
+                <span className="text-[12px] text-gray-700 truncate leading-tight">
                     {item.nombre}
                 </span>
-                <span className="text-[9px] text-gray-400 font-mono tracking-tighter">
+                <span className="text-[8px] text-gray-400 font-mono tracking-tighter">
                     {item.codigo}
                 </span>
             </div>
@@ -47,7 +47,7 @@ const ItemVenta = ({ item, onUpdateItem, onRemove }) => {
                 >
                     <FaMinus size={6} />
                 </button>
-                <span className="text-[11px] w-5 text-center text-gray-600">{item.cantidad}</span>
+                <span className="text-[10px] w-5 text-center text-gray-600">{item.cantidad}</span>
                 <button
                     onClick={() => onUpdateItem(item.id, { cantidad: item.cantidad + 1 })}
                     className="w-5 h-5 flex items-center justify-center text-gray-400 hover:text-gray-800 transition"
@@ -62,7 +62,7 @@ const ItemVenta = ({ item, onUpdateItem, onRemove }) => {
                     type="number"
                     value={localSubtotal}
                     onChange={(e) => handleSubtotalChange(e.target.value)}
-                    className="w-16 px-1 py-1 bg-transparent border-b border-transparent focus:border-blue-300 focus:bg-white rounded text-[13px] text-gray-700 outline-none transition-all text-right"
+                    className="w-16 px-1 py-1 bg-transparent border-b border-transparent focus:border-blue-300 focus:bg-white rounded text-[12px] text-gray-700 outline-none transition-all text-right"
                     title="Editar total"
                 />
                 {item.precio_alternativo && (
@@ -78,9 +78,9 @@ const ItemVenta = ({ item, onUpdateItem, onRemove }) => {
             {/* 4. Eliminar */}
             <button
                 onClick={() => onRemove(item.id)}
-                className="w-6 h-6 flex items-center justify-center text-gray-200 hover:text-red-400 transition-all flex-shrink-0"
+                className="w-6 h-6 flex items-center justify-center text-red-200 hover:text-red-400 transition-all flex-shrink-0"
             >
-                <FaTrash size={9} />
+                <FaTrash size={11} />
             </button>
         </div>
     );

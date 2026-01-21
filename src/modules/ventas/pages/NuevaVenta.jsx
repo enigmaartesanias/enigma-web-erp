@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useVentas } from '../hooks/useVentas';
 import { ventasDB } from '../../../utils/ventasClient';
 import { cuentasPorCobrarDB } from '../../../utils/cuentasPorCobrarClient';
@@ -163,6 +163,14 @@ const NuevaVenta = () => {
         <div className="min-h-screen bg-gray-50 flex flex-col h-screen overflow-hidden">
             <Toaster />
 
+            {/* Header / Nav de Regreso */}
+            <div className="bg-white px-4 py-3 border-b border-gray-100 flex-shrink-0">
+                <Link to="/inventario-home" className="flex items-center text-gray-600 hover:text-blue-600 transition-colors w-fit">
+                    <FaArrowLeft className="mr-2" size={14} />
+                    <span className="font-semibold text-sm">Enigma Sistema ERP</span>
+                </Link>
+            </div>
+
             {/* QR Scanner Modal */}
             <QRScanner
                 isOpen={showQRScanner}
@@ -240,6 +248,7 @@ const NuevaVenta = () => {
                         formaPago={formaPago}
                         setFormaPago={setFormaPago}
                         onCreditoClick={() => setShowModalCredito(true)}
+                        onCancel={clearCart}
                         // En desktop pasamos false implícitamente si quisiéramos controlar, pero aquí pasamos true.
                         // El truco es que ResumenVenta oculte la lista en MD.
                         showCartList={true}

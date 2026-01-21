@@ -77,46 +77,68 @@ const QRScanner = ({ isOpen, onClose, onScan }) => {
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-90 z-50 flex flex-col">
+        <div className="fixed inset-0 bg-black/95 z-[100] flex flex-col animate-fade-in backdrop-blur-sm">
             {/* Header */}
-            <div className="bg-gray-900 text-white p-4 flex justify-between items-center">
-                <h3 className="text-lg font-bold">Escanear Código QR</h3>
+            <div className="bg-white/5 backdrop-blur-md text-white p-5 flex justify-between items-center border-b border-white/10">
+                <div>
+                    <h3 className="text-xl font-bold tracking-tight">Escáner de Productos</h3>
+                    <p className="text-xs text-gray-400">Apunta la cámara al código QR físico</p>
+                </div>
                 <button
                     onClick={() => {
                         stopCamera();
                         onClose();
                     }}
-                    className="p-2 hover:bg-gray-800 rounded-full transition"
+                    className="p-3 bg-white/10 hover:bg-white/20 rounded-full transition-all active:scale-95"
                 >
                     <FaTimes size={20} />
                 </button>
             </div>
 
             {/* Camera View */}
-            <div className="flex-1 flex items-center justify-center relative">
+            <div className="flex-1 flex items-center justify-center relative overflow-hidden bg-black">
                 <video
                     ref={videoRef}
-                    className="max-w-full max-h-full"
+                    className="w-full h-full object-cover opacity-80"
                     playsInline
                     muted
                 />
                 <canvas ref={canvasRef} className="hidden" />
 
-                {/* Overlay con guía de escaneo */}
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                    <div className="w-64 h-64 border-4 border-indigo-500 rounded-lg shadow-lg"></div>
+                {/* Overlay con guía de escaneo Premium */}
+                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                    <div className="relative">
+                        {/* El Cuadrado de Escaneo */}
+                        <div className="w-72 h-72 border-2 border-white/30 rounded-3xl overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.5)]">
+                            <div className="absolute inset-0 border-[3px] border-blue-500 rounded-3xl animate-pulse-slow"></div>
+
+                            {/* Esquinas Brillantes */}
+                            <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-blue-400 rounded-tl-xl"></div>
+                            <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-blue-400 rounded-tr-xl"></div>
+                            <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-blue-400 rounded-bl-xl"></div>
+                            <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-blue-400 rounded-br-xl"></div>
+
+                            {/* Línea de Escaneo Láser Anidada */}
+                            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-blue-400 to-transparent shadow-[0_0_15px_rgba(96,165,250,0.8)] animate-scan-line"></div>
+                        </div>
+                    </div>
+
+                    <div className="mt-8 px-6 py-2 bg-blue-600/20 border border-blue-500/30 rounded-full backdrop-blur-md">
+                        <span className="text-blue-100 text-sm font-medium animate-pulse">Buscando código QR...</span>
+                    </div>
                 </div>
 
                 {error && (
-                    <div className="absolute bottom-8 left-4 right-4 bg-red-500 text-white p-4 rounded-lg text-center">
-                        {error}
+                    <div className="absolute bottom-10 left-6 right-6 bg-red-500/90 backdrop-blur-md text-white p-4 rounded-2xl text-center shadow-xl border border-red-400/30">
+                        <p className="text-sm font-bold uppercase tracking-wider mb-1">Error de Cámara</p>
+                        <p className="text-xs opacity-90">{error}</p>
                     </div>
                 )}
             </div>
 
-            {/* Instructions */}
-            <div className="bg-gray-900 text-white p-4 text-center">
-                <p className="text-sm">Coloca el código QR dentro del marco</p>
+            {/* Bottom Panel */}
+            <div className="bg-black p-8 text-center border-t border-white/5">
+                <p className="text-gray-400 text-sm">Asegúrate de tener buena iluminación</p>
             </div>
         </div>
     );

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { FaSearch, FaBarcode, FaSpinner } from 'react-icons/fa';
+import { FaSearch, FaBarcode, FaSpinner, FaCamera, FaQrcode } from 'react-icons/fa';
 import { productosExternosDB } from '../../../utils/productosExternosNeonClient';
 
 const BuscadorProducto = ({ onScan, onSelect, onQRClick }) => {
@@ -94,16 +94,29 @@ const BuscadorProducto = ({ onScan, onSelect, onQRClick }) => {
                 </button>
             </form>
 
-            {/* Botón QR al lado */}
+            {/* Botones de Escaneo */}
             {onQRClick && (
-                <button
-                    onClick={onQRClick}
-                    className="px-3 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition flex-shrink-0 flex items-center gap-1.5"
-                    title="Escanear QR"
-                >
-                    <FaBarcode size={16} />
-                    <span className="text-xs hidden sm:inline">QR</span>
-                </button>
+                <div className="flex gap-1.5 flex-shrink-0">
+                    <button
+                        type="button"
+                        onClick={onQRClick}
+                        className="px-3 py-2 bg-gray-800 text-white rounded-lg hover:bg-black transition-all shadow-sm border border-gray-700 flex items-center justify-center group"
+                        title="Escanear QR"
+                    >
+                        <FaQrcode size={16} className="group-hover:scale-110 transition-transform" />
+                        <span className="text-[10px] ml-1.5 font-bold hidden lg:inline tracking-tighter">QR</span>
+                    </button>
+
+                    <button
+                        type="button"
+                        onClick={onQRClick}
+                        className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all shadow-md shadow-blue-100 border border-blue-500 flex items-center justify-center group"
+                        title="Activar Cámara"
+                    >
+                        <FaCamera size={16} className="group-hover:scale-110 transition-transform" />
+                        <span className="text-[10px] ml-1.5 font-bold hidden lg:inline tracking-tighter">CÁMARA</span>
+                    </button>
+                </div>
             )}
 
             {/* Dropdown de resultados - Debajo del input */}

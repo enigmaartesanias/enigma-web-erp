@@ -1,5 +1,6 @@
 /* Estilos Globales */
-html, body {
+html,
+body {
   margin: 0;
   font-family: Arial, sans-serif;
   background-color: #f9f9f9;
@@ -41,9 +42,11 @@ html {
   will-change: filter;
   transition: filter 300ms;
 }
+
 .logo:hover {
   filter: drop-shadow(0 0 2em #646cffaa);
 }
+
 .logo.react:hover {
   filter: drop-shadow(0 0 2em #61dafbaa);
 }
@@ -53,6 +56,7 @@ html {
   from {
     transform: rotate(0deg);
   }
+
   to {
     transform: rotate(360deg);
   }
@@ -62,6 +66,53 @@ html {
   a:nth-of-type(2) .logo {
     animation: logo-spin infinite 20s linear;
   }
+}
+
+/* Animaciones de Escaneo QR */
+@keyframes scan-line {
+  0% {
+    top: 0;
+  }
+
+  100% {
+    top: 100%;
+  }
+}
+
+@keyframes pulse-slow {
+
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.8;
+    transform: scale(1.02);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-scan-line {
+  animation: scan-line 2s linear infinite;
+}
+
+.animate-pulse-slow {
+  animation: pulse-slow 3s ease-in-out infinite;
+}
+
+.animate-fade-in {
+  animation: fade-in 0.3s ease-out forwards;
 }
 
 /* Estilos Generales (pueden ser de utilidad o componentes base) */
@@ -120,23 +171,29 @@ html {
 }
 
 .slick-dots-custom li button:before {
-  content: none !important; /* Elimina el contenido por defecto */
+  content: none !important;
+  /* Elimina el contenido por defecto */
 }
 
 /* Estilos para el contenedor del slide del carrusel en ProductoDetalle */
 .carousel-slide-container {
-  height: 400px; /* Altura por defecto para móviles */
+  height: 400px;
+  /* Altura por defecto para móviles */
 }
 
 /* Media query para tablets y pantallas más grandes */
-@media (min-width: 640px) { /* Coincide con el breakpoint 'sm' de Tailwind */
+@media (min-width: 640px) {
+
+  /* Coincide con el breakpoint 'sm' de Tailwind */
   .carousel-slide-container {
     height: 550px;
   }
 }
 
 /* Media query para desktops y pantallas más grandes */
-@media (min-width: 768px) { /* Coincide con el breakpoint 'md' de Tailwind */
+@media (min-width: 768px) {
+
+  /* Coincide con el breakpoint 'md' de Tailwind */
   .carousel-slide-container {
     height: 650px;
   }

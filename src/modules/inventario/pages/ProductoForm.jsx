@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
+import { useNavigate, useLocation, useSearchParams, Link } from 'react-router-dom';
 import { productosExternosDB } from '../../../utils/productosExternosNeonClient';
 import { tiposProductoDB } from '../../../utils/tiposProductoDB';
 import { produccionDB } from '../../../utils/produccionNeonClient';
@@ -7,7 +7,7 @@ import { storage } from '../../../firebaseConfig';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { v4 as uuidv4 } from 'uuid';
 import QRCode from 'react-qr-code';
-import { FaCamera, FaSave, FaTimes, FaQrcode } from 'react-icons/fa';
+import { FaCamera, FaSave, FaTimes, FaQrcode, FaArrowLeft } from 'react-icons/fa';
 import { compressAndResizeImage, validateImageFile } from '../../../utils/imageOptimizer';
 
 // Helper para mapear tipo de producto a categoría
@@ -42,7 +42,6 @@ const ProductoForm = () => {
         precio: '',
         codigo_usuario: '',
         stock_actual: '',
-        stock_minimo: '',
         unidad: 'UND',
         categoria: '',
         descripcion: '',
@@ -217,7 +216,7 @@ const ProductoForm = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        if (!formData.nombre || !formData.costo || !formData.precio || !formData.codigo_usuario) {
+        if (!formData.costo || !formData.precio || !formData.codigo_usuario) {
             alert('Por favor complete los campos obligatorios (*)');
             return;
         }
@@ -243,7 +242,7 @@ const ProductoForm = () => {
                 costo: parseFloat(formData.costo),
                 precio: parseFloat(formData.precio),
                 stock_actual: parseInt(formData.stock_actual) || 0,
-                stock_minimo: parseInt(formData.stock_minimo) || 0,
+                stock_minimo: 0,
                 imagen_url: imageUrl
             };
 
@@ -262,6 +261,14 @@ const ProductoForm = () => {
 
     return (
         <div className="min-h-screen bg-gray-50">
+            {/* Header / Nav de Regreso */}
+            <div className="bg-white px-4 py-3 border-b border-gray-100">
+                <Link to="/inventario-home" className="flex items-center text-gray-600 hover:text-blue-600 transition-colors w-fit">
+                    <FaArrowLeft className="mr-2" size={14} />
+                    <span className="font-semibold text-sm">Enigma Sistema ERP</span>
+                </Link>
+            </div>
+
             {/* Header Sticky */}
             <div className="bg-white shadow-sm px-4 py-3 flex justify-between items-center sticky top-0 z-10">
                 <button
@@ -270,7 +277,7 @@ const ProductoForm = () => {
                 >
                     <FaTimes size={20} />
                 </button>
-                <h1 className="text-lg font-semibold text-gray-800">Agregar Producto</h1>
+                <h1 className="text-lg font-semibold text-gray-800">Agregar producto - Stock</h1>
                 <div className="w-10"></div>
             </div>
 
@@ -318,56 +325,59 @@ const ProductoForm = () => {
 
                             {/* 1. Información Principal */}
                             <div className="bg-white p-3 md:p-4 rounded-lg shadow-sm border border-gray-100 space-y-2 md:space-y-3">
+
+                                {/* Código con QR */}
                                 <div>
-                                    <label className="block text-xs font-medium text-gray-700 mb-1">Nombre *</label>
+                                    <label className="block text-xs font-medium text-gray-700 mb-1">Código *</label>
+                                    <div className="flex gap-2 items-center">
+                                        <input
+                                            type="text"
+                                            name="codigo_usuario"
+                                            value={formData.codigo_usuario}
+                                            onChange={handleChange}
+                                            placeholder="Código único"
+                                            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono uppercase focus:ring-2 focus:ring-gray-400 outline-none"
+                                        />
+                                        {/* QR Code - más pequeño en mobile */}
+                                        <div className="w-12 h-12 md:w-20 md:h-20 bg-white p-1 border border-gray-200 rounded-lg flex items-center justify-center flex-shrink-0">
+                                            {formData.codigo_usuario ? (
+                                                <QRCode value={formData.codigo_usuario} size={40} className="w-full h-full" />
+                                            ) : (
+                                                <FaQrcode className="text-gray-300 text-2xl md:text-3xl" />
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Nombre */}
+                                <div>
+                                    <label className="block text-xs font-medium text-gray-700 mb-1">Nombre</label>
                                     <input
                                         type="text"
                                         name="nombre"
                                         value={formData.nombre}
                                         onChange={handleChange}
                                         disabled={isFromProduction}
+                                        placeholder="Descripción o nombre"
                                         className={`w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-gray-400 outline-none ${isFromProduction ? 'bg-gray-50 text-gray-600 cursor-not-allowed' : ''}`}
                                     />
                                 </div>
 
-                                <div className="space-y-2 md:space-y-3">
-                                    {/* Código con QR */}
-                                    <div>
-                                        <label className="block text-xs font-medium text-gray-700 mb-1">Código *</label>
-                                        <div className="flex gap-2 items-center">
-                                            <input
-                                                type="text"
-                                                name="codigo_usuario"
-                                                value={formData.codigo_usuario}
-                                                onChange={handleChange}
-                                                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono uppercase focus:ring-2 focus:ring-gray-400 outline-none"
-                                            />
-                                            {/* QR Code - más pequeño en mobile */}
-                                            <div className="w-12 h-12 md:w-20 md:h-20 bg-white p-1 border border-gray-200 rounded-lg flex items-center justify-center flex-shrink-0">
-                                                {formData.codigo_usuario ? (
-                                                    <QRCode value={formData.codigo_usuario} size={40} className="w-full h-full" />
-                                                ) : (
-                                                    <FaQrcode className="text-gray-300 text-2xl md:text-3xl" />
-                                                )}
-                                            </div>
-                                        </div>
-                                    </div>
-                                    {/* Categoría */}
-                                    <div>
-                                        <label className="block text-xs font-medium text-gray-700 mb-1">Categoría</label>
-                                        <select
-                                            name="categoria"
-                                            value={formData.categoria}
-                                            onChange={handleChange}
-                                            disabled={isFromProduction}
-                                            className={`w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-gray-400 outline-none ${isFromProduction ? 'bg-gray-50 text-gray-600 cursor-not-allowed' : ''}`}
-                                        >
-                                            <option value="">-- Seleccionar --</option>
-                                            {categorias.map(cat => (
-                                                <option key={cat.id} value={cat.nombre}>{cat.nombre}</option>
-                                            ))}
-                                        </select>
-                                    </div>
+                                {/* Categoría */}
+                                <div>
+                                    <label className="block text-xs font-medium text-gray-700 mb-1">Categoría</label>
+                                    <select
+                                        name="categoria"
+                                        value={formData.categoria}
+                                        onChange={handleChange}
+                                        disabled={isFromProduction}
+                                        className={`w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-gray-400 outline-none ${isFromProduction ? 'bg-gray-50 text-gray-600 cursor-not-allowed' : ''}`}
+                                    >
+                                        <option value="">-- Seleccionar --</option>
+                                        {categorias.map(cat => (
+                                            <option key={cat.id} value={cat.nombre}>{cat.nombre}</option>
+                                        ))}
+                                    </select>
                                 </div>
                             </div>
 
@@ -396,8 +406,8 @@ const ProductoForm = () => {
                             </div>
 
                             {/* 3. Stock y Precios */}
-                            <div className="bg-white p-3 md:p-4 rounded-lg shadow-sm border border-gray-100 space-y-2 md:space-y-3">
-                                <div className="grid grid-cols-2 gap-2 md:gap-3">
+                            <div className="bg-white p-3 md:p-4 rounded-lg shadow-sm border border-gray-100">
+                                <div className="grid grid-cols-2 gap-x-3 gap-y-4">
                                     <div>
                                         <label className="block text-xs font-medium text-gray-700 mb-1">Stock Inicial *</label>
                                         <input
@@ -409,20 +419,7 @@ const ProductoForm = () => {
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-xs font-medium text-gray-700 mb-1">Stock Mínimo</label>
-                                        <input
-                                            type="number"
-                                            name="stock_minimo"
-                                            value={formData.stock_minimo}
-                                            onChange={handleChange}
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-center focus:ring-2 focus:ring-gray-400 outline-none"
-                                        />
-                                    </div>
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-2 md:gap-3">
-                                    <div>
-                                        <label className="block text-xs font-medium text-gray-700 mb-1.5">Costo (S/) *</label>
+                                        <label className="block text-xs font-medium text-gray-700 mb-1">Costo (S/) *</label>
                                         <input
                                             type="number"
                                             name="costo"
@@ -433,29 +430,28 @@ const ProductoForm = () => {
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-xs font-medium text-gray-700 mb-1.5">Precio (S/) *</label>
+                                        <label className="block text-xs font-medium text-gray-700 mb-1">Precio (S/) *</label>
                                         <input
                                             type="number"
                                             name="precio"
                                             value={formData.precio}
                                             onChange={handleChange}
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-gray-400 outline-none"
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-gray-400 outline-none font-bold text-gray-900"
                                             step="0.01"
                                         />
                                     </div>
-                                </div>
-
-                                <div>
-                                    <label className="block text-xs font-medium text-gray-700 mb-1.5">Precio Oferta (S/)</label>
-                                    <input
-                                        type="number"
-                                        name="precio_adicional"
-                                        value={formData.precio_adicional}
-                                        onChange={handleChange}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-gray-400 outline-none"
-                                        step="0.01"
-                                        placeholder="Opcional"
-                                    />
+                                    <div>
+                                        <label className="block text-xs font-medium text-gray-700 mb-1 text-blue-600">Precio Oferta (S/)</label>
+                                        <input
+                                            type="number"
+                                            name="precio_adicional"
+                                            value={formData.precio_adicional}
+                                            onChange={handleChange}
+                                            className="w-full px-3 py-2 border border-blue-200 bg-blue-50/30 rounded-lg text-sm focus:ring-2 focus:ring-blue-400 outline-none"
+                                            step="0.01"
+                                            placeholder="Opcional"
+                                        />
+                                    </div>
                                 </div>
                             </div>
 

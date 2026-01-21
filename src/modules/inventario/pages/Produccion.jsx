@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { produccionDB, METALES, TIPOS_PRODUCTO } from '../../../utils/produccionNeonClient';
+import { getLocalDate } from '../../../utils/dateUtils';
 import { pedidosDB } from '../../../utils/pedidosNeonClient';
 import { productosExternosDB } from '../../../utils/productosExternosNeonClient';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { FaEdit, FaTrash, FaArrowLeft, FaSave, FaTimes, FaBox, FaMoneyBillWave, FaHammer, FaCheckCircle, FaCamera, FaCheck, FaQrcode, FaExclamationTriangle, FaBan } from 'react-icons/fa';
+import { FaEdit, FaTrash, FaArrowLeft, FaSave, FaTimes, FaBox, FaMoneyBillWave, FaHammer, FaCheckCircle, FaCamera, FaCheck, FaQrcode, FaExclamationTriangle, FaBan, FaSpinner } from 'react-icons/fa';
 import QRCode from 'react-qr-code';
 import { storage } from '../../../firebaseConfig';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -87,7 +88,6 @@ const Produccion = () => {
         tipo_producto: '',
         nombre_producto: '',
         cantidad: '',
-        costo_materiales: '',
         costo_materiales: '',
         mano_de_obra: '',
         costo_herramientas: '',
@@ -277,12 +277,15 @@ const Produccion = () => {
 
         try {
             await produccionDB.updateEstado(item.id_produccion, 'terminado');
-            setMessage({ type: 'success', text: 'Producción marcada como terminada.' });
+            toast.success('Producción marcada como terminada');
+            resetForm();
+            setMessage(null);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
             fetchProduccion();
             fetchStats();
         } catch (error) {
             console.error('Error al marcar como terminado:', error);
-            setMessage({ type: 'error', text: 'Error al actualizar: ' + error.message });
+            toast.error('Error al actualizar: ' + error.message);
         }
     };
 
@@ -307,8 +310,11 @@ const Produccion = () => {
                 quality: 0.8
             });
 
-            // Subir a Firebase
-            const fileName = `produccion/${uuidv4()}_${optimizedFile.name}`;
+            // Subir a Firebase con nombre único
+            const fileExtension = optimizedFile.name?.split('.').pop() || 'jpg';
+            const uniqueId = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+            const fileName = `produccion/${uniqueId}.${fileExtension}`;
+
             const storageRef = ref(storage, fileName);
             await uploadBytes(storageRef, optimizedFile);
             const downloadURL = await getDownloadURL(storageRef);
@@ -321,7 +327,11 @@ const Produccion = () => {
 
         } catch (error) {
             console.error('Error al subir imagen:', error);
-            toast.error('Error al subir la imagen');
+            // Mostrar error más descriptivo
+            const errorMsg = error.code === 'storage/unauthorized'
+                ? 'Error de permisos en Firebase. Revisa las reglas de Storage.'
+                : error.message || 'Error desconocido al subir la imagen';
+            toast.error(`Error: ${errorMsg}`);
         } finally {
             setUploadingImage(false);
             if (fileInputRef.current) fileInputRef.current.value = '';
@@ -359,13 +369,14 @@ const Produccion = () => {
 
         try {
             await produccionDB.delete(id);
-            setMessage({ type: 'success', text: 'Registro eliminado correctamente.' });
+            toast.success('Registro eliminado correctamente');
             fetchProduccion();
             fetchStats();
             fetchPedidosPendientes();
+            setMessage(null);
         } catch (error) {
             console.error('Error al eliminar:', error);
-            setMessage({ type: 'error', text: 'Error al eliminar: ' + error.message });
+            toast.error('Error al eliminar: ' + error.message);
         }
     };
 
@@ -537,11 +548,14 @@ const Produccion = () => {
 
         try {
             await produccionDB.updateEstado(item.id_produccion, 'terminado');
-            setMessage({ type: 'success', text: 'Producción marcada como terminada correctamente.' });
+            toast.success('Producción marcada como terminada');
+            resetForm();
+            setMessage(null);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
             fetchData();
         } catch (error) {
             console.error('Error al terminar producción:', error);
-            setMessage({ type: 'error', text: 'Error al actualizar el estado.' });
+            toast.error('Error al actualizar el estado: ' + error.message);
         }
     };
 
@@ -878,8 +892,9 @@ const Produccion = () => {
                                             <FaCamera className="text-gray-400 text-2xl" />
                                         )}
                                         {uploadingImage && (
-                                            <div className="absolute inset-0 bg-black/50 flex items-center justify-center text-white text-xs">
-                                                Subiendo...
+                                            <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center text-white text-[10px] animate-pulse">
+                                                <FaSpinner className="animate-spin text-xl mb-1" />
+                                                <span>Subiendo...</span>
                                             </div>
                                         )}
                                     </div>
@@ -979,7 +994,12 @@ const Produccion = () => {
                             {filteredProduccion.map((item) => (
                                 <tr key={item.id_produccion} className="hover:bg-gray-50">
                                     <td className="px-3 py-3 whitespace-nowrap text-left text-xs text-gray-700">
-                                        {new Date(item.fecha_registro || item.created_at).toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', year: '2-digit' })}
+                                        {(() => {
+                                            const dateStr = item.fecha_produccion || item.created_at;
+                                            if (!dateStr) return '-';
+                                            const date = new Date(dateStr.toString().includes('T') ? dateStr : dateStr + 'T00:00:00');
+                                            return isNaN(date.getTime()) ? '-' : date.toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', year: '2-digit' });
+                                        })()}
                                     </td>
                                     <td className="px-3 py-3 text-left">
                                         {item.imagen_url ? (

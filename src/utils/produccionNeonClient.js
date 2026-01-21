@@ -113,15 +113,16 @@ export const produccionDB = {
       estado_produccion, observaciones, imagen_url, codigo_producto
     } = data;
 
-    // Calcular fecha inicio: si inicia en proceso, es HOY. Sino (pendiente), es NULL o fecha futura
+    // Calcular fecha inicio y fin usando fecha local de PERÚ
+    const localToday = getLocalDate();
     let fechaInicio = null;
     let fechaFin = null;
 
     if (estado_produccion === 'en_proceso' || estado_produccion === 'terminado') {
-      fechaInicio = new Date().toISOString().split('T')[0];
+      fechaInicio = localToday;
     }
     if (estado_produccion === 'terminado') {
-      fechaFin = new Date().toISOString().split('T')[0];
+      fechaFin = localToday;
     }
 
     const [newProduccion] = await sql`
@@ -130,15 +131,16 @@ export const produccionDB = {
       nombre_producto, cantidad, costo_materiales,
       mano_de_obra, costo_herramientas, otros_gastos,
       estado_produccion, observaciones, imagen_url, codigo_producto,
-      fecha_inicio_produccion, fecha_fin_produccion
+      fecha_inicio_produccion, fecha_fin_produccion,
+      fecha_produccion
     ) VALUES(
       ${pedido_id || null}, ${tipo_produccion}, ${metal}, ${tipo_producto},
-  ${nombre_producto}, ${cantidad}, ${costo_materiales || 0},
-        ${mano_de_obra || 0}, ${costo_herramientas || 0}, ${otros_gastos || 0},
-        ${estado_produccion}, ${observaciones}, ${imagen_url}, ${codigo_producto},
-        ${fechaInicio}, ${fechaFin}
-      )
-RETURNING *
+      ${nombre_producto}, ${cantidad}, ${costo_materiales || 0},
+      ${mano_de_obra || 0}, ${costo_herramientas || 0}, ${otros_gastos || 0},
+      ${estado_produccion}, ${observaciones}, ${imagen_url}, ${codigo_producto},
+      ${fechaInicio}, ${fechaFin}, ${localToday}
+    )
+    RETURNING *
   `;
     return newProduccion;
   },
@@ -167,13 +169,17 @@ RETURNING *
   },
 
   async updateEstado(id, nuevoEstado) {
+    const now = new Date();
+    const localToday = getLocalDate();
+
     const [produccion] = await sql`
       UPDATE produccion_taller SET
-estado_produccion = ${nuevoEstado},
-fecha_terminado = ${nuevoEstado === 'terminado' ? new Date().toISOString() : null}
+        estado_produccion = ${nuevoEstado},
+        fecha_terminado = ${nuevoEstado === 'terminado' ? now.toISOString() : null},
+        fecha_fin_produccion = ${nuevoEstado === 'terminado' ? localToday : null}
       WHERE id_produccion = ${id}
-RETURNING *
-  `;
+      RETURNING *
+    `;
     return produccion;
   },
 

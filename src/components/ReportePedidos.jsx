@@ -528,7 +528,10 @@ const ReportePedidos = () => {
                                     </th>
                                     <th className="px-4 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Total</th>
                                     {activeTab !== 'Entregados' && (
-                                        <th className="px-4 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Saldo</th>
+                                        <>
+                                            <th className="px-4 py-2 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Pago</th>
+                                            <th className="px-4 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Saldo</th>
+                                        </>
                                     )}
                                     <th className="px-4 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Acción</th>
                                 </tr>
@@ -563,17 +566,28 @@ const ReportePedidos = () => {
                                                 S/ {Number(pedido.precio_total).toFixed(2)}
                                             </td>
                                             {activeTab !== 'Entregados' && (
-                                                <td className="px-4 py-2 whitespace-nowrap text-sm text-left">
-                                                    {Number(pedido.monto_saldo) > 0 ? (
-                                                        <span className="text-red-500">S/ {Number(pedido.monto_saldo).toFixed(2)}</span>
-                                                    ) : (
-                                                        <span className="text-green-500">Pagado</span>
-                                                    )}
-                                                </td>
+                                                <>
+                                                    {/* PAGO */}
+                                                    <td className="px-4 py-2 whitespace-nowrap text-center">
+                                                        {Number(pedido.monto_saldo) <= 0.05 ? (
+                                                            <span className="px-2 py-1 rounded-full text-[10px] font-semibold bg-green-100 text-green-800">Pagado</span>
+                                                        ) : (
+                                                            <span className="px-2 py-1 rounded-full text-[10px] font-semibold bg-red-100 text-red-800">Pendiente</span>
+                                                        )}
+                                                    </td>
+                                                    {/* SALDO */}
+                                                    <td className="px-4 py-2 whitespace-nowrap text-sm text-left">
+                                                        {Number(pedido.monto_saldo) > 0 ? (
+                                                            <span className="text-red-500">S/ {Number(pedido.monto_saldo).toFixed(2)}</span>
+                                                        ) : (
+                                                            <span className="text-green-500">S/ 0.00</span>
+                                                        )}
+                                                    </td>
+                                                </>
                                             )}
                                             <td className="px-4 py-2 whitespace-nowrap text-left">
                                                 <div className="flex items-center space-x-2">
-                                                    {Number(pedido.monto_saldo) > 0.1 && (
+                                                    {Number(pedido.monto_saldo) > 0.1 && activeTab !== 'Producción' && (
                                                         <button
                                                             onClick={(e) => {
                                                                 e.stopPropagation();
@@ -598,7 +612,7 @@ const ReportePedidos = () => {
                                     ))
                                 ) : (
                                     <tr>
-                                        <td colSpan="8" className="px-6 py-12 text-center text-gray-400 text-sm">
+                                        <td colSpan={activeTab === 'Entregados' ? "6" : "8"} className="px-6 py-12 text-center text-gray-400 text-sm">
                                             No se encontraron pedidos en esta categoría.
                                         </td>
                                     </tr>

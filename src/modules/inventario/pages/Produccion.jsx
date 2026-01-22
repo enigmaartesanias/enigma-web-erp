@@ -235,12 +235,41 @@ const Produccion = () => {
             return;
         }
 
+        // NUEVA LÓGICA: Si es un pedido y está en proceso, permitir eliminación total
+        if (item.pedido_id && item.estado_produccion === 'en_proceso') {
+            setConfirmModal({
+                isOpen: true,
+                title: '⚠️ ¿ELIMINAR PEDIDO COMPLETO?',
+                message: 'Esta acción eliminará definitivamente el pedido y toda su información (Pagos, Producción, Detalles). Esta acción no se puede deshacer.',
+                icon: <FaExclamationTriangle className="text-red-500" />,
+                confirmText: 'SÍ, ELIMINAR TODO',
+                confirmColor: 'red',
+                onConfirm: async () => {
+                    setLoading(true);
+                    try {
+                        await pedidosDB.eliminarPedidoCompleto(item.pedido_id);
+                        toast.success('Pedido y toda su información eliminada correctamente');
+                        fetchProduccion();
+                        fetchStats();
+                        fetchPedidosPendientes();
+                    } catch (error) {
+                        console.error('Error al eliminar pedido completo:', error);
+                        toast.error('Error al eliminar: ' + error.message);
+                    } finally {
+                        setLoading(false);
+                        setConfirmModal(prev => ({ ...prev, isOpen: false }));
+                    }
+                }
+            });
+            return;
+        }
+
         if (item.pedido_id) {
             toast.error('No se puede eliminar: el registro está asociado a un pedido.');
             return;
         }
 
-        // Si pasa todas las validaciones, mostrar confirmación
+        // Si es STOCK normal
         setConfirmModal({
             isOpen: true,
             title: 'Eliminar Producción',
@@ -255,12 +284,10 @@ const Produccion = () => {
                     fetchProduccion();
                     fetchStats();
                     fetchPedidosPendientes();
-                    // Cerrar el modal
                     setConfirmModal(prev => ({ ...prev, isOpen: false }));
                 } catch (error) {
                     console.error('Error al eliminar:', error);
                     toast.error('Error al eliminar: ' + error.message);
-                    // Cerrar el modal incluso si hay error
                     setConfirmModal(prev => ({ ...prev, isOpen: false }));
                 }
             }
@@ -1085,14 +1112,16 @@ const Produccion = () => {
                                                 </button>
                                             )}
 
-                                            {/* Eliminar - Solo para productos NO terminados */}
+                                            {/* Eliminar - Solo para productos NO terminados o Pedidos En Proceso */}
                                             {item.estado_produccion !== 'terminado' && (
                                                 <button
                                                     onClick={() => handleDelete(item)}
-                                                    className="text-red-500 hover:text-red-700"
-                                                    title="Eliminar"
+                                                    className={`transition-colors ${item.pedido_id && item.estado_produccion === 'en_proceso'
+                                                        ? 'bg-red-500 text-white p-1 rounded-md hover:bg-red-700'
+                                                        : 'text-red-500 hover:text-red-700'}`}
+                                                    title={item.pedido_id ? "Eliminar Pedido Completo" : "Eliminar Registro"}
                                                 >
-                                                    <FaTrash size={16} />
+                                                    <FaTrash size={item.pedido_id && item.estado_produccion === 'en_proceso' ? 14 : 16} />
                                                 </button>
                                             )}
                                         </div>

@@ -3,7 +3,7 @@ import { pedidosDB } from '../utils/pedidosNeonClient';
 import { produccionDB, METALES, TIPOS_PRODUCTO } from '../utils/produccionNeonClient';
 import { getLocalDate } from '../utils/dateUtils';
 import { Link, useNavigate } from 'react-router-dom';
-import { FaEdit, FaTrash, FaCheckCircle, FaTimesCircle, FaPlus, FaWhatsapp, FaPrint, FaSearch, FaMoneyBillWave, FaShareAlt, FaImage, FaPhone, FaArrowLeft, FaHammer, FaCar, FaExclamationTriangle, FaCheck, FaEye } from 'react-icons/fa';
+import { FaEdit, FaTrash, FaCheckCircle, FaTimesCircle, FaPlus, FaWhatsapp, FaPrint, FaSearch, FaMoneyBillWave, FaShareAlt, FaImage, FaPhone, FaArrowLeft, FaHammer, FaCar, FaExclamationTriangle, FaCheck, FaEye, FaUser, FaBox, FaTruck } from 'react-icons/fa';
 import html2canvas from 'html2canvas';
 import toast, { Toaster } from 'react-hot-toast';
 import ConfirmModal from './ui/ConfirmModal';
@@ -887,111 +887,129 @@ const Pedidos = () => {
                     </div>
                 )}
 
-                <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+                <form onSubmit={handleSubmit} className="space-y-6">
                     {/* Sección Cliente */}
-                    <div className="md:col-span-2">
-                        <h3 className="text-lg md:text-xl font-semibold mb-3 text-blue-600">Datos del Cliente</h3>
+                    <div className="bg-gray-50/50 p-4 md:p-6 rounded-2xl border border-gray-200 shadow-sm transition-all hover:shadow-md">
+                        <h3 className="text-lg md:text-xl font-bold mb-4 text-blue-700 flex items-center gap-2">
+                            <FaUser className="text-blue-500" />
+                            Datos del Cliente
+                        </h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700">Nombre Cliente *</label>
+                            <div className="md:col-span-2">
+                                <label className="block text-sm font-semibold text-gray-700">Nombre Cliente *</label>
                                 <input
                                     type="text"
                                     name="nombre_cliente"
                                     value={formData.nombre_cliente}
                                     onChange={handleChange}
-                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2"
+                                    className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2.5 transition-all bg-white"
                                 />
                             </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700">Teléfono *</label>
-                                <input
-                                    type="text"
-                                    name="telefono"
-                                    value={formData.telefono}
-                                    onChange={handleChange}
-                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2"
-                                />
+                            <div className="grid grid-cols-2 gap-3 md:col-span-2">
+                                <div>
+                                    <label className="block text-sm font-semibold text-gray-700">Teléfono *</label>
+                                    <input
+                                        type="text"
+                                        name="telefono"
+                                        value={formData.telefono}
+                                        onChange={handleChange}
+                                        className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2.5 transition-all bg-white"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-semibold text-gray-700">DNI/RUC</label>
+                                    <input
+                                        type="text"
+                                        name="dni_ruc"
+                                        value={formData.dni_ruc}
+                                        onChange={handleChange}
+                                        className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2.5 transition-all bg-white"
+                                    />
+                                </div>
                             </div>
+
+
+                        </div>
+                    </div>
+
+                    {/* Sección Producto (Agregar Múltiples) */}
+                    <div className="bg-gray-50/50 p-4 md:p-6 rounded-2xl border border-gray-200 shadow-sm transition-all hover:shadow-md">
+                        <h3 className="text-lg md:text-xl font-bold mb-4 text-blue-700 flex items-center gap-2">
+                            <FaBox className="text-blue-500" />
+                            Detalles del Producto
+                        </h3>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4 md:items-start border border-gray-200 p-4 rounded-xl bg-white/50">
+
                             <div>
-                                <label className="block text-sm font-medium text-gray-700">DNI/RUC</label>
-                                <input
-                                    type="text"
-                                    name="dni_ruc"
-                                    value={formData.dni_ruc}
-                                    onChange={handleChange}
-                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700">Tipo de Producto *</label>
-                                <select
-                                    name="tipo_producto"
-                                    value={formData.tipo_producto}
-                                    onChange={handleChange}
-                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2"
-                                >
-                                    <option value="">-- Selecciona tipo --</option>
-                                    {TIPOS_PRODUCTO.map(t => <option key={t} value={t}>{t}</option>)}
-                                </select>
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700">Metal *</label>
+                                <label className="block text-sm font-semibold text-gray-700">Metal *</label>
                                 <select
                                     name="metal"
                                     value={formData.metal}
                                     onChange={handleChange}
-                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2"
+                                    className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2.5 transition-all bg-white"
                                 >
                                     <option value="">-- Selecciona metal --</option>
                                     {METALES.map(m => <option key={m} value={m}>{m}</option>)}
                                 </select>
                             </div>
-                        </div>
-                    </div>
 
-                    {/* Sección Producto (Agregar Múltiples) */}
-                    <div className="md:col-span-2">
-                        <h3 className="text-lg md:text-xl font-semibold mb-3 text-blue-600">Detalles del Producto</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4 md:items-start border p-3 md:p-4 rounded">
+
+                            <div>
+                                <label className="block text-sm font-semibold text-gray-700">Tipo de Producto *</label>
+                                <select
+                                    name="tipo_producto"
+                                    value={formData.tipo_producto}
+                                    onChange={handleChange}
+                                    className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2.5 transition-all bg-white"
+                                >
+                                    <option value="">-- Selecciona tipo --</option>
+                                    {TIPOS_PRODUCTO.map(t => <option key={t} value={t}>{t}</option>)}
+                                </select>
+                            </div>
+
+
                             <div className="md:col-span-3">
-                                <label className="block text-sm font-medium text-gray-700">Producto *</label>
+
+
+                                <label className="block text-sm font-semibold text-gray-700">Descripción del Producto *</label>
                                 <textarea
                                     name="nombre_producto"
                                     value={productoActual.nombre_producto}
                                     onChange={handleProductoChange}
                                     rows="2"
-                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2 text-sm"
+                                    placeholder="Ej: Anillo de compromiso con grabado..."
+                                    className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2.5 transition-all bg-white"
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700">Cantidad *</label>
+                                <label className="block text-sm font-semibold text-gray-700">Cantidad *</label>
                                 <input
                                     type="number"
                                     name="cantidad"
                                     value={productoActual.cantidad}
                                     onChange={handleProductoChange}
                                     min="1"
-                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2 text-sm"
+                                    className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2.5 transition-all bg-white"
                                     onWheel={handleWheel}
                                 />
                             </div>
                             <div className="flex space-x-2">
                                 <div className="flex-1">
-                                    <label className="block text-sm font-medium text-gray-700">Precio Unitario *</label>
+                                    <label className="block text-sm font-semibold text-gray-700">Precio Unitario *</label>
                                     <input
                                         type="number"
                                         name="precio_unitario"
                                         value={productoActual.precio_unitario}
                                         onChange={handleProductoChange}
                                         step="0.01"
-                                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2 text-sm"
+                                        className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2.5 transition-all bg-white"
                                         onWheel={handleWheel}
                                     />
                                 </div>
                                 <button
                                     type="button"
                                     onClick={agregarProducto}
-                                    className="mt-1 px-3 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 flex items-center justify-center text-sm"
+                                    className="mt-7 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-sm flex items-center justify-center transition-all active:scale-95"
                                     title="Agregar Producto"
                                 >
                                     <FaPlus />
@@ -1001,47 +1019,40 @@ const Pedidos = () => {
 
                         {/* Lista de productos agregados */}
                         {listaProductos.length > 0 && (
-                            <div className="mt-6">
+                            <div className="mt-6 overflow-hidden rounded-xl border border-gray-200 shadow-sm">
                                 <table className="min-w-full divide-y divide-gray-200">
-                                    <thead className="bg-gray-50">
+                                    <thead className="bg-gray-100">
                                         <tr>
-                                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Producto</th>
-                                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Metal / Tipo</th>
-                                            <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase">Cant.</th>
-                                            <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">P. Unit</th>
-                                            <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">Subtotal</th>
-                                            <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase">Acción</th>
+                                            <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase">Producto</th>
+                                            <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase">Metal / Tipo</th>
+                                            <th className="px-4 py-3 text-center text-xs font-bold text-gray-600 uppercase">Cant.</th>
+                                            <th className="px-4 py-3 text-right text-xs font-bold text-gray-600 uppercase">P. Unit</th>
+                                            <th className="px-4 py-3 text-right text-xs font-bold text-gray-600 uppercase">Subtotal</th>
+                                            <th className="px-4 py-3 text-center text-xs font-bold text-gray-600 uppercase">Acción</th>
                                         </tr>
                                     </thead>
                                     <tbody className="bg-white divide-y divide-gray-200">
                                         {listaProductos.map((prod, index) => (
-                                            <tr key={index}>
-                                                <td className="px-3 py-2 text-sm text-gray-900">{prod.nombre_producto}</td>
-                                                <td className="px-3 py-2 text-sm text-gray-500">
-                                                    <div className="text-xs font-semibold text-gray-700">{prod.metal}</div>
+                                            <tr key={index} className="hover:bg-gray-50 transition-colors">
+                                                <td className="px-4 py-3 text-sm text-gray-900">{prod.nombre_producto}</td>
+                                                <td className="px-4 py-3 text-sm text-gray-500">
+                                                    <div className="text-xs font-bold text-gray-700">{prod.metal}</div>
                                                     <div className="text-xs text-gray-500">{prod.tipo_producto}</div>
                                                 </td>
-                                                <td className="px-3 py-2 text-sm text-gray-900 text-center">{prod.cantidad}</td>
-                                                <td className="px-3 py-2 text-sm text-gray-900 text-right">S/ {parseFloat(prod.precio_unitario).toFixed(2)}</td>
-                                                <td className="px-3 py-2 text-sm font-bold text-gray-900 text-right">S/ {(prod.cantidad * prod.precio_unitario).toFixed(2)}</td>
-                                                <td className="px-3 py-2 text-center">
+                                                <td className="px-4 py-3 text-sm text-gray-900 text-center font-semibold">{prod.cantidad}</td>
+                                                <td className="px-4 py-3 text-sm text-gray-900 text-right">S/ {parseFloat(prod.precio_unitario).toFixed(2)}</td>
+                                                <td className="px-4 py-3 text-sm font-bold text-gray-900 text-right">S/ {(prod.cantidad * prod.precio_unitario).toFixed(2)}</td>
+                                                <td className="px-4 py-3 text-center">
                                                     <button
                                                         type="button"
                                                         onClick={() => eliminarProductoLista(index)}
-                                                        className="text-red-600 hover:text-red-900"
+                                                        className="text-red-500 hover:text-red-700 bg-red-50 p-2 rounded-full transition-all"
                                                     >
                                                         <FaTrash size={14} />
                                                     </button>
                                                 </td>
                                             </tr>
                                         ))}
-                                        {listaProductos.length === 0 && (
-                                            <tr>
-                                                <td colSpan="6" className="px-3 py-4 text-center text-sm text-gray-500">
-                                                    No hay productos agregados.
-                                                </td>
-                                            </tr>
-                                        )}
                                     </tbody>
                                 </table>
                             </div>
@@ -1049,54 +1060,59 @@ const Pedidos = () => {
                     </div>
 
                     {/* Sección Envío */}
-                    <div className="md:col-span-2">
-                        <h3 className="text-lg md:text-xl font-semibold mb-3 text-blue-600">Envío</h3>
-                        <div className="space-y-3">
-                            <div className="flex items-center">
+                    <div className="bg-gray-50/50 p-4 md:p-6 rounded-2xl border border-gray-200 shadow-sm transition-all hover:shadow-md">
+                        <h3 className="text-lg md:text-xl font-bold mb-4 text-blue-700 flex items-center gap-2">
+                            <FaTruck className="text-blue-500" />
+                            Envío
+                        </h3>
+                        <div className="space-y-4">
+                            <div className="flex items-center bg-white/50 p-3 rounded-xl border border-gray-100">
                                 <input
                                     type="checkbox"
                                     name="requiere_envio"
                                     checked={formData.requiere_envio}
                                     onChange={handleChange}
                                     id="requiere_envio"
-                                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                                    className="h-5 w-5 text-blue-600 focus:ring-blue-500 border-gray-300 rounded transition-all cursor-pointer"
                                 />
-                                <label htmlFor="requiere_envio" className="ml-2 block text-sm text-gray-900">Requiere Envío</label>
+                                <label htmlFor="requiere_envio" className="ml-3 block text-sm font-semibold text-gray-700 cursor-pointer">Requiere Envío a Domicilio / Agencia</label>
                             </div>
 
                             {formData.requiere_envio && (
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 border p-3 md:p-4 rounded bg-gray-50">
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700">Dirección de Entrega</label>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border border-blue-100 p-4 rounded-xl bg-blue-50/30">
+                                    <div className="md:col-span-2">
+                                        <label className="block text-sm font-semibold text-gray-700">Dirección de Entrega / Referencia</label>
                                         <input
                                             type="text"
                                             name="direccion_entrega"
                                             value={formData.direccion_entrega}
                                             onChange={handleChange}
-                                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2"
+                                            placeholder="Ciudad, Agencia o Dirección exacta..."
+                                            className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2.5 bg-white"
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700">Modalidad</label>
+                                        <label className="block text-sm font-semibold text-gray-700">Modalidad de Envío</label>
                                         <select
                                             name="modalidad_envio"
                                             value={formData.modalidad_envio}
                                             onChange={handleChange}
-                                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2"
+                                            className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2.5 bg-white"
                                         >
                                             <option value="Fijo">Envío Fijo/Calculado</option>
                                             <option value="Por Pagar">Por Pagar en Agencia</option>
                                         </select>
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700">Costo de Envío</label>
+                                        <label className="block text-sm font-semibold text-gray-700">Costo de Envío (S/)</label>
                                         <input
                                             type="number"
                                             name="envio_cobrado_al_cliente"
                                             value={formData.envio_cobrado_al_cliente}
                                             onChange={handleChange}
                                             step="0.01"
-                                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2"
+                                            placeholder="0.00"
+                                            className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2.5 bg-white"
                                             onWheel={handleWheel}
                                         />
                                     </div>
@@ -1106,16 +1122,19 @@ const Pedidos = () => {
                     </div>
 
                     {/* Sección Pago */}
-                    <div className="md:col-span-2">
-                        <h3 className="text-lg md:text-xl font-semibold mb-3 text-blue-600">Pago y Totales</h3>
-                        <div className="grid grid-cols-2 md:grid-cols-2 gap-3 md:gap-4">
+                    <div className="bg-gray-50/50 p-4 md:p-6 rounded-2xl border border-gray-200 shadow-sm transition-all hover:shadow-md">
+                        <h3 className="text-lg md:text-xl font-bold mb-4 text-blue-700 flex items-center gap-2">
+                            <FaMoneyBillWave className="text-blue-500" />
+                            Pago y Totales
+                        </h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                                <label className="block text-sm font-medium text-gray-700">Forma de Pago</label>
+                                <label className="block text-sm font-semibold text-gray-700">Forma de Pago del Adelanto</label>
                                 <select
                                     name="forma_pago"
                                     value={formData.forma_pago}
                                     onChange={handleChange}
-                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2"
+                                    className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2.5 bg-white"
                                 >
                                     <option value="Efectivo">Efectivo</option>
                                     <option value="Yape">Yape</option>
@@ -1124,75 +1143,84 @@ const Pedidos = () => {
                                 </select>
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700">N° Comprobante</label>
+                                <label className="block text-sm font-semibold text-gray-700">N° Operación / Comprobante</label>
                                 <input
                                     type="text"
                                     name="comprobante_pago"
                                     value={formData.comprobante_pago}
                                     onChange={handleChange}
-                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2"
+                                    placeholder="Ej: Op. 123456"
+                                    className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2.5 bg-white"
                                 />
                             </div>
 
-                            <div className="flex items-center md:col-span-2">
+                            <div className="flex items-center bg-white/50 p-3 rounded-xl border border-gray-100 md:col-span-2">
                                 <input
                                     type="checkbox"
                                     name="incluye_igv"
                                     checked={formData.incluye_igv}
                                     onChange={handleChange}
                                     id="incluye_igv"
-                                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                                    className="h-5 w-5 text-blue-600 focus:ring-blue-500 border-gray-300 rounded transition-all cursor-pointer"
                                 />
-                                <label htmlFor="incluye_igv" className="ml-2 block text-sm text-gray-900">Incluye IGV (18%)</label>
+                                <label htmlFor="incluye_igv" className="ml-3 block text-sm font-semibold text-gray-700 cursor-pointer">Incluye IGV (18%) en el total</label>
                             </div>
 
-                            <div className="col-span-2">
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Monto a Cuenta ó Pagado</label>
-                                <div className="flex space-x-2">
-                                    <input
-                                        type="number"
-                                        name="monto_a_cuenta"
-                                        value={formData.monto_a_cuenta}
-                                        onChange={handleChange}
-                                        step="0.01"
-                                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2"
-                                        required
-                                        onWheel={handleWheel}
-                                    />
-                                    {/* Botón '+' eliminado por rediseño */}
-                                </div>
+                            <div className="md:col-span-2">
+                                <label className="block text-sm font-bold text-blue-800 mb-2">💰 Monto Pagado (Adelanto)</label>
+                                <input
+                                    type="number"
+                                    name="monto_a_cuenta"
+                                    value={formData.monto_a_cuenta}
+                                    onChange={handleChange}
+                                    step="0.01"
+                                    placeholder="0.00"
+                                    className="mt-1 block w-full rounded-xl border-2 border-blue-200 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-3 text-lg font-bold text-blue-900 bg-white"
+                                    required
+                                    onWheel={handleWheel}
+                                />
                             </div>
                         </div>
 
                         {/* Resumen de Totales */}
-                        <div className="mt-6 bg-gray-100 p-4 rounded-lg">
-                            <div className="flex justify-between py-1">
-                                <span>Subtotal:</span>
-                                <span>S/ {calculos.precio_total_sin_igv.toFixed(2)}</span>
-                            </div>
-                            {formData.incluye_igv && (
-                                <div className="flex justify-between py-1 text-sm text-gray-600">
-                                    <span>+ IGV (18%):</span>
-                                    <span>S/ {calculos.monto_igv.toFixed(2)}</span>
+                        <div className="mt-8 bg-white p-5 rounded-2xl border border-gray-200 shadow-inner">
+                            <div className="space-y-3">
+                                <div className="flex justify-between items-center text-gray-600">
+                                    <span className="font-medium">Subtotal Productos:</span>
+                                    <span className="font-semibold">S/ {calculos.precio_total_sin_igv.toFixed(2)}</span>
                                 </div>
-                            )}
-                            <div className="flex justify-between py-2 font-bold text-lg border-t border-gray-300 mt-2">
-                                <span>Total:</span>
-                                <span>S/ {calculos.precio_total.toFixed(2)}</span>
-                            </div>
-                            {formData.requiere_envio && parseFloat(formData.envio_cobrado_al_cliente) > 0 && (
-                                <div className="flex justify-between py-1 text-xs text-gray-500">
-                                    <span>(incluye envío)</span>
-                                    <span>S/ {parseFloat(formData.envio_cobrado_al_cliente).toFixed(2)}</span>
-                                </div>
-                            )}
-                            {!calculos.cancelado && (
-                                <div className="flex justify-between py-2 font-bold text-red-600 border-t border-gray-300 mt-2">
-                                    <span>Saldo Pendiente:</span>
-                                    <span>S/ {calculos.monto_saldo.toFixed(2)}</span>
-                                </div>
-                            )}
 
+                                {formData.incluye_igv && (
+                                    <div className="flex justify-between items-center text-sm text-gray-500 italic">
+                                        <span>+ IGV (18%):</span>
+                                        <span>S/ {calculos.monto_igv.toFixed(2)}</span>
+                                    </div>
+                                )}
+
+                                {formData.requiere_envio && parseFloat(formData.envio_cobrado_al_cliente) > 0 && (
+                                    <div className="flex justify-between items-center text-sm text-gray-500 italic">
+                                        <span>Costos de Envío:</span>
+                                        <span>S/ {parseFloat(formData.envio_cobrado_al_cliente).toFixed(2)}</span>
+                                    </div>
+                                )}
+
+                                <div className="flex justify-between items-center py-3 font text-1xl text-gray-900 border-t border-gray-100 mt-2">
+                                    <span>Total Pedido:</span>
+                                    <span className="text-blue-700">S/ {calculos.precio_total.toFixed(2)}</span>
+                                </div>
+
+                                <div className="flex justify-between items-center py-2 text-green-700 font border-t border-gray-50">
+                                    <span>Monto a Cuenta:</span>
+                                    <span>- S/ {parseFloat(formData.monto_a_cuenta || 0).toFixed(2)}</span>
+                                </div>
+
+                                {!calculos.cancelado && (
+                                    <div className="flex justify-between items-center py-4 px-4 bg-red-50 rounded-xl font text-1xl text-red-600 border-t-2 border-red-100 mt-4">
+                                        <span>Saldo Pendiente:</span>
+                                        <span className="animate-pulse">S/ {calculos.monto_saldo.toFixed(2)}</span>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
 
@@ -1453,15 +1481,17 @@ const Pedidos = () => {
                                                 {/* ACCIONES - Terminados */}
                                                 <td className="px-4 py-3 whitespace-nowrap text-right text-sm font-medium">
                                                     <div className="flex justify-end space-x-2">
-                                                        {/* Botón de Pago */}
-                                                        <Tooltip text="Registrar pago">
-                                                            <button
-                                                                onClick={() => handleOpenPayModal(pedido)}
-                                                                className="text-green-600 hover:text-green-900 transition-colors"
-                                                            >
-                                                                <FaMoneyBillWave className="h-5 w-5" />
-                                                            </button>
-                                                        </Tooltip>
+                                                        {/* Botón de Pago: Solo visible si hay saldo pendiente */}
+                                                        {!pedido.cancelado && pedido.monto_saldo > 0.1 && (
+                                                            <Tooltip text="Registrar pago">
+                                                                <button
+                                                                    onClick={() => handleOpenPayModal(pedido)}
+                                                                    className="text-green-600 hover:text-green-900 transition-colors"
+                                                                >
+                                                                    <FaMoneyBillWave className="h-5 w-5" />
+                                                                </button>
+                                                            </Tooltip>
+                                                        )}
 
                                                         <Tooltip text="Ver Nota de Pedido">
                                                             <button

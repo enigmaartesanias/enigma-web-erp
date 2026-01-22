@@ -239,6 +239,33 @@ export const pedidosDB = {
       RETURNING *
     `;
     return pedido;
+  },
+
+  // ELIMINACIÓN DE PEDIDO COMPLETO (SOLO DESDE PRODUCCIÓN)
+  async eliminarPedidoCompleto(id) {
+    console.log(`⚠️ Iniciando eliminación total del pedido #${id}`);
+    try {
+      // 1. Eliminar de produccion_taller
+      await sql`DELETE FROM produccion_taller WHERE pedido_id = ${id}`;
+      console.log('✅ Registros de producción eliminados');
+
+      // 2. Eliminar pagos
+      await sql`DELETE FROM pagos WHERE id_pedido = ${id}`;
+      console.log('✅ Registros de pagos eliminados');
+
+      // 3. Eliminar detalles del pedido (por si acaso no hay CASCADE)
+      await sql`DELETE FROM detalles_pedido WHERE id_pedido = ${id}`;
+      console.log('✅ Detalles del pedido eliminados');
+
+      // 4. Eliminar el pedido
+      const [deleted] = await sql`DELETE FROM pedidos WHERE id_pedido = ${id} RETURNING id_pedido`;
+      console.log('✅ Registro del pedido eliminado definitivamente');
+
+      return deleted;
+    } catch (error) {
+      console.error('❌ Error en eliminación total:', error);
+      throw error;
+    }
   }
 };
 

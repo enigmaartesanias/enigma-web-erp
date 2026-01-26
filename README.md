@@ -72,6 +72,12 @@ Sistema integral de gestión empresarial (ERP) y tienda en línea para artesaní
 - **Validación de duplicados** y auto-mayúsculas
 - **Gestión de clientes y proveedores**
 
+#### 🎤 Sistema de Voz (Nuevo)
+- **Registro por voz ultra-rápido** para datos personales.
+- **Flujo silencioso**: El sistema avanza automáticamente sin repeticiones innecesarias.
+- **Cierre preventivo**: El micrófono se apaga automáticamente al finalizar la Fase 1.
+- **Privacidad y Precisión**: Diseñado para captura rápida con confirmación visual humana.
+
 ## 🚀 Tecnologías
 
 ### Frontend
@@ -231,6 +237,16 @@ Este es un proyecto privado. Para contribuir:
 5. Abre un Pull Request
 
 ## 📝 Changelog
+
+### v3.1.0 (Enero 2026) - Voice Order 3.0: Silent & Rapid 🎤
+- 🎤 **Refactor Estructural de Voz**:
+  - **Fase 1 Optimizada**: Captura de Nombre, Teléfono y RUC/DNI en un solo flujo sin interrupciones.
+  - **Avance Silencioso**: Eliminación de confirmaciones habladas ("...registrado") para máxima velocidad.
+  - **Cierre Automático**: El micrófono se desconecta proactivamente tras registrar los datos personales para evitar errores.
+  - **RUC/DNI Opcional**: Inteligencia para aceptar valores negativos ("No", "Paso") y cerrar la fase limpiamente.
+- 🛠️ **Estabilidad Técnica**:
+  - **Sync con Refs**: Implementación de `useRef` para el estado del micrófono, eliminando errores de sincronización y cierres inesperados.
+  - **Validación Visual**: El sistema prioriza la corrección manual humana sobre la IA para garantizar datos 100% correctos.
 
 ### v3.0.0 (Enero 2026) - Dashboard Zen & UX Estructural 🧘‍♂️
 - 🎨 **Dashboard Zen Ultra-Minimalista**:

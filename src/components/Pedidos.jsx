@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { pedidosDB } from '../utils/pedidosNeonClient';
 import { produccionDB, METALES, TIPOS_PRODUCTO } from '../utils/produccionNeonClient';
 import { getLocalDate } from '../utils/dateUtils';
@@ -182,6 +182,12 @@ const Pedidos = () => {
         confirmColor: 'blue',
         onConfirm: () => { }
     });
+    const [focusedField, setFocusedField] = useState(null);
+
+    // Trackear en qué campo está el cursor
+    const handleFocus = (e) => {
+        setFocusedField(e.target.name);
+    };
 
     const [formData, setFormData] = useState({
         nombre_cliente: '',
@@ -306,7 +312,7 @@ const Pedidos = () => {
         }
 
         // Validar Metal y Tipo antes de agregar el producto
-        if (!formData.metal || !formData.tipo_producto) {
+        if (!productoActual.metal || !productoActual.tipo_producto) {
             toast.warning('Seleccione Metal y Tipo antes de agregar el producto', {
                 duration: 4000
             });
@@ -317,23 +323,18 @@ const Pedidos = () => {
             ...productoActual,
             cantidad: parseFloat(productoActual.cantidad),
             precio_unitario: parseFloat(productoActual.precio_unitario),
-            metal: formData.metal,           // Guardar metal específico
-            tipo_producto: formData.tipo_producto // Guardar tipo específico
+            metal: productoActual.metal,           // Guardar metal específico
+            tipo_producto: productoActual.tipo_producto // Guardar tipo específico
         }]);
 
         // Resetear campos del producto
         setProductoActual({
             nombre_producto: '',
             cantidad: '',
-            precio_unitario: ''
-        });
-
-        // Resetear selección de Metal y Tipo para el siguiente producto
-        setFormData(prev => ({
-            ...prev,
+            precio_unitario: '',
             metal: '',
             tipo_producto: ''
-        }));
+        });
     };
 
     const eliminarProductoLista = (index) => {
@@ -358,8 +359,8 @@ const Pedidos = () => {
             telefono: pedido.telefono || '',
             dni_ruc: pedido.dni_ruc || '',
             direccion_entrega: pedido.direccion_entrega || '',
-            metal: pedido.metal || 'Plata',
-            tipo_producto: pedido.tipo_producto || 'Anillo',
+            metal: pedido.metal || 'Plata', // This is for the form, but products are now individual
+            tipo_producto: pedido.tipo_producto || 'Anillo', // This is for the form, but products are now individual
             forma_pago: pedido.forma_pago || 'Efectivo',
             comprobante_pago: pedido.comprobante_pago || '',
             requiere_envio: pedido.requiere_envio,
@@ -378,7 +379,9 @@ const Pedidos = () => {
             setListaProductos(pedido.detalles_pedido.map(d => ({
                 nombre_producto: d.nombre_producto,
                 cantidad: d.cantidad,
-                precio_unitario: d.precio_unitario
+                precio_unitario: d.precio_unitario,
+                metal: d.metal,
+                tipo_producto: d.tipo_producto
             })));
         } else {
             setListaProductos([]);
@@ -465,7 +468,9 @@ const Pedidos = () => {
         setProductoActual({
             nombre_producto: '',
             cantidad: '',
-            precio_unitario: ''
+            precio_unitario: '',
+            metal: '',
+            tipo_producto: ''
         });
         setListaProductos([]);
         setEditingId(null);
@@ -842,32 +847,76 @@ const Pedidos = () => {
         e.target.blur();
     };
 
-    // Handler para voz
-    const handleVoiceConfirm = (pedidoTemp) => {
-        // Aplicar datos del cliente
+    // Handler para actualización parcial de voz (Feedback visual)
+    const handleVoicePartial = useCallback((data) => {
+        if (!data) return;
+
+        // Fase 1: Datos Cliente
         setFormData(prev => ({
             ...prev,
-            nombre_cliente: pedidoTemp.nombre_cliente || prev.nombre_cliente,
-            telefono: pedidoTemp.telefono || prev.telefono
+            nombre_cliente: data.nombre_cliente || prev.nombre_cliente,
+            telefono: data.telefono || prev.telefono,
+            dni_ruc: data.dni_ruc || prev.dni_ruc,
         }));
 
-        // Agregar productos si hay
-        if (pedidoTemp.productos && pedidoTemp.productos.length > 0) {
-            const nuevosProductos = pedidoTemp.productos.map(p => ({
-                nombre_producto: p.nombre, // Mantiene compatibilidad
-                cantidad: parseFloat(p.cantidad) || 1,
-                precio_unitario: parseFloat(p.precio) || 0,
-                metal: p.metal || 'Plata', // Usa el metal detectado o default
-                tipo_producto: p.producto || 'Anillo' // Usa el tipo detectado o default (nota: p.producto guarda el tipo)
+        // Fase 2: Detalles del Producto (si existen en la data de voz)
+        if (data.productoActual) {
+            setProductoActual(prev => ({
+                ...prev,
+                tipo_producto: data.productoActual.tipo_producto !== undefined ? data.productoActual.tipo_producto : prev.tipo_producto,
+                metal: data.productoActual.metal !== undefined ? data.productoActual.metal : prev.metal,
+                nombre_producto: data.productoActual.descripcion_producto !== undefined ? data.productoActual.descripcion_producto : prev.nombre_producto,
+                cantidad: data.productoActual.cantidad !== undefined ? data.productoActual.cantidad : prev.cantidad,
+                precio_unitario: data.productoActual.precio_unitario !== undefined ? data.productoActual.precio_unitario : prev.precio_unitario,
             }));
+        }
+    }, []);
 
-            setListaProductos(prev => [...prev, ...nuevosProductos]);
+    // Handler para voz (Confirmaciones y Acciones Directas)
+    const handleVoiceConfirm = (dataVoz) => {
+        if (!dataVoz) return;
+
+        if (dataVoz.type === 'ADD_PRODUCT_TO_GRID') {
+            const p = dataVoz.producto;
+            const nuevoP = {
+                tipo_producto: p.tipo_producto,
+                metal: p.metal,
+                cantidad: parseFloat(p.cantidad) || 0,
+                precio_unitario: parseFloat(p.precio_unitario) || 0,
+                nombre_producto: p.descripcion_producto || `${p.tipo_producto} de ${p.metal}`
+            };
+
+            setListaProductos(prev => [...prev, nuevoP]);
+            // RESET ABSOLUTO: Asegura que el segundo producto no herede nada del anterior
+            setProductoActual({
+                tipo_producto: '',
+                metal: '',
+                nombre_producto: '',
+                cantidad: '',
+                precio_unitario: ''
+            });
+            toast.success(`${p.tipo_producto} agregado`, { icon: '➕' });
+            return;
         }
 
-        toast.success(`Datos de voz aplicados: ${pedidoTemp.productos.length} productos agregados`, {
-            icon: '🎤',
-            duration: 4000
-        });
+        if (dataVoz.type === 'FIN_FASE_2') {
+            setProductoActual({
+                tipo_producto: '',
+                metal: '',
+                nombre_producto: '',
+                cantidad: '',
+                precio_unitario: ''
+            });
+            toast.success('Fase de productos completada', { icon: '🏁' });
+            return;
+        }
+
+        setFormData(prev => ({
+            ...prev,
+            nombre_cliente: dataVoz.nombre_cliente || prev.nombre_cliente,
+            telefono: dataVoz.telefono || prev.telefono,
+            dni_ruc: dataVoz.dni_ruc || prev.dni_ruc
+        }));
     };
 
     return (
@@ -912,6 +961,7 @@ const Pedidos = () => {
                                     name="nombre_cliente"
                                     value={formData.nombre_cliente}
                                     onChange={handleChange}
+                                    onFocus={handleFocus}
                                     className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2.5 transition-all bg-white"
                                 />
                             </div>
@@ -923,6 +973,7 @@ const Pedidos = () => {
                                         name="telefono"
                                         value={formData.telefono}
                                         onChange={handleChange}
+                                        onFocus={handleFocus}
                                         className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2.5 transition-all bg-white"
                                     />
                                 </div>
@@ -933,6 +984,7 @@ const Pedidos = () => {
                                         name="dni_ruc"
                                         value={formData.dni_ruc}
                                         onChange={handleChange}
+                                        onFocus={handleFocus}
                                         className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2.5 transition-all bg-white"
                                     />
                                 </div>
@@ -954,8 +1006,9 @@ const Pedidos = () => {
                                 <label className="block text-sm font-semibold text-gray-700">Metal *</label>
                                 <select
                                     name="metal"
-                                    value={formData.metal}
-                                    onChange={handleChange}
+                                    value={productoActual.metal}
+                                    onChange={handleProductoChange}
+                                    onFocus={handleFocus}
                                     className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2.5 transition-all bg-white"
                                 >
                                     <option value="">-- Selecciona metal --</option>
@@ -968,8 +1021,9 @@ const Pedidos = () => {
                                 <label className="block text-sm font-semibold text-gray-700">Tipo de Producto *</label>
                                 <select
                                     name="tipo_producto"
-                                    value={formData.tipo_producto}
-                                    onChange={handleChange}
+                                    value={productoActual.tipo_producto}
+                                    onChange={handleProductoChange}
+                                    onFocus={handleFocus}
                                     className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2.5 transition-all bg-white"
                                 >
                                     <option value="">-- Selecciona tipo --</option>
@@ -986,6 +1040,7 @@ const Pedidos = () => {
                                     name="nombre_producto"
                                     value={productoActual.nombre_producto}
                                     onChange={handleProductoChange}
+                                    onFocus={handleFocus}
                                     rows="2"
                                     placeholder="Ej: Anillo de compromiso con grabado..."
                                     className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2.5 transition-all bg-white"
@@ -998,6 +1053,7 @@ const Pedidos = () => {
                                     name="cantidad"
                                     value={productoActual.cantidad}
                                     onChange={handleProductoChange}
+                                    onFocus={handleFocus}
                                     min="1"
                                     className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2.5 transition-all bg-white"
                                     onWheel={handleWheel}
@@ -1011,6 +1067,7 @@ const Pedidos = () => {
                                         name="precio_unitario"
                                         value={productoActual.precio_unitario}
                                         onChange={handleProductoChange}
+                                        onFocus={handleFocus}
                                         step="0.01"
                                         className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2.5 transition-all bg-white"
                                         onWheel={handleWheel}
@@ -1034,7 +1091,7 @@ const Pedidos = () => {
                                     <thead className="bg-gray-100">
                                         <tr>
                                             <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase">Producto</th>
-                                            <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase">Metal / Tipo</th>
+                                            <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase">Metal</th>
                                             <th className="px-4 py-3 text-center text-xs font-bold text-gray-600 uppercase">Cant.</th>
                                             <th className="px-4 py-3 text-right text-xs font-bold text-gray-600 uppercase">P. Unit</th>
                                             <th className="px-4 py-3 text-right text-xs font-bold text-gray-600 uppercase">Subtotal</th>
@@ -1044,14 +1101,11 @@ const Pedidos = () => {
                                     <tbody className="bg-white divide-y divide-gray-200">
                                         {listaProductos.map((prod, index) => (
                                             <tr key={index} className="hover:bg-gray-50 transition-colors">
-                                                <td className="px-4 py-3 text-sm text-gray-900">{prod.nombre_producto}</td>
-                                                <td className="px-4 py-3 text-sm text-gray-500">
-                                                    <div className="text-xs font-bold text-gray-700">{prod.metal}</div>
-                                                    <div className="text-xs text-gray-500">{prod.tipo_producto}</div>
-                                                </td>
+                                                <td className="px-4 py-3 text-sm text-gray-900 font-medium">{prod.tipo_producto}</td>
+                                                <td className="px-4 py-3 text-sm text-gray-600">{prod.metal}</td>
                                                 <td className="px-4 py-3 text-sm text-gray-900 text-center font-semibold">{prod.cantidad}</td>
-                                                <td className="px-4 py-3 text-sm text-gray-900 text-right">S/ {parseFloat(prod.precio_unitario).toFixed(2)}</td>
-                                                <td className="px-4 py-3 text-sm font-bold text-gray-900 text-right">S/ {(prod.cantidad * prod.precio_unitario).toFixed(2)}</td>
+                                                <td className="px-4 py-3 text-sm text-gray-900 text-right">{parseFloat(prod.precio_unitario).toFixed(2)}</td>
+                                                <td className="px-4 py-3 text-sm font-bold text-gray-900 text-right">{(prod.cantidad * prod.precio_unitario).toFixed(2)}</td>
                                                 <td className="px-4 py-3 text-center">
                                                     <button
                                                         type="button"
@@ -1097,6 +1151,7 @@ const Pedidos = () => {
                                             name="direccion_entrega"
                                             value={formData.direccion_entrega}
                                             onChange={handleChange}
+                                            onFocus={handleFocus}
                                             placeholder="Ciudad, Agencia o Dirección exacta..."
                                             className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2.5 bg-white"
                                         />
@@ -1107,6 +1162,7 @@ const Pedidos = () => {
                                             name="modalidad_envio"
                                             value={formData.modalidad_envio}
                                             onChange={handleChange}
+                                            onFocus={handleFocus}
                                             className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2.5 bg-white"
                                         >
                                             <option value="Fijo">Envío Fijo/Calculado</option>
@@ -1120,6 +1176,7 @@ const Pedidos = () => {
                                             name="envio_cobrado_al_cliente"
                                             value={formData.envio_cobrado_al_cliente}
                                             onChange={handleChange}
+                                            onFocus={handleFocus}
                                             step="0.01"
                                             placeholder="0.00"
                                             className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2.5 bg-white"
@@ -1144,6 +1201,7 @@ const Pedidos = () => {
                                     name="forma_pago"
                                     value={formData.forma_pago}
                                     onChange={handleChange}
+                                    onFocus={handleFocus}
                                     className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2.5 bg-white"
                                 >
                                     <option value="Efectivo">Efectivo</option>
@@ -1159,6 +1217,7 @@ const Pedidos = () => {
                                     name="comprobante_pago"
                                     value={formData.comprobante_pago}
                                     onChange={handleChange}
+                                    onFocus={handleFocus}
                                     placeholder="Ej: Op. 123456"
                                     className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2.5 bg-white"
                                 />
@@ -1183,6 +1242,7 @@ const Pedidos = () => {
                                     name="monto_a_cuenta"
                                     value={formData.monto_a_cuenta}
                                     onChange={handleChange}
+                                    onFocus={handleFocus}
                                     step="0.01"
                                     placeholder="0.00"
                                     className="mt-1 block w-full rounded-xl border-2 border-blue-200 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-3 text-lg font-bold text-blue-900 bg-white"
@@ -1398,7 +1458,7 @@ const Pedidos = () => {
                                                     <div className="space-y-1">
                                                         {pedido.detalles_pedido?.map((d, idx) => (
                                                             <div key={idx} className="text-xs border-b last:border-0 border-gray-100 pb-1 last:pb-0">
-                                                                <span className="font-normal text-gray-800">{pedido.tipo_producto} - {pedido.metal} x{d.cantidad}</span>
+                                                                <span className="font-normal text-gray-800">{d.tipo_producto} - {d.metal} x{d.cantidad}</span>
                                                             </div>
                                                         )) || '-'}
                                                     </div>
@@ -1438,7 +1498,7 @@ const Pedidos = () => {
                                                     <div className="space-y-1">
                                                         {pedido.detalles_pedido?.map((d, idx) => (
                                                             <div key={idx} className="text-xs border-b last:border-0 border-gray-100 pb-1 last:pb-0">
-                                                                <span className="font-normal text-gray-800">{pedido.tipo_producto} - {pedido.metal} x{d.cantidad}</span>
+                                                                <span className="font-normal text-gray-800">{d.tipo_producto} - {d.metal} x{d.cantidad}</span>
                                                             </div>
                                                         )) || '-'}
                                                     </div>
@@ -1466,7 +1526,7 @@ const Pedidos = () => {
                                                     <div className="space-y-1">
                                                         {pedido.detalles_pedido?.map((d, idx) => (
                                                             <div key={idx} className="text-xs border-b last:border-0 border-gray-100 pb-1 last:pb-0">
-                                                                <span className="font-normal text-gray-800">{pedido.tipo_producto} - {pedido.metal} x{d.cantidad}</span>
+                                                                <span className="font-normal text-gray-800">{d.tipo_producto} - {d.metal} x{d.cantidad}</span>
                                                             </div>
                                                         )) || '-'}
                                                     </div>
@@ -1872,7 +1932,13 @@ const Pedidos = () => {
             />
 
             {/* Diálogo de Voz */}
-            <VoiceDialog onConfirm={handleVoiceConfirm} />
+            <VoiceDialog
+                onConfirm={handleVoiceConfirm}
+                onPartialUpdate={handleVoicePartial}
+                formData={formData}
+                productoActual={productoActual}
+                focusedField={focusedField}
+            />
         </div >
     );
 };

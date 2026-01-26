@@ -3,14 +3,29 @@ import React from 'react';
 import { Mic, MicOff } from 'lucide-react';
 import { useVoiceOrder } from '../voice/useVoiceOrder';
 
-export default function VoiceDialog({ onConfirm }) {
-    const { isListening, status, mensaje, transcriptActual, iniciar, detener } = useVoiceOrder(onConfirm);
+export default function VoiceDialog({ onConfirm, onPartialUpdate, formData, productoActual, focusedField }) {
+    const { isListening, status, mensaje, transcriptActual, iniciar, detener, currentData } = useVoiceOrder(onConfirm);
+    const lastDataSent = React.useRef("");
+
+    const handleStart = () => {
+        iniciar(formData, productoActual, focusedField);
+    };
+
+    React.useEffect(() => {
+        if (onPartialUpdate && currentData) {
+            const currentStr = JSON.stringify(currentData);
+            if (lastDataSent.current !== currentStr) {
+                onPartialUpdate(currentData);
+                lastDataSent.current = currentStr;
+            }
+        }
+    }, [currentData, onPartialUpdate]);
 
     return (
         <div className="fixed bottom-6 right-6 z-50">
             {/* Botón 🎤 */}
             <button
-                onClick={isListening ? detener : iniciar}
+                onClick={isListening ? detener : handleStart}
                 className={`w-16 h-16 rounded-full shadow-2xl flex items-center justify-center transition-all ${isListening ? 'bg-red-500 hover:bg-red-600 animate-pulse' : 'bg-blue-500 hover:bg-blue-600'
                     }`}
                 title={isListening ? 'Detener pedido por voz' : 'Iniciar pedido por voz'}
@@ -23,19 +38,35 @@ export default function VoiceDialog({ onConfirm }) {
             </button>
 
             {/* Panel minimalista */}
-            {isListening && (
+            {status !== 'idle' && (
                 <div className="absolute bottom-20 right-0 bg-white rounded-lg shadow-2xl p-4 w-80 border-2 border-blue-100">
                     {/* Status */}
                     <div className="flex items-center gap-2 mb-3">
-                        <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
-                        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                            Escuchando...
-                        </span>
+                        {status === 'listening' ? (
+                            <>
+                                <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
+                                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                                    Escuchando...
+                                </span>
+                            </>
+                        ) : (
+                            <>
+                                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                                <span className="text-[10px] font-bold text-blue-500 uppercase tracking-widest">
+                                    Procesando...
+                                </span>
+                            </>
+                        )}
                     </div>
 
-                    {/* Mensaje del sistema */}
-                    <div className="text-sm text-gray-800 font-medium mb-3 min-h-[40px]">
+                    {/* Mensaje del sistema (Pregunta actual) */}
+                    <div className="text-sm text-gray-700 font-medium mb-4 min-h-[40px] text-center px-2">
                         {mensaje}
+                        {mensaje.includes('Detalles') && (
+                            <div className="text-[10px] text-purple-600 mt-1 font-bold animate-pulse">
+                                ✨ MODO DICTADO ACTIVO (45s)
+                            </div>
+                        )}
                     </div>
 
                     {/* Transcripción actual - MÁS PROMINENTE */}
@@ -63,6 +94,12 @@ export default function VoiceDialog({ onConfirm }) {
                     {mensaje.includes('Precio') && (
                         <div className="text-xs text-blue-600 bg-blue-50 p-2 rounded border border-blue-100 mt-1 text-center font-medium">
                             💡 Di solo el número (ej: "120")
+                        </div>
+                    )}
+                    {status === 'completed_phase_1' && (
+                        <div className="text-sm text-green-600 font-semibold flex items-center gap-2 bg-green-50 p-2 rounded border border-green-100 mb-2">
+                            <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                            Datos del cliente guardados
                         </div>
                     )}
                     {status === 'completed' && (

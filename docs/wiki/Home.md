@@ -11,6 +11,7 @@ Bienvenido a la documentación completa del sistema ERP de Aldo Artesanías.
 - [Módulo de Pedidos](./Modulo-de-Pedidos.md)
 - [Módulo de Compras](./Modulo-de-Compras.md)
 - [Módulo de Materiales](./Modulo-de-Materiales.md)
+- [Sistema de Voz](./Sistema-de-Voz.md)
 
 ### Guías Técnicas
 - [Instalación y Configuración](./Instalacion.md)
@@ -40,6 +41,14 @@ npm run dev
 ```
 
 ## 📖 Novedades
+
+### Enero 2026 - v3.1.0 🎤
+
+#### Voice Order 3.0: Silent & Rapid
+- 🎤 **Refactor Fase 1**: Captura fluida de datos personales sin interrupciones.
+- 🔇 **Flujo Silencioso**: Remoción de feedback verbal para agilizar la operación.
+- 🛑 **Auto-Close**: El sistema apaga el micrófono automáticamente al registrar el RUC/DNI.
+- 📐 **Arquitectura Robusta**: Uso de `Refs` para control total del estado del micrófono.
 
 ### Enero 2026 - v3.0.0 🧘‍♂️
 

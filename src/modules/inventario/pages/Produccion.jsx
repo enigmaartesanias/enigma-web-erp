@@ -969,77 +969,7 @@ const Produccion = () => {
                         />
                     </div>
 
-                    {/* Imagen y Código */}
-                    <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
-                        <h3 className="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">
-                            <FaCamera className="text-gray-600" />
-                            Detalles Visuales e Identificación
-                        </h3>
-                        <div className="grid grid-cols-1 gap-6">
-                            {/* Carga de Imagen */}
-                            <div>
-                                <label className="block text-xs font-semibold text-gray-700 mb-2">Imagen del Producto</label>
-
-                                {formData.estado_produccion === 'terminado' ? (
-                                    <div className="flex items-start gap-4">
-                                        <div className="w-24 h-24 bg-gray-200 rounded-lg border border-gray-300 flex items-center justify-center overflow-hidden relative">
-                                            {formData.imagen_url ? (
-                                                <>
-                                                    <img src={formData.imagen_url} alt="Prod" className="w-full h-full object-cover" />
-                                                    {!editingId && (
-                                                        <button
-                                                            type="button"
-                                                            onClick={handleRemoveImage}
-                                                            className="absolute top-0 right-0 bg-red-500 text-white p-1 rounded-bl-lg hover:bg-red-600"
-                                                        >
-                                                            <FaTimes size={10} />
-                                                        </button>
-                                                    )}
-                                                </>
-                                            ) : (
-                                                <FaCamera className="text-gray-400 text-2xl" />
-                                            )}
-                                            {uploadingImage && (
-                                                <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center text-white text-[10px] animate-pulse">
-                                                    <FaSpinner className="animate-spin text-xl mb-1" />
-                                                    <span>Subiendo...</span>
-                                                </div>
-                                            )}
-                                        </div>
-                                        <div className="flex-1">
-                                            <input
-                                                type="file"
-                                                ref={fileInputRef}
-                                                className="hidden"
-                                                accept="image/*"
-                                                onChange={handleImageChange}
-                                            />
-                                            <button
-                                                type="button"
-                                                onClick={() => fileInputRef.current.click()}
-                                                disabled={uploadingImage}
-                                                className="px-3 py-2 bg-white border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-2"
-                                            >
-                                                <FaCamera />
-                                                {formData.imagen_url ? 'Cambiar Imagen' : 'Subir Imagen'}
-                                            </button>
-                                            <p className="text-[10px] text-gray-500 mt-1">Máx 5MB. JPG, PNG.</p>
-                                        </div>
-                                    </div>
-                                ) : (
-                                    <div className="bg-white border border-dashed border-gray-300 rounded-lg p-6 flex flex-col items-center justify-center text-center">
-                                        <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center mb-2">
-                                            <FaBan className="text-gray-400" />
-                                        </div>
-                                        <p className="text-sm text-gray-600 font-medium">Imagen no disponible</p>
-                                        <p className="text-xs text-gray-400 max-w-[200px]">
-                                            Solo se pueden subir fotos cuando la producción está en estado <strong>Terminado</strong>.
-                                        </p>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    </div>
+                    {/* Sección de imagen eliminada - no es necesaria */}
 
                     <div className="pt-2">
                         <button
@@ -1097,20 +1027,20 @@ const Produccion = () => {
                 <div className="overflow-x-auto">
                     <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-gray-50 border-b border-gray-100">
-                            <tr className="h-[44px]">
-                                <th className="px-3 text-left text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Origen</th>
-                                <th className="px-3 text-left text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Producto</th>
-                                <th className="hidden md:table-cell px-3 text-center text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Cant</th>
-                                <th className="px-3 text-center text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Est.</th>
-                                <th className="px-3 text-right text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Fecha</th>
-                                <th className="px-3 text-right text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Acciones</th>
+                            <tr className="h-[48px]">
+                                <th className="px-3 text-left text-[11px] font-semibold text-gray-400 uppercase tracking-wider align-middle">Origen</th>
+                                <th className="px-3 text-left text-[11px] font-semibold text-gray-400 uppercase tracking-wider align-middle">Producto</th>
+                                <th className="hidden md:table-cell px-3 text-center text-[11px] font-semibold text-gray-400 uppercase tracking-wider align-middle">Cant</th>
+                                <th className="px-3 text-center text-[11px] font-semibold text-gray-400 uppercase tracking-wider align-middle">Est.</th>
+                                <th className="px-3 text-right text-[11px] font-semibold text-gray-400 uppercase tracking-wider align-middle">Fecha</th>
+                                <th className="px-3 text-right text-[11px] font-semibold text-gray-400 uppercase tracking-wider align-middle w-[140px] md:w-[130px]">Acciones</th>
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-50">
                             {paginatedProduccion.map((item) => (
-                                <tr key={item.id_produccion} className="h-[70px] md:h-[58px] hover:bg-gray-50/50 transition-colors group">
-                                    {/* ... content ... */}
-                                    <td className="px-3 whitespace-nowrap hidden md:table-cell">
+                                <tr key={item.id_produccion} className="h-[75px] md:h-[64px] hover:bg-gray-50/50 transition-colors group">
+                                    {/* 1. Origen - Primera columna */}
+                                    <td className="px-3 whitespace-nowrap align-middle">
                                         {item.pedido_id ? (
                                             <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-normal bg-amber-50 text-amber-600 border border-amber-100">
                                                 Ped #{item.pedido_id}
@@ -1122,33 +1052,23 @@ const Produccion = () => {
                                         )}
                                     </td>
 
-                                    {/* 2. Producto (+ Origen/Cant on Mobile) */}
-                                    <td className="px-3">
-                                        <div className="flex flex-col">
-                                            {/* Badge Mobile */}
-                                            <div className="md:hidden flex items-center gap-2 mb-0.5">
-                                                {item.pedido_id ? (
-                                                    <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-50 text-amber-600 uppercase">P#{item.pedido_id}</span>
-                                                ) : (
-                                                    <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-gray-100 text-gray-500 uppercase">Stock</span>
-                                                )}
-                                            </div>
-                                            <div className="text-[14px] text-gray-700 font-normal leading-tight">
-                                                {item.tipo_producto} – {item.metal}
-                                            </div>
-                                            <div className="md:hidden text-[11px] text-gray-400 font-normal mt-0.5">
-                                                {item.cantidad}u
-                                            </div>
+                                    {/* 2. Producto */}
+                                    <td className="px-3 align-middle">
+                                        <div className="text-[14px] text-gray-700 font-normal leading-tight">
+                                            {item.tipo_producto} – {item.metal}
+                                        </div>
+                                        <div className="md:hidden text-[11px] text-gray-400 font-normal mt-0.5">
+                                            {item.cantidad}u
                                         </div>
                                     </td>
 
                                     {/* 3. Cant - Desktop */}
-                                    <td className="hidden md:table-cell px-3 text-center text-[13px] text-gray-500 font-normal">
+                                    <td className="hidden md:table-cell px-3 text-center text-[13px] text-gray-500 font-normal align-middle">
                                         {item.cantidad}u
                                     </td>
 
                                     {/* 4. Estado - Icono solamente */}
-                                    <td className="px-3 text-center">
+                                    <td className="px-3 text-center align-middle">
                                         <div className="flex justify-center">
                                             {item.estado_produccion === 'terminado' ? (
                                                 <div className="w-9 h-9 md:w-8 md:h-8 rounded-full bg-green-50 flex items-center justify-center text-green-500 border border-green-100" title="Terminado">
@@ -1167,7 +1087,7 @@ const Produccion = () => {
                                     </td>
 
                                     {/* 5. Fecha - Solo una (Inicio o Fin) */}
-                                    <td className="px-3 text-right whitespace-nowrap">
+                                    <td className="px-3 text-right whitespace-nowrap align-middle">
                                         <div className="text-[12px] md:text-[11px] text-gray-500 font-normal">
                                             {(() => {
                                                 const dateStr = item.estado_produccion === 'terminado' ? (item.fecha_produccion || item.created_at) : item.created_at;
@@ -1179,8 +1099,8 @@ const Produccion = () => {
                                     </td>
 
                                     {/* 6. Acciones - Iconos solamente */}
-                                    <td className="px-3 text-right whitespace-nowrap">
-                                        <div className="flex justify-end items-center gap-1 md:gap-3">
+                                    <td className="px-3 text-right whitespace-nowrap align-middle">
+                                        <div className="flex justify-end items-center gap-1 md:gap-2">
                                             {/* Ver Detalle */}
                                             <button
                                                 onClick={() => handleView(item)}

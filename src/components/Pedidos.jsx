@@ -8,6 +8,7 @@ import html2canvas from 'html2canvas';
 import toast, { Toaster } from 'react-hot-toast';
 import ConfirmModal from './ui/ConfirmModal';
 import Tooltip from './ui/Tooltip';
+import VoiceDialog from './VoiceDialog';
 
 // ========================================
 // UTILIDADES DE FECHA
@@ -839,6 +840,34 @@ const Pedidos = () => {
     // Prevent mouse wheel from changing number inputs
     const handleWheel = (e) => {
         e.target.blur();
+    };
+
+    // Handler para voz
+    const handleVoiceConfirm = (pedidoTemp) => {
+        // Aplicar datos del cliente
+        setFormData(prev => ({
+            ...prev,
+            nombre_cliente: pedidoTemp.nombre_cliente || prev.nombre_cliente,
+            telefono: pedidoTemp.telefono || prev.telefono
+        }));
+
+        // Agregar productos si hay
+        if (pedidoTemp.productos && pedidoTemp.productos.length > 0) {
+            const nuevosProductos = pedidoTemp.productos.map(p => ({
+                nombre_producto: p.nombre, // Mantiene compatibilidad
+                cantidad: parseFloat(p.cantidad) || 1,
+                precio_unitario: parseFloat(p.precio) || 0,
+                metal: p.metal || 'Plata', // Usa el metal detectado o default
+                tipo_producto: p.producto || 'Anillo' // Usa el tipo detectado o default (nota: p.producto guarda el tipo)
+            }));
+
+            setListaProductos(prev => [...prev, ...nuevosProductos]);
+        }
+
+        toast.success(`Datos de voz aplicados: ${pedidoTemp.productos.length} productos agregados`, {
+            icon: '🎤',
+            duration: 4000
+        });
     };
 
     return (
@@ -1841,6 +1870,9 @@ const Pedidos = () => {
                 confirmText={confirmModal.confirmText}
                 confirmColor={confirmModal.confirmColor}
             />
+
+            {/* Diálogo de Voz */}
+            <VoiceDialog onConfirm={handleVoiceConfirm} />
         </div >
     );
 };

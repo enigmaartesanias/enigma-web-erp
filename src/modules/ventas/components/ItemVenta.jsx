@@ -75,12 +75,12 @@ const ItemVenta = ({ item, onUpdateItem, onRemove }) => {
                 )}
             </div>
 
-            {/* 4. Eliminar */}
+            {/* 4. Eliminar - Icono más grande */}
             <button
                 onClick={() => onRemove(item.id)}
-                className="w-6 h-6 flex items-center justify-center text-red-200 hover:text-red-400 transition-all flex-shrink-0"
+                className="w-8 h-8 flex items-center justify-center text-red-300 hover:text-red-500 transition-all flex-shrink-0"
             >
-                <FaTrash size={11} />
+                <FaTrash size={18} />
             </button>
         </div>
     );

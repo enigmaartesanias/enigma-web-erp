@@ -232,6 +232,18 @@ Este es un proyecto privado. Para contribuir:
 
 ## 📝 Changelog
 
+### v3.0.0 (Enero 2026) - Dashboard Zen & UX Estructural 🧘‍♂️
+- 🎨 **Dashboard Zen Ultra-Minimalista**:
+  - **Rediseño Estructural**: Nueva interfaz de panel basada en "Capas y Contraste" con fondo neutro y tarjetas flotantes para una distinción clara.
+  - **Jerarquía Visual por Color**: Uso estratégico de color únicamente en iconos principales para guiar el ojo (Ventas: Azul, Pedidos: Ámbar, Producción: Esmeralda).
+- 📱 **UX Mobile de Alto Impacto**:
+  - **Layout de 2 Columnas Forzado**: En dispositivos móviles, las acciones y sus reportes ahora se visualizan siempre en pares (lado a lado), optimizando el espacio vertical.
+  - **Orden Jerárquico Estricto**: Priorización inteligente mediante `order-x` (Ventas > Pedidos > Producción).
+- ✍️ **Copy UX & Micro-interacciones**:
+  - **Lenguaje de Verbos**: Sustitución de etiquetas técnicas por acciones directas: *"Gestionar ventas"*, *"Entrar a taller"*, *"Ver historial"*.
+  - **Header Minimalista**: Limpieza total de cabecera; eliminación de iconos distractores y simplificación cromática a negro/gris.
+  - **Tipografía Editorial**: Fuentes pequeñas y pesos medios para una estética profesional "Zen".
+
 ### v2.9.0 (Enero 2026) - Inventario Consolidado & UX Ágil 🚀
 - 📦 **Inventario por Código Único**:
   - **Agrupación Inteligente**: El reporte de inventario ahora consolida registros automáticamente por `codigo_usuario`.

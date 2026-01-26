@@ -185,6 +185,16 @@ if (fechaFin && fechaVentaPeru > fechaFin) return false;
 - **Agregado**: Columna `Proveedor` para rápida identificación.
 - **Removido**: Columna `P. Unit` para simplificar la vista (se mantiene Cantidad y Total).
 
+### 5. Rediseño del Dashboard Zen (v3.0.0)
+
+**Archivo**: `src/modules/inventario/pages/InventarioHome.jsx`
+
+**Impacto Visual y UX**:
+- **Estética "Zen"**: Nueva interfaz ultra-minimalista que utiliza el contraste entre el fondo neutral (`bg-neutral-50`) y las tarjetas blancas flotantes para separar claramente cada módulo.
+- **Jerarquía Visual**: Los iconos principales ahora cargan la identidad cromática del área (Ventas: Azul, Pedidos: Ámbar, Producción: Esmeralda), mientras que los reportes y textos secundarios se mantienen en gris minimalista.
+- **Optimización Mobile**: Se ha forzado un layout de 2 columnas en dispositivos móviles para que el usuario pueda ver la gestión y su reporte correspondiente lado a lado, reduciendo el scroll infinito.
+- **Micro-copy UX**: Sustitución de etiquetas genéricas por verbos de acción directa (*"Gestionar"*, *"Entrar"*, *"Ver"*).
+
 ## Flujo de Trabajo para Nuevos Años
 
 Para replicar esta transición en años futuros (ej. 2027):

@@ -41,6 +41,14 @@ npm run dev
 
 ## 📖 Novedades
 
+### Enero 2026 - v3.0.0 🧘‍♂️
+
+#### Dashboard Zen & UX Estructural
+- 🎨 **Rediseño Zen**: Nueva interfaz ultra-minimalista con enfoque en el contraste y la jerarquía visual por colores.
+- 📱 **Layout Dual Mobile**: Organización forzada en 2 columnas para móviles, permitiendo ver Acciones y Reportes simultáneamente.
+- ✍️ **Action-Based Copy**: Textura verbal renovada: *"Gestionar ventas"*, *"Entrar a taller"*, *"Ver métricas"*.
+- 🧹 **Header Minimalista**: Limpieza cromática y estructural del panel de navegación superior.
+
 ### Enero 2026 - v2.8.0 ✨
 
 #### POS UI Redesign & UX Elegance

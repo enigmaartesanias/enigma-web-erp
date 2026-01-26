@@ -11,6 +11,7 @@ import { FaArrowLeft, FaHistory, FaShoppingCart } from 'react-icons/fa';
 import QRScanner from '../components/QRScanner';
 import ClienteSelector from '../components/ClienteSelector';
 import ModalCredito from '../components/ModalCredito';
+import NotaVentaModal from '../components/NotaVentaModal';
 import { getLocalDate } from '../../../utils/dateUtils';
 
 
@@ -29,6 +30,10 @@ const NuevaVenta = () => {
     const [showQRScanner, setShowQRScanner] = useState(false);
     const [showClienteSelector, setShowClienteSelector] = useState(false);
     const [showModalCredito, setShowModalCredito] = useState(false);
+
+    // Estado para el modal de nota de venta
+    const [showNotaVenta, setShowNotaVenta] = useState(false);
+    const [ventaRegistrada, setVentaRegistrada] = useState(null);
 
 
     // Manejo de escaneo (Input manual o búsqueda exacta)
@@ -83,12 +88,36 @@ const NuevaVenta = () => {
                 }))
             };
 
-            await ventasDB.createVenta(ventaData);
+            const venta = await ventasDB.createVenta(ventaData);
 
             toast.success('¡Venta registrada con éxito!', {
                 duration: 3000,
                 icon: '🎉'
             });
+
+
+            // Abrir modal automáticamente con los datos de la venta
+            setVentaRegistrada({
+                numeroVenta: venta.codigo_venta,
+                fecha: new Date(venta.fecha_venta).toLocaleDateString('es-PE', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric'
+                }),
+                cliente: venta.cliente_nombre || 'Cliente General',
+                productos: cart.map(item => ({
+                    nombre: item.nombre,
+                    cantidad: item.cantidad,
+                    precioUnitario: item.precio_venta
+                })),
+                subtotal: venta.subtotal,
+                igv: venta.impuesto_monto || 0,
+                descuento: venta.descuento_monto || 0,
+                total: venta.total,
+                formaPago: venta.forma_pago
+            });
+            setShowNotaVenta(true);
+
             clearCart();
         } catch (error) {
             console.error(error);
@@ -132,7 +161,9 @@ const NuevaVenta = () => {
                     producto_nombre: item.nombre,
                     producto_codigo: item.codigo
                 }))
-            }; const venta = await ventasDB.createVenta(ventaData);
+            };
+
+            const venta = await ventasDB.createVenta(ventaData);
 
             // 2. Si hubo adelanto, registrar pago inicial
             if (adelanto > 0) {
@@ -148,6 +179,41 @@ const NuevaVenta = () => {
                 duration: 3000,
                 icon: '💳'
             });
+
+            // Preparar datos para el modal de nota de venta
+            const ventaConDetalles = {
+                ...venta,
+                detalles: cart.map(item => ({
+                    producto_nombre: item.nombre,
+                    producto_codigo: item.codigo,
+                    cantidad: item.cantidad,
+                    precio_unitario: item.precio_venta,
+                    subtotal: item.cantidad * item.precio_venta
+                }))
+            };
+
+            // Abrir modal automáticamente con los datos de la venta a crédito
+            setVentaRegistrada({
+                numeroVenta: venta.codigo_venta,
+                fecha: new Date(venta.fecha_venta).toLocaleDateString('es-PE', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric'
+                }),
+                cliente: venta.cliente_nombre || 'Cliente General',
+                productos: cart.map(item => ({
+                    nombre: item.nombre,
+                    cantidad: item.cantidad,
+                    precioUnitario: item.precio_venta
+                })),
+                subtotal: venta.subtotal,
+                igv: venta.impuesto_monto || 0,
+                descuento: venta.descuento_monto || 0,
+                total: venta.total,
+                formaPago: venta.forma_pago
+            });
+            setShowNotaVenta(true);
+
             clearCart();
         } catch (error) {
             console.error(error);
@@ -193,6 +259,13 @@ const NuevaVenta = () => {
                 cliente={config.cliente}
                 detallesProductos={cart}
                 onConfirmar={handleProcessVentaCredito}
+            />
+
+            {/* Modal Nota de Venta - Se abre automáticamente al registrar */}
+            <NotaVentaModal
+                isOpen={showNotaVenta}
+                onClose={() => setShowNotaVenta(false)}
+                ventaData={ventaRegistrada}
             />
 
             {/* Main Content - Grid Layout */}
@@ -249,6 +322,8 @@ const NuevaVenta = () => {
                         setFormaPago={setFormaPago}
                         onCreditoClick={() => setShowModalCredito(true)}
                         onCancel={clearCart}
+                        fechaVenta={fechaVenta}
+                        setFechaVenta={setFechaVenta}
                         // En desktop pasamos false implícitamente si quisiéramos controlar, pero aquí pasamos true.
                         // El truco es que ResumenVenta oculte la lista en MD.
                         showCartList={true}

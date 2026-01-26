@@ -1,25 +1,36 @@
 import React, { useState } from 'react';
-import { FaMoneyBillWave, FaShoppingCart, FaUser, FaMobileAlt, FaRegCreditCard, FaPercentage } from 'react-icons/fa';
+import { FaMoneyBillWave, FaShoppingCart, FaUser, FaMobileAlt, FaRegCreditCard, FaCalendarAlt, FaPlus } from 'react-icons/fa';
 import BuscadorProducto from './BuscadorProducto';
 import ItemVenta from './ItemVenta';
+import ModalPagoDigital from './ModalPagoDigital';
 
-const ResumenVenta = ({ totals, config, setConfig, onProcess, processing, onClienteClick, onScan, onSelect, onQRClick, cart, onUpdateItem, onRemove, formaPago, setFormaPago, onCreditoClick, onCancel, showCartList = true }) => {
+const ResumenVenta = ({
+    totals, config, setConfig, onProcess, processing, onClienteClick,
+    onScan, onSelect, onQRClick, cart, onUpdateItem, onRemove,
+    formaPago, setFormaPago, onCreditoClick, onCancel, showCartList = true,
+    fechaVenta, setFechaVenta
+}) => {
     const [showDiscountInput, setShowDiscountInput] = useState(false);
+    const [showModalPagoDigital, setShowModalPagoDigital] = useState(false);
 
-    // Mapeo simple de opciones de pago para visualización ágil
     const paymentOptions = [
-        { id: 'Efectivo', icon: FaMoneyBillWave, label: 'EFEC', color: 'text-green-600', bg: 'bg-green-50', border: 'border-green-200' },
-        { id: 'Yape', icon: FaMobileAlt, label: 'DIGIT', color: 'text-purple-600', bg: 'bg-purple-50', border: 'border-purple-200' }, // Representa Yape/Plin/Transf
-        { id: 'CREDITO', icon: FaRegCreditCard, label: 'CRED', color: 'text-blue-600', bg: 'bg-blue-50', border: 'border-blue-200' }
+        { id: 'Efectivo', icon: FaMoneyBillWave, label: 'EFEC' },
+        { id: 'Digital', icon: FaMobileAlt, label: 'DIGIT' },
+        { id: 'CREDITO', icon: FaRegCreditCard, label: 'CRED' }
     ];
 
     const handlePaymentSelect = (id) => {
-        if (id === 'CREDITO') {
-            // Solo marcamos visualmente, la lógica de botón cambiará
+        if (id === 'Digital') {
+            setShowModalPagoDigital(true);
+        } else if (id === 'CREDITO') {
             setFormaPago('CREDITO');
         } else {
             setFormaPago(id);
         }
+    };
+
+    const handleDigitalPaymentSelect = (metodo) => {
+        setFormaPago(metodo);
     };
 
     const handleMainAction = () => {
@@ -30,146 +41,188 @@ const ResumenVenta = ({ totals, config, setConfig, onProcess, processing, onClie
         }
     };
 
-    return (
-        <div className="bg-white h-full flex flex-col overflow-hidden font-sans">
-            {/* Cabecera Fija */}
-            <div className="bg-gray-900 text-white px-4 py-2.5 flex-shrink-0 flex justify-between items-center shadow-md z-10">
-                <h2 className="text-[9px] md:text-[10px] font-semibold flex items-center gap-2 tracking-widest uppercase text-gray-100">
-                    <FaShoppingCart className="text-gray-400" size={11} />
-                    Venta Nueva
-                </h2>
+    // Determinar correctamente el pago seleccionado
+    const isDigitalPayment = ['Yape', 'Plin', 'Transferencia'].includes(formaPago);
+    const displayFormaPago = isDigitalPayment ? 'Digital' : formaPago;
 
-                {/* Cliente en Header (Visible siempre para acceso rápido) */}
-                <button
-                    onClick={onClienteClick}
-                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full transition-all border ${config.cliente
-                        ? 'bg-blue-600 border-blue-500 text-white'
-                        : 'bg-gray-800 border-gray-700 text-gray-400 hover:bg-gray-700'
-                        }`}
-                >
-                    <FaUser size={10} />
-                    <span className="text-[8px] md:text-[9px] font-medium max-w-[80px] truncate">
-                        {config.cliente?.nombre ? config.cliente.nombre.split(' ')[0] : 'Cliente'}
-                    </span>
-                    {!config.cliente && <span className="text-[9px] font-bold leading-none">+</span>}
-                </button>
+    return (
+        <div className="bg-white h-full flex flex-col overflow-hidden">
+            <ModalPagoDigital
+                isOpen={showModalPagoDigital}
+                onClose={() => setShowModalPagoDigital(false)}
+                onSelect={handleDigitalPaymentSelect}
+            />
+
+            {/* Header con Fondo Oscuro - Mejorado */}
+            <div style={{ backgroundColor: '#1f2937' }} className="text-white px-4 py-3 flex-shrink-0 shadow-lg">
+                <div className="flex justify-between items-center mb-2">
+                    <h2 className="text-xs font-bold flex items-center gap-2 uppercase">
+                        <FaShoppingCart size={14} className="text-blue-400" />
+                        Venta Nueva
+                    </h2>
+                    <button
+                        onClick={onClienteClick}
+                        style={{
+                            backgroundColor: config.cliente ? '#2563eb' : 'rgba(255,255,255,0.1)',
+                            borderColor: config.cliente ? 'transparent' : 'rgba(255,255,255,0.2)'
+                        }}
+                        className="flex items-center gap-1 p-2 rounded-full transition-all border"
+                    >
+                        <FaUser size={12} />
+                        {!config.cliente && <FaPlus size={9} />}
+                    </button>
+                </div>
+
+                {/* Selector de Fecha MEJORADO - Más visible */}
+                <div style={{ backgroundColor: 'rgba(255,255,255,0.1)' }} className="rounded-lg px-3 py-2 flex items-center gap-3">
+                    <FaCalendarAlt size={16} className="text-blue-400 flex-shrink-0" />
+                    <input
+                        type="date"
+                        value={fechaVenta}
+                        onChange={(e) => setFechaVenta(e.target.value)}
+                        style={{
+                            backgroundColor: 'transparent',
+                            color: '#ffffff',
+                            fontSize: '13px',
+                            fontWeight: '600'
+                        }}
+                        className="outline-none border-none w-full cursor-pointer"
+                    />
+                </div>
             </div>
 
-            {/* Buscador Móvil Fijo */}
-            <div className="md:hidden px-3 py-2 bg-white border-b border-gray-100 flex-shrink-0 z-10">
+            {/* Buscador Móvil */}
+            <div className="md:hidden px-3 py-2 bg-white border-b border-gray-100">
                 <BuscadorProducto onScan={onScan} onSelect={onSelect} onQRClick={onQRClick} />
             </div>
 
-            {/* Contenido Scrollable */}
-            <div className="flex-1 overflow-y-auto bg-gray-50 scrollbar-hide">
-                {/* 1. Lista de Items */}
-                {/* 1. Lista de Items - Visible solo en Móvil */}
+            {/* Lista de Productos */}
+            <div className="flex-1 overflow-y-auto bg-gray-50">
                 <div className="md:hidden">
                     {showCartList && (
-                        <div className="bg-white divide-y divide-gray-50 border-b border-gray-100 shadow-sm mb-2">
+                        <div className="bg-white divide-y divide-gray-50 border-b border-gray-100">
                             {cart.length === 0 ? (
-                                <div className="flex flex-col items-center justify-center py-12 text-gray-300">
-                                    <FaShoppingCart size={28} className="mb-2 opacity-20" />
-                                    <p className="text-[8px] uppercase tracking-widest font-medium">Carrito Vacío</p>
+                                <div className="flex flex-col items-center justify-center py-8 text-gray-300">
+                                    <FaShoppingCart size={24} className="mb-2 opacity-20" />
+                                    <p className="text-xs uppercase">Carrito Vacío</p>
                                 </div>
                             ) : (
-                                cart.map(item => (
-                                    <ItemVenta
-                                        key={item.id}
-                                        item={item}
-                                        onUpdateItem={onUpdateItem}
-                                        onRemove={onRemove}
-                                    />
-                                ))
+                                <div className="overflow-y-auto max-h-96">
+                                    {cart.map(item => (
+                                        <ItemVenta
+                                            key={item.id}
+                                            item={item}
+                                            onUpdateItem={onUpdateItem}
+                                            onRemove={onRemove}
+                                        />
+                                    ))}
+                                </div>
                             )}
                         </div>
                     )}
                 </div>
             </div>
 
-            {/* Panel de Control de Venta (Fijo al fondo) */}
-            <div className="bg-white border-t border-gray-100 shadow-[0_-4px_20px_rgba(0,0,0,0.03)] p-2 md:p-3 space-y-2 z-20">
-                {/* 2. Sección de Totales Compacta */}
-                <div className="space-y-1">
-                    {/* Subtotal & IGV Row */}
-                    <div className="flex justify-between items-center text-gray-400">
-                        <span className="text-[7px] uppercase tracking-wider">Subtotal</span>
-                        <span className="text-[8px] font-medium">S/ {totals.subtotal.toFixed(2)}</span>
-                    </div>
+            {/* Panel Inferior - Resumen y Botones */}
+            <div className="bg-white border-t border-gray-200 p-4 pb-20 space-y-3" style={{ position: 'relative', zIndex: 10 }}>
 
-                    <div className="flex justify-between items-center">
-                        <label className="flex items-center gap-1 cursor-pointer group">
-                            <input
-                                type="checkbox"
-                                checked={config.impuesto}
-                                onChange={(e) => setConfig({ ...config, impuesto: e.target.checked })}
-                                className="w-2 h-2 rounded border-gray-300 text-gray-800 focus:ring-0"
-                            />
-                            <span className="text-[7px] text-gray-400 uppercase tracking-wider">IGV</span>
-                        </label>
-                        <span className="text-[8px] font-medium text-gray-500">S/ {totals.impuesto.toFixed(2)}</span>
-                    </div>
-
-                    {/* Descuento Toggle */}
-                    <div>
-                        <div className="flex justify-between items-center">
-                            <button
-                                onClick={() => setShowDiscountInput(!showDiscountInput)}
-                                className={`text-[6px] uppercase tracking-widest flex items-center gap-1 transition-colors font-semibold ${showDiscountInput ? 'text-gray-800' : 'text-red-400'}`}
-                            >
-                                {showDiscountInput ? '− Quitar' : '+ Descuento'}
-                            </button>
-                            {totals.descuento > 0 && (
-                                <span className="text-[8px] text-red-500 font-medium">
-                                    - S/ {totals.descuento.toFixed(2)}
-                                </span>
-                            )}
-                        </div>
-
-                        {showDiscountInput && (
-                            <div className="relative mt-0.5 animate-in fade-in slide-in-from-bottom-1 duration-200">
-                                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[8px] text-gray-400 font-mono">S/</span>
-                                <input
-                                    type="number"
-                                    value={config.descuento}
-                                    onChange={(e) => setConfig({ ...config, descuento: e.target.value })}
-                                    placeholder="0.00"
-                                    className="w-full pl-5 pr-2 py-0.5 bg-gray-50 border border-gray-100 rounded text-[9px] font-bold text-gray-800 outline-none focus:border-gray-200 transition-all"
-                                    autoFocus
-                                />
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Total Display */}
-                    <div className="flex justify-between items-baseline pt-0.5 border-t border-gray-50 mt-0.5">
-                        <span className="text-[8px] uppercase tracking-widest text-gray-900 font-bold">TOTAL</span>
-                        <span className="text-base font-bold text-gray-900 tracking-tight">
-                            S/ {totals.total.toFixed(2)}
-                        </span>
-                    </div>
+                {/* Subtotal */}
+                <div className="flex justify-between items-center text-sm">
+                    <span className="text-gray-500 uppercase text-xs font-medium">Subtotal</span>
+                    <span className="text-gray-700 font-bold">S/ {totals.subtotal.toFixed(2)}</span>
                 </div>
 
-                {/* 3. Forma de Pago - Icon Selector */}
-                <div className="space-y-1">
-                    <label className="block text-[6px] uppercase tracking-widest text-gray-400 text-center">
+                {/* IGV con Toggle Visible */}
+                <div className="flex justify-between items-center text-sm">
+                    <div className="flex items-center gap-3">
+                        <span className="text-gray-700 font-bold uppercase text-xs">IGV</span>
+                        <button
+                            onClick={() => setConfig({ ...config, impuesto: !config.impuesto })}
+                            style={{
+                                width: '44px',
+                                height: '24px',
+                                backgroundColor: config.impuesto ? '#3b82f6' : '#d1d5db',
+                                position: 'relative',
+                                borderRadius: '12px',
+                                transition: 'background-color 0.3s'
+                            }}
+                        >
+                            <div style={{
+                                position: 'absolute',
+                                top: '2px',
+                                left: config.impuesto ? '22px' : '2px',
+                                width: '20px',
+                                height: '20px',
+                                backgroundColor: '#ffffff',
+                                borderRadius: '50%',
+                                transition: 'left 0.3s',
+                                boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                            }}></div>
+                        </button>
+                    </div>
+                    <span className="text-gray-700 font-bold">S/ {totals.impuesto.toFixed(2)}</span>
+                </div>
+
+                {/* Descuento */}
+                <div className="text-sm">
+                    <div className="flex justify-between items-center">
+                        <button
+                            onClick={() => setShowDiscountInput(!showDiscountInput)}
+                            className="text-xs font-bold uppercase"
+                            style={{ color: '#3b82f6' }}
+                        >
+                            {showDiscountInput ? '− Quitar Descuento' : '+ Descuento'}
+                        </button>
+                        {totals.descuento > 0 && (
+                            <span className="font-bold" style={{ color: '#dc2626' }}>- S/ {totals.descuento.toFixed(2)}</span>
+                        )}
+                    </div>
+                    {showDiscountInput && (
+                        <input
+                            type="number"
+                            value={config.descuento}
+                            onChange={(e) => setConfig({ ...config, descuento: e.target.value })}
+                            placeholder="0.00"
+                            className="w-full mt-2 px-3 py-2 border-2 border-gray-300 rounded-lg text-sm font-semibold"
+                            autoFocus
+                        />
+                    )}
+                </div>
+
+                {/* Total */}
+                <div className="flex justify-between items-baseline pt-2 border-t-2 border-gray-200">
+                    <span className="text-sm font-black uppercase">TOTAL</span>
+                    <span className="text-2xl font-black" style={{ color: '#111827' }}>S/ {totals.total.toFixed(2)}</span>
+                </div>
+
+                {/* Formas de Pago en Tarjeta con Color */}
+                <div style={{ backgroundColor: '#eff6ff', borderColor: '#bfdbfe' }} className="rounded-xl border-2 p-3 shadow-sm">
+                    <label className="block text-xs uppercase font-black text-center mb-2" style={{ color: '#1e40af' }}>
                         Forma de Pago
                     </label>
-                    <div className="grid grid-cols-3 gap-1.5">
+                    <div className="grid grid-cols-3 gap-2">
                         {paymentOptions.map((opt) => {
                             const Icon = opt.icon;
-                            const isSelected = formaPago === opt.id;
+                            const isSelected = displayFormaPago === opt.id;
                             return (
                                 <button
                                     key={opt.id}
                                     onClick={() => handlePaymentSelect(opt.id)}
-                                    className={`flex flex-col items-center justify-center py-1 rounded-md border transition-all duration-200 ${isSelected
-                                        ? `${opt.bg} ${opt.border} ring-1 ring-offset-0 ring-gray-100`
-                                        : 'bg-white border-gray-50 hover:bg-gray-50 text-gray-300'
-                                        }`}
+                                    style={{
+                                        backgroundColor: isSelected ? '#ffffff' : 'rgba(255,255,255,0.5)',
+                                        borderWidth: '2px',
+                                        borderColor: isSelected ? '#2563eb' : '#bfdbfe',
+                                        opacity: isSelected ? 1 : 0.6
+                                    }}
+                                    className="flex flex-col items-center justify-center py-2.5 rounded-lg transition-all"
                                 >
-                                    <Icon className={`mb-0.5 ${isSelected ? opt.color : 'text-gray-200'}`} size={8} />
-                                    <span className={`text-[5px] tracking-wider ${isSelected ? 'text-gray-700 font-medium' : 'text-gray-400 font-light'}`}>
+                                    <Icon style={{ color: isSelected ? '#2563eb' : '#9ca3af' }} size={16} />
+                                    <span style={{
+                                        color: isSelected ? '#1e40af' : '#9ca3af',
+                                        fontSize: '10px',
+                                        fontWeight: '800',
+                                        marginTop: '4px'
+                                    }}>
                                         {opt.label}
                                     </span>
                                 </button>
@@ -178,34 +231,72 @@ const ResumenVenta = ({ totals, config, setConfig, onProcess, processing, onClie
                     </div>
                 </div>
 
-                {/* Botones de Acción Final */}
-                <div className="space-y-1.5 pt-0.5">
+                {/* Botones de Acción - TOTALMENTE VISIBLES con !important */}
+                <div className="flex gap-3 items-center pt-2">
                     <button
                         onClick={handleMainAction}
                         disabled={totals.total === 0 || processing}
-                        className={`w-full py-2.5 rounded-lg shadow-md flex items-center justify-center gap-2 transition-all transform active:scale-[0.98] ${totals.total === 0 || processing
-                            ? 'bg-gray-100 text-gray-300 cursor-not-allowed'
-                            : 'bg-gray-900 hover:bg-black text-white'
-                            }`}
+                        style={{
+                            flex: 1,
+                            padding: '16px',
+                            borderRadius: '12px',
+                            fontWeight: '900',
+                            fontSize: '13px',
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.05em',
+                            transition: 'all 0.2s',
+                            backgroundColor: (totals.total === 0 || processing) ? '#e5e7eb' : '#1e40af',
+                            color: (totals.total === 0 || processing) ? '#9ca3af' : '#ffffff',
+                            cursor: (totals.total === 0 || processing) ? 'not-allowed' : 'pointer',
+                            boxShadow: (totals.total === 0 || processing) ? 'none' : '0 4px 6px rgba(30,64,175,0.3)'
+                        }}
                     >
                         {processing ? (
-                            <div className="animate-spin rounded-full h-3 w-3 border-2 border-white border-t-transparent"></div>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                                <div style={{
+                                    width: '16px',
+                                    height: '16px',
+                                    border: '2px solid #ffffff',
+                                    borderTopColor: 'transparent',
+                                    borderRadius: '50%',
+                                    animation: 'spin 1s linear infinite'
+                                }}></div>
+                                Procesando...
+                            </div>
                         ) : (
-                            <span className="text-[9px] font-bold tracking-[0.15em] uppercase">
-                                {formaPago === 'CREDITO' ? 'Confirmar Crédito' : 'Cobrar Venta'}
-                            </span>
+                            formaPago === 'CREDITO' ? '💳 CONFIRMAR CRÉDITO' : '✓ REGISTRAR VENTA'
                         )}
                     </button>
-
                     <button
                         onClick={onCancel}
                         disabled={cart.length === 0 || processing}
-                        className="w-full py-2 rounded-lg text-[8px] font-bold text-white bg-red-600 hover:bg-red-700 uppercase tracking-widest transition-all transform active:scale-[0.98] disabled:opacity-0 shadow-sm shadow-red-100"
+                        style={{
+                            padding: '16px',
+                            borderRadius: '12px',
+                            fontWeight: '900',
+                            fontSize: '20px',
+                            transition: 'all 0.2s',
+                            backgroundColor: (cart.length === 0 || processing) ? '#f3f4f6' : '#dc2626',
+                            color: (cart.length === 0 || processing) ? '#d1d5db' : '#ffffff',
+                            cursor: (cart.length === 0 || processing) ? 'not-allowed' : 'pointer',
+                            boxShadow: (cart.length === 0 || processing) ? 'none' : '0 4px 6px rgba(220,38,38,0.3)',
+                            width: '56px',
+                            height: '56px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                        }}
                     >
-                        Cancelar Venta
+                        ✕
                     </button>
                 </div>
             </div>
+
+            <style>{`
+                @keyframes spin {
+                    to { transform: rotate(360deg); }
+                }
+            `}</style>
         </div>
     );
 };

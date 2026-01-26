@@ -77,7 +77,10 @@ export function useVoiceOrder(onConfirm) {
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         const recognition = new SpeechRecognition();
         recognition.lang = 'es-PE';
+        recognition.interimResults = true; // Permite detectar silencio más rápido
         recognitionRef.current = recognition;
+
+        let silenceTimer = null;
 
         recognition.onstart = () => {
             console.log('%c🟢 Micrófono ABIERTO', 'color: #10b981; font-style: italic;');
@@ -85,27 +88,39 @@ export function useVoiceOrder(onConfirm) {
 
             if (timeoutRef.current) clearTimeout(timeoutRef.current);
 
-            // Lógica de tiempo dinámico
+            // Lógica de tiempo dinámico (Timeout Máximo)
             const actual = controllerRef.current?.getPreguntaActual();
-            const esDescripcion = actual?.campo === 'descripcion_producto';
-            const tiempoEspera = esDescripcion ? 45000 : 7000; // 45s para descripciones, 7s para el resto
-
-            if (esDescripcion) {
-                console.log('%c✨ Modo dictado largo activado (45s)', 'color: #8b5cf6; font-weight: bold;');
-            }
+            const esDictadoLargo = actual?.campo === 'descripcion_producto' || actual?.campo === 'direccion_entrega';
+            const tiempoMax = esDictadoLargo ? 45000 : 6000;
 
             timeoutRef.current = setTimeout(() => {
                 if (isListeningRef.current && recognitionRef.current) {
-                    // Si hay timeout, enviamos un string vacío para forzar la repetición de la pregunta
-                    console.warn('⏰ Pausa detectada, reintentando pregunta...');
-                    handleVoiceResult('');
+                    console.warn('⏰ Tiempo máximo alcanzado');
+                    recognition.stop();
                 }
-            }, tiempoEspera);
+            }, tiempoMax);
         };
 
         recognition.onresult = (e) => {
-            if (timeoutRef.current) clearTimeout(timeoutRef.current);
-            handleVoiceResult(e.results[0][0].transcript);
+            const transcript = Array.from(e.results)
+                .map(result => result[0])
+                .map(result => result.transcript)
+                .join('');
+
+            setTranscriptActual(transcript);
+
+            // Lógica de silencio de 1.5s
+            if (silenceTimer) clearTimeout(silenceTimer);
+            silenceTimer = setTimeout(() => {
+                console.log('%c⏹️ Silencio detectado (1.5s)', 'color: #f59e0b;');
+                recognition.stop();
+            }, 1500);
+        };
+
+        recognition.onend = () => {
+            if (silenceTimer) clearTimeout(silenceTimer);
+            handleVoiceResult(transcriptActualRef.current);
+            setTranscriptActual('');
         };
 
         recognition.onerror = (e) => {
@@ -117,6 +132,12 @@ export function useVoiceOrder(onConfirm) {
 
         try { recognition.start(); } catch (e) { }
     }, [handleVoiceResult]);
+
+    // Ref para el transcript actual para evitar closures en onend
+    const transcriptActualRef = useRef('');
+    useEffect(() => {
+        transcriptActualRef.current = transcriptActual;
+    }, [transcriptActual]);
 
     useEffect(() => { startListeningRef.current = startListening; }, [startListening]);
 

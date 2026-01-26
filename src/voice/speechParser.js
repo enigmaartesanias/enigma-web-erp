@@ -7,25 +7,20 @@ const NUMEROS_TEXTO = {
 
 function extractNumber(text) {
     if (!text) return 0;
-
-    // Normalizar: quitar moneda y limpiar espacios
     const cleaned = text.toLowerCase()
         .replace(/soles|sol|s\//g, '')
         .replace(/[,]/g, '.')
         .trim();
 
-    // 1. Detección de dígitos explícitos (ej: "20", "50.5", "1")
     const match = cleaned.match(/(\d+(?:\.\d+)?)/);
     if (match) return parseFloat(match[1]);
 
-    // 2. Detección por palabras (ej: "una unidad", "pieza", "diez soles")
     const palabras = cleaned.split(/[\s-]+/);
     let valor = 0;
     let ultimaPalabra = '';
 
     for (const p of palabras) {
         if (NUMEROS_TEXTO[p]) {
-            // Evitar duplicados (ej: "uno uno")
             if (p === ultimaPalabra) continue;
             valor += NUMEROS_TEXTO[p];
             ultimaPalabra = p;
@@ -46,7 +41,8 @@ function sentenceCase(str) {
 
 export function parseSpeech(text, campoEsperado) {
     const transcript = text.toLowerCase().trim();
-    const NEGATIVOS = ['no', 'ninguno', 'sin registro', 'omitir', 'paso', 'nada'];
+    const AFIRMATIVOS = ['si', 'sí', 'claro', 'activar', 'pónle', 'si requiere', 'acepta', 'con envio', 'con envío'];
+    const NEGATIVOS = ['no', 'ninguno', 'sin registro', 'omitir', 'paso', 'nada', 'no requiere', 'sin envio', 'sin envío'];
 
     switch (campoEsperado) {
         case 'nombre_cliente':
@@ -71,6 +67,28 @@ export function parseSpeech(text, campoEsperado) {
 
         case 'descripcion_producto':
             return { type: 'DATA', field: 'descripcion_producto', value: sentenceCase(transcript), valid: transcript.length >= 2 };
+
+        case 'requiere_envio':
+            const isAffirmative = AFIRMATIVOS.some(a => transcript.includes(a));
+            const isNegative = NEGATIVOS.some(n => transcript.includes(n));
+
+            // Si dice "sin envio", isNegative será true e isAffirmative será false.
+            // Si dice "con envio", isAffirmative será true.
+            return { type: 'DATA', field: 'requiere_envio', value: isAffirmative, valid: isAffirmative || isNegative };
+
+        case 'direccion_entrega':
+            return { type: 'DATA', field: 'direccion_entrega', value: sentenceCase(transcript), valid: transcript.length >= 3 };
+
+        case 'modalidad_envio':
+            if (transcript.includes('agencia') || transcript.includes('pagar')) {
+                return { type: 'DATA', field: 'modalidad_envio', value: 'Por Pagar en Agencia', valid: true };
+            }
+            return { type: 'DATA', field: 'modalidad_envio', value: 'Fijo', valid: true };
+
+        case 'envio_cobrado_al_cliente':
+            const vEnv = extractNumber(transcript);
+            return { type: 'DATA', field: 'envio_cobrado_al_cliente', value: vEnv, valid: true };
+
         case 'cantidad':
             const vCant = extractNumber(transcript);
             return { type: 'DATA', field: 'cantidad', value: vCant, valid: vCant > 0 };

@@ -62,7 +62,7 @@ export default function VoiceDialog({ onConfirm, onPartialUpdate, formData, prod
                     {/* Mensaje del sistema (Pregunta actual) */}
                     <div className="text-sm text-gray-700 font-medium mb-4 min-h-[40px] text-center px-2">
                         {mensaje}
-                        {mensaje.includes('Detalles') && (
+                        {(mensaje.includes('Detalles') || mensaje.includes('Dirección')) && (
                             <div className="text-[10px] text-purple-600 mt-1 font-bold animate-pulse">
                                 ✨ MODO DICTADO ACTIVO (45s)
                             </div>
@@ -96,10 +96,10 @@ export default function VoiceDialog({ onConfirm, onPartialUpdate, formData, prod
                             💡 Di solo el número (ej: "120")
                         </div>
                     )}
-                    {status === 'completed_phase_1' && (
+                    {status === 'completed_phase_1' && ( // Nota: Ajustado por si se usa este status, aunque ahora es un mensaje de voz
                         <div className="text-sm text-green-600 font-semibold flex items-center gap-2 bg-green-50 p-2 rounded border border-green-100 mb-2">
                             <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                            Datos del cliente guardados
+                            Datos personales ingresados
                         </div>
                     )}
                     {status === 'completed' && (

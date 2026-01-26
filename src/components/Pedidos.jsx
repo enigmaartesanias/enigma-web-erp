@@ -419,28 +419,14 @@ const Pedidos = () => {
             return;
         }
 
-        // Validación: Saldo debe ser 0
-        if (pedido.monto_saldo > 0) {
-            setConfirmModal({
-                isOpen: true,
-                title: 'Saldo Pendiente',
-                message: `El pedido tiene S/ ${pedido.monto_saldo.toFixed(2)} pendiente. ¿Entregar de todos modos?`,
-                icon: <FaExclamationTriangle />,
-                confirmText: 'Sí, entregar',
-                confirmColor: 'yellow',
-                onConfirm: () => confirmarEntrega(pedido)
-            });
-            return;
-        }
-
-        // Confirmar entrega
+        // Confirmar entrega Minimalista
         setConfirmModal({
             isOpen: true,
-            title: 'Marcar como Entregado',
-            message: `¿Confirmar entrega del pedido de ${pedido.nombre_cliente}?`,
-            icon: <FaCar />,
-            confirmText: 'Sí, entregar',
-            confirmColor: 'green',
+            title: 'Confirmar Entrega',
+            message: '¿Confirmar entrega del pedido?',
+            icon: <FaCar className="text-blue-500" />,
+            confirmText: 'Confirmar',
+            confirmColor: 'blue',
             onConfirm: () => confirmarEntrega(pedido)
         });
     };
@@ -832,11 +818,6 @@ const Pedidos = () => {
             // Ahora comparamos 'terminado' (minúscula) con el valor normalizado
             const isTerminado = estadoProd === 'terminado';
             if (!isTerminado || estadoPed === 'entregado') {
-                return false;
-            }
-        } else if (activeTab === 'entregados') {
-            // Tab Entregados: pedidos entregados
-            if (estadoPed !== 'entregado') {
                 return false;
             }
         }
@@ -1249,33 +1230,10 @@ const Pedidos = () => {
                 {/* Calculamos los conteos dinámicamente */}
                 {(() => {
                     const counts = {
-                        pendientes: pedidos.filter(p => p.estado_pedido !== 'entregado' && p.estado_pedido !== 'cancelado' && p.estado_produccion === 'terminado').length,
-                        /* Ajuste lógico: Pendientes de entrega (Terminados pero no entregados) ? 
-                           O "Pendientes" general? El filtro original de 'pendientes' era complejo.
-                           Revisemos el filtro original en el código (que no se ve aquí pero asumiremos una lógica estándar o la ajustaremos abajo).
-                           
-                           Vamos a definir "Pendientes" como aquellos que NO están entregados y NO están en producción/terminados (son nuevos/aceptados) 
-                           O mejor, repliquemos la lógica de filtrado que se usa abajo:
-                        */
-
-                        // Lógica basada en como se filtra abajo (activeTab)
-                        pendientes: pedidos.filter(p => !p.entregado && p.estado_pedido !== 'entregado' && p.estado_produccion !== 'terminado' && p.estado_produccion !== 'en_proceso').length, // Nuevos/Aceptados sin iniciar producción
-                        produccion: pedidos.filter(p => p.estado_produccion === 'en_proceso').length,
-                        terminados: pedidos.filter(p => p.estado_produccion === 'terminado' && p.estado_pedido !== 'entregado').length, // Terminados listos para entregar
-                        entregados: pedidos.filter(p => p.estado_pedido === 'entregado').length
+                        pendientes: pedidos.filter(p => p.estado_pedido !== 'entregado' && p.estado_produccion !== 'terminado' && p.estado_produccion !== 'en_proceso' && p.estado_pedido !== 'cancelado').length,
+                        produccion: pedidos.filter(p => p.estado_produccion === 'en_proceso' && p.estado_pedido !== 'entregado').length,
+                        terminados: pedidos.filter(p => p.estado_produccion === 'terminado' && p.estado_pedido !== 'entregado').length
                     };
-
-                    /* 
-                       NOTA: La lógica anterior de "Pendientes" en el código original (que no he visto completa) parecía ser "todo lo que no es entregado".
-                       Sin embargo, con pestañas de Producción y Terminados, "Pendientes" suele referirse a "Por Iniciar".
-                       Voy a usar una lógica segura:
-                       - Pendientes: Recibidos/Aceptados (estado_produccion = no_iniciado)
-                       - Producción: En Proceso
-                       - Terminados: Terminados (pero no entregados)
-                       - Entregados: Entregados
-
-                       Si el usuario tenía otra lógica, esto lo refina para ser más útil.
-                    */
 
                     return (
                         <div className="border-b border-gray-200 mb-6 font-sans">
@@ -1321,20 +1279,6 @@ const Pedidos = () => {
                                         {counts.terminados}
                                     </span>
                                 </button>
-
-                                <button
-                                    onClick={() => setActiveTab('entregados')}
-                                    className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors flex items-center gap-2 ${activeTab === 'entregados'
-                                        ? 'border-purple-500 text-purple-600'
-                                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                                        }`}
-                                >
-                                    <span className="text-xl">🚚</span>
-                                    <span>Entregados</span>
-                                    <span className={`ml-1 py-0.5 px-2.5 rounded-full text-xs font-bold ${activeTab === 'entregados' ? 'bg-purple-100 text-purple-600' : 'bg-gray-100 text-gray-600'}`}>
-                                        {counts.entregados}
-                                    </span>
-                                </button>
                             </nav>
                         </div>
                     );
@@ -1362,15 +1306,7 @@ const Pedidos = () => {
                     )}
                     {activeTab === 'terminados' && (
                         <div className="p-3 rounded-lg flex justify-between md:justify-center items-center text-sm border border-gray-200">
-                            <span className="text-gray-700 font-semibold uppercase tracking-wide">PEDIDOS TERMINADOS</span>
-                            <span className="font-bold text-2xl text-gray-900 ml-4">
-                                {filteredPedidos.length}
-                            </span>
-                        </div>
-                    )}
-                    {activeTab === 'entregados' && (
-                        <div className="p-3 rounded-lg flex justify-between md:justify-center items-center text-sm border border-gray-200">
-                            <span className="text-gray-700 font-semibold uppercase tracking-wide">PEDIDOS ENTREGADOS</span>
+                            <span className="text-gray-700 font-semibold uppercase tracking-wide">PEDIDOS LISTOS PARA ENTREGA</span>
                             <span className="font-bold text-2xl text-gray-900 ml-4">
                                 {filteredPedidos.length}
                             </span>
@@ -1383,30 +1319,18 @@ const Pedidos = () => {
                         <thead className="bg-gray-100">
                             <tr>
                                 {activeTab === 'terminados' ? (
-                                    // Grid simplificado para Terminados (7 columnas)
                                     <>
                                         <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Fecha</th>
                                         <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Cliente</th>
-                                        <th className="hidden md:table-cell px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider w-1/4">Producto</th>
-                                        <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">Total</th>
+                                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider w-1/4">Producto</th>
+                                        <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">Producción</th>
                                         <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">Pago</th>
                                         <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">Saldo</th>
                                         <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">Acciones</th>
                                     </>
-                                ) : activeTab === 'entregados' ? (
-                                    <>
-                                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">FECHA ENTREGA</th>
-                                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Cliente</th>
-                                        <th className="hidden md:table-cell px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider w-1/4">Producto</th>
-                                        <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">Acciones</th>
-                                    </>
                                 ) : activeTab === 'produccion' ? (
-                                    // Grid simplificado para Producción (6 columnas + acciones)
                                     <>
-                                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                                            <div>Fecha</div>
-                                            <div>Ingreso</div>
-                                        </th>
+                                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Fecha</th>
                                         <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Cliente</th>
                                         <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider w-1/4">Producto</th>
                                         <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">Producción</th>
@@ -1432,317 +1356,118 @@ const Pedidos = () => {
                         <tbody className="bg-white divide-y divide-gray-200">
                             {filteredPedidos.length === 0 ? (
                                 <tr>
-                                    <td colSpan={activeTab === 'terminados' ? "7" : activeTab === 'entregados' ? "4" : activeTab === 'produccion' ? "7" : "8"} className="px-6 py-4 text-center text-gray-500">No hay pedidos registrados en esta categoría.</td>
+                                    <td colSpan="8" className="px-6 py-4 text-center text-gray-500 font-medium italic">No hay pedidos activos en esta categoría.</td>
                                 </tr>
                             ) : (
                                 filteredPedidos.map((pedido) => (
-                                    <tr key={pedido.id_pedido} className="hover:bg-gray-50 transition-colors">
+                                    <tr key={pedido.id_pedido} className="hover:bg-gray-50/50 transition-colors group">
                                         {activeTab === 'terminados' ? (
-                                            // Grid simplificado para Terminados (5 columnas)
                                             <>
-                                                {/* FECHA */}
-                                                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
-                                                    {formatLocalDate(pedido.fecha_pedido)}
-                                                </td>
-
-                                                {/* CLIENTE */}
-                                                <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
-                                                    {pedido.nombre_cliente}
-                                                </td>
-
-                                                {/* PRODUCTO */}
-                                                <td className="hidden md:table-cell px-4 py-3 text-sm text-gray-600">
-                                                    {pedido.detalles_pedido && pedido.detalles_pedido.length > 0 ? (
-                                                        <div className="space-y-1">
-                                                            {pedido.detalles_pedido.map((d, idx) => (
-                                                                <div key={idx} className="border-b last:border-0 border-gray-100 pb-1 last:pb-0 text-xs">
-                                                                    <span className="font-normal text-gray-800">{pedido.tipo_producto} - {pedido.metal} x{d.cantidad}</span>
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                    ) : '-'}
-                                                </td>
-
-                                                {/* TOTAL */}
-                                                <td className="px-4 py-3 whitespace-nowrap text-sm font-semibold text-gray-900 text-right">
-                                                    S/ {pedido.precio_total?.toFixed(2)}
-                                                </td>
-
-                                                {/* PAGO */}
-                                                <td className="px-4 py-3 whitespace-nowrap text-center">
-                                                    <EstadoPagoBadge pedido={pedido} />
-                                                </td>
-
-                                                {/* SALDO */}
-                                                <td className={`px-4 py-3 whitespace-nowrap text-sm font-bold text-right ${pedido.monto_saldo > 0 ? 'text-red-600' : 'text-green-600'}`}>
-                                                    S/ {pedido.monto_saldo.toFixed(2)}
-                                                </td>
-
-                                                {/* ACCIONES - Terminados */}
-                                                <td className="px-4 py-3 whitespace-nowrap text-right text-sm font-medium">
-                                                    <div className="flex justify-end space-x-2">
-                                                        {/* Botón de Pago: Solo visible si hay saldo pendiente */}
-                                                        {!pedido.cancelado && pedido.monto_saldo > 0.1 && (
-                                                            <Tooltip text="Registrar pago">
-                                                                <button
-                                                                    onClick={() => handleOpenPayModal(pedido)}
-                                                                    className="text-green-600 hover:text-green-900 transition-colors"
-                                                                >
-                                                                    <FaMoneyBillWave className="h-5 w-5" />
-                                                                </button>
-                                                            </Tooltip>
-                                                        )}
-
-                                                        <Tooltip text="Ver Nota de Pedido">
-                                                            <button
-                                                                onClick={() => handlePrint(pedido)}
-                                                                className="text-gray-600 hover:text-gray-900 transition-colors"
-                                                            >
-                                                                <FaEye className="h-5 w-5" />
-                                                            </button>
-                                                        </Tooltip>
-
-                                                        <Tooltip text="Entregar pedido">
-                                                            <button
-                                                                onClick={() => handleEntregar(pedido)}
-                                                                disabled={pedido.estado_pedido === 'entregado'}
-                                                                className="text-blue-600 hover:text-blue-900 transition-colors"
-                                                            >
-                                                                <FaCar className="h-5 w-5" />
-                                                            </button>
-                                                        </Tooltip>
+                                                <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">{formatLocalDate(pedido.fecha_pedido)}</td>
+                                                <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{pedido.nombre_cliente}</td>
+                                                <td className="px-4 py-4 text-sm text-gray-600">
+                                                    <div className="space-y-1">
+                                                        {pedido.detalles_pedido?.map((d, idx) => (
+                                                            <div key={idx} className="text-xs border-b last:border-0 border-gray-100 pb-1 last:pb-0">
+                                                                <span className="font-normal text-gray-800">{pedido.tipo_producto} - {pedido.metal} x{d.cantidad}</span>
+                                                            </div>
+                                                        )) || '-'}
                                                     </div>
                                                 </td>
-                                            </>
-                                        ) : activeTab === 'entregados' ? (
-                                            // Grid simplificado para Entregados (4 columnas)
-                                            <>
-                                                {/* FECHA ENTREGA */}
-                                                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
-                                                    {formatLocalDate(pedido.fecha_entrega)}
+                                                <td className="px-4 py-4 whitespace-nowrap text-center">
+                                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">● Listo</span>
                                                 </td>
-
-                                                {/* CLIENTE */}
-                                                <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
-                                                    {pedido.nombre_cliente}
-                                                </td>
-
-                                                {/* PRODUCTO */}
-                                                <td className="hidden md:table-cell px-4 py-3 text-sm text-gray-600">
-                                                    {pedido.detalles_pedido && pedido.detalles_pedido.length > 0 ? (
-                                                        <div className="space-y-1">
-                                                            {pedido.detalles_pedido.map((d, idx) => (
-                                                                <div key={idx} className="border-b last:border-0 border-gray-100 pb-1 last:pb-0 text-xs">
-                                                                    <span className="font-normal text-gray-800">{pedido.tipo_producto} - {pedido.metal} x{d.cantidad}</span>
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                    ) : '-'}
-                                                </td>
-
-                                                {/* ACCIONES - Entregados */}
-                                                <td className="px-4 py-3 whitespace-nowrap text-right text-sm font-medium">
-                                                    <div className="flex justify-end space-x-2">
-                                                        {/* Botón de Pago: Visible siempre que haya saldo por pagar */}
+                                                <td className="px-4 py-4 whitespace-nowrap text-center"><EstadoPagoBadge pedido={pedido} /></td>
+                                                <td className={`px-4 py-4 whitespace-nowrap text-sm font-bold text-right ${pedido.monto_saldo > 0 ? 'text-red-600' : 'text-green-600'}`}>S/ {pedido.monto_saldo.toFixed(2)}</td>
+                                                <td className="px-4 py-4 whitespace-nowrap text-right">
+                                                    <div className="flex justify-end gap-4">
                                                         {!pedido.cancelado && pedido.monto_saldo > 0.1 && (
                                                             <Tooltip text="Registrar pago">
-                                                                <button
-                                                                    onClick={() => handleOpenPayModal(pedido)}
-                                                                    className="text-green-600 hover:text-green-900 transition-colors"
-                                                                >
-                                                                    <FaMoneyBillWave className="h-5 w-5" />
+                                                                <button onClick={() => handleOpenPayModal(pedido)} className="text-green-600 hover:text-green-800 transition-colors">
+                                                                    <FaMoneyBillWave className="h-6 w-6" />
                                                                 </button>
                                                             </Tooltip>
                                                         )}
-                                                        <Tooltip text="Ver Nota de Pedido">
-                                                            <button
-                                                                onClick={() => handlePrint(pedido)}
-                                                                className="text-gray-600 hover:text-gray-900 transition-colors"
-                                                            >
-                                                                <FaEye className="h-5 w-5" />
+                                                        <Tooltip text="Ver Nota">
+                                                            <button onClick={() => handlePrint(pedido)} className="text-gray-500 hover:text-gray-800 transition-colors">
+                                                                <FaEye className="h-6 w-6" />
+                                                            </button>
+                                                        </Tooltip>
+                                                        <Tooltip text="Entregar pedido">
+                                                            <button onClick={() => handleEntregar(pedido)} className="text-blue-600 hover:text-blue-800 transition-colors">
+                                                                <FaCar className="h-6 w-6" />
                                                             </button>
                                                         </Tooltip>
                                                     </div>
                                                 </td>
                                             </>
                                         ) : activeTab === 'produccion' ? (
-                                            // Grid simplificado para Producción (4 columnas)
                                             <>
-                                                {/* FECHA INGRESO PRODUCCIÓN */}
-                                                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
-                                                    {formatLocalDate(pedido.fecha_pedido)}
+                                                <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">{formatLocalDate(pedido.fecha_pedido)}</td>
+                                                <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{pedido.nombre_cliente}</td>
+                                                <td className="px-4 py-4 text-sm text-gray-600">
+                                                    <div className="space-y-1">
+                                                        {pedido.detalles_pedido?.map((d, idx) => (
+                                                            <div key={idx} className="text-xs border-b last:border-0 border-gray-100 pb-1 last:pb-0">
+                                                                <span className="font-normal text-gray-800">{pedido.tipo_producto} - {pedido.metal} x{d.cantidad}</span>
+                                                            </div>
+                                                        )) || '-'}
+                                                    </div>
                                                 </td>
-
-                                                {/* CLIENTE */}
-                                                <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
-                                                    {pedido.nombre_cliente}
+                                                <td className="px-4 py-4 whitespace-nowrap text-center">
+                                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">● En Proceso</span>
                                                 </td>
-
-                                                {/* PRODUCTO */}
-                                                <td className="px-4 py-3 text-sm text-gray-600">
-                                                    {pedido.detalles_pedido && pedido.detalles_pedido.length > 0 ? (
-                                                        <div className="space-y-1">
-                                                            {pedido.detalles_pedido.map((d, idx) => (
-                                                                <div key={idx} className="border-b last:border-0 border-gray-100 pb-1 last:pb-0 text-xs">
-                                                                    <span className="font-normal text-gray-800">{pedido.tipo_producto} - {pedido.metal} x{d.cantidad}</span>
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                    ) : '-'}
-                                                </td>
-
-                                                {/* PRODUCCIÓN */}
-                                                <td className="px-4 py-3 whitespace-nowrap text-center">
-                                                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${pedido.estado_produccion === 'terminado'
-                                                        ? 'bg-green-100 text-green-800'
-                                                        : pedido.estado_produccion === 'en_proceso'
-                                                            ? 'bg-blue-100 text-blue-800'
-                                                            : 'bg-yellow-100 text-yellow-800'
-                                                        }`}>
-                                                        {pedido.estado_produccion === 'terminado' ? '● Terminado' :
-                                                            pedido.estado_produccion === 'en_proceso' ? '● En Proceso' : '● No Iniciado'}
-                                                    </span>
-                                                </td>
-
-                                                {/* PAGO */}
-                                                <td className="px-4 py-3 whitespace-nowrap text-center">
-                                                    <EstadoPagoBadge pedido={pedido} />
-                                                </td>
-
-                                                {/* SALDO */}
-                                                <td className={`px-4 py-3 whitespace-nowrap text-sm font-bold text-right ${pedido.monto_saldo > 0 ? 'text-red-600' : 'text-green-600'}`}>
-                                                    S/ {pedido.monto_saldo.toFixed(2)}
-                                                </td>
-
-                                                {/* ACCIONES - Producción */}
-                                                <td className="px-4 py-3 whitespace-nowrap text-right text-sm font-medium">
-                                                    <div className="flex justify-end space-x-2">
-                                                        <Tooltip text="Ver Nota de Pedido">
-                                                            <button
-                                                                onClick={() => handlePrint(pedido)}
-                                                                className="text-gray-600 hover:text-gray-900 transition-colors"
-                                                            >
-                                                                <FaEye className="h-5 w-5" />
+                                                <td className="px-4 py-4 whitespace-nowrap text-center"><EstadoPagoBadge pedido={pedido} /></td>
+                                                <td className={`px-4 py-4 whitespace-nowrap text-sm font-bold text-right ${pedido.monto_saldo > 0 ? 'text-red-600' : 'text-green-600'}`}>S/ {pedido.monto_saldo.toFixed(2)}</td>
+                                                <td className="px-4 py-4 whitespace-nowrap text-right">
+                                                    <div className="flex justify-end gap-4">
+                                                        <Tooltip text="Ver Nota">
+                                                            <button onClick={() => handlePrint(pedido)} className="text-gray-500 hover:text-gray-800 transition-colors">
+                                                                <FaEye className="h-6 w-6" />
                                                             </button>
                                                         </Tooltip>
                                                     </div>
                                                 </td>
                                             </>
                                         ) : (
-                                            // Grid completo para otros tabs (9 columnas)
                                             <>
-                                                {/* FECHA */}
-                                                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
-                                                    {formatLocalDate(pedido.fecha_pedido)}
+                                                <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">{formatLocalDate(pedido.fecha_pedido)}</td>
+                                                <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{pedido.nombre_cliente}</td>
+                                                <td className="px-4 py-4 text-sm text-gray-600">
+                                                    <div className="space-y-1">
+                                                        {pedido.detalles_pedido?.map((d, idx) => (
+                                                            <div key={idx} className="text-xs border-b last:border-0 border-gray-100 pb-1 last:pb-0">
+                                                                <span className="font-normal text-gray-800">{pedido.tipo_producto} - {pedido.metal} x{d.cantidad}</span>
+                                                            </div>
+                                                        )) || '-'}
+                                                    </div>
                                                 </td>
-
-                                                {/* CLIENTE */}
-                                                <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
-                                                    {pedido.nombre_cliente}
+                                                <td className="px-4 py-4 whitespace-nowrap text-right text-sm font-semibold text-gray-900">S/ {pedido.precio_total?.toFixed(2)}</td>
+                                                <td className="px-4 py-4 whitespace-nowrap text-center">
+                                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">● Pendiente</span>
                                                 </td>
-
-                                                {/* PRODUCTO */}
-                                                <td className="px-4 py-3 text-sm text-gray-600">
-                                                    {pedido.detalles_pedido && pedido.detalles_pedido.length > 0 ? (
-                                                        <div className="space-y-1">
-                                                            {pedido.detalles_pedido.map((d, idx) => (
-                                                                <div key={idx} className="border-b last:border-0 border-gray-100 pb-1 last:pb-0 mb-1 last:mb-0">
-                                                                    <div className="font-normal text-gray-800 text-xs">
-                                                                        {pedido.tipo_producto} - {pedido.metal} x{d.cantidad}
-                                                                    </div>
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                    ) : '-'}
-                                                </td>
-
-                                                {/* TOTAL */}
-                                                <td className="px-4 py-3 whitespace-nowrap text-sm font-semibold text-gray-900 text-right">
-                                                    S/ {pedido.precio_total?.toFixed(2)}
-                                                </td>
-
-                                                {/* PRODUCCIÓN */}
-                                                <td className="px-4 py-3 whitespace-nowrap text-center">
-                                                    <EstadoProduccionBadge estado={pedido.estado_produccion || 'no_iniciado'} />
-                                                </td>
-
-                                                {/* PAGO */}
-                                                <td className="px-4 py-3 whitespace-nowrap text-center">
-                                                    <EstadoPagoBadge pedido={pedido} />
-                                                </td>
-
-                                                {/* SALDO */}
-                                                <td className={`px-4 py-3 whitespace-nowrap text-sm font-bold text-right ${pedido.monto_saldo > 0 ? 'text-red-600' : 'text-green-600'}`}>
-                                                    S/ {pedido.monto_saldo.toFixed(2)}
-                                                </td>
-
-
-                                                {/* ACCIONES */}
-                                                <td className="px-4 py-3 whitespace-nowrap text-right text-sm font-medium">
-                                                    <div className="flex justify-end space-x-2">
-                                                        {pedido.metal && pedido.tipo_producto && (pedido.estado_produccion === 'no_iniciado' || pedido.tiene_productos_pendientes) && (
-                                                            <Tooltip text="Crear producción">
-                                                                <button
-                                                                    onClick={() => handleCrearProduccion(pedido)}
-                                                                    className="text-purple-600 hover:text-purple-900 transition-colors"
-                                                                >
-                                                                    <FaHammer className="h-5 w-5" />
-                                                                </button>
-                                                            </Tooltip>
-                                                        )}
-
-                                                        {/* Botón de Pago: Visible siempre que haya saldo por pagar (no cancelado o saldo > 0), incluso si entregado */}
-                                                        {!pedido.cancelado && pedido.monto_saldo > 0.1 && (
-                                                            <Tooltip text="Registrar pago">
-                                                                <button
-                                                                    onClick={() => handleOpenPayModal(pedido)}
-                                                                    className="text-green-600 hover:text-green-900 transition-colors"
-                                                                >
-                                                                    <FaMoneyBillWave className="h-5 w-5" />
-                                                                </button>
-                                                            </Tooltip>
-                                                        )}
-
-                                                        {/* Botón de Entrega: Solo visible si está terminado (listo) y no entregado */}
-                                                        {pedido.estado_produccion === 'terminado' && pedido.estado_pedido !== 'entregado' && (
-                                                            <Tooltip text="Entregar pedido">
-                                                                <button
-                                                                    onClick={() => handleEntregar(pedido)}
-                                                                    className="text-blue-600 hover:text-blue-900 transition-colors"
-                                                                >
-                                                                    <FaCar className="h-5 w-5" />
-                                                                </button>
-                                                            </Tooltip>
-                                                        )}
-
-                                                        {/* Botón de Ver / Imprimir */}
-                                                        <Tooltip text="Ver Nota de Pedido">
-                                                            <button
-                                                                onClick={() => handlePrint(pedido)}
-                                                                className="text-gray-600 hover:text-gray-900 transition-colors"
-                                                            >
-                                                                <FaEye className="h-5 w-5" />
+                                                <td className="px-4 py-4 whitespace-nowrap text-center"><EstadoPagoBadge pedido={pedido} /></td>
+                                                <td className={`px-4 py-4 whitespace-nowrap text-sm font-bold text-right ${pedido.monto_saldo > 0 ? 'text-red-600' : 'text-green-600'}`}>S/ {pedido.monto_saldo.toFixed(2)}</td>
+                                                <td className="px-4 py-4 whitespace-nowrap text-right">
+                                                    <div className="flex justify-end gap-4">
+                                                        <Tooltip text="Registrar producción">
+                                                            <button onClick={() => handleCrearProduccion(pedido)} className="text-purple-600 hover:text-purple-900 transition-colors">
+                                                                <FaHammer className="h-6 w-6" />
                                                             </button>
                                                         </Tooltip>
-
-                                                        <Tooltip text={pedido.estado_pedido === 'entregado' ? 'No se puede editar' : 'Editar pedido'}>
-                                                            <button
-                                                                onClick={() => handleEdit(pedido)}
-                                                                className={`transition-colors ${pedido.estado_pedido === 'entregado'
-                                                                    ? 'text-gray-300 cursor-not-allowed'
-                                                                    : 'text-indigo-600 hover:text-indigo-900'
-                                                                    }`}
-                                                                disabled={pedido.estado_pedido === 'entregado'}
-                                                            >
-                                                                <FaEdit className="h-5 w-5" />
+                                                        <Tooltip text="Ver Nota">
+                                                            <button onClick={() => handlePrint(pedido)} className="text-gray-500 hover:text-gray-800 transition-colors">
+                                                                <FaEye className="h-6 w-6" />
                                                             </button>
                                                         </Tooltip>
-                                                        <Tooltip text="Eliminar pedido">
-                                                            <button
-                                                                onClick={() => handleDelete(pedido.id_pedido)}
-                                                                className="text-red-600 hover:text-red-900 transition-colors"
-                                                            >
-                                                                <FaTrash className="h-5 w-5" />
+                                                        <Tooltip text="Editar">
+                                                            <button onClick={() => handleEdit(pedido)} className="text-amber-500 hover:text-amber-800 transition-colors">
+                                                                <FaEdit className="h-6 w-6" />
+                                                            </button>
+                                                        </Tooltip>
+                                                        <Tooltip text="Eliminar">
+                                                            <button onClick={() => handleDelete(pedido.id_pedido)} className="text-red-500 hover:text-red-800 transition-colors">
+                                                                <FaTrash className="h-6 w-6" />
                                                             </button>
                                                         </Tooltip>
                                                     </div>

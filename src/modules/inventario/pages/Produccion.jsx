@@ -54,6 +54,7 @@ const Produccion = () => {
         tipo_producto: ''
     });
     const [sendingToStockItem, setSendingToStockItem] = useState(null);
+    const [currentPage, setCurrentPage] = useState(1); // Estado para paginación
 
     // Bloquear scroll cuando el modal está abierto
     useEffect(() => {
@@ -167,16 +168,27 @@ const Produccion = () => {
         );
 
         if (producto) {
+            // CONSTRUCCIÓN DEL DETALLE ENRIQUECIDO REQUERIDO
+            // Formato: Tipo - Nombre/Modelo - Descripción/Metal (Pedido #ID)
+            const detalleEnriquecido = `${producto.tipo_producto} - ${producto.nombre_producto} - ${producto.metal || ''} (Pedido #${producto.id_pedido})`;
+
             setFormData(prev => ({
                 ...prev,
                 pedido_id: value,
                 metal: producto.metal || '',
                 tipo_producto: producto.tipo_producto || '',
-                nombre_producto: `${producto.nombre_cliente} - ${producto.nombre_producto}`,
+                nombre_producto: detalleEnriquecido,
                 cantidad: producto.cantidad // Aquí sí mantenemos la cantidad del pedido
             }));
         }
     };
+
+    // Estados para el flujo de Foto al Terminar
+    const [showPhotoPrompt, setShowPhotoPrompt] = useState(false);
+    const [showPhotoUploadModal, setShowPhotoUploadModal] = useState(false);
+    const [finishedItemForPhoto, setFinishedItemForPhoto] = useState(null);
+    const [showDetailModal, setShowDetailModal] = useState(false); // Estado para Modal Detalle
+
 
     const handleEdit = (item) => {
         setEditingId(item.id_produccion);
@@ -304,15 +316,80 @@ const Produccion = () => {
 
         try {
             await produccionDB.updateEstado(item.id_produccion, 'terminado');
-            toast.success('Producción marcada como terminada');
-            resetForm();
-            setMessage(null);
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+
+            // 1. Actualizar UI
             fetchProduccion();
             fetchStats();
+            toast.success('Producción marcada como terminada');
+
+            // 2. Preparar Prompt de Foto
+            setFinishedItemForPhoto(item);
+            setShowPhotoPrompt(true);
+
         } catch (error) {
             console.error('Error al marcar como terminado:', error);
             toast.error('Error al actualizar: ' + error.message);
+        }
+    };
+
+    // Handlers para el flujo de Foto Post-Terminado
+    const handlePhotoPromptConfirm = () => {
+        setShowPhotoPrompt(false);
+        // Abrir modal de subida real
+        setShowPhotoUploadModal(true);
+    };
+
+    const handlePhotoPromptCancel = () => {
+        setShowPhotoPrompt(false);
+        setFinishedItemForPhoto(null);
+    };
+
+    const handlePhotoUpload = async (file) => {
+        if (!finishedItemForPhoto || !file) return;
+
+        setUploadingImage(true);
+        try {
+            // Reutilizar lógica de compresión
+            const optimizedFile = await compressAndResizeImage(file, {
+                maxSizeMB: 0.5,
+                maxWidth: 1024,
+                quality: 0.8
+            });
+
+            const fileExtension = optimizedFile.name?.split('.').pop() || 'jpg';
+            const uniqueId = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+            const fileName = `produccion/${uniqueId}.${fileExtension}`;
+
+            const storageRef = ref(storage, fileName);
+            await uploadBytes(storageRef, optimizedFile);
+            const downloadURL = await getDownloadURL(storageRef);
+
+            // Actualizar registro en DB
+            await produccionDB.update(finishedItemForPhoto.id_produccion, {
+                // Recuperamos campos obligatorios del item si es necesario, 
+                // o usamos un método patch si lo tuviéramos. 
+                // produccionDB.update espera un objeto completo o parcial?
+                // Revisando produccionNeonClient.js: update hace UPDATE SET ... todos los campos.
+                // ¡CUIDADO! produccionDB.update espera TODOS los campos porque usa `produccionData.metal`, etc.
+                // Si paso solo imagen_url, los otros pueden ser undefined/null y borrar datos.
+                // Necesito obtener el item actualizado completo o usar un método específico para imagen.
+
+                // SOLUCIÓN: Usaré update pasando los valores existentes del item.
+                ...finishedItemForPhoto,
+                estado_produccion: 'terminado', // Asegurar
+                imagen_url: downloadURL
+            });
+
+            toast.success('Foto subida y guardada');
+            setShowPhotoUploadModal(false);
+            setFinishedItemForPhoto(null);
+            fetchProduccion();
+
+        } catch (error) {
+            console.error('Error subiendo foto final:', error);
+            toast.error('Error al subir foto: ' + error.message);
+        } finally {
+            setUploadingImage(false);
         }
     };
 
@@ -370,25 +447,12 @@ const Produccion = () => {
     };
 
     const handleView = (item) => {
-        // Cargar item en modo solo lectura
-        setEditingId(item.id_produccion);
-        setFormData({
-            tipo_produccion: item.tipo_produccion || 'STOCK',
-            pedido_id: item.pedido_id || '',
-            metal: item.metal || '',
-            tipo_producto: item.tipo_producto || '',
-            nombre_producto: item.nombre_producto || '',
-            cantidad: item.cantidad || '',
-            costo_materiales: item.costo_materiales || '',
-            mano_de_obra: item.mano_de_obra || '',
-            costo_herramientas: item.costo_herramientas || '',
-            otros_gastos: item.otros_gastos || '',
-            estado_produccion: item.estado_produccion || 'en_proceso',
-            observaciones: item.observaciones || '',
-            imagen_url: item.imagen_url || '',
-            codigo_producto: item.codigo_producto || ''
-        });
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        setSelectedItem(item);
+        setShowDetailModal(true);
+    };
+
+    const handleEditingFromDetail = (item) => {
+        handleEdit(item);
     };
 
     const handleDeleteCompleted = async (id) => {
@@ -543,6 +607,11 @@ const Produccion = () => {
         }
     };
 
+    // Paginación y Filtrado
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [filterType, searchTerm]);
+
     const filteredProduccion = produccion.filter(p => {
         let matchesType = true;
         if (filterType === 'stock') matchesType = p.tipo_produccion === 'STOCK';
@@ -558,17 +627,21 @@ const Produccion = () => {
                 p.nombre_cliente?.toLowerCase().includes(term);
         }
 
-        // Filtro de año: Eliminado para permitir consistencia histórica
-        // Antes: matchesYear = year >= 2026;
-        const matchesYear = true; // Mostrar todo siempre, el filtro principal será el estado/tipo
+        const matchesYear = true;
 
         return matchesType && matchesSearch && matchesYear;
     }).sort((a, b) => {
-        // Ordenar por fecha de producción (más reciente primero)
         const dateA = new Date(a.fecha_produccion || a.created_at);
         const dateB = new Date(b.fecha_produccion || b.created_at);
         return dateB - dateA;
     });
+
+    const itemsPerPage = 10;
+    const totalPages = Math.ceil(filteredProduccion.length / itemsPerPage);
+    const paginatedProduccion = filteredProduccion.slice(
+        (currentPage - 1) * itemsPerPage,
+        currentPage * itemsPerPage
+    );
 
     const handleTerminar = async (item) => {
         if (!window.confirm(`¿Confirmar que la producción de "${item.nombre_producto}" ha finalizado?`)) return;
@@ -775,15 +848,21 @@ const Produccion = () => {
                                 </select>
                             </div>
                             <div className="md:col-span-2">
-                                <label className="block text-xs font-semibold text-gray-700 mb-1">Nombre (Opcional)</label>
+                                <label className="block text-xs font-semibold text-gray-700 mb-1">
+                                    {formData.tipo_produccion === 'PEDIDO' ? 'Detalle (Generado Automáticamente)' : 'Detalle / Descripción para Taller *'}
+                                </label>
                                 <input
                                     type="text"
                                     name="nombre_producto"
-                                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 border p-2"
-                                    placeholder={formData.tipo_producto && formData.metal ? `${formData.tipo_producto} de ${formData.metal}` : "Nombre (Opcional)"}
+                                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 border p-2 text-sm"
+                                    placeholder="Ej: Anillo Ariete - plata - talla 8 - grabado simple"
                                     value={formData.nombre_producto}
                                     onChange={handleChange}
+                                    required={formData.tipo_produccion === 'STOCK'}
                                 />
+                                {formData.tipo_produccion === 'STOCK' && (
+                                    <p className="text-[10px] text-gray-500 mt-1">Especifique claramente qué se debe fabricar (Tipo, Nombre, Características).</p>
+                                )}
                             </div>
                             <div>
                                 <label className="block text-xs font-semibold text-gray-700 mb-1">Cantidad *</label>
@@ -900,51 +979,64 @@ const Produccion = () => {
                             {/* Carga de Imagen */}
                             <div>
                                 <label className="block text-xs font-semibold text-gray-700 mb-2">Imagen del Producto</label>
-                                <div className="flex items-start gap-4">
-                                    <div className="w-24 h-24 bg-gray-200 rounded-lg border border-gray-300 flex items-center justify-center overflow-hidden relative">
-                                        {formData.imagen_url ? (
-                                            <>
-                                                <img src={formData.imagen_url} alt="Prod" className="w-full h-full object-cover" />
-                                                {!editingId && (
-                                                    <button
-                                                        type="button"
-                                                        onClick={handleRemoveImage}
-                                                        className="absolute top-0 right-0 bg-red-500 text-white p-1 rounded-bl-lg hover:bg-red-600"
-                                                    >
-                                                        <FaTimes size={10} />
-                                                    </button>
-                                                )}
-                                            </>
-                                        ) : (
-                                            <FaCamera className="text-gray-400 text-2xl" />
-                                        )}
-                                        {uploadingImage && (
-                                            <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center text-white text-[10px] animate-pulse">
-                                                <FaSpinner className="animate-spin text-xl mb-1" />
-                                                <span>Subiendo...</span>
-                                            </div>
-                                        )}
+
+                                {formData.estado_produccion === 'terminado' ? (
+                                    <div className="flex items-start gap-4">
+                                        <div className="w-24 h-24 bg-gray-200 rounded-lg border border-gray-300 flex items-center justify-center overflow-hidden relative">
+                                            {formData.imagen_url ? (
+                                                <>
+                                                    <img src={formData.imagen_url} alt="Prod" className="w-full h-full object-cover" />
+                                                    {!editingId && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={handleRemoveImage}
+                                                            className="absolute top-0 right-0 bg-red-500 text-white p-1 rounded-bl-lg hover:bg-red-600"
+                                                        >
+                                                            <FaTimes size={10} />
+                                                        </button>
+                                                    )}
+                                                </>
+                                            ) : (
+                                                <FaCamera className="text-gray-400 text-2xl" />
+                                            )}
+                                            {uploadingImage && (
+                                                <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center text-white text-[10px] animate-pulse">
+                                                    <FaSpinner className="animate-spin text-xl mb-1" />
+                                                    <span>Subiendo...</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="flex-1">
+                                            <input
+                                                type="file"
+                                                ref={fileInputRef}
+                                                className="hidden"
+                                                accept="image/*"
+                                                onChange={handleImageChange}
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => fileInputRef.current.click()}
+                                                disabled={uploadingImage}
+                                                className="px-3 py-2 bg-white border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                                            >
+                                                <FaCamera />
+                                                {formData.imagen_url ? 'Cambiar Imagen' : 'Subir Imagen'}
+                                            </button>
+                                            <p className="text-[10px] text-gray-500 mt-1">Máx 5MB. JPG, PNG.</p>
+                                        </div>
                                     </div>
-                                    <div className="flex-1">
-                                        <input
-                                            type="file"
-                                            ref={fileInputRef}
-                                            className="hidden"
-                                            accept="image/*"
-                                            onChange={handleImageChange}
-                                        />
-                                        <button
-                                            type="button"
-                                            onClick={() => fileInputRef.current.click()}
-                                            disabled={uploadingImage}
-                                            className="px-3 py-2 bg-white border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-2"
-                                        >
-                                            <FaCamera />
-                                            {formData.imagen_url ? 'Cambiar Imagen' : 'Subir Imagen'}
-                                        </button>
-                                        <p className="text-[10px] text-gray-500 mt-1">Máx 5MB. JPG, PNG.</p>
+                                ) : (
+                                    <div className="bg-white border border-dashed border-gray-300 rounded-lg p-6 flex flex-col items-center justify-center text-center">
+                                        <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center mb-2">
+                                            <FaBan className="text-gray-400" />
+                                        </div>
+                                        <p className="text-sm text-gray-600 font-medium">Imagen no disponible</p>
+                                        <p className="text-xs text-gray-400 max-w-[200px]">
+                                            Solo se pueden subir fotos cuando la producción está en estado <strong>Terminado</strong>.
+                                        </p>
                                     </div>
-                                </div>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -1004,124 +1096,119 @@ const Produccion = () => {
                 {/* Tabla */}
                 <div className="overflow-x-auto">
                     <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50">
-                            <tr>
-                                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Fecha</th>
-                                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Img</th>
-                                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cliente</th>
-                                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase w-48">Producto</th>
-                                <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase">Cant</th>
-                                <th className="hidden md:table-cell px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase">Costo Unit.</th>
-                                <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase">Estado</th>
-                                <th className="hidden lg:table-cell px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase">Tipo</th>
-                                <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase">Acciones</th>
+                        <thead className="bg-gray-50 border-b border-gray-100">
+                            <tr className="h-[44px]">
+                                <th className="px-3 text-left text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Origen</th>
+                                <th className="px-3 text-left text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Producto</th>
+                                <th className="hidden md:table-cell px-3 text-center text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Cant</th>
+                                <th className="px-3 text-center text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Est.</th>
+                                <th className="px-3 text-right text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Fecha</th>
+                                <th className="px-3 text-right text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Acciones</th>
                             </tr>
                         </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
-                            {filteredProduccion.map((item) => (
-                                <tr key={item.id_produccion} className="hover:bg-gray-50">
-                                    <td className="px-3 py-3 whitespace-nowrap text-left text-xs text-gray-700">
-                                        {(() => {
-                                            const dateStr = item.fecha_produccion || item.created_at;
-                                            if (!dateStr) return '-';
-                                            const date = new Date(dateStr.toString().includes('T') ? dateStr : dateStr + 'T00:00:00');
-                                            return isNaN(date.getTime()) ? '-' : date.toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', year: '2-digit' });
-                                        })()}
-                                    </td>
-                                    <td className="px-3 py-3 text-left">
-                                        {item.imagen_url ? (
-                                            <img src={item.imagen_url} alt="img" className="w-8 h-8 rounded-full object-cover border border-gray-200" />
-                                        ) : (
-                                            <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 text-xs">camera</div>
-                                        )}
-                                    </td>
-                                    <td className="px-3 py-3 text-left">
-                                        <div className="text-xs text-gray-700">{item.nombre_cliente || 'Stock'}</div>
-                                    </td>
-                                    <td className="px-3 py-3 text-left">
-                                        <div className="text-xs text-gray-700 max-w-xs">
-                                            {item.nombre_producto?.replace(/^.*?\s*-\s*/, '') || `${item.tipo_producto} de ${item.metal}`}
-                                        </div>
-                                    </td>
-                                    <td className="px-3 py-3 text-center text-xs text-gray-700">{item.cantidad}</td>
-                                    <td className="hidden md:table-cell px-3 py-3 text-right text-xs text-gray-700">S/ {parseFloat(item.costo_total_unitario || 0).toFixed(2)}</td>
-                                    <td className="px-4 py-3 text-center">
-                                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${item.estado_produccion === 'terminado' ? 'bg-green-100 text-green-800' :
-                                            item.estado_produccion === 'en_proceso' ? 'bg-orange-100 text-orange-800' :
-                                                item.estado_produccion === 'anulado' ? 'bg-gray-100 text-gray-800' :
-                                                    'bg-yellow-100 text-yellow-800'
-                                            }`}>
-                                            {item.estado_produccion === 'terminado' ? 'Terminado' :
-                                                item.estado_produccion === 'en_proceso' ? 'En proceso' :
-                                                    item.estado_produccion === 'anulado' ? 'Anulado' :
-                                                        item.estado_produccion}
-                                        </span>
-                                    </td>
-                                    <td className="hidden lg:table-cell px-4 py-3 text-center">
-                                        {item.tipo_produccion === 'PEDIDO' ? (
-                                            <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-amber-100 text-amber-800">
-                                                Pedido
+                        <tbody className="bg-white divide-y divide-gray-50">
+                            {paginatedProduccion.map((item) => (
+                                <tr key={item.id_produccion} className="h-[70px] md:h-[58px] hover:bg-gray-50/50 transition-colors group">
+                                    {/* ... content ... */}
+                                    <td className="px-3 whitespace-nowrap hidden md:table-cell">
+                                        {item.pedido_id ? (
+                                            <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-normal bg-amber-50 text-amber-600 border border-amber-100">
+                                                Ped #{item.pedido_id}
                                             </span>
                                         ) : (
-                                            <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+                                            <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-normal bg-gray-50 text-gray-500 border border-gray-200">
                                                 Stock
                                             </span>
                                         )}
                                     </td>
-                                    <td className="px-4 py-3 text-right">
-                                        <div className="flex justify-end space-x-2">
-                                            {/* Editar - Siempre visible */}
+
+                                    {/* 2. Producto (+ Origen/Cant on Mobile) */}
+                                    <td className="px-3">
+                                        <div className="flex flex-col">
+                                            {/* Badge Mobile */}
+                                            <div className="md:hidden flex items-center gap-2 mb-0.5">
+                                                {item.pedido_id ? (
+                                                    <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-50 text-amber-600 uppercase">P#{item.pedido_id}</span>
+                                                ) : (
+                                                    <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-gray-100 text-gray-500 uppercase">Stock</span>
+                                                )}
+                                            </div>
+                                            <div className="text-[14px] text-gray-700 font-normal leading-tight">
+                                                {item.tipo_producto} – {item.metal}
+                                            </div>
+                                            <div className="md:hidden text-[11px] text-gray-400 font-normal mt-0.5">
+                                                {item.cantidad}u
+                                            </div>
+                                        </div>
+                                    </td>
+
+                                    {/* 3. Cant - Desktop */}
+                                    <td className="hidden md:table-cell px-3 text-center text-[13px] text-gray-500 font-normal">
+                                        {item.cantidad}u
+                                    </td>
+
+                                    {/* 4. Estado - Icono solamente */}
+                                    <td className="px-3 text-center">
+                                        <div className="flex justify-center">
+                                            {item.estado_produccion === 'terminado' ? (
+                                                <div className="w-9 h-9 md:w-8 md:h-8 rounded-full bg-green-50 flex items-center justify-center text-green-500 border border-green-100" title="Terminado">
+                                                    <FaCheck size={14} className="md:w-3.5" />
+                                                </div>
+                                            ) : item.estado_produccion === 'anulado' ? (
+                                                <div className="w-9 h-9 md:w-8 md:h-8 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 border border-gray-100" title="Anulado">
+                                                    <FaBan size={14} className="md:w-3.5" />
+                                                </div>
+                                            ) : (
+                                                <div className="w-9 h-9 md:w-8 md:h-8 rounded-full bg-amber-50 flex items-center justify-center text-amber-500 border border-amber-100" title="En proceso">
+                                                    <span className="text-sm md:text-xs animate-pulse">⏳</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </td>
+
+                                    {/* 5. Fecha - Solo una (Inicio o Fin) */}
+                                    <td className="px-3 text-right whitespace-nowrap">
+                                        <div className="text-[12px] md:text-[11px] text-gray-500 font-normal">
+                                            {(() => {
+                                                const dateStr = item.estado_produccion === 'terminado' ? (item.fecha_produccion || item.created_at) : item.created_at;
+                                                if (!dateStr) return '-';
+                                                const date = new Date(dateStr.toString().includes('T') ? dateStr : dateStr + 'T20:00:00');
+                                                return isNaN(date.getTime()) ? '-' : date.toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit' });
+                                            })()}
+                                        </div>
+                                    </td>
+
+                                    {/* 6. Acciones - Iconos solamente */}
+                                    <td className="px-3 text-right whitespace-nowrap">
+                                        <div className="flex justify-end items-center gap-1 md:gap-3">
+                                            {/* Ver Detalle */}
                                             <button
-                                                onClick={() => item.estado_produccion === 'terminado' ? handleView(item) : handleEdit(item)}
-                                                className="text-blue-600 hover:text-blue-900"
-                                                title="Editar"
+                                                onClick={() => handleView(item)}
+                                                className="w-[40px] h-[40px] md:w-[36px] md:h-[36px] flex items-center justify-center text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-all"
+                                                title="Ver detalle"
                                             >
-                                                <FaEdit size={18} />
+                                                <span className="text-[22px] md:text-[20px]">👁️</span>
                                             </button>
 
-                                            {/* Enviar a Inventario - Solo para productos terminados de STOCK que NO han sido transferidos */}
-                                            {item.estado_produccion === 'terminado' && item.tipo_produccion === 'STOCK' && !item.transferido_inventario && !isProductInInventory(item) && (
+                                            {/* Subir Foto - Solo si terminado */}
+                                            {item.estado_produccion === 'terminado' && (
                                                 <button
-                                                    onClick={() => handleSendToInventory(item)}
-                                                    className="text-green-600 hover:text-green-900"
-                                                    title="Enviar a Inventario"
+                                                    onClick={() => { setFinishedItemForPhoto(item); setShowPhotoUploadModal(true); }}
+                                                    className="w-[40px] h-[40px] md:w-[36px] md:h-[36px] flex items-center justify-center text-gray-400 hover:text-orange-500 hover:bg-orange-50 rounded-full transition-all"
+                                                    title="Subir foto"
                                                 >
-                                                    <FaBox size={18} />
+                                                    <FaCamera size={18} className="md:w-4 md:h-4" />
                                                 </button>
                                             )}
 
-                                            {/* Marcar como Terminado - Solo para productos en proceso */}
-                                            {['en_proceso', 'pendiente'].includes(item.estado_produccion) && (
-                                                <button
-                                                    onClick={() => handleMarkAsComplete(item)}
-                                                    className="text-green-600 hover:text-green-900"
-                                                    title="Marcar como Terminado"
-                                                >
-                                                    <FaCheck size={18} />
-                                                </button>
-                                            )}
-
-                                            {/* Anular - Solo para productos terminados */}
+                                            {/* Anular - Solo si terminado */}
                                             {item.estado_produccion === 'terminado' && (
                                                 <button
                                                     onClick={() => handleAnular(item)}
-                                                    className="text-orange-600 hover:text-orange-900"
+                                                    className="w-[40px] h-[40px] md:w-[36px] md:h-[36px] flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-all"
                                                     title="Anular"
                                                 >
-                                                    <FaBan size={18} />
-                                                </button>
-                                            )}
-
-                                            {/* Eliminar - Solo para productos NO terminados o Pedidos En Proceso */}
-                                            {item.estado_produccion !== 'terminado' && (
-                                                <button
-                                                    onClick={() => handleDelete(item)}
-                                                    className={`transition-colors ${item.pedido_id && item.estado_produccion === 'en_proceso'
-                                                        ? 'bg-red-500 text-white p-1 rounded-md hover:bg-red-700'
-                                                        : 'text-red-500 hover:text-red-700'}`}
-                                                    title={item.pedido_id ? "Eliminar Pedido Completo" : "Eliminar Registro"}
-                                                >
-                                                    <FaTrash size={item.pedido_id && item.estado_produccion === 'en_proceso' ? 14 : 16} />
+                                                    <FaBan size={18} className="md:w-4 md:h-4" />
                                                 </button>
                                             )}
                                         </div>
@@ -1130,9 +1217,39 @@ const Produccion = () => {
                             ))}
                         </tbody>
                     </table>
-                    {filteredProduccion.length === 0 && (
+
+                    {filteredProduccion.length === 0 ? (
                         <div className="text-center py-8 text-gray-500">
                             No se encontraron registros de producción.
+                        </div>
+                    ) : (
+                        /* Paginación */
+                        <div className="flex flex-col sm:flex-row justify-between items-center bg-gray-50 px-4 py-3 border-t border-gray-200 mt-2 rounded-b-lg gap-4">
+                            <div className="text-xs text-gray-500 font-medium">
+                                Mostrando <span className="text-gray-800">{(currentPage - 1) * itemsPerPage + 1}</span> a <span className="text-gray-800">{Math.min(currentPage * itemsPerPage, filteredProduccion.length)}</span> de <span className="text-gray-800 font-bold">{filteredProduccion.length}</span> registros
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                                <button
+                                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                                    disabled={currentPage === 1}
+                                    className="px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-gray-600 text-xs font-bold hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                                >
+                                    Anterior
+                                </button>
+
+                                <div className="flex items-center justify-center px-4 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-bold text-gray-700">
+                                    Página {currentPage} de {totalPages}
+                                </div>
+
+                                <button
+                                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                                    disabled={currentPage === totalPages}
+                                    className="px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-gray-600 text-xs font-bold hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                                >
+                                    Siguiente
+                                </button>
+                            </div>
                         </div>
                     )}
                 </div>
@@ -1159,117 +1276,119 @@ const Produccion = () => {
             }
 
             {/* Modal Enviar a Stock (Simplificado) */}
-            {showStockModal && (
-                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
-                        <div className="bg-gradient-to-r from-blue-600 to-indigo-700 p-6 text-white">
-                            <h3 className="text-xl font-bold flex items-center gap-2">
-                                <FaBox /> Enviar a Stock
-                            </h3>
-                            <p className="text-blue-100 text-sm mt-1">
-                                Incrementa el stock de un producto existente en el inventario.
-                            </p>
-                        </div>
+            {
+                showStockModal && (
+                    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
+                            <div className="bg-gradient-to-r from-blue-600 to-indigo-700 p-6 text-white">
+                                <h3 className="text-xl font-bold flex items-center gap-2">
+                                    <FaBox /> Enviar a Stock
+                                </h3>
+                                <p className="text-blue-100 text-sm mt-1">
+                                    Incrementa el stock de un producto existente en el inventario.
+                                </p>
+                            </div>
 
-                        <div className="bg-blue-50 px-6 py-2 border-b border-blue-100 flex items-center justify-between">
-                            <span className="text-xs font-bold text-blue-700 uppercase tracking-wider">Producto:</span>
-                            <span className="text-sm font-semibold text-blue-900">{stockFormData.tipo_producto}</span>
-                        </div>
+                            <div className="bg-blue-50 px-6 py-2 border-b border-blue-100 flex items-center justify-between">
+                                <span className="text-xs font-bold text-blue-700 uppercase tracking-wider">Producto:</span>
+                                <span className="text-sm font-semibold text-blue-900">{stockFormData.tipo_producto}</span>
+                            </div>
 
-                        <form onSubmit={handleConfirmSendToStock} className="p-6 space-y-4">
-                            <div className="flex gap-4 items-start">
-                                <div className="flex-1">
-                                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Código QR / Único *</label>
-                                    <div className="relative">
-                                        <FaQrcode className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                            <form onSubmit={handleConfirmSendToStock} className="p-6 space-y-4">
+                                <div className="flex gap-4 items-start">
+                                    <div className="flex-1">
+                                        <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Código QR / Único *</label>
+                                        <div className="relative">
+                                            <FaQrcode className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                                            <input
+                                                type="text"
+                                                required
+                                                className="w-full pl-10 p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none font-mono"
+                                                placeholder="Ingresa o escanea el código"
+                                                value={stockFormData.codigo}
+                                                onChange={(e) => setStockFormData({ ...stockFormData, codigo: e.target.value.toUpperCase() })}
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="w-24 h-24 bg-white p-2 border border-gray-200 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm">
+                                        {stockFormData.codigo ? (
+                                            <QRCode value={stockFormData.codigo} size={80} className="w-full h-full" />
+                                        ) : (
+                                            <div className="text-[10px] text-gray-400 text-center">Sin código</div>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Aviso informativo si el código no existe */}
+                                {stockFormData.codigo && !productosEnInventario.some(p => p.codigo_usuario === stockFormData.codigo) && (
+                                    <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-start gap-3 animate-pulse">
+                                        <FaExclamationTriangle className="text-amber-500 mt-1 shrink-0" />
+                                        <div className="text-xs text-amber-800">
+                                            <p className="font-bold uppercase mb-0.5">Nuevo Producto Detectado</p>
+                                            <p>El código <strong>{stockFormData.codigo}</strong> no existe. Se creará un nuevo registro en el inventario al confirmar.</p>
+                                        </div>
+                                    </div>
+                                )}
+
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Cantidad *</label>
+                                    <input
+                                        type="number"
+                                        required
+                                        min="1"
+                                        className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none"
+                                        value={stockFormData.cantidad}
+                                        onChange={(e) => setStockFormData({ ...stockFormData, cantidad: e.target.value })}
+                                    />
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Precio de Venta</label>
                                         <input
-                                            type="text"
-                                            required
-                                            className="w-full pl-10 p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none font-mono"
-                                            placeholder="Ingresa o escanea el código"
-                                            value={stockFormData.codigo}
-                                            onChange={(e) => setStockFormData({ ...stockFormData, codigo: e.target.value.toUpperCase() })}
+                                            type="number"
+                                            step="0.01"
+                                            className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none"
+                                            placeholder="0.00"
+                                            value={stockFormData.precio}
+                                            onChange={(e) => setStockFormData({ ...stockFormData, precio: e.target.value })}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Precio Opcional</label>
+                                        <input
+                                            type="number"
+                                            step="0.01"
+                                            className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none"
+                                            placeholder="0.00"
+                                            value={stockFormData.precioReferencial}
+                                            onChange={(e) => setStockFormData({ ...stockFormData, precioReferencial: e.target.value })}
                                         />
                                     </div>
                                 </div>
-                                <div className="w-24 h-24 bg-white p-2 border border-gray-200 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm">
-                                    {stockFormData.codigo ? (
-                                        <QRCode value={stockFormData.codigo} size={80} className="w-full h-full" />
-                                    ) : (
-                                        <div className="text-[10px] text-gray-400 text-center">Sin código</div>
-                                    )}
+
+
+                                <div className="pt-4 flex gap-3">
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowStockModal(false)}
+                                        className="flex-1 py-3 px-4 border border-gray-200 text-gray-600 font-bold rounded-xl hover:bg-gray-50 transition-colors"
+                                    >
+                                        CANCELAR
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        disabled={loading}
+                                        className={`flex-1 py-3 px-4 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 shadow-lg shadow-blue-200 transition-all flex items-center justify-center gap-2 ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                    >
+                                        {loading ? 'PROCESANDO...' : 'CONFIRMAR'}
+                                    </button>
                                 </div>
-                            </div>
-
-                            {/* Aviso informativo si el código no existe */}
-                            {stockFormData.codigo && !productosEnInventario.some(p => p.codigo_usuario === stockFormData.codigo) && (
-                                <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-start gap-3 animate-pulse">
-                                    <FaExclamationTriangle className="text-amber-500 mt-1 shrink-0" />
-                                    <div className="text-xs text-amber-800">
-                                        <p className="font-bold uppercase mb-0.5">Nuevo Producto Detectado</p>
-                                        <p>El código <strong>{stockFormData.codigo}</strong> no existe. Se creará un nuevo registro en el inventario al confirmar.</p>
-                                    </div>
-                                </div>
-                            )}
-
-                            <div>
-                                <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Cantidad *</label>
-                                <input
-                                    type="number"
-                                    required
-                                    min="1"
-                                    className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none"
-                                    value={stockFormData.cantidad}
-                                    onChange={(e) => setStockFormData({ ...stockFormData, cantidad: e.target.value })}
-                                />
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Precio de Venta</label>
-                                    <input
-                                        type="number"
-                                        step="0.01"
-                                        className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none"
-                                        placeholder="0.00"
-                                        value={stockFormData.precio}
-                                        onChange={(e) => setStockFormData({ ...stockFormData, precio: e.target.value })}
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Precio Opcional</label>
-                                    <input
-                                        type="number"
-                                        step="0.01"
-                                        className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none"
-                                        placeholder="0.00"
-                                        value={stockFormData.precioReferencial}
-                                        onChange={(e) => setStockFormData({ ...stockFormData, precioReferencial: e.target.value })}
-                                    />
-                                </div>
-                            </div>
-
-
-                            <div className="pt-4 flex gap-3">
-                                <button
-                                    type="button"
-                                    onClick={() => setShowStockModal(false)}
-                                    className="flex-1 py-3 px-4 border border-gray-200 text-gray-600 font-bold rounded-xl hover:bg-gray-50 transition-colors"
-                                >
-                                    CANCELAR
-                                </button>
-                                <button
-                                    type="submit"
-                                    disabled={loading}
-                                    className={`flex-1 py-3 px-4 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 shadow-lg shadow-blue-200 transition-all flex items-center justify-center gap-2 ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                >
-                                    {loading ? 'PROCESANDO...' : 'CONFIRMAR'}
-                                </button>
-                            </div>
-                        </form>
+                            </form>
+                        </div>
                     </div>
-                </div>
-            )}
+                )
+            }
             {/* Modal de Confirmación */}
             <ConfirmModal
                 isOpen={confirmModal.isOpen}
@@ -1307,6 +1426,278 @@ const Produccion = () => {
                     },
                 }}
             />
+            {/* Modal Prompt Foto Terminado */}
+            {
+                showPhotoPrompt && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in">
+                        <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 text-center">
+                            <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl">
+                                <FaCamera />
+                            </div>
+                            <h3 className="text-xl font-bold text-gray-800 mb-2">¿Subir foto del producto?</h3>
+                            <p className="text-gray-500 mb-6 text-sm">
+                                El producto ha sido marcado como <strong>TERMINADO</strong>. <br />
+                                ¿Deseas agregar una foto del resultado final ahora?
+                            </p>
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={handlePhotoPromptCancel}
+                                    className="flex-1 py-2.5 px-4 border border-gray-300 rounded-xl text-gray-700 font-medium hover:bg-gray-50 transition"
+                                >
+                                    No, gracias
+                                </button>
+                                <button
+                                    onClick={handlePhotoPromptConfirm}
+                                    className="flex-1 py-2.5 px-4 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition shadow-lg shadow-blue-200"
+                                >
+                                    Sí, subir foto
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )
+            }
+
+            {/* Modal Subida de Foto Final */}
+            {
+                showPhotoUploadModal && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in">
+                        <div className="bg-white rounded-xl shadow-2xl max-w-sm w-full overflow-hidden">
+                            {/* Header con gradiente rojo/naranja */}
+                            <div className="bg-gradient-to-r from-orange-500 to-red-600 p-4 text-white flex justify-between items-start">
+                                <div>
+                                    <h3 className="text-lg font-bold flex items-center gap-2">
+                                        <FaCamera /> Agregar Foto
+                                    </h3>
+                                    <p className="text-xs text-white/80 mt-1 max-w-[250px] truncate">
+                                        {finishedItemForPhoto?.nombre_producto || finishedItemForPhoto?.tipo_producto || 'Producto finalizado'}
+                                    </p>
+                                </div>
+                                <button
+                                    onClick={() => setShowPhotoUploadModal(false)}
+                                    className="text-white/80 hover:text-white transition-colors"
+                                >
+                                    <FaTimes size={20} />
+                                </button>
+                            </div>
+
+                            <div className="p-6">
+                                {/* Zona de Drop/Click */}
+                                <div
+                                    className="border-2 border-dashed border-orange-200 bg-orange-50/30 rounded-xl h-48 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-orange-50 transition-colors group relative"
+                                    onClick={() => !uploadingImage && document.getElementById('final-photo-input').click()}
+                                >
+                                    <input
+                                        id="final-photo-input"
+                                        type="file"
+                                        accept="image/*"
+                                        className="hidden"
+                                        onChange={(e) => {
+                                            if (e.target.files[0]) handlePhotoUpload(e.target.files[0]);
+                                        }}
+                                        disabled={uploadingImage}
+                                    />
+                                    {uploadingImage ? (
+                                        <div className="animate-pulse flex flex-col items-center justify-center w-full h-full bg-white/80 absolute inset-0 z-10">
+                                            <FaSpinner className="animate-spin text-orange-500 text-3xl mb-2" />
+                                            <span className="text-orange-600 font-bold text-sm">Subiendo foto...</span>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <div className="w-12 h-12 bg-orange-100 text-orange-500 rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                                                <FaCamera size={24} />
+                                            </div>
+                                            <span className="text-gray-600 font-medium text-sm">Haz clic para subir imagen</span>
+                                            <span className="text-gray-400 text-xs mt-1">JPG, PNG • Máx 5MB</span>
+                                        </>
+                                    )}
+                                </div>
+
+                                {/* Warning Box */}
+                                <div className="mt-4 bg-yellow-50 border border-yellow-100 rounded-lg p-3 flex gap-3 items-start">
+                                    <FaExclamationTriangle className="text-amber-500 mt-0.5 shrink-0" size={14} />
+                                    <div className="text-xs text-amber-800">
+                                        <span className="font-bold block mb-0.5">Finalización de Proceso</span>
+                                        La foto se asociará a este registro y será visible en el detalle del producto terminado.
+                                    </div>
+                                </div>
+
+                                {/* Botón Cancelar */}
+                                <button
+                                    onClick={() => setShowPhotoUploadModal(false)}
+                                    className="w-full mt-6 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold py-3 rounded-lg text-sm uppercase tracking-wide transition-colors"
+                                >
+                                    Cancelar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )
+            }
+
+            {/* Modal Detalle de Producción */}
+            {
+                showDetailModal && selectedItem && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-[2px] p-4 animate-in fade-in duration-200">
+                        <div className="bg-white rounded-xl shadow-xl w-full max-w-sm overflow-hidden flex flex-col max-h-[85vh] border border-gray-100">
+                            {/* Header Refinado */}
+                            <div className="bg-white border-b border-gray-100 px-4 h-[48px] flex justify-between items-center shrink-0">
+                                <div className="flex items-center gap-2">
+                                    <div className="w-1.5 h-4 bg-blue-500 rounded-full"></div>
+                                    <h3 className="text-[15px] font-semibold text-gray-800">Detalle Registro #{selectedItem.id_produccion}</h3>
+                                </div>
+                                <button onClick={() => setShowDetailModal(false)} className="text-gray-400 hover:text-gray-600 p-1.5 rounded-full hover:bg-gray-50 transition-colors">
+                                    <FaTimes size={16} />
+                                </button>
+                            </div>
+
+                            {/* Contenido Compacto */}
+                            <div className="overflow-y-auto p-3 space-y-2 bg-white flex-1 custom-scrollbar">
+
+                                {/* Estado - Badge Compacto */}
+                                <div className="flex justify-between items-center h-[34px] border-b border-gray-50 px-1">
+                                    <span className="text-[11px] font-normal text-gray-500 uppercase tracking-tight">Estado:</span>
+                                    <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold uppercase tracking-tighter ${selectedItem.estado_produccion === 'terminado' ? 'bg-green-50 text-green-600 border border-green-100' :
+                                        selectedItem.estado_produccion === 'en_proceso' ? 'bg-orange-50 text-orange-600 border border-orange-100' :
+                                            'bg-gray-50 text-gray-600 border border-gray-100'
+                                        }`}>
+                                        {selectedItem.estado_produccion === 'terminado' && <FaCheckCircle className="mr-1 text-[10px]" />}
+                                        {selectedItem.estado_produccion.replace('_', ' ')}
+                                    </span>
+                                </div>
+
+                                {/* Sección Producto - Minimalista */}
+                                <div className="bg-gray-50/50 rounded-lg p-2.5 border border-gray-100">
+                                    <div className="mb-2">
+                                        <span className="block text-[11px] text-gray-400 uppercase font-normal mb-0.5">Nombre / Modelo:</span>
+                                        <span className="text-[14px] text-gray-800 font-medium leading-tight">
+                                            {selectedItem.nombre_producto?.replace(/^.*?\s*-\s*/, '') || '-'}
+                                        </span>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
+                                        <div className="h-[32px] flex flex-col justify-center">
+                                            <span className="text-[11px] text-gray-400 uppercase font-normal leading-none">Tipo:</span>
+                                            <span className="text-[12px] text-gray-700 font-normal">{selectedItem.tipo_producto}</span>
+                                        </div>
+                                        <div className="h-[32px] flex flex-col justify-center">
+                                            <span className="text-[11px] text-gray-400 uppercase font-normal leading-none">Cantidad:</span>
+                                            <span className="text-[12px] text-gray-700 font-normal">{selectedItem.cantidad} unidades</span>
+                                        </div>
+                                        <div className="col-span-2 h-[32px] flex flex-col justify-center border-t border-gray-100 mt-1 pt-1">
+                                            <span className="text-[11px] text-gray-400 uppercase font-normal leading-none">Material / Metal:</span>
+                                            <span className="text-[12px] text-gray-700 font-normal">{selectedItem.metal}</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Sección Cliente - Solo si corresponde */}
+                                {selectedItem.pedido_id && (
+                                    <div className="bg-blue-50/30 border border-blue-50 rounded-lg p-2.5 flex justify-between items-center group">
+                                        <div>
+                                            <span className="block text-[11px] text-blue-400 uppercase font-normal">Cliente:</span>
+                                            <span className="text-[13px] text-gray-800 font-normal">{selectedItem.nombre_cliente}</span>
+                                        </div>
+                                        <div className="text-right">
+                                            <span className="inline-block px-2 py-0.5 bg-blue-100 text-blue-700 text-[10px] font-bold rounded">
+                                                PED #{selectedItem.pedido_id}
+                                            </span>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Sección Costos - Limpia y Compacta */}
+                                <div className="p-2 px-1">
+                                    <div className="flex justify-between items-center h-[28px] text-[12px] text-gray-600 font-normal">
+                                        <span>Insumos / Materiales</span>
+                                        <span>S/ {parseFloat(selectedItem.costo_materiales || 0).toFixed(2)}</span>
+                                    </div>
+                                    <div className="flex justify-between items-center h-[28px] text-[12px] text-gray-600 font-normal">
+                                        <span>Mano de Obra</span>
+                                        <span>S/ {parseFloat(selectedItem.mano_de_obra || 0).toFixed(2)}</span>
+                                    </div>
+                                    <div className="flex justify-between items-center h-[28px] text-[12px] text-gray-600 font-normal">
+                                        <span>Costos Indirectos / Otros</span>
+                                        <span>S/ {(parseFloat(selectedItem.costo_herramientas || 0) + parseFloat(selectedItem.otros_gastos || 0)).toFixed(2)}</span>
+                                    </div>
+                                    <div className="mt-1.5 pt-1.5 border-t border-gray-100 flex justify-between items-center">
+                                        <span className="text-[11px] text-gray-400 uppercase font-normal">Costo Total Unitario</span>
+                                        <span className="text-[13px] font-semibold text-blue-600 tracking-tight">
+                                            S/ {parseFloat(selectedItem.costo_total_unitario || 0).toFixed(2)}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                {/* Observaciones - Secundarias */}
+                                <div className="pt-1 border-t border-gray-50">
+                                    <span className="block text-[11px] text-gray-400 uppercase font-normal mb-1">Observaciones:</span>
+                                    <p className="text-[11px] text-gray-500 font-normal leading-relaxed overflow-hidden">
+                                        {selectedItem.observaciones || "Sin notas adicionales."}
+                                    </p>
+                                </div>
+
+                                {/* Fechas - Pie del contenido */}
+                                <div className="flex justify-between items-center pt-3 text-[11px] text-gray-400 font-normal border-t border-gray-50 px-1">
+                                    <span>Fabricado: {selectedItem.fecha_produccion ? new Date(selectedItem.fecha_produccion).toLocaleDateString() : '-'}</span>
+                                    <span className="opacity-70">Registro: {new Date(selectedItem.created_at).toLocaleDateString()}</span>
+                                    <span>Fabricado: {selectedItem.fecha_produccion ? new Date(selectedItem.fecha_produccion).toLocaleDateString('es-ES') : '-'}</span>
+                                    <span className="opacity-70">Registro: {new Date(selectedItem.created_at).toLocaleDateString('es-ES')}</span>
+                                </div>
+
+                            </div>
+
+                            {/* Footer Refinado */}
+                            <div className="bg-white px-4 py-3 border-t border-gray-100 shrink-0 flex gap-2.5">
+                                {/* Botón Terminar (Nuevo lugar para limpiar el grid) */}
+                                {selectedItem.estado_produccion === 'en_proceso' && (
+                                    <button
+                                        onClick={() => { setShowDetailModal(false); handleMarkAsComplete(selectedItem); }}
+                                        className="flex-1 h-[38px] bg-green-600 hover:bg-green-700 text-white text-[13px] font-bold rounded-lg transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+                                    >
+                                        <FaCheck size={14} /> Terminar Proceso
+                                    </button>
+                                )}
+
+                                <button
+                                    onClick={() => { setShowDetailModal(false); handleEditingFromDetail(selectedItem); }}
+                                    className="h-[38px] w-[38px] flex items-center justify-center text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors border border-blue-100"
+                                    title="Editar"
+                                >
+                                    <FaEdit size={16} />
+                                </button>
+
+                                {selectedItem.estado_produccion !== 'terminado' && (
+                                    <button
+                                        onClick={() => { setShowDetailModal(false); handleDelete(selectedItem); }}
+                                        className="h-[38px] w-[38px] flex items-center justify-center text-red-500 bg-red-50 hover:bg-red-100 rounded-lg transition-colors border border-red-100"
+                                        title="Eliminar"
+                                    >
+                                        <FaTrash size={15} />
+                                    </button>
+                                )}
+
+                                {selectedItem.estado_produccion !== 'en_proceso' && (
+                                    <button
+                                        onClick={() => setShowDetailModal(false)}
+                                        className="flex-1 h-[38px] bg-gray-900 hover:bg-black text-white text-[13px] font-medium rounded-lg transition-all active:scale-[0.98]"
+                                    >
+                                        Cerrar Detalle
+                                    </button>
+                                )}
+
+                                {selectedItem.estado_produccion === 'en_proceso' && (
+                                    <button
+                                        onClick={() => setShowDetailModal(false)}
+                                        className="px-4 h-[38px] bg-gray-100 hover:bg-gray-200 text-gray-700 text-[13px] font-medium rounded-lg transition-all"
+                                    >
+                                        Cerrar
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                )
+            }
+
         </div >
     );
 };

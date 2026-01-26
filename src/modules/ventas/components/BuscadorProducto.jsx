@@ -38,7 +38,7 @@ const BuscadorProducto = ({ onScan, onSelect, onQRClick }) => {
     const searchByText = async (text) => {
         setLoading(true);
         try {
-            const allProducts = await productosExternosDB.getAll();
+            const allProducts = await productosExternosDB.getAllConsolidated();
             const filtered = allProducts.filter(p =>
                 p.nombre.toLowerCase().includes(text.toLowerCase()) ||
                 (p.codigo_usuario && p.codigo_usuario.toLowerCase().includes(text.toLowerCase()))

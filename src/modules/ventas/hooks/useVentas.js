@@ -48,7 +48,7 @@ export const useVentas = () => {
 
         try {
             setLoadingProducto(true);
-            const producto = await productosExternosDB.getByCodigo(codigo);
+            const producto = await productosExternosDB.getByCodigoConsolidated(codigo);
 
             if (producto) {
                 addProductToCart(producto);

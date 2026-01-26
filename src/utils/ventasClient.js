@@ -69,22 +69,34 @@ export const ventasDB = {
             // 3. Insertar detalles y actualizar stock
             if (venta && venta.id) {
                 for (const detalle of ventaData.detalles) {
-                    // Verificar stock disponible antes de procesar
-                    const [producto] = await sql`
-                        SELECT stock_actual, nombre 
+                    // 3.1 Obtener producto referencial para sacar el código
+                    const [productoRef] = await sql`
+                        SELECT codigo_usuario, nombre 
                         FROM productos_externos 
                         WHERE id = ${detalle.producto_id}
                     `;
 
-                    if (!producto) {
+                    if (!productoRef) {
                         throw new Error(`Producto con ID ${detalle.producto_id} no encontrado`);
                     }
 
-                    if (Number(producto.stock_actual) < Number(detalle.cantidad)) {
-                        throw new Error(`Stock insuficiente para ${producto.nombre}. Disponible: ${producto.stock_actual}, Solicitado: ${detalle.cantidad}`);
+                    // 3.2 Buscar TODOS los registros con ese código (Inventario consolidado)
+                    const itemsInventario = await sql`
+                        SELECT id, stock_actual, nombre
+                        FROM productos_externos
+                        WHERE codigo_usuario = ${productoRef.codigo_usuario} 
+                          AND estado_activo = TRUE
+                        ORDER BY fecha_registro ASC
+                    `;
+
+                    // 3.3 Calcular stock total disponible
+                    const totalStockDisponible = itemsInventario.reduce((sum, item) => sum + Number(item.stock_actual), 0);
+
+                    if (totalStockDisponible < Number(detalle.cantidad)) {
+                        throw new Error(`Stock insuficiente para ${productoRef.nombre} (Consolidado). Disponible: ${totalStockDisponible}, Solicitado: ${detalle.cantidad}`);
                     }
 
-                    // Insertar detalle
+                    // 3.4 Insertar detalle de venta (Vinculado al ID primario seleccionado)
                     await sql`
                         INSERT INTO detalles_venta (
                             venta_id,
@@ -105,12 +117,25 @@ export const ventasDB = {
                         )
                     `;
 
-                    // Actualizar stock del producto
-                    await sql`
-                        UPDATE productos_externos
-                        SET stock_actual = stock_actual - ${detalle.cantidad}
-                        WHERE id = ${detalle.producto_id}
-                    `;
+                    // 3.5 Descontar stock distribuido (FIFO o disponible)
+                    let restantePorDescontar = Number(detalle.cantidad);
+
+                    for (const item of itemsInventario) {
+                        if (restantePorDescontar <= 0) break;
+
+                        const stockItem = Number(item.stock_actual);
+                        if (stockItem <= 0) continue;
+
+                        const descontar = Math.min(stockItem, restantePorDescontar);
+
+                        await sql`
+                            UPDATE productos_externos
+                            SET stock_actual = stock_actual - ${descontar}
+                            WHERE id = ${item.id}
+                        `;
+
+                        restantePorDescontar -= descontar;
+                    }
                 }
             }
 

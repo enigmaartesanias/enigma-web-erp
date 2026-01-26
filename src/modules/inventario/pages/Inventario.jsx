@@ -33,29 +33,9 @@ export default function Inventario() {
     const loadProductos = async () => {
         try {
             setLoading(true);
-            const data = await productosExternosDB.getAll();
-
-            // Agrupar por código de usuario
-            const agruparPorCodigo = data.reduce((acc, current) => {
-                const codigo = current.codigo_usuario;
-                if (!acc[codigo]) {
-                    acc[codigo] = {
-                        ...current,
-                        stock_actual: Number(current.stock_actual) || 0,
-                        costo: Number(current.costo) || 0,
-                        precio: Number(current.precio) || 0
-                    };
-                } else {
-                    acc[codigo].stock_actual += (Number(current.stock_actual) || 0);
-                    // Mantenemos el último precio/nombre/categoría encontrado para el código
-                    acc[codigo].nombre = current.nombre || acc[codigo].nombre;
-                    acc[codigo].categoria = current.categoria || acc[codigo].categoria;
-                    acc[codigo].precio = current.precio || acc[codigo].precio;
-                }
-                return acc;
-            }, {});
-
-            setProductos(Object.values(agruparPorCodigo));
+            setLoading(true);
+            const data = await productosExternosDB.getAllConsolidated();
+            setProductos(data);
         } catch (error) {
             console.error('Error cargando productos:', error);
         } finally {

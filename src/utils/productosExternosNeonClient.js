@@ -13,6 +13,50 @@ export const productosExternosDB = {
     return productos;
   },
 
+  async getAllConsolidated() {
+    const productos = await this.getAll();
+    const map = {};
+
+    productos.forEach(p => {
+      const codigo = p.codigo_usuario;
+      if (!map[codigo]) {
+        map[codigo] = {
+          ...p,
+          stock_actual: Number(p.stock_actual) || 0,
+          costo: Number(p.costo) || 0,
+          precio: Number(p.precio) || 0
+        };
+      } else {
+        map[codigo].stock_actual += (Number(p.stock_actual) || 0);
+        // Keep most recent info or defaults if needed, logic matches Inventario.jsx
+        map[codigo].nombre = p.nombre || map[codigo].nombre;
+        map[codigo].categoria = p.categoria || map[codigo].categoria;
+        map[codigo].precio = p.precio || map[codigo].precio;
+      }
+    });
+    return Object.values(map);
+  },
+
+  async getByCodigoConsolidated(codigo) {
+    const productos = await sql`SELECT * FROM productos_externos WHERE codigo_usuario = ${codigo} AND estado_activo = TRUE`;
+    if (!productos || productos.length === 0) return null;
+
+    const consolidated = {
+      ...productos[0],
+      stock_actual: 0,
+      costo: Number(productos[0].costo) || 0,
+      precio: Number(productos[0].precio) || 0
+    };
+
+    productos.forEach(p => {
+      consolidated.stock_actual += (Number(p.stock_actual) || 0);
+      // Ensure we have valid values usually from the most relevant row? 
+      // Current logic takes base from row 0. We can sum or average others if needed but user said "suma total" for quantity.
+    });
+
+    return consolidated;
+  },
+
   async getById(id) {
     const [producto] = await sql`SELECT * FROM productos_externos WHERE id = ${id}`;
     return producto;

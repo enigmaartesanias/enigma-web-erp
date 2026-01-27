@@ -232,7 +232,7 @@ const Pedidos = () => {
     // Estado para Resumen de Voz
     const [showVoiceReviewModal, setShowVoiceReviewModal] = useState(false);
     const [reviewData, setReviewData] = useState(null);
-
+    const [voiceState, setVoiceState] = useState({ isListening: false, transcriptActual: '' });
     // FASE 1: Estado para tabs - Empezamos solo con Pendientes
     const [activeTab, setActiveTab] = useState('pendientes');
 
@@ -1105,6 +1105,8 @@ const Pedidos = () => {
                                     value={productoActual.nombre_producto}
                                     onChange={(val) => setProductoActual(prev => ({ ...prev, nombre_producto: val }))}
                                     onFocus={handleFocus}
+                                    isListening={voiceState.isListening && focusedField === 'nombre_producto'}
+                                    interimText={focusedField === 'nombre_producto' ? voiceState.transcriptActual : ""}
                                     rows={2}
                                     placeholder="Ej: Anillo de compromiso con grabado..."
                                 />
@@ -1215,6 +1217,8 @@ const Pedidos = () => {
                                             value={formData.direccion_entrega}
                                             onChange={(val) => setFormData(prev => ({ ...prev, direccion_entrega: val }))}
                                             onFocus={handleFocus}
+                                            isListening={voiceState.isListening && focusedField === 'direccion_entrega'}
+                                            interimText={focusedField === 'direccion_entrega' ? voiceState.transcriptActual : ""}
                                             rows={2}
                                             placeholder="Ciudad, Agencia o Dirección exacta..."
                                         />
@@ -2163,6 +2167,7 @@ const Pedidos = () => {
                 formData={formData}
                 productoActual={productoActual}
                 focusedField={focusedField}
+                onStateChange={setVoiceState}
             />
         </div >
     );

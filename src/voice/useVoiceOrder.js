@@ -17,6 +17,8 @@ export function useVoiceOrder(onConfirm) {
     const startListeningRef = useRef(null);
 
     const wakeLockRef = useRef(null);
+    const cumulativeTranscriptRef = useRef('');
+    const hasCleanExitRef = useRef(false);
 
     const requestWakeLock = async () => {
         if ('wakeLock' in navigator) {
@@ -134,20 +136,20 @@ export function useVoiceOrder(onConfirm) {
         recognitionRef.current = recognition;
 
         let silenceTimer = null;
-        let finalTranscriptAccumulated = ''; // Acumulador para modo continuo
+        // Acumulador persistente se maneja vía Ref para sobrevivir a reinicios onend
+        if (!cumulativeTranscriptRef.current) cumulativeTranscriptRef.current = '';
 
         recognition.onstart = () => {
-            console.log('%c🟢 Micrófono ABIERTO', 'color: #10b981; font-style: italic;');
+            console.log('%c🟢 Micrófono ABIERTO (Global)', 'color: #10b981; font-style: italic;');
             setStatus('listening');
 
             if (timeoutRef.current) clearTimeout(timeoutRef.current);
 
-            // Tiempos dinámicos basados en la sugerencia del usuario
             const actual = controllerRef.current?.getPreguntaActual();
             const campo = actual?.campo;
 
-            let tiempoMax = 15000; // 15s por defecto
-            if (campo === 'descripcion_producto' || campo === 'direccion_entrega') tiempoMax = 45000;
+            let tiempoMax = 15000;
+            if (campo === 'descripcion_producto' || campo === 'direccion_entrega') tiempoMax = 60000; // 1 min para dictado
 
             timeoutRef.current = setTimeout(() => {
                 if (isListeningRef.current && recognitionRef.current) {
@@ -164,39 +166,45 @@ export function useVoiceOrder(onConfirm) {
             for (let i = e.resultIndex; i < e.results.length; ++i) {
                 const transcript = e.results[i][0].transcript;
                 if (e.results[i].isFinal) {
-                    finalTranscriptAccumulated += transcript + ' ';
+                    cumulativeTranscriptRef.current += transcript + ' ';
                 } else {
                     interimTranscript += transcript;
                 }
                 currentSelection = transcript;
             }
 
-            const fullTranscript = (finalTranscriptAccumulated + interimTranscript).trim();
+            const fullTranscript = (cumulativeTranscriptRef.current + interimTranscript).trim();
             setTranscriptActual(fullTranscript);
 
             // Comandos de cierre por voz inmediatos
             const lowerTranscript = currentSelection.toLowerCase();
-            if (lowerTranscript.includes('listo') || lowerTranscript.includes('terminé') || lowerTranscript.includes('fin') || lowerTranscript.includes('eso es todo')) {
+            const esCierre = lowerTranscript.includes('listo') ||
+                lowerTranscript.includes('terminé') ||
+                lowerTranscript.includes('fin') ||
+                lowerTranscript.includes('eso es todo') ||
+                lowerTranscript.includes('terminar detalle');
+
+            if (esCierre) {
                 console.log('%c🛑 Comando de cierre detectado', 'color: #ef4444;');
+                hasCleanExitRef.current = true;
                 if (silenceTimer) clearTimeout(silenceTimer);
                 recognition.stop();
                 return;
             }
 
-            // Lógica de silencio fluido por campo (Regla de Oro)
-            let tiempoSilencio = 2500; // Default
+            // Lógica de silencio fluido
+            let tiempoSilencio = 2500;
+            const actual = controllerRef.current?.getPreguntaActual();
+            const campo = actual?.campo;
+
             if (campo === 'nombre_cliente') tiempoSilencio = 1500;
             if (campo === 'telefono') tiempoSilencio = 1200;
             if (campo === 'cantidad') tiempoSilencio = 1000;
-
-            // Especial para dictado: si es largo, damos más espacio para pensar (3s)
-            if (campo === 'descripcion_producto' || campo === 'direccion_entrega') {
-                tiempoSilencio = 3000;
-            }
+            if (campo === 'descripcion_producto' || campo === 'direccion_entrega') tiempoSilencio = 4000; // Más margen para dictado
 
             if (silenceTimer) clearTimeout(silenceTimer);
             silenceTimer = setTimeout(() => {
-                console.log(`%c⏹️ Silencio detectado (${tiempoSilencio / 1000}s) para ${campo}`, 'color: #f59e0b;');
+                console.log(`%c⏹️ Silencio detectado (${tiempoSilencio / 1000}s)`, 'color: #f59e0b;');
                 recognition.stop();
             }, tiempoSilencio);
         };
@@ -205,21 +213,27 @@ export function useVoiceOrder(onConfirm) {
             if (silenceTimer) clearTimeout(silenceTimer);
 
             const finalResult = transcriptActualRef.current;
+            const actual = controllerRef.current?.getPreguntaActual();
+            const esCampoLargo = actual?.campo === 'descripcion_producto' || actual?.campo === 'direccion_entrega';
 
-            // Auto-reinicio preventivo si se corta por el motor nativo sin haber alcanzado silencio
-            if (isListeningRef.current && esCampoLargo && !finalResult.toLowerCase().includes('eso es todo') && !finalResult.toLowerCase().includes('listo')) {
-                // Si se cortó pero seguimos en un campo largo y no hubo comando de fin, 
-                // es probable que el motor nativo haya pausado. Reiniciamos en el mismo campo.
-                console.log("🔄 Reinicio automático para continuar dictado...");
-                // No procesamos aún, solo reiniciamos la escucha
-                // (Guardamos el acumulado previo para no perderlo)
-                // NOTA: Esto requiere que useVoiceOrder maneje la acumulación persistente si se desea.
-                // Por ahora, procesamos lo que hay para dar feedback y el siguiente ciclo pedirá más si falta.
+            // Si es campo largo y NO hubo comando de cierre, reiniciamos el micrófono SIN procesar todavía
+            if (isListeningRef.current && esCampoLargo && !hasCleanExitRef.current) {
+                console.log("🔄 Persistencia de dictado: Reiniciando micrófono...");
+                try {
+                    recognition.start();
+                    return; // No procesar aún, esperar al comando de cierre o silencio largo
+                } catch (e) {
+                    console.error("Error al reiniciar dictado:", e);
+                }
             }
 
+            // Procesar resultado final (ya sea por silencio, comando o cambio de campo)
             handleVoiceResult(finalResult);
+
+            // Limpiar acumuladores para el siguiente campo
             setTranscriptActual('');
-            finalTranscriptAccumulated = '';
+            cumulativeTranscriptRef.current = '';
+            hasCleanExitRef.current = false;
         };
 
         recognition.onerror = (e) => {

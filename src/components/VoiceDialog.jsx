@@ -3,7 +3,7 @@ import React from 'react';
 import { Mic, MicOff } from 'lucide-react';
 import { useVoiceOrder } from '../voice/useVoiceOrder';
 
-export default function VoiceDialog({ onConfirm, onPartialUpdate, formData, productoActual, focusedField }) {
+export default function VoiceDialog({ onConfirm, onPartialUpdate, formData, productoActual, focusedField, onStateChange }) {
     const { isListening, status, mensaje, transcriptActual, iniciar, detener, currentData } = useVoiceOrder(onConfirm);
     const lastDataSent = React.useRef("");
 
@@ -20,6 +20,13 @@ export default function VoiceDialog({ onConfirm, onPartialUpdate, formData, prod
             }
         }
     }, [currentData, onPartialUpdate]);
+
+    // Exponer estado al padre para UI reactiva en DictationTextarea
+    React.useEffect(() => {
+        if (typeof onStateChange === 'function') {
+            onStateChange({ isListening, transcriptActual });
+        }
+    }, [isListening, transcriptActual, onStateChange]);
 
     return (
         <div className="fixed top-6 right-6 z-[100]">

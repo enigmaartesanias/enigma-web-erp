@@ -155,8 +155,8 @@ export class VoiceController {
                     speak('Perfecto. ' + sig.pregunta);
                     return { accion: 'SIGUIENTE' };
                 }
-                this.paso++;
-                speak('Dirección de entrega');
+                this.paso += 2; // Saltar dirección de entrega, ir directo a modalidad
+                speak('Bien. ¿Modalidad: Envío fijo o por pagar en agencia?');
                 return { accion: 'SIGUIENTE' };
             }
 

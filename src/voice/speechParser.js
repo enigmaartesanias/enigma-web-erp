@@ -1,4 +1,6 @@
 // src/voice/speechParser.js
+import { resolveVoice } from "./voiceResolver";
+
 const NUMEROS_TEXTO = {
     'un': 1, 'uno': 1, 'una': 1, 'unidad': 1, 'unid': 1, 'unidades': 1, 'und': 1, 'um': 1, 'pz': 1, 'pieza': 1, 'piezas': 1,
     'par': 2, 'pares': 2, 'docena': 12, 'docenas': 12,
@@ -59,15 +61,15 @@ export function parseSpeech(text, campoEsperado) {
             const doc = transcript.replace(/\D/g, '');
             return { type: 'DATA', field: 'dni_ruc', value: doc, valid: true };
 
-        case 'metal':
-            const METALES = ['plata', 'alpaca', 'cobre', 'bronce', 'oro'];
-            const mMatch = METALES.find(m => transcript.includes(m));
-            return { type: 'DATA', field: 'metal', value: mMatch ? capitalize(mMatch) : '', valid: !!mMatch };
+        case 'metal': {
+            const resolved = resolveVoice('metal', transcript);
+            return { type: 'DATA', field: 'metal', value: resolved || '', valid: !!resolved };
+        }
 
-        case 'tipo_producto':
-            const TIPOS = ['anillo', 'arete', 'collar', 'pulsera'];
-            const tMatch = TIPOS.find(t => transcript.includes(t));
-            return { type: 'DATA', field: 'tipo_producto', value: tMatch ? capitalize(tMatch) : '', valid: !!tMatch };
+        case 'tipo_producto': {
+            const resolved = resolveVoice('tipo_producto', transcript);
+            return { type: 'DATA', field: 'tipo_producto', value: resolved || '', valid: !!resolved };
+        }
 
         case 'descripcion_producto':
             return { type: 'DATA', field: 'descripcion_producto', value: sentenceCase(transcript), valid: transcript.length >= 2 };

@@ -22,24 +22,24 @@ export default function VoiceDialog({ onConfirm, onPartialUpdate, formData, prod
     }, [currentData, onPartialUpdate]);
 
     return (
-        <div className="fixed bottom-6 right-6 z-50">
-            {/* Botón 🎤 */}
+        <div className="fixed top-6 right-6 z-[100]">
+            {/* Botón 🎤 - Más pequeño, sutil y color gris */}
             <button
                 onClick={isListening ? detener : handleStart}
-                className={`w-16 h-16 rounded-full shadow-2xl flex items-center justify-center transition-all ${isListening ? 'bg-red-500 hover:bg-red-600 animate-pulse' : 'bg-blue-500 hover:bg-blue-600'
+                className={`w-12 h-12 rounded-full shadow-lg flex items-center justify-center transition-all hover:scale-110 active:scale-95 ${isListening ? 'bg-red-500 animate-pulse' : 'bg-gray-400 hover:bg-gray-500'
                     }`}
                 title={isListening ? 'Detener pedido por voz' : 'Iniciar pedido por voz'}
             >
                 {isListening ? (
-                    <MicOff className="w-8 h-8 text-white" />
+                    <MicOff className="w-5 h-5 text-white" />
                 ) : (
-                    <Mic className="w-8 h-8 text-white" />
+                    <Mic className="w-5 h-5 text-white" />
                 )}
             </button>
 
-            {/* Panel minimalista */}
+            {/* Panel minimalista - Abre hacia abajo */}
             {status !== 'idle' && (
-                <div className="absolute bottom-20 right-0 bg-white rounded-lg shadow-2xl p-4 w-80 border-2 border-blue-100">
+                <div className="absolute top-14 right-0 bg-white rounded-2xl shadow-2xl p-4 w-72 border border-blue-100 animate-in slide-in-from-top-2 duration-200">
                     {/* Status */}
                     <div className="flex items-center justify-between mb-3 px-1">
                         <div className="flex items-center gap-2">
@@ -99,7 +99,7 @@ export default function VoiceDialog({ onConfirm, onPartialUpdate, formData, prod
                             💡 Di solo el número (ej: "120")
                         </div>
                     )}
-                    {status === 'completed_phase_1' && ( // Nota: Ajustado por si se usa este status, aunque ahora es un mensaje de voz
+                    {status === 'completed_phase_1' && (
                         <div className="text-sm text-green-600 font-semibold flex items-center gap-2 bg-green-50 p-2 rounded border border-green-100 mb-2">
                             <span className="w-2 h-2 bg-green-500 rounded-full"></span>
                             Datos personales ingresados

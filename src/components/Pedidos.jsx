@@ -9,6 +9,7 @@ import toast, { Toaster } from 'react-hot-toast';
 import ConfirmModal from './ui/ConfirmModal';
 import Tooltip from './ui/Tooltip';
 import VoiceDialog from './VoiceDialog';
+import DictationTextarea from '../voice/DictationTextarea';
 
 // ========================================
 // UTILIDADES DE FECHA
@@ -939,7 +940,7 @@ const Pedidos = () => {
 
             let textoResumen = `Resumen del pedido a nombre de ${d.nombre_cliente}. Teléfono ${telefonoLeible}. ` +
                 `Productos: ${listaProductos.map(p => `${p.cantidad} ${p.nombre_producto}`).join(', ')}. ` +
-                (d.requiere_envio ? `Con envío a ${d.direccion_entrega}. ` : 'Sin envío. ') +
+                (d.requiere_envio ? (d.direccion_entrega ? `Con envío a ${d.direccion_entrega}. ` : 'Con envío, pero falta la dirección. ') : 'Sin envío. ') +
                 `Método de pago ${d.forma_pago} con un adelanto de ${d.monto_a_cuenta} soles. `;
 
             if (d.incluye_igv) {
@@ -949,9 +950,13 @@ const Pedidos = () => {
             textoResumen += (saldoPendiente > 0.1 ? `Queda un saldo pendiente de ${saldoPendiente.toFixed(2)} soles. ` : 'Este pedido está cancelado. No se olvide de registrar. ') +
                 `¿Es conforme el registro?`;
 
+            // Cancelar cualquier síntesis previa para evitar bucles o solapamientos
+            window.speechSynthesis.cancel();
+
             // Usar síntesis de voz para leer el resumen
             const utterance = new SpeechSynthesisUtterance(textoResumen);
             utterance.lang = 'es-PE';
+            utterance.rate = 0.95; // Un poco más lento para claridad
             window.speechSynthesis.speak(utterance);
 
             toast.success('Resumen generado', { icon: '📋' });
@@ -1094,14 +1099,14 @@ const Pedidos = () => {
 
 
                                 <label className="block text-sm font-semibold text-gray-700">Descripción del Producto *</label>
-                                <textarea
+                                <DictationTextarea
+                                    id="nombre_producto"
                                     name="nombre_producto"
                                     value={productoActual.nombre_producto}
-                                    onChange={handleProductoChange}
+                                    onChange={(val) => setProductoActual(prev => ({ ...prev, nombre_producto: val }))}
                                     onFocus={handleFocus}
-                                    rows="2"
+                                    rows={2}
                                     placeholder="Ej: Anillo de compromiso con grabado..."
-                                    className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2.5 transition-all bg-white"
                                 />
                             </div>
                             <div>
@@ -1204,14 +1209,14 @@ const Pedidos = () => {
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border border-blue-100 p-4 rounded-xl bg-blue-50/30">
                                     <div className="md:col-span-2">
                                         <label className="block text-sm font-semibold text-gray-700">Dirección de Entrega / Referencia</label>
-                                        <input
-                                            type="text"
+                                        <DictationTextarea
+                                            id="direccion_entrega"
                                             name="direccion_entrega"
                                             value={formData.direccion_entrega}
-                                            onChange={handleChange}
+                                            onChange={(val) => setFormData(prev => ({ ...prev, direccion_entrega: val }))}
                                             onFocus={handleFocus}
+                                            rows={2}
                                             placeholder="Ciudad, Agencia o Dirección exacta..."
-                                            className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2.5 bg-white"
                                         />
                                     </div>
                                     <div>
@@ -1989,49 +1994,57 @@ const Pedidos = () => {
                 confirmColor={confirmModal.confirmColor}
             />
 
-            {/* Voice Review Modal - Minimalista y Profesional */}
+            {/* Voice Review Modal - Rediseño Compacto y Elegante (Estilo Imagen 1) */}
             {showVoiceReviewModal && reviewData && (
-                <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
-                    <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden animate-in zoom-in-95 duration-200">
-                        <div className="bg-blue-600 px-6 py-4 flex items-center justify-between">
-                            <h3 className="text-white font-bold flex items-center gap-2">
-                                <FaCheckCircle /> Revisión de Registro por Voz
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[70] flex items-center justify-center p-4">
+                    <div className="bg-white rounded-3xl shadow-2xl max-w-sm w-full overflow-hidden animate-in zoom-in-95 duration-200 border border-white/20">
+                        {/* Header Moderno */}
+                        <div className="bg-blue-600 px-6 py-5 flex items-center justify-between relative overflow-hidden">
+                            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl"></div>
+                            <h3 className="text-white font-bold flex items-center gap-2 relative z-10 text-lg">
+                                <FaCheckCircle className="text-blue-200" /> Revisión de Registro
                             </h3>
-                            <button onClick={() => setShowVoiceReviewModal(false)} className="text-white/80 hover:text-white transition-colors">
-                                <FaTimesCircle size={20} />
+                            <button onClick={() => { window.speechSynthesis.cancel(); setShowVoiceReviewModal(false); }} className="text-white/80 hover:text-white transition-colors relative z-10 bg-white/20 p-1.5 rounded-full">
+                                <FaTimesCircle size={18} />
                             </button>
                         </div>
 
-                        <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Cliente</label>
+                        {/* Contenido Compacto */}
+                        <div className="p-6 space-y-6">
+                            {/* Cliente y Teléfono en rejilla limpia */}
+                            <div className="grid grid-cols-2 gap-6 pb-4 border-b border-gray-100">
+                                <div className="space-y-1">
+                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">Cliente</label>
                                     <input
                                         type="text"
                                         name="nombre_cliente"
                                         value={formData.nombre_cliente}
                                         onChange={handleChange}
-                                        className="w-full text-sm font-semibold text-gray-800 bg-gray-50 border-gray-200 rounded-lg p-1"
+                                        className="w-full text-sm font-bold text-gray-800 bg-transparent border-none p-0 focus:ring-0"
                                     />
                                 </div>
-                                <div>
-                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Teléfono</label>
+                                <div className="space-y-1 text-right">
+                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">Teléfono</label>
                                     <input
                                         type="text"
                                         name="telefono"
                                         value={formData.telefono}
                                         onChange={handleChange}
-                                        className="w-full text-sm font-semibold text-gray-800 bg-gray-50 border-gray-200 rounded-lg p-1"
+                                        className="w-full text-sm font-bold text-gray-800 bg-transparent border-none p-0 focus:ring-0 text-right"
                                     />
                                 </div>
                             </div>
 
-                            <div className="border-t border-gray-100 pt-4">
-                                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Productos</label>
-                                <div className="space-y-1 mt-1">
+                            {/* Listado de Productos Estilo "Card Minimalista" */}
+                            <div className="space-y-3">
+                                <div className="flex items-center justify-between">
+                                    <label className="text-[11px] font-bold text-gray-500 uppercase tracking-widest">Productos</label>
+                                    <span className="text-[10px] bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full font-bold">{listaProductos.length} ítem(s)</span>
+                                </div>
+                                <div className="space-y-2 max-h-[220px] overflow-y-auto pr-2 custom-scrollbar">
                                     {listaProductos.map((p, i) => (
-                                        <div key={i} className="flex justify-between text-sm bg-gray-50 p-2 rounded-lg items-center">
-                                            <div className="flex-1">
+                                        <div key={i} className="group relative bg-gray-50 p-3 rounded-2xl border border-gray-100 flex items-center justify-between gap-3 hover:bg-blue-50/30 transition-colors">
+                                            <div className="flex-1 min-w-0">
                                                 <input
                                                     type="text"
                                                     value={p.nombre_producto}
@@ -2040,90 +2053,103 @@ const Pedidos = () => {
                                                         newList[i].nombre_producto = e.target.value;
                                                         setListaProductos(newList);
                                                     }}
-                                                    className="w-full bg-transparent border-none p-0 text-gray-700 focus:ring-0"
+                                                    className="w-full bg-transparent border-none p-0 text-xs font-medium text-gray-600 truncate focus:ring-0"
                                                 />
+                                                <div className="flex items-center gap-2 mt-0.5">
+                                                    <span className="text-[10px] font-bold text-blue-500">{p.cantidad}x</span>
+                                                    <span className="text-[10px] text-gray-400">@ S/ {parseFloat(p.precio_unitario).toFixed(2)}</span>
+                                                </div>
                                             </div>
-                                            <div className="flex gap-2 items-center">
-                                                <input
-                                                    type="number"
-                                                    value={p.cantidad}
-                                                    onChange={(e) => {
-                                                        const newList = [...listaProductos];
-                                                        newList[i].cantidad = parseFloat(e.target.value) || 0;
-                                                        setListaProductos(newList);
-                                                    }}
-                                                    className="w-12 text-center bg-transparent border-none p-0 text-gray-700 focus:ring-0 font-bold"
-                                                />
-                                                <span className="font-bold text-blue-600">S/ {(p.cantidad * p.precio_unitario).toFixed(2)}</span>
+                                            <div className="text-right whitespace-nowrap">
+                                                <span className="text-xs font-black text-blue-700">S/ {(p.cantidad * p.precio_unitario).toFixed(2)}</span>
                                             </div>
                                         </div>
                                     ))}
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-4 border-t border-gray-100 pt-4">
-                                <div>
-                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Entrega</label>
+                            {/* Entrega y Pago en paralelo compacto */}
+                            <div className="grid grid-cols-2 gap-6 pt-2">
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">Entrega</label>
                                     {formData.requiere_envio ? (
                                         <input
                                             type="text"
                                             name="direccion_entrega"
                                             value={formData.direccion_entrega}
                                             onChange={handleChange}
-                                            className="w-full text-xs text-gray-700 bg-gray-50 border-gray-200 rounded-lg p-1"
+                                            placeholder="Dirección..."
+                                            className="w-full text-[11px] font-semibold text-gray-700 bg-gray-50 border-gray-100 rounded-lg p-2 focus:ring-2 focus:ring-blue-100 italic"
                                         />
                                     ) : (
-                                        <p className="text-sm text-gray-500 italic">No requiere envío</p>
+                                        <p className="text-[11px] text-gray-400 italic bg-gray-50 p-2 rounded-lg text-center">No requiere</p>
                                     )}
                                 </div>
-                                <div className="text-right">
-                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">PAGO ({formData.forma_pago})</label>
-                                    <div className="flex justify-end items-center gap-1">
-                                        <span className="text-sm font-semibold text-gray-600">Adelanto: S/</span>
+                                <div className="space-y-2 text-right">
+                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">Pago ({formData.forma_pago})</label>
+                                    <div className="flex items-center justify-end gap-1.5">
+                                        <span className="text-[11px] font-bold text-green-600 uppercase tracking-tighter">Adelanto: S/</span>
                                         <input
                                             type="number"
                                             name="monto_a_cuenta"
                                             value={formData.monto_a_cuenta}
-                                            onChange={handleChange}
-                                            className="w-20 text-right text-sm font-semibold text-gray-800 bg-gray-50 border-gray-200 rounded-lg p-1"
+                                            onChange={(e) => setFormData(prev => ({ ...prev, monto_a_cuenta: e.target.value }))}
+                                            className="w-16 text-right text-sm font-black text-green-700 bg-green-50/50 border-none p-1 rounded-lg focus:ring-0"
                                         />
                                     </div>
-                                    {calculos.monto_igv > 0 && (
-                                        <p className="text-[11px] text-gray-400 italic">Incluye IGV: S/ {calculos.monto_igv.toFixed(2)}</p>
-                                    )}
-                                    {calculos.monto_saldo > 0 ? (
-                                        <p className="text-sm font-bold text-red-500 mt-1">
-                                            Saldo: S/ {calculos.monto_saldo.toFixed(2)}
-                                        </p>
-                                    ) : (
-                                        <p className="text-sm font-bold text-green-600 mt-1 italic">✓ Pedido Cancelado</p>
-                                    )}
+                                    <p className="text-xs font-bold text-red-500">
+                                        Saldo: S/ {calculos.monto_saldo.toFixed(2)}
+                                    </p>
                                 </div>
                             </div>
 
-                            <div className="bg-yellow-50 p-3 rounded-xl border border-yellow-100 flex items-center gap-3">
-                                <FaExclamationTriangle className="text-yellow-600 shrink-0" />
-                                <p className="text-xs text-yellow-800 font-medium italic">
-                                    Confirme si los datos son correctos para proceder con el registro manual.
-                                </p>
+                            {/* IGV y Total Final - Ultra Relevante */}
+                            <div className="pt-4 border-t border-dashed border-gray-200">
+                                <div className="flex items-center justify-between mb-4">
+                                    <label className="flex items-center gap-2 cursor-pointer group">
+                                        <div className="relative flex items-center">
+                                            <input
+                                                type="checkbox"
+                                                name="incluye_igv"
+                                                checked={formData.incluye_igv}
+                                                onChange={handleChange}
+                                                className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 transition-all group-hover:scale-110"
+                                            />
+                                        </div>
+                                        <span className="text-[11px] font-bold text-gray-500 group-hover:text-blue-600 transition-colors uppercase tracking-widest">¿Añadir IGV?</span>
+                                    </label>
+                                    <div className="text-right">
+                                        <div className="flex items-baseline justify-end gap-2">
+                                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Total:</span>
+                                            <span className="text-2xl font-black text-gray-900 tracking-tight">
+                                                S/ {calculos.precio_total.toFixed(2)}
+                                            </span>
+                                        </div>
+                                        {calculos.monto_igv > 0 && <span className="text-[9px] text-blue-500 font-bold block">(IGV: S/ {calculos.monto_igv.toFixed(2)})</span>}
+                                    </div>
+                                </div>
+
+                                {/* Mensaje de advertencia optimizado */}
+                                <div className="bg-amber-50 rounded-2xl p-4 flex items-start gap-3 border border-amber-100/50 shadow-inner">
+                                    <FaExclamationTriangle className="text-amber-500 shrink-0 mt-0.5 text-sm" />
+                                    <p className="text-[10px] text-amber-800 font-bold leading-relaxed pr-2">
+                                        Confirme si los datos son correctos para proceder con el registro manual.
+                                    </p>
+                                </div>
                             </div>
                         </div>
 
-                        <div className="p-4 bg-gray-50 border-t flex gap-3">
+                        {/* Footer Flotante */}
+                        <div className="p-4 bg-gray-50/50 border-t border-gray-100 flex flex-col gap-3">
                             <button
-                                onClick={() => setShowVoiceReviewModal(false)}
-                                className="flex-1 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-200 rounded-xl transition-all"
+                                onClick={() => { window.speechSynthesis.cancel(); setShowVoiceReviewModal(false); handleSubmit({ preventDefault: () => { } }); }}
+                                className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-black text-base shadow-xl shadow-blue-200 transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-3 group"
                             >
-                                Modificar Datos
+                                <FaCheckCircle className="text-blue-200 group-hover:rotate-12 transition-transform" />
+                                Sí, Registrar Pedido
                             </button>
-                            <button
-                                onClick={() => {
-                                    setShowVoiceReviewModal(false);
-                                    handleSubmit({ preventDefault: () => { } });
-                                }}
-                                className="flex-[1.5] px-4 py-2 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-lg shadow-blue-200 transition-all active:scale-95 flex items-center justify-center gap-2"
-                            >
-                                <FaCheck /> Sí, Registrar Pedido
+                            <button onClick={() => { window.speechSynthesis.cancel(); setShowVoiceReviewModal(false); }} className="w-full py-2 text-xs font-bold text-gray-500 hover:text-gray-800 transition-colors">
+                                Necesito Modificar Datos
                             </button>
                         </div>
                     </div>

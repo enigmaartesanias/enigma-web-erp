@@ -8,7 +8,7 @@ const FLUJO = [
     // FASE 2: PRODUCTOS
     { campo: 'metal', pregunta: 'Material: ¿Plata, Alpaca, Cobre o Bronce?', bloque: 'PRODUCTO' },
     { campo: 'tipo_producto', pregunta: 'Producto: ¿Anillo, Arete, Collar o Pulsera?', bloque: 'PRODUCTO' },
-    { campo: 'descripcion_producto', pregunta: 'Detalles del producto', bloque: 'PRODUCTO' },
+    { campo: 'nombre_producto', pregunta: 'Detalles del producto', bloque: 'PRODUCTO' },
     { campo: 'cantidad', pregunta: 'Cantidad', bloque: 'PRODUCTO' },
     { campo: 'precio_unitario', pregunta: 'Precio unitario', bloque: 'PRODUCTO' },
     // FASE 3: ENVIO
@@ -30,7 +30,7 @@ export class VoiceController {
             requiere_envio: false, direccion_entrega: '', modalidad_envio: 'Fijo', envio_cobrado_al_cliente: 0,
             forma_pago: 'Efectivo', comprobante_pago: '', incluye_igv: false, monto_a_cuenta: 0
         };
-        this.productoActual = { tipo_producto: '', metal: '', descripcion_producto: '', cantidad: '', precio_unitario: '' };
+        this.productoActual = { tipo_producto: '', metal: '', nombre_producto: '', cantidad: '', precio_unitario: '' };
     }
 
     shouldListenNext() {
@@ -50,8 +50,7 @@ export class VoiceController {
         this.pedidoTemp = { ...this.pedidoTemp, ...formData };
         this.productoActual = {
             ...this.productoActual,
-            ...productoActual,
-            descripcion_producto: productoActual.nombre_producto || this.productoActual.descripcion_producto
+            ...productoActual
         };
 
         if (focusedField && mapeoDom[focusedField] !== undefined) {
@@ -81,21 +80,32 @@ export class VoiceController {
 
         // Manejo de Comandos de Cierre Globales
         const lowerTranscript = transcript.toLowerCase();
-        const comandosCierre = ['listo', 'terminé', 'terminé.', 'fin', 'eso es todo', 'así está bien'];
+        const comandosCierre = ['listo', 'terminé', 'terminé.', 'fin', 'eso es todo', 'así está bien', 'terminar'];
 
         if (comandosCierre.some(c => lowerTranscript.includes(c))) {
             if (actual.bloque === 'PRODUCTO') {
-                // INTELIGENCIA: Si el usuario corta el ingreso, intentamos capturar cantidad y precio del último transcript
-                const numerosEnTexto = text.match(/\d+/g) || [];
+                // INTELIGENCIA: Primero intentamos procesar el campo actual con el texto (sin los comandos de cierre)
+                const textWithoutComandos = text.replace(/listo|terminé|fin|eso es todo|así está bien|terminar/gi, '').trim();
+                const parseActual = parseSpeech(textWithoutComandos || text, actual.campo);
 
-                if (numerosEnTexto.length >= 1 && (!this.productoActual.cantidad || this.productoActual.cantidad <= 0)) {
-                    this.productoActual.cantidad = parseFloat(numerosEnTexto[0]);
-                }
-                if (numerosEnTexto.length >= 2 && (!this.productoActual.precio_unitario || this.productoActual.precio_unitario <= 0)) {
-                    this.productoActual.precio_unitario = parseFloat(numerosEnTexto[1]);
+                if (parseActual.valid) {
+                    this.productoActual[actual.campo] = parseActual.value;
                 }
 
-                // Si aún así no hay cantidad, ponemos 1 por defecto para no dejarlo en 0
+                // Luego intentamos capturar lo que falte (Guess Intelligence)
+                const numerosEnTexto = (text.match(/\d+/g) || []).map(Number);
+
+                // Si estamos en nombre_producto y hay números, probablemente sean cantidad/precio
+                if (actual.campo === 'nombre_producto') {
+                    if (numerosEnTexto.length >= 1) this.productoActual.cantidad = numerosEnTexto[0];
+                    if (numerosEnTexto.length >= 2) this.productoActual.precio_unitario = numerosEnTexto[1];
+                }
+                // Si estamos en cantidad y hay otro número después, es el precio
+                else if (actual.campo === 'cantidad' && numerosEnTexto.length >= 2) {
+                    this.productoActual.precio_unitario = numerosEnTexto[1];
+                }
+
+                // Validaciones finales antes de cerrar producto
                 if (!this.productoActual.cantidad || this.productoActual.cantidad <= 0) this.productoActual.cantidad = 1;
 
                 this.paso = -1; // Pregunta "¿Otro?"
@@ -112,7 +122,7 @@ export class VoiceController {
             const negativo = ['no', 'terminar', 'fin', 'nada', 'siguiente', 'envio', 'envío'];
             if (afirmativo.some(p => transcript.includes(p))) {
                 this.paso = 3; // Regresa a Material
-                this.productoActual = { tipo_producto: '', metal: '', descripcion_producto: '', cantidad: '', precio_unitario: '' };
+                this.productoActual = { tipo_producto: '', metal: '', nombre_producto: '', cantidad: '', precio_unitario: '' };
                 speak('Genial. Nuevo producto. ¿Material?');
                 return { accion: 'NUEVO_PRODUCTO' };
             } else if (negativo.some(p => transcript.includes(p))) {
@@ -130,7 +140,7 @@ export class VoiceController {
             const resultado = parseSpeech(text, actual.campo);
 
             // Validaciones básicas de campos obligatorios e Inteligencia de Omisión
-            const omitibles = ['dni_ruc', 'comprobante_pago', 'descripcion_producto'];
+            const omitibles = ['dni_ruc', 'comprobante_pago', 'nombre_producto'];
             const negativo = ['no', 'sin', 'ninguno', 'omitir', 'paso', 'nada', 'continuar'];
 
             if (omitibles.includes(actual.campo) && negativo.some(n => transcript.includes(n))) {

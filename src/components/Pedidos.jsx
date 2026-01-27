@@ -880,7 +880,7 @@ const Pedidos = () => {
                 ...prev,
                 tipo_producto: data.productoActual.tipo_producto !== undefined ? data.productoActual.tipo_producto : prev.tipo_producto,
                 metal: data.productoActual.metal !== undefined ? data.productoActual.metal : prev.metal,
-                nombre_producto: data.productoActual.descripcion_producto !== undefined ? data.productoActual.descripcion_producto : prev.nombre_producto,
+                nombre_producto: data.productoActual.nombre_producto !== undefined ? data.productoActual.nombre_producto : prev.nombre_producto,
                 cantidad: data.productoActual.cantidad !== undefined ? data.productoActual.cantidad : prev.cantidad,
                 precio_unitario: data.productoActual.precio_unitario !== undefined ? data.productoActual.precio_unitario : prev.precio_unitario,
             }));
@@ -898,7 +898,7 @@ const Pedidos = () => {
                 metal: p.metal,
                 cantidad: parseFloat(p.cantidad) || 0,
                 precio_unitario: parseFloat(p.precio_unitario) || 0,
-                nombre_producto: p.descripcion_producto || `${p.tipo_producto} de ${p.metal}`
+                nombre_producto: p.nombre_producto || `${p.tipo_producto} de ${p.metal}`
             };
 
             setListaProductos(prev => [...prev, nuevoP]);
@@ -2001,9 +2001,9 @@ const Pedidos = () => {
             {/* Voice Review Modal - Rediseño Compacto y Elegante (Estilo Imagen 1) */}
             {showVoiceReviewModal && reviewData && (
                 <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[70] flex items-center justify-center p-4">
-                    <div className="bg-white rounded-3xl shadow-2xl max-w-sm w-full overflow-hidden animate-in zoom-in-95 duration-200 border border-white/20">
-                        {/* Header Moderno */}
-                        <div className="bg-blue-600 px-6 py-5 flex items-center justify-between relative overflow-hidden">
+                    <div className="bg-white rounded-[2rem] shadow-2xl max-w-[360px] w-[95%] overflow-hidden animate-in zoom-in-95 duration-200 border border-white/20">
+                        {/* Header Moderno Compacto */}
+                        <div className="bg-blue-600 px-5 py-3 sm:py-4 flex items-center justify-between relative overflow-hidden">
                             <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl"></div>
                             <h3 className="text-white font-bold flex items-center gap-2 relative z-10 text-lg">
                                 <FaCheckCircle className="text-blue-200" /> Revisión de Registro
@@ -2014,9 +2014,9 @@ const Pedidos = () => {
                         </div>
 
                         {/* Contenido Compacto */}
-                        <div className="p-6 space-y-6">
-                            {/* Cliente y Teléfono en rejilla limpia */}
-                            <div className="grid grid-cols-2 gap-6 pb-4 border-b border-gray-100">
+                        <div className="p-4 sm:p-6 space-y-4 sm:space-y-5">
+                            {/* Cliente y Teléfono en rejilla limpia - Compacto */}
+                            <div className="grid grid-cols-2 gap-4 pb-3 border-b border-gray-100">
                                 <div className="space-y-1">
                                     <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">Cliente</label>
                                     <input
@@ -2042,12 +2042,12 @@ const Pedidos = () => {
                             {/* Listado de Productos Estilo "Card Minimalista" */}
                             <div className="space-y-3">
                                 <div className="flex items-center justify-between">
-                                    <label className="text-[11px] font-bold text-gray-500 uppercase tracking-widest">Productos</label>
-                                    <span className="text-[10px] bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full font-bold">{listaProductos.length} ítem(s)</span>
+                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Productos</label>
+                                    <span className="text-[9px] bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full font-bold">{listaProductos.length} ítem(s)</span>
                                 </div>
-                                <div className="space-y-2 max-h-[220px] overflow-y-auto pr-2 custom-scrollbar">
+                                <div className="space-y-2 max-h-[160px] sm:max-h-[220px] overflow-y-auto pr-1 custom-scrollbar">
                                     {listaProductos.map((p, i) => (
-                                        <div key={i} className="group relative bg-gray-50 p-3 rounded-2xl border border-gray-100 flex items-center justify-between gap-3 hover:bg-blue-50/30 transition-colors">
+                                        <div key={i} className="group relative bg-gray-50 p-2.5 rounded-xl border border-gray-100 flex items-center justify-between gap-2 hover:bg-blue-50/30 transition-colors">
                                             <div className="flex-1 min-w-0">
                                                 <input
                                                     type="text"
@@ -2073,7 +2073,7 @@ const Pedidos = () => {
                             </div>
 
                             {/* Entrega y Pago en paralelo compacto */}
-                            <div className="grid grid-cols-2 gap-6 pt-2">
+                            <div className="grid grid-cols-2 gap-4 pt-1">
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">Entrega</label>
                                     {formData.requiere_envio ? (
@@ -2101,7 +2101,7 @@ const Pedidos = () => {
                                             className="w-16 text-right text-sm font-black text-green-700 bg-green-50/50 border-none p-1 rounded-lg focus:ring-0"
                                         />
                                     </div>
-                                    <p className="text-xs font-bold text-red-500">
+                                    <p className="text-[11px] font-bold text-red-500">
                                         Saldo: S/ {calculos.monto_saldo.toFixed(2)}
                                     </p>
                                 </div>
@@ -2120,12 +2120,12 @@ const Pedidos = () => {
                                                 className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 transition-all group-hover:scale-110"
                                             />
                                         </div>
-                                        <span className="text-[11px] font-bold text-gray-500 group-hover:text-blue-600 transition-colors uppercase tracking-widest">¿Añadir IGV?</span>
+                                        <span className="text-[10px] font-bold text-gray-500 group-hover:text-blue-600 transition-colors uppercase tracking-widest">¿IGV?</span>
                                     </label>
                                     <div className="text-right">
                                         <div className="flex items-baseline justify-end gap-2">
                                             <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Total:</span>
-                                            <span className="text-2xl font-black text-gray-900 tracking-tight">
+                                            <span className="text-xl sm:text-2xl font-black text-gray-900 tracking-tight">
                                                 S/ {calculos.precio_total.toFixed(2)}
                                             </span>
                                         </div>
@@ -2134,9 +2134,9 @@ const Pedidos = () => {
                                 </div>
 
                                 {/* Mensaje de advertencia optimizado */}
-                                <div className="bg-amber-50 rounded-2xl p-4 flex items-start gap-3 border border-amber-100/50 shadow-inner">
-                                    <FaExclamationTriangle className="text-amber-500 shrink-0 mt-0.5 text-sm" />
-                                    <p className="text-[10px] text-amber-800 font-bold leading-relaxed pr-2">
+                                <div className="bg-amber-50 rounded-xl p-3 flex items-start gap-2 border border-amber-100/50 shadow-inner">
+                                    <FaExclamationTriangle className="text-amber-500 shrink-0 mt-0.5 text-[10px]" />
+                                    <p className="text-[9px] text-amber-800 font-bold leading-tight pr-1">
                                         Confirme si los datos son correctos para proceder con el registro manual.
                                     </p>
                                 </div>
@@ -2144,10 +2144,10 @@ const Pedidos = () => {
                         </div>
 
                         {/* Footer Flotante */}
-                        <div className="p-4 bg-gray-50/50 border-t border-gray-100 flex flex-col gap-3">
+                        <div className="p-4 bg-gray-50/50 border-t border-gray-100 flex flex-col gap-2">
                             <button
                                 onClick={() => { window.speechSynthesis.cancel(); setShowVoiceReviewModal(false); handleSubmit({ preventDefault: () => { } }); }}
-                                className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-black text-base shadow-xl shadow-blue-200 transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-3 group"
+                                className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-black text-sm shadow-xl shadow-blue-200 transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-2 group"
                             >
                                 <FaCheckCircle className="text-blue-200 group-hover:rotate-12 transition-transform" />
                                 Sí, Registrar Pedido

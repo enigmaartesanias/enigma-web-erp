@@ -69,7 +69,7 @@ export function useVoiceOrder(onConfirm) {
         if (!text || text.trim() === '') {
             // Manejar silencio prolongado o falta de entrada
             const actual = controllerRef.current?.getPreguntaActual();
-            const omitibles = ['dni_ruc', 'comprobante_pago', 'descripcion_producto'];
+            const omitibles = ['dni_ruc', 'comprobante_pago', 'nombre_producto'];
 
             if (actual && omitibles.includes(actual.campo)) {
                 // Si es omitible, simplemente procesamos como vacío
@@ -98,7 +98,7 @@ export function useVoiceOrder(onConfirm) {
             onConfirm({ type: 'ADD_PRODUCT_TO_GRID', producto: resultado.producto });
         } else if (resultado.accion === 'NUEVO_PRODUCTO') {
             setCurrentData({
-                productoActual: { tipo_producto: '', metal: '', descripcion_producto: '', cantidad: '', precio_unitario: '' }
+                productoActual: { tipo_producto: '', metal: '', nombre_producto: '', cantidad: '', precio_unitario: '' }
             });
         } else if (resultado.accion === 'FIN_FASE_2') {
             onConfirm({ type: 'FIN_FASE_2' });
@@ -128,7 +128,7 @@ export function useVoiceOrder(onConfirm) {
 
         // REGLA EXPERTA: Continuous = TRUE para campos largos permite pausas naturales sin corte del navegador
         const actual = controllerRef.current?.getPreguntaActual();
-        const esCampoLargo = actual?.campo === 'descripcion_producto' || actual?.campo === 'direccion_entrega';
+        const esCampoLargo = actual?.campo === 'nombre_producto' || actual?.campo === 'direccion_entrega';
 
         recognition.continuous = esCampoLargo;
         recognition.interimResults = true;
@@ -149,7 +149,7 @@ export function useVoiceOrder(onConfirm) {
             const campo = actual?.campo;
 
             let tiempoMax = 15000;
-            if (campo === 'descripcion_producto' || campo === 'direccion_entrega') tiempoMax = 60000; // 1 min para dictado
+            if (campo === 'nombre_producto' || campo === 'direccion_entrega') tiempoMax = 60000; // 1 min para dictado
 
             timeoutRef.current = setTimeout(() => {
                 if (isListeningRef.current && recognitionRef.current) {
@@ -200,7 +200,7 @@ export function useVoiceOrder(onConfirm) {
             if (campo === 'nombre_cliente') tiempoSilencio = 1500;
             if (campo === 'telefono') tiempoSilencio = 1200;
             if (campo === 'cantidad') tiempoSilencio = 1000;
-            if (campo === 'descripcion_producto' || campo === 'direccion_entrega') tiempoSilencio = 4000; // Más margen para dictado
+            if (campo === 'nombre_producto' || campo === 'direccion_entrega') tiempoSilencio = 4000; // Más margen para dictado
 
             if (silenceTimer) clearTimeout(silenceTimer);
             silenceTimer = setTimeout(() => {
@@ -214,7 +214,7 @@ export function useVoiceOrder(onConfirm) {
 
             const finalResult = transcriptActualRef.current;
             const actual = controllerRef.current?.getPreguntaActual();
-            const esCampoLargo = actual?.campo === 'descripcion_producto' || actual?.campo === 'direccion_entrega';
+            const esCampoLargo = actual?.campo === 'nombre_producto' || actual?.campo === 'direccion_entrega';
 
             // Si es campo largo y NO hubo comando de cierre, reiniciamos el micrófono SIN procesar todavía
             if (isListeningRef.current && esCampoLargo && !hasCleanExitRef.current) {

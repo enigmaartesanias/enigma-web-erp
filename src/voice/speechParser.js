@@ -71,8 +71,8 @@ export function parseSpeech(text, campoEsperado) {
             return { type: 'DATA', field: 'tipo_producto', value: resolved || '', valid: !!resolved };
         }
 
-        case 'descripcion_producto':
-            return { type: 'DATA', field: 'descripcion_producto', value: sentenceCase(transcript), valid: transcript.length >= 2 };
+        case 'nombre_producto':
+            return { type: 'DATA', field: 'nombre_producto', value: sentenceCase(transcript), valid: transcript.length >= 2 };
 
         case 'requiere_envio':
             const isAffirmative = AFIRMATIVOS.some(a => transcript.includes(a)) || transcript.includes('con envio') || transcript.includes('con envío');

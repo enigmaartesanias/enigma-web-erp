@@ -1,4 +1,4 @@
-# 🏺 Aldo Artesanías - Web & ERP
+# 🏺 Web & ERP 
 
 Sistema integral de gestión y tienda en línea para **Artesanías Enigma**, desarrollado completamente por mí, combinando **web pública**, **ERP interno** y un **entorno de pruebas**.
 

@@ -1,6 +1,8 @@
 # 🏺 Web & ERP 
 
-Sistema integral de gestión y tienda en línea para **Artesanías Enigma**, desarrollado completamente por mí, combinando **web pública**, **ERP interno** y un **entorno de pruebas**.
+Creado por Aldo Magallanes – Desarrollador Web & Especialista en ERP
+
+Sistema integral de gestión y tienda en línea para **Artesanías Enigma**, combinando **web pública**, **ERP interno** y un **entorno de pruebas**.
 
 ---
 

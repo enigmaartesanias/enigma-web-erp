@@ -1,111 +1,75 @@
-🛠️ ENIGMA SISTEMA ERP & E-commerce - Aldo Artesanías
+# 🏺 Aldo Artesanías - Web & ERP
 
-Gestión integral de negocios artesanales + tienda en línea, desarrollado para optimizar el flujo desde el taller hasta el cliente final.
-Disponible en: www.artesaniasenigma.com
+Sistema integral de gestión y tienda en línea para **Artesanías Enigma**, desarrollado completamente por mí, combinando **web pública**, **ERP interno** y un **entorno de pruebas**.
 
-Tecnologías: React + Vite + Firebase + Neon PostgreSQL
+---
 
-🌟 Por qué ENIGMA SISTEMA ERP es indispensable
+## 🌟 Componentes Principales
 
-Automatiza todo: ventas, pedidos, inventario, materiales y producción.
+### 1️⃣ Web Pública - www.artesaniasenigma.com
+✅ Desarrollada y programada desde cero con **React + Vite + Supabase**  
+✅ **Carga de productos** con imágenes, descripciones, categorías y novedades  
+✅ **Carrusel** de productos destacados  
+✅ **WhatsApp** personalizado por página/producto  
+✅ **Google Maps** integrado en contacto  
+✅ Diseño **responsive** para escritorio y móviles  
+✅ Panel de control seguro para **administrar productos y contenido**  
+✅ Clon de la web en **Netlify** para pruebas o demostraciones  
+✅ Ideal para emprendedores que quieren mostrar y vender sus productos  
 
-ERP + E-commerce integrados: todo en una sola plataforma, sin duplicar sistemas.
+---
 
-Pedidos por voz: ideal para talleres donde se necesita registro manos libres.
+### 2️⃣ ERP Interno - Gestión de Negocio
+✅ Desarrollado para uso personal con **Firebase Storage** y **Neon DB**  
+✅ Modular y escalable, adaptable a otros emprendedores  
+**Módulos principales:**  
+- 💰 **Ventas:** registro, anulación profesional, estadísticas  
+- 📦 **Pedidos:** flujo completo, control de entregas  
+- 🛠️ **Producción:** orden, seguimiento, envío a inventario  
+- 📊 **Inventario:** stock en tiempo real, código QR, historial de movimientos  
+- 🛒 **Compras y Materiales:** gestión de proveedores, insumos y costos  
+- ⚙️ **Configuración y Usuarios:** CRUD de tipos de productos, clientes y proveedores  
 
-Optimización UX: flujos rápidos, confirmación visual y auditiva, responsive y mobile-first.
+---
 
-Control total: trazabilidad completa, reportes en tiempo real y gestión de stock confiable.
+## 🚀 Tecnologías
 
-🛍️ E-commerce Público
+### Frontend
+- React 18, Vite 5  
+- Tailwind CSS  
+- React Router 6  
+- React Hot Toast  
+- Recharts (gráficos)  
 
-Catálogo dinámico de productos por material y categoría (anillos, pulseras, collares…).
+### Backend & Base de Datos
+- 🌐 **Web:** Supabase (BD + autenticación)  
+- 🖥️ **ERP:** Neon PostgreSQL / Firebase Storage  
+- Firebase Authentication  
+- Firebase Hosting  
+- Google Analytics 4  
 
-Carrusel de productos destacados y galería de imágenes.
+### Herramientas de Desarrollo
+- VSCode, ESLint, Git / GitHub  
+- Google Antigravity (editor para pruebas)  
+- Netlify (entorno de pruebas web)  
 
-Integración con WhatsApp para consultas instantáneas.
+---
 
-Multiidioma: Español/Inglés.
+## 📦 Instalación / Desarrollo
 
-SEO optimizado con meta tags dinámicos.
+### Prerrequisitos
+- Node.js 18+ y npm  
+- Cuenta de Firebase  
+- Cuenta de Supabase  
+- (Opcional) Neon DB para ERP  
 
-📊 ERP Administrativo
-Módulo de Ventas
-
-Ventas / Anuladas con pestañas separadas.
-
-Código correlativo automático (0001, 0002…).
-
-Anulación profesional con reversión automática de stock.
-
-Estadísticas en tiempo real, filtros de fecha compactos y responsive optimizado.
-
-Módulo de Inventario
-
-Productos con códigos QR únicos y stock en tiempo real.
-
-Categorías dinámicas y carga de imágenes a Firebase Storage.
-
-Reportes avanzados con historial de movimientos.
-
-Módulo de Producción
-
-Gestión por pedido o stock, estados En Proceso / Terminado.
-
-Envío directo a inventario con pre-llenado de datos.
-
-Trazabilidad completa y reportes de producción con métricas.
-
-Módulo de Compras
-
-Registro de compras y items pendientes/inventariados.
-
-Modal de inventariar simplificado y edición inline de items.
-
-Gestión de proveedores integrada con historial detallado.
-
-Módulo de Materiales
-
-Control de insumos y gastos de materias primas.
-
-Reportes de costos con métricas claras para decisiones estratégicas.
-
-Módulo de Pedidos por Voz (🚀 Pro UX)
-
-Registro manos libres directamente en la base de datos Neon.
-
-Flujo inteligente: Cliente → Productos → Envío → Pagos.
-
-Confirmación UX: Modal de revisión con lectura automática del pedido antes de guardar.
-
-Wake Lock API: Mantiene la pantalla activa durante dictados largos, ideal para talleres y almacenes.
-
-Módulo de Configuración
-
-Gestión de tipos de producto con CRUD completo y edición inline.
-
-Actualización automática en todos los formularios y validación de duplicados.
-
-Gestión completa de clientes y proveedores.
-
-🚀 Tecnologías Clave
-
-Frontend: React 18, Vite 5, React Router 6, Tailwind CSS, React Hot Toast, Recharts
-Backend & Database: Neon PostgreSQL (serverless), Firebase Auth, Firebase Storage, Firebase Hosting
-Analítica y UX: Google Analytics 4, Wake Lock API, Web Speech API
-Herramientas de desarrollo: ESLint, Git, GitHub
-
-📦 Instalación rápida
-
-Prerrequisitos: Node.js 18+, Firebase y Neon Database.
-
+### Pasos
+```bash
 git clone https://github.com/enigmaartesanias/noviembre2025.git
 cd noviembre2025
 npm install
 
-
-Configura tus variables de entorno en .env:
-
+Variables de Entorno
 # Firebase
 VITE_FIREBASE_API_KEY=tu_api_key
 VITE_FIREBASE_AUTH_DOMAIN=tu_auth_domain
@@ -115,52 +79,62 @@ VITE_FIREBASE_MESSAGING_SENDER_ID=tu_messaging_sender_id
 VITE_FIREBASE_APP_ID=tu_app_id
 VITE_FIREBASE_MEASUREMENT_ID=tu_measurement_id
 
-# Neon Database
-VITE_DATABASE_URL=tu_neon_database_url
+# Supabase (Web)
+VITE_SUPABASE_URL=tu_url_supabase
+VITE_SUPABASE_ANON_KEY=tu_anon_key
 
+# Neon DB (ERP)
+VITE_DATABASE_URL=tu_neon_url
 
-Ejecutar en desarrollo:
-
+Ejecutar en desarrollo
 npm run dev
 
-
-Construir para producción:
-
+Construir para producción
 npm run build
+
+Desplegar en Firebase Hosting
 firebase deploy
 
-📁 Estructura del Proyecto
-webagosto2025/
-├── src/
-│   ├── components/          # Componentes reutilizables
-│   ├── contexts/            # Contextos de React (Auth, etc.)
-│   ├── modules/             # Módulos del ERP
-│   ├── pages/               # Páginas públicas
-│   ├── utils/               # Utilidades y clientes de DB
-│   ├── styles/              # Estilos globales
-│   ├── firebaseConfig.js
-│   └── App.jsx
-├── scripts/                 # Scripts de migración DB
-├── public/                  # Archivos estáticos
-├── .env                     # Variables de entorno
-└── package.json             # Dependencias
+📝 Funcionalidades Destacadas
+🌐 Web Pública
 
-🎯 Funcionalidades Destacadas
+Productos con imágenes y carrusel
 
-Ventas y anulación con trazabilidad completa y reversión automática de stock.
+WhatsApp personalizado por producto
 
-Pedidos por voz con feedback visual y auditivo en tiempo real.
+Panel de control para ingreso y edición rápida
 
-Inventario consolidado y actualizado en todo momento.
+Google Maps integrado
 
-Reportes y métricas claros en dashboard minimalista y responsive.
+Responsive desktop / móvil
 
-UX adaptativa: silencios dinámicos, timeout extendido y mensajes motivadores.
+Clon en Netlify para pruebas
 
-Seguridad y estabilidad: Firebase Auth, HTTPS y validación de datos.
+🖥️ ERP Interno
+
+Ventas, pedidos, producción e inventario
+
+Reversión automática de stock al anular ventas
+
+Control de entregas y pagos
+
+Historial de movimientos y trazabilidad
+
+Modular y escalable
+
+🔒 Seguridad
+
+Autenticación con Firebase Auth / Supabase Auth
+
+Variables de entorno para credenciales sensibles
+
+Rutas privadas protegidas
+
+HTTPS en producción
 
 📄 Licencia
 
-Privado y confidencial. Todos los derechos reservados © 2025 Aldo Artesanías.
+Privado y confidencial. Todos los derechos reservados © 2005-2026 Aldo Artesanías.
 
-Desarrollado con ❤️ para optimizar la gestión de artesanías, desde el taller hasta el cliente final en www.artesaniasenigma.com
+Nota: Estas soluciones son sistemas reales que uso en mi negocio, pensados para organizar, mostrar y vender productos.
+Pueden adaptarse a otros emprendedores de manera modular según sus necesidades.

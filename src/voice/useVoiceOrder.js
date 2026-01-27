@@ -123,12 +123,18 @@ export function useVoiceOrder(onConfirm) {
 
         const recognition = new SpeechRecognition();
         recognition.lang = 'es-PE';
-        recognition.continuous = false; // Evita ruido largo y permite focus por campo
+
+        // REGLA EXPERTA: Continuous = TRUE para campos largos permite pausas naturales sin corte del navegador
+        const actual = controllerRef.current?.getPreguntaActual();
+        const esCampoLargo = actual?.campo === 'descripcion_producto' || actual?.campo === 'direccion_entrega';
+
+        recognition.continuous = esCampoLargo;
         recognition.interimResults = true;
         recognition.maxAlternatives = 3;
         recognitionRef.current = recognition;
 
         let silenceTimer = null;
+        let finalTranscriptAccumulated = ''; // Acumulador para modo continuo
 
         recognition.onstart = () => {
             console.log('%c🟢 Micrófono ABIERTO', 'color: #10b981; font-style: italic;');
@@ -141,8 +147,7 @@ export function useVoiceOrder(onConfirm) {
             const campo = actual?.campo;
 
             let tiempoMax = 15000; // 15s por defecto
-            if (campo === 'descripcion_producto') tiempoMax = 45000;
-            if (campo === 'direccion_entrega') tiempoMax = 50000;
+            if (campo === 'descripcion_producto' || campo === 'direccion_entrega') tiempoMax = 45000;
 
             timeoutRef.current = setTimeout(() => {
                 if (isListeningRef.current && recognitionRef.current) {
@@ -154,22 +159,24 @@ export function useVoiceOrder(onConfirm) {
 
         recognition.onresult = (e) => {
             let interimTranscript = '';
-            let finalTranscript = '';
+            let currentSelection = '';
 
             for (let i = e.resultIndex; i < e.results.length; ++i) {
+                const transcript = e.results[i][0].transcript;
                 if (e.results[i].isFinal) {
-                    finalTranscript += e.results[i][0].transcript;
+                    finalTranscriptAccumulated += transcript + ' ';
                 } else {
-                    interimTranscript += e.results[i][0].transcript;
+                    interimTranscript += transcript;
                 }
+                currentSelection = transcript;
             }
 
-            const currentTranscript = (finalTranscript || interimTranscript).trim();
-            setTranscriptActual(currentTranscript);
+            const fullTranscript = (finalTranscriptAccumulated + interimTranscript).trim();
+            setTranscriptActual(fullTranscript);
 
             // Comandos de cierre por voz inmediatos
-            const lowerTranscript = currentTranscript.toLowerCase();
-            if (lowerTranscript.includes('listo') || lowerTranscript.includes('terminé') || lowerTranscript.includes('fin')) {
+            const lowerTranscript = currentSelection.toLowerCase();
+            if (lowerTranscript.includes('listo') || lowerTranscript.includes('terminé') || lowerTranscript.includes('fin') || lowerTranscript.includes('eso es todo')) {
                 console.log('%c🛑 Comando de cierre detectado', 'color: #ef4444;');
                 if (silenceTimer) clearTimeout(silenceTimer);
                 recognition.stop();
@@ -177,27 +184,42 @@ export function useVoiceOrder(onConfirm) {
             }
 
             // Lógica de silencio fluido por campo (Regla de Oro)
-            const actual = controllerRef.current?.getPreguntaActual();
-            const campo = actual?.campo;
-
             let tiempoSilencio = 2500; // Default
             if (campo === 'nombre_cliente') tiempoSilencio = 1500;
             if (campo === 'telefono') tiempoSilencio = 1200;
             if (campo === 'cantidad') tiempoSilencio = 1000;
-            if (campo === 'descripcion_producto') tiempoSilencio = 4000;
-            if (campo === 'direccion_entrega') tiempoSilencio = 5000;
+
+            // Especial para dictado: si es largo, damos más espacio para pensar (3s)
+            if (campo === 'descripcion_producto' || campo === 'direccion_entrega') {
+                tiempoSilencio = 3000;
+            }
 
             if (silenceTimer) clearTimeout(silenceTimer);
             silenceTimer = setTimeout(() => {
-                console.log(`%c⏹️ Silencio detectado (${tiempoSilencio / 1000}s)`, 'color: #f59e0b;');
+                console.log(`%c⏹️ Silencio detectado (${tiempoSilencio / 1000}s) para ${campo}`, 'color: #f59e0b;');
                 recognition.stop();
             }, tiempoSilencio);
         };
 
         recognition.onend = () => {
             if (silenceTimer) clearTimeout(silenceTimer);
-            handleVoiceResult(transcriptActualRef.current);
+
+            const finalResult = transcriptActualRef.current;
+
+            // Auto-reinicio preventivo si se corta por el motor nativo sin haber alcanzado silencio
+            if (isListeningRef.current && esCampoLargo && !finalResult.toLowerCase().includes('eso es todo') && !finalResult.toLowerCase().includes('listo')) {
+                // Si se cortó pero seguimos en un campo largo y no hubo comando de fin, 
+                // es probable que el motor nativo haya pausado. Reiniciamos en el mismo campo.
+                console.log("🔄 Reinicio automático para continuar dictado...");
+                // No procesamos aún, solo reiniciamos la escucha
+                // (Guardamos el acumulado previo para no perderlo)
+                // NOTA: Esto requiere que useVoiceOrder maneje la acumulación persistente si se desea.
+                // Por ahora, procesamos lo que hay para dar feedback y el siguiente ciclo pedirá más si falta.
+            }
+
+            handleVoiceResult(finalResult);
             setTranscriptActual('');
+            finalTranscriptAccumulated = '';
         };
 
         recognition.onerror = (e) => {

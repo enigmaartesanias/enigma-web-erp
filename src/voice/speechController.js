@@ -18,8 +18,6 @@ const FLUJO = [
     { campo: 'envio_cobrado_al_cliente', pregunta: 'Costo de envío', bloque: 'ENVIO' },
     // FASE 4: PAGO
     { campo: 'forma_pago', pregunta: 'Forma de pago del adelanto: ¿Efectivo, Yape, Plin o Transferencia?', bloque: 'PAGO' },
-    { campo: 'comprobante_pago', pregunta: 'Número de operación (opcional)', bloque: 'PAGO' },
-    { campo: 'incluye_igv', pregunta: '¿Incluye I G V?', bloque: 'PAGO' },
     { campo: 'monto_a_cuenta', pregunta: 'Monto del adelanto o pago total', bloque: 'PAGO' }
 ];
 
@@ -30,7 +28,7 @@ export class VoiceController {
         this.pedidoTemp = {
             nombre_cliente: '', telefono: '', dni_ruc: '',
             requiere_envio: false, direccion_entrega: '', modalidad_envio: 'Fijo', envio_cobrado_al_cliente: 0,
-            forma_pago: 'Efectivo', comprobante_pago: '', monto_a_cuenta: 0
+            forma_pago: 'Efectivo', comprobante_pago: '', incluye_igv: false, monto_a_cuenta: 0
         };
         this.productoActual = { tipo_producto: '', metal: '', descripcion_producto: '', cantidad: '', precio_unitario: '' };
     }
@@ -45,7 +43,7 @@ export class VoiceController {
             'nombre_cliente': 0, 'telefono': 1, 'dni_ruc': 2,
             'metal': 3, 'tipo_producto': 4, 'nombre_producto': 5, 'cantidad': 6, 'precio_unitario': 7,
             'requiere_envio': 8, 'direccion_entrega': 9, 'modalidad_envio': 10, 'envio_cobrado_al_cliente': 11,
-            'forma_pago': 12, 'comprobante_pago': 13, 'incluye_igv': 14, 'monto_a_cuenta': 15
+            'forma_pago': 12, 'monto_a_cuenta': 13
         };
 
         // Siempre sincronizar datos para no perder lo que ya está en el formulario
@@ -83,7 +81,27 @@ export class VoiceController {
 
         // Manejo de Comandos de Cierre Globales
         const lowerTranscript = transcript.toLowerCase();
-        if (lowerTranscript === 'listo' || lowerTranscript === 'terminé' || lowerTranscript === 'fin') {
+        const comandosCierre = ['listo', 'terminé', 'terminé.', 'fin', 'eso es todo', 'así está bien'];
+
+        if (comandosCierre.some(c => lowerTranscript.includes(c))) {
+            if (actual.bloque === 'PRODUCTO') {
+                // INTELIGENCIA: Si el usuario corta el ingreso, intentamos capturar cantidad y precio del último transcript
+                const numerosEnTexto = text.match(/\d+/g) || [];
+
+                if (numerosEnTexto.length >= 1 && (!this.productoActual.cantidad || this.productoActual.cantidad <= 0)) {
+                    this.productoActual.cantidad = parseFloat(numerosEnTexto[0]);
+                }
+                if (numerosEnTexto.length >= 2 && (!this.productoActual.precio_unitario || this.productoActual.precio_unitario <= 0)) {
+                    this.productoActual.precio_unitario = parseFloat(numerosEnTexto[1]);
+                }
+
+                // Si aún así no hay cantidad, ponemos 1 por defecto para no dejarlo en 0
+                if (!this.productoActual.cantidad || this.productoActual.cantidad <= 0) this.productoActual.cantidad = 1;
+
+                this.paso = -1; // Pregunta "¿Otro?"
+                speak('Producto procesado. ¿Deseas ingresar otro producto?');
+                return { accion: 'PRODUCTO_COMPLETO', producto: { ...this.productoActual } };
+            }
             speak('Entendido. Finalizando registro por voz.');
             return { accion: 'FIN_VOZ_TOTAL', data: { ...this.pedidoTemp } };
         }

@@ -927,15 +927,26 @@ const Pedidos = () => {
             });
             setShowVoiceReviewModal(true);
 
-            // Generar texto para que la voz lo lea
-            const totalVenta = listaProductos.reduce((acc, p) => acc + (p.cantidad * p.precio_unitario), 0) + (d.envio_cobrado_al_cliente || 0);
+            // Generar texto para que la voz lo lea (Calculado manualmente aquí para inmediatez)
+            const subtotal = listaProductos.reduce((acc, p) => acc + (p.cantidad * p.precio_unitario), 0);
+            const igv = d.incluye_igv ? (subtotal * 0.18) : 0;
+            const envio = d.requiere_envio ? (parseFloat(d.envio_cobrado_al_cliente) || 0) : 0;
+            const totalVenta = subtotal + igv + envio;
             const saldoPendiente = totalVenta - d.monto_a_cuenta;
 
-            const textoResumen = `Resumen del pedido a nombre de ${d.nombre_cliente}. Teléfono ${d.telefono}. ` +
+            // Formatear teléfono para lectura dígito a dígito
+            const telefonoLeible = d.telefono ? d.telefono.toString().split('').join(', ') : 'no registrado';
+
+            let textoResumen = `Resumen del pedido a nombre de ${d.nombre_cliente}. Teléfono ${telefonoLeible}. ` +
                 `Productos: ${listaProductos.map(p => `${p.cantidad} ${p.nombre_producto}`).join(', ')}. ` +
                 (d.requiere_envio ? `Con envío a ${d.direccion_entrega}. ` : 'Sin envío. ') +
-                `Método de pago ${d.forma_pago} con un adelanto de ${d.monto_a_cuenta} soles. ` +
-                (saldoPendiente > 0 ? `Queda un saldo pendiente de ${saldoPendiente.toFixed(2)} soles. ` : 'Este pedido está cancelado. No se olvide de registrar. ') +
+                `Método de pago ${d.forma_pago} con un adelanto de ${d.monto_a_cuenta} soles. `;
+
+            if (d.incluye_igv) {
+                textoResumen += `El total incluye I G V. `;
+            }
+
+            textoResumen += (saldoPendiente > 0.1 ? `Queda un saldo pendiente de ${saldoPendiente.toFixed(2)} soles. ` : 'Este pedido está cancelado. No se olvide de registrar. ') +
                 `¿Es conforme el registro?`;
 
             // Usar síntesis de voz para leer el resumen
@@ -1995,21 +2006,56 @@ const Pedidos = () => {
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Cliente</label>
-                                    <p className="text-sm font-semibold text-gray-800">{reviewData.cliente || '-'}</p>
+                                    <input
+                                        type="text"
+                                        name="nombre_cliente"
+                                        value={formData.nombre_cliente}
+                                        onChange={handleChange}
+                                        className="w-full text-sm font-semibold text-gray-800 bg-gray-50 border-gray-200 rounded-lg p-1"
+                                    />
                                 </div>
                                 <div>
                                     <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Teléfono</label>
-                                    <p className="text-sm font-semibold text-gray-800">{reviewData.telefono || '-'}</p>
+                                    <input
+                                        type="text"
+                                        name="telefono"
+                                        value={formData.telefono}
+                                        onChange={handleChange}
+                                        className="w-full text-sm font-semibold text-gray-800 bg-gray-50 border-gray-200 rounded-lg p-1"
+                                    />
                                 </div>
                             </div>
 
                             <div className="border-t border-gray-100 pt-4">
                                 <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Productos</label>
                                 <div className="space-y-1 mt-1">
-                                    {reviewData.productos.map((p, i) => (
-                                        <div key={i} className="flex justify-between text-sm bg-gray-50 p-2 rounded-lg">
-                                            <span className="text-gray-700">{p.cantidad}x {p.nombre_producto}</span>
-                                            <span className="font-bold text-blue-600">S/ {(p.cantidad * p.precio_unitario).toFixed(2)}</span>
+                                    {listaProductos.map((p, i) => (
+                                        <div key={i} className="flex justify-between text-sm bg-gray-50 p-2 rounded-lg items-center">
+                                            <div className="flex-1">
+                                                <input
+                                                    type="text"
+                                                    value={p.nombre_producto}
+                                                    onChange={(e) => {
+                                                        const newList = [...listaProductos];
+                                                        newList[i].nombre_producto = e.target.value;
+                                                        setListaProductos(newList);
+                                                    }}
+                                                    className="w-full bg-transparent border-none p-0 text-gray-700 focus:ring-0"
+                                                />
+                                            </div>
+                                            <div className="flex gap-2 items-center">
+                                                <input
+                                                    type="number"
+                                                    value={p.cantidad}
+                                                    onChange={(e) => {
+                                                        const newList = [...listaProductos];
+                                                        newList[i].cantidad = parseFloat(e.target.value) || 0;
+                                                        setListaProductos(newList);
+                                                    }}
+                                                    className="w-12 text-center bg-transparent border-none p-0 text-gray-700 focus:ring-0 font-bold"
+                                                />
+                                                <span className="font-bold text-blue-600">S/ {(p.cantidad * p.precio_unitario).toFixed(2)}</span>
+                                            </div>
                                         </div>
                                     ))}
                                 </div>
@@ -2018,15 +2064,39 @@ const Pedidos = () => {
                             <div className="grid grid-cols-2 gap-4 border-t border-gray-100 pt-4">
                                 <div>
                                     <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Entrega</label>
-                                    <p className="text-sm text-gray-700 leading-tight">{reviewData.envio}</p>
+                                    {formData.requiere_envio ? (
+                                        <input
+                                            type="text"
+                                            name="direccion_entrega"
+                                            value={formData.direccion_entrega}
+                                            onChange={handleChange}
+                                            className="w-full text-xs text-gray-700 bg-gray-50 border-gray-200 rounded-lg p-1"
+                                        />
+                                    ) : (
+                                        <p className="text-sm text-gray-500 italic">No requiere envío</p>
+                                    )}
                                 </div>
-                                <div>
-                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Pago ({reviewData.pago})</label>
-                                    <p className="text-sm font-bold text-green-600 italic">Adelanto: S/ {reviewData.monto}</p>
-                                    {(listaProductos.reduce((acc, p) => acc + (p.cantidad * p.precio_unitario), 0) + (formData.envio_cobrado_al_cliente || 0) - reviewData.monto) > 0 && (
-                                        <p className="text-[11px] font-bold text-red-500 mt-1">
-                                            Saldo: S/ {(listaProductos.reduce((acc, p) => acc + (p.cantidad * p.precio_unitario), 0) + (formData.envio_cobrado_al_cliente || 0) - reviewData.monto).toFixed(2)}
+                                <div className="text-right">
+                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">PAGO ({formData.forma_pago})</label>
+                                    <div className="flex justify-end items-center gap-1">
+                                        <span className="text-sm font-semibold text-gray-600">Adelanto: S/</span>
+                                        <input
+                                            type="number"
+                                            name="monto_a_cuenta"
+                                            value={formData.monto_a_cuenta}
+                                            onChange={handleChange}
+                                            className="w-20 text-right text-sm font-semibold text-gray-800 bg-gray-50 border-gray-200 rounded-lg p-1"
+                                        />
+                                    </div>
+                                    {calculos.monto_igv > 0 && (
+                                        <p className="text-[11px] text-gray-400 italic">Incluye IGV: S/ {calculos.monto_igv.toFixed(2)}</p>
+                                    )}
+                                    {calculos.monto_saldo > 0 ? (
+                                        <p className="text-sm font-bold text-red-500 mt-1">
+                                            Saldo: S/ {calculos.monto_saldo.toFixed(2)}
                                         </p>
+                                    ) : (
+                                        <p className="text-sm font-bold text-green-600 mt-1 italic">✓ Pedido Cancelado</p>
                                     )}
                                 </div>
                             </div>

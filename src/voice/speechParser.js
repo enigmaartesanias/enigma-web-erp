@@ -1,8 +1,12 @@
 // src/voice/speechParser.js
 const NUMEROS_TEXTO = {
-    'un': 1, 'uno': 1, 'una': 1, 'unidad': 1, 'und': 1, 'unid': 1, 'um': 1, 'pz': 1, 'pieza': 1, 'piezas': 1,
+    'un': 1, 'uno': 1, 'una': 1, 'unidad': 1, 'unid': 1, 'unidades': 1, 'und': 1, 'um': 1, 'pz': 1, 'pieza': 1, 'piezas': 1,
+    'par': 2, 'pares': 2, 'docena': 12, 'docenas': 12,
     'dos': 2, 'tres': 3, 'cuatro': 4, 'cinco': 5, 'seis': 6, 'siete': 7, 'ocho': 8, 'nueve': 9, 'diez': 10,
-    'veinte': 20, 'treinta': 30, 'cuarenta': 40, 'cincuenta': 50, 'sesenta': 60, 'setenta': 70, 'ochenta': 80, 'noventa': 90, 'cien': 100
+    'once': 11, 'doce': 12, 'trece': 13, 'catorce': 14, 'quince': 15,
+    'veinte': 20, 'veintiuno': 21, 'veintidós': 22, 'veintidos': 22, 'veintitrés': 23, 'veintitres': 23, 'veinticuatro': 24, 'veinticinco': 25,
+    'treinta': 30, 'cuarenta': 40, 'cincuenta': 50, 'sesenta': 60, 'setenta': 70, 'ochenta': 80, 'noventa': 90,
+    'cien': 100, 'ciento': 100, 'quinientos': 500, 'mil': 1000
 };
 
 function extractNumber(text) {
@@ -96,8 +100,8 @@ export function parseSpeech(text, campoEsperado) {
             return { type: 'DATA', field: 'comprobante_pago', value: comprobante, valid: true };
 
         case 'incluye_igv':
-            const includesIGV = transcript.includes('si') || transcript.includes('incluye') || transcript.includes('con igv');
-            const excludesIGV = transcript.includes('no') || transcript.includes('sin igv');
+            const includesIGV = /\bsi\b/i.test(transcript) || transcript.includes('incluye') || transcript.includes('con igv');
+            const excludesIGV = /\bno\b/i.test(transcript) || transcript.includes('sin igv') || transcript.includes('no incluye');
             return { type: 'DATA', field: 'incluye_igv', value: includesIGV, valid: includesIGV || excludesIGV };
 
         case 'monto_a_cuenta':

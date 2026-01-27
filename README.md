@@ -238,6 +238,26 @@ Este es un proyecto privado. Para contribuir:
 
 ## 📝 Changelog
 
+### v3.3.0 (Enero 2026) - Voice Order 5.0: Pro UX & Wake Lock 🚀
+- 📱 **Anti-Sleep (Wake Lock API)**: El sistema mantiene la pantalla encendida automáticamente durante el dictado para evitar interrupciones.
+- ⏱️ **Regla de Oro (Silencio Dinámico)**: Tiempos de espera inteligentes por campo (1.0s para números, 5.0s para direcciones/detalles).
+- 🛑 **Comandos de Cierre Verbal**: Soporte para finalizar el registro diciendo *"Listo"*, *"Terminé"* o *"Fin"*.
+- 🧠 **Psicología de Voz**: Mensajes de feedback no estresantes ("Te escucho", "Continúa...") para una mejor experiencia del usuario.
+- 🛠️ **Arquitectura Robusta**: Implementación de `Refs` para evitar *stale closures* y mejorar la precisión del reconocimiento en tiempo real.
+
+### v3.2.0 (Enero 2026) - Voice Order 4.0: Comprehensive Flow & UX Review 🎙️
+- 🎤 **Flujo Completo de 4 Fases**:
+  - **Fase 4 Pagos**: Integración de "Incluye IGV" y selección verbal de métodos de pago (Efectivo/Yape/Plin).
+  - **Costo de Envío**: Sincronización visual garantizada del costo de envío mediante el parser numérico mejorado.
+- 📋 **Modal de Revisión Final**:
+  - Implementación de un **Resumen de Pedido** automático al finalizar la voz.
+  - **Lectura por Voz (TTS)**: El sistema lee el resumen completo para validación auditiva.
+  - **Guardado Manual**: Confirmación con un solo clic para persistencia en DB tras la revisión exitosa.
+- ⏱️ **UX Adaptativa**:
+  - **Silencio Dinámico**: Aumento de tolerancia (4s) en campos de dictado largo vs campos cortos (2.5s).
+  - **Timeouts Extendidos**: Aumento a 12s para preguntas estándar para reducir la presión sobre el usuario.
+- 🛠️ **Validación Inteligente**: Alerta verbal explícita para campos obligatorios omitidos.
+
 ### v3.1.0 (Enero 2026) - Voice Order 3.0: Silent & Rapid 🎤
 - 🎤 **Refactor Estructural de Voz**:
   - **Fase 1 Optimizada**: Captura de Nombre, Teléfono y RUC/DNI en un solo flujo sin interrupciones.

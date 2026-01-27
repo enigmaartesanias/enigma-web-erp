@@ -41,8 +41,8 @@ function sentenceCase(str) {
 
 export function parseSpeech(text, campoEsperado) {
     const transcript = text.toLowerCase().trim();
-    const AFIRMATIVOS = ['si', 'sí', 'claro', 'activar', 'pónle', 'si requiere', 'acepta', 'con envio', 'con envío'];
-    const NEGATIVOS = ['no', 'ninguno', 'sin registro', 'omitir', 'paso', 'nada', 'no requiere', 'sin envio', 'sin envío'];
+    const AFIRMATIVOS = ['si', 'sí', 'claro', 'activar', 'pónle', 'si requiere', 'acepta', 'con envio', 'con envío', 'aceptar'];
+    const NEGATIVOS = ['no', 'ninguno', 'sin registro', 'omitir', 'paso', 'nada', 'no requiere', 'sin envio', 'sin envío', 'no hay envio', 'no por ahora', 'sin comprobante', 'sin numero', 'no hay comprobante', 'continuar'];
 
     switch (campoEsperado) {
         case 'nombre_cliente':
@@ -69,25 +69,44 @@ export function parseSpeech(text, campoEsperado) {
             return { type: 'DATA', field: 'descripcion_producto', value: sentenceCase(transcript), valid: transcript.length >= 2 };
 
         case 'requiere_envio':
-            const isAffirmative = AFIRMATIVOS.some(a => transcript.includes(a));
-            const isNegative = NEGATIVOS.some(n => transcript.includes(n));
+            const isAffirmative = AFIRMATIVOS.some(a => transcript.includes(a)) || transcript.includes('con envio') || transcript.includes('con envío');
+            const isNegative = NEGATIVOS.some(n => transcript.includes(n)) || transcript.includes('no hay envio') || transcript.includes('no hay envío');
 
-            // Si dice "sin envio", isNegative será true e isAffirmative será false.
-            // Si dice "con envio", isAffirmative será true.
             return { type: 'DATA', field: 'requiere_envio', value: isAffirmative, valid: isAffirmative || isNegative };
 
         case 'direccion_entrega':
             return { type: 'DATA', field: 'direccion_entrega', value: sentenceCase(transcript), valid: transcript.length >= 3 };
 
         case 'modalidad_envio':
-            if (transcript.includes('agencia') || transcript.includes('pagar')) {
-                return { type: 'DATA', field: 'modalidad_envio', value: 'Por Pagar en Agencia', valid: true };
+            if (transcript.includes('agencia') || transcript.includes('pagar') || transcript.includes('recojo')) {
+                return { type: 'DATA', field: 'modalidad_envio', value: 'Por Pagar', valid: true };
             }
-            return { type: 'DATA', field: 'modalidad_envio', value: 'Fijo', valid: true };
+            if (transcript.includes('fijo') || transcript.includes('calculado')) {
+                return { type: 'DATA', field: 'modalidad_envio', value: 'Fijo', valid: true };
+            }
+            return { type: 'DATA', field: 'modalidad_envio', value: '', valid: false };
+
+        case 'forma_pago':
+            const PAGO_METHODS = ['efectivo', 'yape', 'plin', 'transferencia'];
+            const pMatch = PAGO_METHODS.find(m => transcript.includes(m));
+            return { type: 'DATA', field: 'forma_pago', value: pMatch ? capitalize(pMatch) : 'Efectivo', valid: true };
+
+        case 'comprobante_pago':
+            const comprobante = transcript.replace(/operación|numero|número|op|#|no/g, '').trim();
+            return { type: 'DATA', field: 'comprobante_pago', value: comprobante, valid: true };
+
+        case 'incluye_igv':
+            const includesIGV = transcript.includes('si') || transcript.includes('incluye') || transcript.includes('con igv');
+            const excludesIGV = transcript.includes('no') || transcript.includes('sin igv');
+            return { type: 'DATA', field: 'incluye_igv', value: includesIGV, valid: includesIGV || excludesIGV };
+
+        case 'monto_a_cuenta':
+            const vCuenta = extractNumber(transcript);
+            return { type: 'DATA', field: 'monto_a_cuenta', value: vCuenta, valid: vCuenta >= 0 };
 
         case 'envio_cobrado_al_cliente':
-            const vEnv = extractNumber(transcript);
-            return { type: 'DATA', field: 'envio_cobrado_al_cliente', value: vEnv, valid: true };
+            const vEnvio = extractNumber(transcript);
+            return { type: 'DATA', field: 'envio_cobrado_al_cliente', value: vEnvio, valid: vEnvio >= 0 };
 
         case 'cantidad':
             const vCant = extractNumber(transcript);

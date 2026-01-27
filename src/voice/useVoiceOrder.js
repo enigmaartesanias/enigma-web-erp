@@ -16,17 +16,40 @@ export function useVoiceOrder(onConfirm) {
     const timeoutRef = useRef(null);
     const startListeningRef = useRef(null);
 
-    const speak = useCallback((text) => {
-        console.info(`%c🗣️ SISTEMA: ${text}`, 'color: #3b82f6; font-weight: bold; font-size: 11px;');
-        setStatus('speaking');
-        window.speechSynthesis.cancel();
+    const wakeLockRef = useRef(null);
 
+    const requestWakeLock = async () => {
+        if ('wakeLock' in navigator) {
+            try {
+                wakeLockRef.current = await navigator.wakeLock.request('screen');
+                console.log('💡 Wake Lock ACTIVADO - La pantalla no se apagará');
+            } catch (err) {
+                console.error('❌ Wake Lock Error:', err);
+            }
+        }
+    };
+
+    const releaseWakeLock = () => {
+        if (wakeLockRef.current) {
+            wakeLockRef.current.release();
+            wakeLockRef.current = null;
+            console.log('💡 Wake Lock LIBERADO');
+        }
+    };
+
+    const speak = useCallback((text) => {
+        console.group('%c🗣️ SISTEMA HABLA', 'color: #3b82f6; font-weight: bold;');
+        console.log(`MSG: ${text}`);
+        console.groupEnd();
+
+        setStatus('speaking');
+        setMensaje(text);
+
+        window.speechSynthesis.cancel();
         if (recognitionRef.current) try { recognitionRef.current.abort(); } catch (e) { }
 
         const utterance = new SpeechSynthesisUtterance(text);
         utterance.lang = 'es-ES';
-        setMensaje(text);
-        window.speechSynthesis.speak(utterance);
 
         utterance.onend = () => {
             if (isListeningRef.current && controllerRef.current?.shouldListenNext()) {
@@ -36,9 +59,25 @@ export function useVoiceOrder(onConfirm) {
                 setStatus('processing');
             }
         };
+
+        window.speechSynthesis.speak(utterance);
     }, []);
 
     const handleVoiceResult = useCallback(async (text) => {
+        if (!text || text.trim() === '') {
+            // Manejar silencio prolongado o falta de entrada
+            const actual = controllerRef.current?.getPreguntaActual();
+            const omitibles = ['dni_ruc', 'comprobante_pago', 'descripcion_producto'];
+
+            if (actual && omitibles.includes(actual.campo)) {
+                // Si es omitible, simplemente procesamos como vacío
+            } else if (actual) {
+                // Si no, forzamos una repetición suave
+                speak(`Te escucho. Por favor dime: ${actual.pregunta}`);
+                return;
+            }
+        }
+
         console.group('%c🎙️ FLUJO DE VOZ', 'color: #ef4444; font-weight: bold;');
         console.log('%cUSR:', 'color: #10b981; font-weight: bold;', text);
 
@@ -56,16 +95,18 @@ export function useVoiceOrder(onConfirm) {
             console.log('%c📦 PRODUCTO LISTO PARA GRID', 'color: #f59e0b; font-weight: bold;');
             onConfirm({ type: 'ADD_PRODUCT_TO_GRID', producto: resultado.producto });
         } else if (resultado.accion === 'NUEVO_PRODUCTO') {
-            // Limpiar datos actuales para el siguiente producto
             setCurrentData({
                 productoActual: { tipo_producto: '', metal: '', descripcion_producto: '', cantidad: '', precio_unitario: '' }
             });
         } else if (resultado.accion === 'FIN_FASE_2') {
-            setIsListening(false);
-            isListeningRef.current = false;
-            setStatus('completed_all');
             onConfirm({ type: 'FIN_FASE_2' });
+        } else if (resultado.accion === 'FIN_VOZ_TOTAL') {
+            detener();
+            setStatus('completed_all');
+            onConfirm({ type: 'FIN_VOZ_TOTAL', data: resultado.data });
             setTimeout(() => setStatus('idle'), 2000);
+        } else {
+            onConfirm({ type: 'UPDATE_CLIENT_DATA', data: dataFresh });
         }
 
         console.groupEnd();
@@ -75,9 +116,16 @@ export function useVoiceOrder(onConfirm) {
         if (recognitionRef.current) try { recognitionRef.current.abort(); } catch (e) { }
 
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRecognition) {
+            console.error('API de reconocimiento de voz no soportada');
+            return;
+        }
+
         const recognition = new SpeechRecognition();
         recognition.lang = 'es-PE';
-        recognition.interimResults = true; // Permite detectar silencio más rápido
+        recognition.continuous = false; // Evita ruido largo y permite focus por campo
+        recognition.interimResults = true;
+        recognition.maxAlternatives = 3;
         recognitionRef.current = recognition;
 
         let silenceTimer = null;
@@ -88,10 +136,13 @@ export function useVoiceOrder(onConfirm) {
 
             if (timeoutRef.current) clearTimeout(timeoutRef.current);
 
-            // Lógica de tiempo dinámico (Timeout Máximo)
+            // Tiempos dinámicos basados en la sugerencia del usuario
             const actual = controllerRef.current?.getPreguntaActual();
-            const esDictadoLargo = actual?.campo === 'descripcion_producto' || actual?.campo === 'direccion_entrega';
-            const tiempoMax = esDictadoLargo ? 45000 : 6000;
+            const campo = actual?.campo;
+
+            let tiempoMax = 15000; // 15s por defecto
+            if (campo === 'descripcion_producto') tiempoMax = 45000;
+            if (campo === 'direccion_entrega') tiempoMax = 50000;
 
             timeoutRef.current = setTimeout(() => {
                 if (isListeningRef.current && recognitionRef.current) {
@@ -102,19 +153,45 @@ export function useVoiceOrder(onConfirm) {
         };
 
         recognition.onresult = (e) => {
-            const transcript = Array.from(e.results)
-                .map(result => result[0])
-                .map(result => result.transcript)
-                .join('');
+            let interimTranscript = '';
+            let finalTranscript = '';
 
-            setTranscriptActual(transcript);
+            for (let i = e.resultIndex; i < e.results.length; ++i) {
+                if (e.results[i].isFinal) {
+                    finalTranscript += e.results[i][0].transcript;
+                } else {
+                    interimTranscript += e.results[i][0].transcript;
+                }
+            }
 
-            // Lógica de silencio de 1.5s
+            const currentTranscript = (finalTranscript || interimTranscript).trim();
+            setTranscriptActual(currentTranscript);
+
+            // Comandos de cierre por voz inmediatos
+            const lowerTranscript = currentTranscript.toLowerCase();
+            if (lowerTranscript.includes('listo') || lowerTranscript.includes('terminé') || lowerTranscript.includes('fin')) {
+                console.log('%c🛑 Comando de cierre detectado', 'color: #ef4444;');
+                if (silenceTimer) clearTimeout(silenceTimer);
+                recognition.stop();
+                return;
+            }
+
+            // Lógica de silencio fluido por campo (Regla de Oro)
+            const actual = controllerRef.current?.getPreguntaActual();
+            const campo = actual?.campo;
+
+            let tiempoSilencio = 2500; // Default
+            if (campo === 'nombre_cliente') tiempoSilencio = 1500;
+            if (campo === 'telefono') tiempoSilencio = 1200;
+            if (campo === 'cantidad') tiempoSilencio = 1000;
+            if (campo === 'descripcion_producto') tiempoSilencio = 4000;
+            if (campo === 'direccion_entrega') tiempoSilencio = 5000;
+
             if (silenceTimer) clearTimeout(silenceTimer);
             silenceTimer = setTimeout(() => {
-                console.log('%c⏹️ Silencio detectado (1.5s)', 'color: #f59e0b;');
+                console.log(`%c⏹️ Silencio detectado (${tiempoSilencio / 1000}s)`, 'color: #f59e0b;');
                 recognition.stop();
-            }, 1500);
+            }, tiempoSilencio);
         };
 
         recognition.onend = () => {
@@ -126,12 +203,14 @@ export function useVoiceOrder(onConfirm) {
         recognition.onerror = (e) => {
             if (e.error === 'aborted') return;
             console.error('❌ Error Voz:', e.error);
-            setIsListening(false);
-            isListeningRef.current = false;
+            // No detenemos todo el flujo por un error de red o timeout, reintentamos o pedimos hablar
+            if (isListeningRef.current) {
+                speak("No te escuché bien. Continúa cuando desees.");
+            }
         };
 
         try { recognition.start(); } catch (e) { }
-    }, [handleVoiceResult]);
+    }, [handleVoiceResult, speak]);
 
     // Ref para el transcript actual para evitar closures en onend
     const transcriptActualRef = useRef('');
@@ -150,6 +229,7 @@ export function useVoiceOrder(onConfirm) {
         console.log('%c🚀 SESIÓN DE VOZ: Sincronizando...', 'background: #3b82f6; color: white; padding: 2px 5px;');
 
         if (controllerRef.current) {
+            requestWakeLock();
             // Si hay un campo enfocado, sincronizar prioritariamente ahí
             controllerRef.current.syncWithForm(formData, productoActual, focusedField);
 
@@ -166,6 +246,7 @@ export function useVoiceOrder(onConfirm) {
         isListeningRef.current = false;
         window.speechSynthesis.cancel();
         if (recognitionRef.current) recognitionRef.current.abort();
+        releaseWakeLock();
     };
 
     return { isListening, status, mensaje, transcriptActual, iniciar, detener, currentData };

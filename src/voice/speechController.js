@@ -6,8 +6,8 @@ const FLUJO = [
     { campo: 'telefono', pregunta: 'Número de teléfono' },
     { campo: 'dni_ruc', pregunta: 'DNI o RUC (opcional)' },
     // FASE 2: PRODUCTOS
-    { campo: 'metal', pregunta: 'Material', bloque: 'PRODUCTO' },
-    { campo: 'tipo_producto', pregunta: 'Producto', bloque: 'PRODUCTO' },
+    { campo: 'metal', pregunta: 'Material: ¿Plata, Alpaca, Cobre o Bronce?', bloque: 'PRODUCTO' },
+    { campo: 'tipo_producto', pregunta: 'Producto: ¿Anillo, Arete, Collar o Pulsera?', bloque: 'PRODUCTO' },
     { campo: 'descripcion_producto', pregunta: 'Detalles del producto', bloque: 'PRODUCTO' },
     { campo: 'cantidad', pregunta: 'Cantidad', bloque: 'PRODUCTO' },
     { campo: 'precio_unitario', pregunta: 'Precio unitario', bloque: 'PRODUCTO' },
@@ -15,7 +15,12 @@ const FLUJO = [
     { campo: 'requiere_envio', pregunta: '¿Requiere envío?' },
     { campo: 'direccion_entrega', pregunta: 'Dirección de entrega', bloque: 'ENVIO' },
     { campo: 'modalidad_envio', pregunta: 'Modalidad de envío', bloque: 'ENVIO' },
-    { campo: 'envio_cobrado_al_cliente', pregunta: 'Costo de envío', bloque: 'ENVIO' }
+    { campo: 'envio_cobrado_al_cliente', pregunta: 'Costo de envío', bloque: 'ENVIO' },
+    // FASE 4: PAGO
+    { campo: 'forma_pago', pregunta: 'Forma de pago del adelanto: ¿Efectivo, Yape, Plin o Transferencia?', bloque: 'PAGO' },
+    { campo: 'comprobante_pago', pregunta: 'Número de operación (opcional)', bloque: 'PAGO' },
+    { campo: 'incluye_igv', pregunta: '¿Incluye I G V?', bloque: 'PAGO' },
+    { campo: 'monto_a_cuenta', pregunta: 'Monto del adelanto o pago total', bloque: 'PAGO' }
 ];
 
 export class VoiceController {
@@ -24,7 +29,8 @@ export class VoiceController {
         this.paso = 0;
         this.pedidoTemp = {
             nombre_cliente: '', telefono: '', dni_ruc: '',
-            requiere_envio: false, direccion_entrega: '', modalidad_envio: 'Fijo', envio_cobrado_al_cliente: 0
+            requiere_envio: false, direccion_entrega: '', modalidad_envio: 'Fijo', envio_cobrado_al_cliente: 0,
+            forma_pago: 'Efectivo', comprobante_pago: '', monto_a_cuenta: 0
         };
         this.productoActual = { tipo_producto: '', metal: '', descripcion_producto: '', cantidad: '', precio_unitario: '' };
     }
@@ -38,13 +44,20 @@ export class VoiceController {
         const mapeoDom = {
             'nombre_cliente': 0, 'telefono': 1, 'dni_ruc': 2,
             'metal': 3, 'tipo_producto': 4, 'nombre_producto': 5, 'cantidad': 6, 'precio_unitario': 7,
-            'requiere_envio': 8, 'direccion_entrega': 9, 'modalidad_envio': 10, 'envio_cobrado_al_cliente': 11
+            'requiere_envio': 8, 'direccion_entrega': 9, 'modalidad_envio': 10, 'envio_cobrado_al_cliente': 11,
+            'forma_pago': 12, 'comprobante_pago': 13, 'incluye_igv': 14, 'monto_a_cuenta': 15
         };
+
+        // Siempre sincronizar datos para no perder lo que ya está en el formulario
+        this.pedidoTemp = { ...this.pedidoTemp, ...formData };
+        this.productoActual = {
+            ...this.productoActual,
+            ...productoActual,
+            descripcion_producto: productoActual.nombre_producto || this.productoActual.descripcion_producto
+        };
+
         if (focusedField && mapeoDom[focusedField] !== undefined) {
             this.paso = mapeoDom[focusedField];
-            this.pedidoTemp = { ...this.pedidoTemp, ...formData };
-            this.productoActual = { ...productoActual, descripcion_producto: productoActual.nombre_producto };
-            return;
         }
     }
 
@@ -54,40 +67,64 @@ export class VoiceController {
 
         // Manejo de SILENCIO / TIMEOUT
         if (!transcript || transcript === '') {
-            // Especial para DNI/RUC: silencio = vacío y pasar al siguiente
-            if (actual.campo === 'dni_ruc') {
-                this.pedidoTemp.dni_ruc = '';
+            const omitibles = ['dni_ruc', 'comprobante_pago', 'nombre_producto'];
+            if (omitibles.includes(actual.campo)) {
+                // Omitibles
+                this.pedidoTemp[actual.campo] = '';
                 this.paso++;
                 const siguiente = this.getPreguntaActual();
-                speak('Datos personales ingresados. ' + (siguiente ? siguiente.pregunta : ''));
+                speak((actual.campo === 'dni_ruc' ? 'Omitido. ' : 'Sin detalles. ') + (siguiente ? siguiente.pregunta : ''));
                 return { accion: 'SIGUIENTE' };
             }
-            speak('No escuché. ' + actual.pregunta);
+            // Obligatorios
+            speak(actual.pregunta + ' es obligatorio. Por favor dímelo.');
             return { accion: 'REPETIR' };
+        }
+
+        // Manejo de Comandos de Cierre Globales
+        const lowerTranscript = transcript.toLowerCase();
+        if (lowerTranscript === 'listo' || lowerTranscript === 'terminé' || lowerTranscript === 'fin') {
+            speak('Entendido. Finalizando registro por voz.');
+            return { accion: 'FIN_VOZ_TOTAL', data: { ...this.pedidoTemp } };
         }
 
         // Manejo "¿Deseas otro producto?"
         if (actual.campo === 'PREGUNTA_OTRO') {
-            const afirmativo = ['si', 'sí', 'claro', 'agregar', 'otro', 'dale'];
+            const afirmativo = ['si', 'sí', 'claro', 'agregar', 'otro', 'dale', 'ya', 'bueno'];
+            const negativo = ['no', 'terminar', 'fin', 'nada', 'siguiente', 'envio', 'envío'];
             if (afirmativo.some(p => transcript.includes(p))) {
                 this.paso = 3; // Regresa a Material
                 this.productoActual = { tipo_producto: '', metal: '', descripcion_producto: '', cantidad: '', precio_unitario: '' };
-                speak('Material');
+                speak('Genial. Nuevo producto. ¿Material?');
                 return { accion: 'NUEVO_PRODUCTO' };
-            } else {
-                this.paso = 9; // Salta a ¿Requiere envío?
+            } else if (negativo.some(p => transcript.includes(p))) {
+                this.paso = 8; // Salta a ¿Requiere envío?
                 const sig = this.getPreguntaActual();
                 speak('Entendido. ' + sig.pregunta);
                 return { accion: 'IR_A_ENVIO' };
+            } else {
+                speak('Continúa cuando desees. ¿Deseas ingresar otro producto? Sí o No.');
+                return { accion: 'REPETIR' };
             }
         }
 
         try {
             const resultado = parseSpeech(text, actual.campo);
 
-            // Validaciones básicas (sin repetir el valor)
-            if (!resultado.valid && actual.campo !== 'dni_ruc') {
-                speak('Valor no válido para ' + actual.pregunta + '. Repite.');
+            // Validaciones básicas de campos obligatorios e Inteligencia de Omisión
+            const omitibles = ['dni_ruc', 'comprobante_pago', 'descripcion_producto'];
+            const negativo = ['no', 'sin', 'ninguno', 'omitir', 'paso', 'nada', 'continuar'];
+
+            if (omitibles.includes(actual.campo) && negativo.some(n => transcript.includes(n))) {
+                this.pedidoTemp[actual.campo] = '';
+                this.paso++;
+                const sig = this.getPreguntaActual();
+                speak('Entendido. ' + sig.pregunta);
+                return { accion: 'SIGUIENTE' };
+            }
+
+            if (!resultado.valid && !omitibles.includes(actual.campo)) {
+                speak('Te escucho. Por favor repite ' + actual.pregunta);
                 return { accion: 'REPETIR' };
             }
 
@@ -95,33 +132,57 @@ export class VoiceController {
             if (actual.campo === 'requiere_envio') {
                 this.pedidoTemp.requiere_envio = resultado.value;
                 if (!resultado.value) {
-                    this.paso = FLUJO.length; // Fin
-                    speak('Sin envío. Pedido registrado.');
-                    return { accion: 'FIN_FASE_3' };
+                    this.paso = 12; // Saltar a Fase 4 (forma_pago)
+                    const sig = this.getPreguntaActual();
+                    speak('Perfecto. ' + sig.pregunta);
+                    return { accion: 'SIGUIENTE' };
                 }
                 this.paso++;
                 speak('Dirección de entrega');
                 return { accion: 'SIGUIENTE' };
             }
 
-            if (actual.campo === 'modalidad_envio') {
-                this.pedidoTemp.modalidad_envio = resultado.value;
-                if (resultado.value.includes('Agencia')) {
-                    this.pedidoTemp.envio_cobrado_al_cliente = 0;
-                    this.paso = FLUJO.length;
-                    speak('Pago en agencia. Pedido registrado.');
-                    return { accion: 'FIN_FASE_3' };
+            if (actual.campo === 'direccion_entrega') {
+                if (!resultado.valid) {
+                    speak('Dime la dirección para continuar.');
+                    return { accion: 'REPETIR' };
                 }
+                this.pedidoTemp.direccion_entrega = resultado.value;
                 this.paso++;
-                speak('Costo de envío');
+                speak('Modalidad: ¿Envío fijo o por pagar en agencia?');
+                return { accion: 'SIGUIENTE' };
+            }
+
+            if (actual.campo === 'modalidad_envio') {
+                if (!resultado.valid) {
+                    speak('¿Envío fijo o por pagar en agencia?');
+                    return { accion: 'REPETIR' };
+                }
+                this.pedidoTemp.modalidad_envio = resultado.value;
+
+                if (resultado.value === 'Por Pagar') {
+                    this.pedidoTemp.envio_cobrado_al_cliente = 0;
+                    this.paso = 12; // Pasar a Fase 4 (forma_pago)
+                    const sig = this.getPreguntaActual();
+                    speak('Bien. ' + sig.pregunta);
+                    return { accion: 'SIGUIENTE' };
+                }
+
+                this.paso++;
+                speak('¿Cuál es el costo de envío?');
                 return { accion: 'SIGUIENTE' };
             }
 
             if (actual.campo === 'envio_cobrado_al_cliente') {
+                if (resultado.value <= 0 && this.pedidoTemp.modalidad_envio === 'Fijo') {
+                    speak('El costo es necesario para envío fijo. ¿Cuánto es?');
+                    return { accion: 'REPETIR' };
+                }
                 this.pedidoTemp.envio_cobrado_al_cliente = resultado.value;
-                this.paso = FLUJO.length;
-                speak('Costo registrado. Pedido registrado.');
-                return { accion: 'FIN_FASE_3' };
+                this.paso++; // Ir a forma_pago
+                const sig = this.getPreguntaActual();
+                speak('Registrado. ' + sig.pregunta);
+                return { accion: 'SIGUIENTE' };
             }
 
             // Lógica general bloques
@@ -130,7 +191,7 @@ export class VoiceController {
                 this.paso++;
                 if (actual.campo === 'precio_unitario') {
                     this.paso = -1; // Pregunta "¿Otro?"
-                    speak('Producto listo. ¿Deseas ingresar otro producto?');
+                    speak('Producto añadido. ¿Deseas ingresar otro producto?');
                     return { accion: 'PRODUCTO_COMPLETO', producto: { ...this.productoActual } };
                 }
             } else {
@@ -140,8 +201,15 @@ export class VoiceController {
                 // Transición especial al cerrar Fase 1
                 if (actual.campo === 'dni_ruc') {
                     const siguiente = this.getPreguntaActual();
-                    speak('Datos personales ingresados. ' + (siguiente ? siguiente.pregunta : ''));
+                    speak('Datos del cliente listos. ' + (siguiente ? siguiente.pregunta : ''));
                     return { accion: 'SIGUIENTE' };
+                }
+
+                // Finalización del flujo total
+                if (this.paso >= FLUJO.length) {
+                    const dataFinal = { ...this.pedidoTemp };
+                    speak('Todo listo. Registro de pedidos completado.');
+                    return { accion: 'FIN_VOZ_TOTAL', data: dataFinal };
                 }
             }
 
@@ -152,7 +220,7 @@ export class VoiceController {
             return { accion: 'SIGUIENTE' };
 
         } catch (error) {
-            speak('Error procesando respuesta. Repite ' + actual.pregunta);
+            speak('Te escucho. Continúa con ' + actual.pregunta);
             return { accion: 'ERROR' };
         }
     }

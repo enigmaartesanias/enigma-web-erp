@@ -228,6 +228,10 @@ const Pedidos = () => {
 
     const [tipoPagoInicial, setTipoPagoInicial] = useState('adelanto'); // 'adelanto' | 'total'
 
+    // Estado para Resumen de Voz
+    const [showVoiceReviewModal, setShowVoiceReviewModal] = useState(false);
+    const [reviewData, setReviewData] = useState(null);
+
     // FASE 1: Estado para tabs - Empezamos solo con Pendientes
     const [activeTab, setActiveTab] = useState('pendientes');
 
@@ -851,15 +855,25 @@ const Pedidos = () => {
     const handleVoicePartial = useCallback((data) => {
         if (!data) return;
 
-        // Fase 1: Datos Cliente
+        // Sincronizar FormData (Fase 1, 3 y 4)
         setFormData(prev => ({
             ...prev,
-            nombre_cliente: data.nombre_cliente || prev.nombre_cliente,
-            telefono: data.telefono || prev.telefono,
-            dni_ruc: data.dni_ruc || prev.dni_ruc,
+            nombre_cliente: data.nombre_cliente !== undefined ? data.nombre_cliente : prev.nombre_cliente,
+            telefono: data.telefono !== undefined ? data.telefono : prev.telefono,
+            dni_ruc: data.dni_ruc !== undefined ? data.dni_ruc : prev.dni_ruc,
+            // Fase 3: Envío
+            requiere_envio: data.requiere_envio !== undefined ? data.requiere_envio : prev.requiere_envio,
+            direccion_entrega: data.direccion_entrega !== undefined ? data.direccion_entrega : prev.direccion_entrega,
+            modalidad_envio: data.modalidad_envio !== undefined ? data.modalidad_envio : prev.modalidad_envio,
+            envio_cobrado_al_cliente: data.envio_cobrado_al_cliente !== undefined ? data.envio_cobrado_al_cliente : prev.envio_cobrado_al_cliente,
+            // Fase 4: Pago
+            forma_pago: data.forma_pago !== undefined ? data.forma_pago : prev.forma_pago,
+            comprobante_pago: data.comprobante_pago !== undefined ? data.comprobante_pago : prev.comprobante_pago,
+            incluye_igv: data.incluye_igv !== undefined ? data.incluye_igv : prev.incluye_igv,
+            monto_a_cuenta: data.monto_a_cuenta !== undefined ? data.monto_a_cuenta : prev.monto_a_cuenta,
         }));
 
-        // Fase 2: Detalles del Producto (si existen en la data de voz)
+        // Fase 2: Detalles del Producto
         if (data.productoActual) {
             setProductoActual(prev => ({
                 ...prev,
@@ -887,36 +901,69 @@ const Pedidos = () => {
             };
 
             setListaProductos(prev => [...prev, nuevoP]);
-            // RESET ABSOLUTO: Asegura que el segundo producto no herede nada del anterior
-            setProductoActual({
-                tipo_producto: '',
-                metal: '',
-                nombre_producto: '',
-                cantidad: '',
-                precio_unitario: ''
-            });
+            setProductoActual({ tipo_producto: '', metal: '', nombre_producto: '', cantidad: '', precio_unitario: '' });
             toast.success(`${p.tipo_producto} agregado`, { icon: '➕' });
             return;
         }
 
         if (dataVoz.type === 'FIN_FASE_2') {
-            setProductoActual({
-                tipo_producto: '',
-                metal: '',
-                nombre_producto: '',
-                cantidad: '',
-                precio_unitario: ''
-            });
             toast.success('Fase de productos completada', { icon: '🏁' });
             return;
         }
 
-        setFormData(prev => ({
-            ...prev,
-            nombre_cliente: dataVoz.nombre_cliente || prev.nombre_cliente,
-            telefono: dataVoz.telefono || prev.telefono,
-            dni_ruc: dataVoz.dni_ruc || prev.dni_ruc
-        }));
+        if (dataVoz.type === 'FIN_VOZ_TOTAL') {
+            const d = dataVoz.data;
+            // Sincronizar todos los datos finales al formulario
+            setFormData(prev => ({ ...prev, ...d }));
+
+            // Preparar datos para el modal de revisión
+            setReviewData({
+                cliente: d.nombre_cliente,
+                telefono: d.telefono,
+                productos: listaProductos,
+                envio: d.requiere_envio ? d.direccion_entrega : 'No requiere',
+                pago: d.forma_pago,
+                monto: d.monto_a_cuenta
+            });
+            setShowVoiceReviewModal(true);
+
+            // Generar texto para que la voz lo lea
+            const totalVenta = listaProductos.reduce((acc, p) => acc + (p.cantidad * p.precio_unitario), 0) + (d.envio_cobrado_al_cliente || 0);
+            const saldoPendiente = totalVenta - d.monto_a_cuenta;
+
+            const textoResumen = `Resumen del pedido a nombre de ${d.nombre_cliente}. Teléfono ${d.telefono}. ` +
+                `Productos: ${listaProductos.map(p => `${p.cantidad} ${p.nombre_producto}`).join(', ')}. ` +
+                (d.requiere_envio ? `Con envío a ${d.direccion_entrega}. ` : 'Sin envío. ') +
+                `Método de pago ${d.forma_pago} con un adelanto de ${d.monto_a_cuenta} soles. ` +
+                (saldoPendiente > 0 ? `Queda un saldo pendiente de ${saldoPendiente.toFixed(2)} soles. ` : 'Este pedido está cancelado. No se olvide de registrar. ') +
+                `¿Es conforme el registro?`;
+
+            // Usar síntesis de voz para leer el resumen
+            const utterance = new SpeechSynthesisUtterance(textoResumen);
+            utterance.lang = 'es-PE';
+            window.speechSynthesis.speak(utterance);
+
+            toast.success('Resumen generado', { icon: '📋' });
+            return;
+        }
+
+        if (dataVoz.type === 'UPDATE_CLIENT_DATA') {
+            const d = dataVoz.data;
+            setFormData(prev => ({
+                ...prev,
+                nombre_cliente: d.nombre_cliente !== undefined ? d.nombre_cliente : prev.nombre_cliente,
+                telefono: d.telefono !== undefined ? d.telefono : prev.telefono,
+                dni_ruc: d.dni_ruc !== undefined ? d.dni_ruc : prev.dni_ruc,
+                requiere_envio: d.requiere_envio !== undefined ? d.requiere_envio : prev.requiere_envio,
+                direccion_entrega: d.direccion_entrega !== undefined ? d.direccion_entrega : prev.direccion_entrega,
+                modalidad_envio: d.modalidad_envio !== undefined ? d.modalidad_envio : prev.modalidad_envio,
+                envio_cobrado_al_cliente: d.envio_cobrado_al_cliente !== undefined ? d.envio_cobrado_al_cliente : prev.envio_cobrado_al_cliente,
+                forma_pago: d.forma_pago !== undefined ? d.forma_pago : prev.forma_pago,
+                comprobante_pago: d.comprobante_pago !== undefined ? d.comprobante_pago : prev.comprobante_pago,
+                incluye_igv: d.incluye_igv !== undefined ? d.incluye_igv : prev.incluye_igv,
+                monto_a_cuenta: d.monto_a_cuenta !== undefined ? d.monto_a_cuenta : prev.monto_a_cuenta,
+            }));
+        }
     };
 
     return (
@@ -1930,6 +1977,88 @@ const Pedidos = () => {
                 confirmText={confirmModal.confirmText}
                 confirmColor={confirmModal.confirmColor}
             />
+
+            {/* Voice Review Modal - Minimalista y Profesional */}
+            {showVoiceReviewModal && reviewData && (
+                <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
+                    <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden animate-in zoom-in-95 duration-200">
+                        <div className="bg-blue-600 px-6 py-4 flex items-center justify-between">
+                            <h3 className="text-white font-bold flex items-center gap-2">
+                                <FaCheckCircle /> Revisión de Registro por Voz
+                            </h3>
+                            <button onClick={() => setShowVoiceReviewModal(false)} className="text-white/80 hover:text-white transition-colors">
+                                <FaTimesCircle size={20} />
+                            </button>
+                        </div>
+
+                        <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Cliente</label>
+                                    <p className="text-sm font-semibold text-gray-800">{reviewData.cliente || '-'}</p>
+                                </div>
+                                <div>
+                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Teléfono</label>
+                                    <p className="text-sm font-semibold text-gray-800">{reviewData.telefono || '-'}</p>
+                                </div>
+                            </div>
+
+                            <div className="border-t border-gray-100 pt-4">
+                                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Productos</label>
+                                <div className="space-y-1 mt-1">
+                                    {reviewData.productos.map((p, i) => (
+                                        <div key={i} className="flex justify-between text-sm bg-gray-50 p-2 rounded-lg">
+                                            <span className="text-gray-700">{p.cantidad}x {p.nombre_producto}</span>
+                                            <span className="font-bold text-blue-600">S/ {(p.cantidad * p.precio_unitario).toFixed(2)}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4 border-t border-gray-100 pt-4">
+                                <div>
+                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Entrega</label>
+                                    <p className="text-sm text-gray-700 leading-tight">{reviewData.envio}</p>
+                                </div>
+                                <div>
+                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Pago ({reviewData.pago})</label>
+                                    <p className="text-sm font-bold text-green-600 italic">Adelanto: S/ {reviewData.monto}</p>
+                                    {(listaProductos.reduce((acc, p) => acc + (p.cantidad * p.precio_unitario), 0) + (formData.envio_cobrado_al_cliente || 0) - reviewData.monto) > 0 && (
+                                        <p className="text-[11px] font-bold text-red-500 mt-1">
+                                            Saldo: S/ {(listaProductos.reduce((acc, p) => acc + (p.cantidad * p.precio_unitario), 0) + (formData.envio_cobrado_al_cliente || 0) - reviewData.monto).toFixed(2)}
+                                        </p>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="bg-yellow-50 p-3 rounded-xl border border-yellow-100 flex items-center gap-3">
+                                <FaExclamationTriangle className="text-yellow-600 shrink-0" />
+                                <p className="text-xs text-yellow-800 font-medium italic">
+                                    Confirme si los datos son correctos para proceder con el registro manual.
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="p-4 bg-gray-50 border-t flex gap-3">
+                            <button
+                                onClick={() => setShowVoiceReviewModal(false)}
+                                className="flex-1 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-200 rounded-xl transition-all"
+                            >
+                                Modificar Datos
+                            </button>
+                            <button
+                                onClick={() => {
+                                    setShowVoiceReviewModal(false);
+                                    handleSubmit({ preventDefault: () => { } });
+                                }}
+                                className="flex-[1.5] px-4 py-2 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-lg shadow-blue-200 transition-all active:scale-95 flex items-center justify-center gap-2"
+                            >
+                                <FaCheck /> Sí, Registrar Pedido
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Diálogo de Voz */}
             <VoiceDialog

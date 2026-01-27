@@ -41,22 +41,25 @@ export default function VoiceDialog({ onConfirm, onPartialUpdate, formData, prod
             {status !== 'idle' && (
                 <div className="absolute bottom-20 right-0 bg-white rounded-lg shadow-2xl p-4 w-80 border-2 border-blue-100">
                     {/* Status */}
-                    <div className="flex items-center gap-2 mb-3">
-                        {status === 'listening' ? (
-                            <>
-                                <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
-                                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-                                    Escuchando...
-                                </span>
-                            </>
-                        ) : (
-                            <>
-                                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                                <span className="text-[10px] font-bold text-blue-500 uppercase tracking-widest">
-                                    Procesando...
-                                </span>
-                            </>
-                        )}
+                    <div className="flex items-center justify-between mb-3 px-1">
+                        <div className="flex items-center gap-2">
+                            {status === 'listening' ? (
+                                <>
+                                    <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
+                                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                                        Escuchando...
+                                    </span>
+                                </>
+                            ) : (
+                                <>
+                                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                                    <span className="text-[10px] font-bold text-blue-500 uppercase tracking-widest">
+                                        Procesando...
+                                    </span>
+                                </>
+                            )}
+                        </div>
+                        <span className="text-[8px] text-gray-400 font-medium">📱 Pantalla activa</span>
                     </div>
 
                     {/* Mensaje del sistema (Pregunta actual) */}
@@ -110,6 +113,11 @@ export default function VoiceDialog({ onConfirm, onPartialUpdate, formData, prod
                             Pedido completado
                         </div>
                     )}
+
+                    {/* Comando de cierre rápido */}
+                    <div className="mt-4 text-[9px] text-gray-400 text-center italic border-t pt-2">
+                        Tip: Di "Listo", "Terminé" o "Fin" para cerrar
+                    </div>
 
                     {/* Botón de cancelar */}
                     <button

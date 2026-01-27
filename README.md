@@ -72,11 +72,12 @@ Sistema integral de gestión empresarial (ERP) y tienda en línea para artesaní
 - **Validación de duplicados** y auto-mayúsculas
 - **Gestión de clientes y proveedores**
 
-#### 🎤 Sistema de Voz (Nuevo)
-- **Registro por voz ultra-rápido** para datos personales.
-- **Flujo silencioso**: El sistema avanza automáticamente sin repeticiones innecesarias.
-- **Cierre preventivo**: El micrófono se apaga automáticamente al finalizar la Fase 1.
-- **Privacidad y Precisión**: Diseñado para captura rápida con confirmación visual humana.
+#### 🎤 Sistema de Pedidos por Voz (En Línea)
+- **Automatización del ERP**: Registro de pedidos manos libres integrado directamente con la base de datos **Neon**.
+- **Flujo Inteligente**: Captura secuencial de Cliente, Productos (con selección de menús), Envío y Pagos.
+- **Interacción Bidireccional**: El sistema pregunta, procesa la respuesta y actualiza la UI en tiempo real.
+- **Confirmación UX**: Modal de revisión con lectura automática antes de persistir los datos en la base de datos.
+- **Wake Lock**: Evita que el celular se apague durante el dictado en taller o almacén.
 
 ## 🚀 Tecnologías
 

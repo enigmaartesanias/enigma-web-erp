@@ -1,86 +1,73 @@
 # 🎙️ Sistema Pro de Registro por Voz - ENIGMA ERP
 ## Guía Técnica y Académica (v5.0 - Enero 2026)
 
-Este documento está diseñado para explicar detalladamente el funcionamiento del sistema de voz, ideal para una sesión de revisión de código o una clase de programación avanzada sobre **Interfaces de Voz (VUI)** y **React Hooks**.
+Este sistema forma parte integral del **ENIGMA ERP**, un ecosistema diseñado para la gestión de artesanías. Su función específica es automatizar el **Registro de Pedidos**, permitiendo que los operarios o vendedores ingresen datos de forma manos libres, optimizando el tiempo y reduciendo errores de transcripción.
 
 ---
 
-## 🏗️ 1. Arquitectura y Flujo de Datos
+## 🏗️ 1. Contexto y Propósito
+El módulo de **Registro de Pedidos por Voz** es una interfaz inteligente (VUI) que interactúa directamente con la base de datos de **Neon (PostgreSQL)**. Su propósito es guiar al usuario a través de un flujo estructurado para capturar toda la información necesaria sin necesidad de usar el teclado.
+
+### 📋 Campos Capturados en el Flujo
+El sistema sigue un flujo lógico dividido en fases, donde cada campo se valida en tiempo real:
+1.  **Datos del Cliente:** Nombre, Teléfono, DNI/RUC.
+2.  **Detalles del Producto (Loop):** Material (Metal), Tipo de Producto, Descripción Detallada, Cantidad y Precio.
+3.  **Gestión de Envío:** Requiere envío (SÍ/NO), Dirección, Modalidad y Costo.
+4.  **Confirmación de Pago:** Forma de pago, Comprobante e IGV.
+
+---
+
+## 📊 2. Arquitectura y Flujo de Datos
 
 El sistema sigue un modelo de **Arquitectura Desacoplada** donde la interfaz, la lógica de control y el procesamiento de lenguaje natural (NLP) están en capas separadas.
 
-### 📊 Diagrama de Flujo
-```mermaid
-graph TD
-    A[Usuario] -->|Habla| B[VoiceDialog.jsx]
-    B -->|Activa| C[useVoiceOrder.js]
-    C -->|Web Speech API| D[Reconocimiento de Voz]
-    D -->|Audio -> Texto| C
-    C -->|Texto Bruto| E[SpeechController.js]
-    E -->|Analiza Contexto| F[SpeechParser.js]
-    F -->|Texto -> JSON| E
-    E -->|Acción y Datos| C
-    C -->|Síntesis Voz| G[Usuario]
-    C -->|Update State| H[Pedidos.jsx]
-    H -->|Revisión Final| I[Modal Confirmación]
-```
+### � Dinámica de Interacción (Voz <-> Sistema)
+- **Pregunta:** El sistema utiliza *Text-to-Speech* para realizar preguntas claras basadas en el paso actual.
+- **Escucha:** Activa el micrófono con tiempos de silencio dinámicos según la complejidad del campo.
+- **Analiza:** El `speechParser` limpia y extrae los datos (ej: convierte "cincuenta soles" en el número `50.00`).
+- **Responde:** Si falta un dato obligatorio o no es válido, el sistema pide amablemente la información ("Te escucho. Por favor dime...").
+- **Visualiza:** Mientras el usuario habla, los inputs del formulario y los menús desplegables (Selects) se actualizan en tiempo real en la interfaz.
 
 ---
 
-## 📂 2. Función de los Archivos (El Equipo de Trabajo)
+## 📂 3. Estructura de Archivos (El Equipo de Trabajo)
 
-| Archivo | Rol | Concepto de Programación |
+| Archivo | Rol | Función en el ERP |
 | :--- | :--- | :--- |
-| `useVoiceOrder.js` | **Motor (Engine)** | `Custom Hook`: Gestiona el ciclo de vida del micrófono, Wake Lock y la lógica de tiempos. |
-| `speechController.js` | **Cerebro (State Machine)** | `Clase ES6`: Orquestador que sabe en qué pregunta estamos y qué sigue después. |
-| `speechParser.js` | **Traductor (NLP)** | `Functional Logic`: Limpia el texto y extrae datos útiles (números, booleanos, fechas). |
-| `VoiceDialog.jsx` | **Cara (UI)** | `React Component`: Representación visual del estado (Escuchando, Procesando, Dormido). |
+| `useVoiceOrder.js` | **Motor (Engine)** | `Hooks`: Gestiona micrófono, Wake Lock (pantalla activa) y ciclo de vida de la sesión. |
+| `speechController.js` | **Cerebro (State Machine)** | `Lógica`: Controla el flujo secuencial de preguntas y la sincronización con la BD Neon. |
+| `speechParser.js` | **Traductor (NLP)** | `Procesamiento`: Extrae números, booleanos y opciones de menús desde el audio. |
+| `VoiceDialog.jsx` | **Cara (UI)** | `Componente`: Panel flotante que muestra la transcripción y el estado actual. |
 
 ---
 
-## 🚀 3. Innovaciones y "New Experience" (UX Advanced)
+## 🚀 4. Innovaciones UX (Premium Experience)
 
-En esta versión (v5.0) se han implementado mejoras críticas para una experiencia "Premium":
+El sistema ya está **en línea y operativo**, integrando estas características avanzadas:
 
-### A. 📱 Prevención de Suspensión (Wake Lock API)
-Para evitar que el teléfono se bloquee mientras el usuario dicta un pedido largo:
-- **Implementación:** Se solicita un `wakeLock` al iniciar la sesión y se libera al terminar.
-- **Beneficio:** Flujo ininterrumpido sin tocar la pantalla.
+### A. 📱 Wake Lock API (Pantalla Siempre Activa)
+Garantiza que el dispositivo móvil no suspenda la pantalla mientras el usuario dicta el pedido, vital para el uso en talleres o almacenes.
 
 ### B. ⏱️ Regla de Oro: Silencio Dinámico
-No todos los campos son iguales. El tiempo que el sistema espera antes de "cerrar el micrófono" varía:
-- **Campos Rápidos (1.0s - 1.5s):** Cantidad, Nombre, Teléfono.
-- **Campos de Dictado (4.0s - 5.0s):** Detalles del producto y Dirección de entrega.
+- **Filtro de Focus:** Tiempos cortos (1s) para campos rápidos como "Cantidad".
+- **Modo Dictado:** Tiempos largos (5s) para campos de texto libre como "Dirección".
 
-### C. 🛑 Comandos de Cierre Verbal
-Implementamos "Shortcuts" globales. Decir **"Listo"**, **"Terminé"** o **"Fin"** corta el proceso y guarda lo capturado inmediatamente, ideal para usuarios expertos.
+### C. 🛑 Comandos Verbales & Menús
+- El usuario puede interactuar con **menús desplegables** (Metal, Tipo de Producto) simplemente mencionando las opciones.
+- **Cierre Rápido:** Al decir "Listo" o "Fin", el sistema detiene el audio y procesa la información capturada.
 
-### D. 🧠 Psicología del Feedback
-Se cambió el enfoque de "Error" por "Acompañamiento":
-- **Antes:** "No entendí, repite" (Genera estrés).
-- **Ahora:** "Te escucho, continúa cuando desees" (Reduce la ansiedad del usuario).
-
----
-
-## 🛠️ 4. Procesamiento de Errores y Robustez
-
-1.  **Reintentos Suaves:** Si hay un error de red o timeout, el sistema no se rompe; simplemente pide al usuario que continúe.
-2.  **Validación de Obligatorios:** El `Controller` bloquea el avance si falta un dato crítico (como el precio), insistiendo amablemente.
-3.  **Sanitización de Datos:** El `Parser` procesa "cincuenta soles" -> `50.00`, eliminando caracteres especiales y normalizando mayúsculas.
+### D. 📋 Modal de Confirmación Humana
+Al finalizar el dictado, el sistema **no guarda a ciegas**. Despliega un **Modal de Confirmación** que:
+1.  Resume todos los datos capturados.
+2.  Lee verbalmente el resumen al usuario.
+3.  Permite guardar en **Neon DB** con un clic o realizar ajustes manuales.
 
 ---
 
-## 🎓 5. Explicación para Clase de Programación
-
-### ¿Por qué usar un State Machine? (`speechController.js`)
-En lugar de un montón de `if/else`, usamos una clase que mantiene el `paso` actual. Esto permite que el sistema sea escalable: añadir una nueva pregunta es tan fácil como agregar un objeto al array `FLUJO`.
-
-### ¿Por qué Regex en el Parser? (`speechParser.js`)
-Usamos expresiones regulares para extraer números del habla. El lenguaje natural es "sucio" (ej: "son como 50 soles más o menos"). El Regex `/(\d+(?:\.\d+)?)/` garantiza que el sistema solo capture el valor numérico.
-
-### El Desafío de los "Closures" en React
-En `useVoiceOrder.js`, usamos `useRef` para el `transcriptActual` porque los eventos del navegador (`onend`) capturan el estado inicial (stale closures). El `ref` nos permite acceder siempre al valor más reciente.
+## 🛠️ 5. Robustez y Errores
+- **Resiliencia:** Si el reconocimiento falla por ruido externo, el sistema se mantiene en espera con mensajes motivadores ("Te escucho, continúa").
+- **Sincronización:** Si el usuario ya llenó parte del formulario manualmente, el sistema detecta esos valores y salta esas preguntas automáticamente.
 
 ---
-**Tecnología:** Web Speech API (Recognition + Synthesis), Wake Lock API, React 18 Hooks.
-**Desarrollado por:** Antigravity AI / Enigma Artesanías.
+**Tecnología:** Web Speech API, Wake Lock API, React 18, Neon PostgreSQL.
+**Estado:** Producción (En Línea).

@@ -1,6 +1,7 @@
 ﻿import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { pedidosDB } from '../utils/pedidosNeonClient';
 import { produccionDB, METALES, TIPOS_PRODUCTO } from '../utils/produccionNeonClient';
+import { tiposProductoDB } from '../utils/tiposProductoDB';
 import { getLocalDate } from '../utils/dateUtils';
 import { Link, useNavigate } from 'react-router-dom';
 import { FaEdit, FaTrash, FaCheckCircle, FaTimesCircle, FaPlus, FaWhatsapp, FaPrint, FaSearch, FaMoneyBillWave, FaShareAlt, FaImage, FaPhone, FaArrowLeft, FaHammer, FaCar, FaExclamationTriangle, FaCheck, FaEye, FaUser, FaBox, FaTruck } from 'react-icons/fa';
@@ -140,6 +141,11 @@ const EstadoPagoBadge = ({ pedido }) => {
 };
 
 // ========================================
+// CONSTANTES LOCALES
+// ========================================
+const MATERIALES_PEDIDO = ['Plata', 'Alpaca', 'Cobre', 'Bronce', 'Bisutería'];
+
+// ========================================
 // COMPONENTE PRINCIPAL
 // ========================================
 
@@ -235,10 +241,21 @@ const Pedidos = () => {
     const [voiceState, setVoiceState] = useState({ isListening: false, transcriptActual: '' });
     // FASE 1: Estado para tabs - Empezamos solo con Pendientes
     const [activeTab, setActiveTab] = useState('pendientes');
+    const [tiposDisponibles, setTiposDisponibles] = useState([]);
 
     useEffect(() => {
         fetchPedidos();
+        loadTipos();
     }, []);
+
+    const loadTipos = async () => {
+        try {
+            const data = await tiposProductoDB.getAll();
+            setTiposDisponibles(data || []);
+        } catch (error) {
+            console.error('Error cargando tipos:', error);
+        }
+    };
 
     const fetchPedidos = async () => {
         try {
@@ -1075,7 +1092,7 @@ const Pedidos = () => {
                                     className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2.5 transition-all bg-white"
                                 >
                                     <option value="">-- Selecciona metal --</option>
-                                    {METALES.map(m => <option key={m} value={m}>{m}</option>)}
+                                    {MATERIALES_PEDIDO.map(m => <option key={m} value={m}>{m}</option>)}
                                 </select>
                             </div>
 
@@ -1090,7 +1107,11 @@ const Pedidos = () => {
                                     className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2.5 transition-all bg-white"
                                 >
                                     <option value="">-- Selecciona tipo --</option>
-                                    {TIPOS_PRODUCTO.map(t => <option key={t} value={t}>{t}</option>)}
+                                    {tiposDisponibles.map(t => (
+                                        <option key={t.id} value={t.nombre}>
+                                            {t.nombre}
+                                        </option>
+                                    ))}
                                 </select>
                             </div>
 

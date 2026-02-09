@@ -2,6 +2,11 @@ import { neon } from '@neondatabase/serverless';
 
 const sql = neon(import.meta.env.VITE_DATABASE_URL);
 
+const formatNombre = (nombre) => {
+    if (!nombre) return '';
+    return nombre.trim().charAt(0).toUpperCase() + nombre.trim().slice(1).toLowerCase();
+};
+
 export const tiposProductoDB = {
     async getAll() {
         const tipos = await sql`SELECT * FROM tipos_producto ORDER BY nombre`;
@@ -12,7 +17,7 @@ export const tiposProductoDB = {
         try {
             const [tipo] = await sql`
                 INSERT INTO tipos_producto (nombre)
-                VALUES (${nombre.toUpperCase()})
+                VALUES (${formatNombre(nombre)})
                 RETURNING *
             `;
             return tipo;
@@ -26,7 +31,7 @@ export const tiposProductoDB = {
         try {
             const [tipo] = await sql`
                 UPDATE tipos_producto
-                SET nombre = ${nombre.toUpperCase()}
+                SET nombre = ${formatNombre(nombre)}
                 WHERE id = ${id}
                 RETURNING *
             `;

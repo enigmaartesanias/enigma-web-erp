@@ -143,8 +143,8 @@ export default function TiposProducto() {
                         <input
                             type="text"
                             value={nuevoNombre}
-                            onChange={(e) => setNuevoNombre(e.target.value.toUpperCase())}
-                            placeholder="Ej: TIARA, TOBILLERA, ADORNO..."
+                            onChange={(e) => setNuevoNombre(e.target.value)}
+                            placeholder="Ej: Tiara, Tobillera, Adorno..."
                             className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                             maxLength={50}
                         />
@@ -187,7 +187,7 @@ export default function TiposProducto() {
                                             <input
                                                 type="text"
                                                 value={editingNombre}
-                                                onChange={(e) => setEditingNombre(e.target.value.toUpperCase())}
+                                                onChange={(e) => setEditingNombre(e.target.value)}
                                                 className="flex-1 px-3 py-2 border border-blue-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                                                 maxLength={50}
                                                 autoFocus

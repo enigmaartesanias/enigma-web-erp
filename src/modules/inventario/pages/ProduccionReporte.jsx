@@ -12,7 +12,7 @@ const ProduccionReporte = () => {
         terminados: 0
     });
     const [loading, setLoading] = useState(true);
-    const [filtroActivo, setFiltroActivo] = useState('todos');
+    const [filtroActivo, setFiltroActivo] = useState('en_proceso');
     const [selectedItem, setSelectedItem] = useState(null); // Para modal de detalle
     const [selectedImage, setSelectedImage] = useState(null); // Para modal de imagen
     const [currentPage, setCurrentPage] = useState(1); // Paginación
@@ -88,9 +88,9 @@ const ProduccionReporte = () => {
 
     // Definir pestañas con stats calculados
     const pestanas = [
-        { id: 'todos', label: 'Todos', icon: '📋', count: statsCalculados.total_registros, color: 'purple' },
         { id: 'en_proceso', label: 'En Proceso', icon: '🔨', count: statsCalculados.en_proceso, color: 'orange' },
-        { id: 'terminados', label: 'Terminados', icon: '✅', count: statsCalculados.terminados, color: 'green' }
+        { id: 'terminados', label: 'Terminados', icon: '✅', count: statsCalculados.terminados, color: 'green' },
+        { id: 'todos', label: 'Todos', icon: '📋', count: statsCalculados.total_registros, color: 'purple' }
     ];
 
     // Resetear a página 1 cuando cambia el filtro
@@ -349,20 +349,20 @@ const ProduccionReporte = () => {
                                                     {/* Botón de Ver Detalle */}
                                                     <button
                                                         onClick={() => setSelectedItem(item)}
-                                                        className="w-9 h-9 md:w-7 md:h-7 flex items-center justify-center text-gray-600 hover:text-gray-900 transition-colors rounded-full hover:bg-gray-100"
+                                                        className="w-10 h-10 md:w-8 md:h-8 flex items-center justify-center text-gray-600 hover:text-gray-900 transition-colors rounded-full hover:bg-gray-100"
                                                         title="Ver detalle"
                                                     >
-                                                        <span className="text-[22px] md:text-[20px]">👁️</span>
+                                                        <span className="text-[24px] md:text-[22px]">👁️</span>
                                                     </button>
 
                                                     {/* Botón de Ver Imagen - Solo si tiene imagen */}
                                                     {item.imagen_url && (
                                                         <button
                                                             onClick={() => setSelectedImage(item)}
-                                                            className="w-9 h-9 md:w-7 md:h-7 flex items-center justify-center text-gray-600 hover:text-blue-600 transition-colors rounded-full hover:bg-blue-50"
+                                                            className="w-10 h-10 md:w-8 md:h-8 flex items-center justify-center text-gray-600 hover:text-blue-600 transition-colors rounded-full hover:bg-blue-50"
                                                             title="Ver imagen"
                                                         >
-                                                            <FaImage className="w-5 h-5 md:w-4 md:h-4" />
+                                                            <FaImage className="w-6 h-6 md:w-5 h-5" />
                                                         </button>
                                                     )}
                                                 </div>

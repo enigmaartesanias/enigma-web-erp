@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { produccionDB, METALES, TIPOS_PRODUCTO } from '../../../utils/produccionNeonClient';
+import { produccionDB, METALES } from '../../../utils/produccionNeonClient';
 import { getLocalDate } from '../../../utils/dateUtils';
 import { pedidosDB } from '../../../utils/pedidosNeonClient';
 import { productosExternosDB } from '../../../utils/productosExternosNeonClient';
@@ -10,6 +10,7 @@ import { storage } from '../../../firebaseConfig';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { v4 as uuidv4 } from 'uuid';
 import { compressAndResizeImage, validateImageFile } from '../../../utils/imageOptimizer';
+import { tiposProductoDB } from '../../../utils/tiposProductoDB';
 import toast, { Toaster } from 'react-hot-toast';
 import ConfirmModal from '../../../components/ui/ConfirmModal';
 import Tooltip from '../../../components/ui/Tooltip';
@@ -24,7 +25,7 @@ const Produccion = () => {
     const [pedidosPendientes, setPedidosPendientes] = useState([]);
     const [productosEnInventario, setProductosEnInventario] = useState([]);
     const [editingId, setEditingId] = useState(null);
-    const [filterType, setFilterType] = useState('todos');
+    const [filterType, setFilterType] = useState('pedidos');
     const [searchTerm, setSearchTerm] = useState('');
     const [uploadingImage, setUploadingImage] = useState(false);
     const [stats, setStats] = useState({
@@ -55,6 +56,7 @@ const Produccion = () => {
     });
     const [sendingToStockItem, setSendingToStockItem] = useState(null);
     const [currentPage, setCurrentPage] = useState(1); // Estado para paginación
+    const [tiposProducto, setTiposProducto] = useState([]);
 
     // Bloquear scroll cuando el modal está abierto
     useEffect(() => {
@@ -119,10 +121,6 @@ const Produccion = () => {
 
     // Efecto para manejar parámetro de URL ?pedido=ID
     useEffect(() => {
-        console.log('URL Search Params:', location.search);
-        console.log('urlPedidoId:', urlPedidoId);
-        console.log('Pedidos Filtrados Length:', pedidosFiltradosDropdown.length);
-
         if (urlPedidoId) {
             setFormData(prev => ({
                 ...prev,
@@ -569,7 +567,19 @@ const Produccion = () => {
         fetchPedidosPendientes();
         fetchStats();
         fetchProductosInventario();
+        fetchTiposYMateriales();
     }, []);
+
+    const fetchTiposYMateriales = async () => {
+        try {
+            const [productos] = await Promise.all([
+                tiposProductoDB.getAll()
+            ]);
+            setTiposProducto(productos || []);
+        } catch (error) {
+            console.error('Error al cargar tipos:', error);
+        }
+    };
 
     const fetchProduccion = async () => {
         try {
@@ -757,7 +767,7 @@ const Produccion = () => {
                 <div className="flex justify-between items-center border-b pb-4 mb-6">
                     <div>
                         <h2 className="text-2xl md:text-3xl font-medium text-gray-800">
-                            {editingId ? 'Editar Producción' : 'Registrar Producción'}
+                            {editingId ? 'Editar Producción' : 'Nueva Producción'}
                         </h2>
                     </div>
                     {editingId && (
@@ -784,7 +794,7 @@ const Produccion = () => {
                                 </div>
                             ) : (
                                 <div className="w-full py-3 px-4 rounded-lg bg-blue-600 text-white font-semibold text-center">
-                                    📦 Producción para Stock
+                                    📦 Producción
                                 </div>
                             )}
                         </div>
@@ -815,7 +825,7 @@ const Produccion = () => {
                     <div className="bg-purple-50/50 p-4 rounded-xl border border-purple-100">
                         <h3 className="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">
                             <FaBox className="text-purple-600" />
-                            Producto
+                            Producto a fabricar
                         </h3>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -830,7 +840,7 @@ const Produccion = () => {
                                     required
                                 >
                                     <option value="">-- Selecciona producto --</option>
-                                    {TIPOS_PRODUCTO.map(t => <option key={t} value={t}>{t}</option>)}
+                                    {tiposProducto.map(t => <option key={t.id || t.nombre} value={t.nombre}>{t.nombre}</option>)}
                                 </select>
                             </div>
                             <div>
@@ -849,20 +859,17 @@ const Produccion = () => {
                             </div>
                             <div className="md:col-span-2">
                                 <label className="block text-xs font-semibold text-gray-700 mb-1">
-                                    {formData.tipo_produccion === 'PEDIDO' ? 'Detalle (Generado Automáticamente)' : 'Detalle / Descripción para Taller *'}
+                                    {formData.tipo_produccion === 'PEDIDO' ? 'Detalle (Generado Automáticamente)' : 'Detalle para taller *'}
                                 </label>
-                                <input
-                                    type="text"
+                                <textarea
                                     name="nombre_producto"
+                                    rows="2"
                                     className="w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 border p-2 text-sm"
                                     placeholder="Ej: Anillo Ariete - plata - talla 8 - grabado simple"
                                     value={formData.nombre_producto}
                                     onChange={handleChange}
                                     required={formData.tipo_produccion === 'STOCK'}
                                 />
-                                {formData.tipo_produccion === 'STOCK' && (
-                                    <p className="text-[10px] text-gray-500 mt-1">Especifique claramente qué se debe fabricar (Tipo, Nombre, Características).</p>
-                                )}
                             </div>
                             <div>
                                 <label className="block text-xs font-semibold text-gray-700 mb-1">Cantidad *</label>
@@ -885,7 +892,7 @@ const Produccion = () => {
                     {/* Costos */}
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                         <div>
-                            <label className="block text-xs font-semibold text-gray-700 mb-1">Materiales (S/)</label>
+                            <label className="block text-xs font-semibold text-gray-700 mb-1">Materiales</label>
                             <input
                                 type="number"
                                 step="0.01"
@@ -898,7 +905,7 @@ const Produccion = () => {
                         </div>
 
                         <div>
-                            <label className="block text-xs font-semibold text-gray-700 mb-1">Mano de Obra (S/)</label>
+                            <label className="block text-xs font-semibold text-gray-700 mb-1">Mano de obra</label>
                             <input
                                 type="number"
                                 step="0.01"
@@ -911,7 +918,7 @@ const Produccion = () => {
                         </div>
 
                         <div>
-                            <label className="block text-xs font-semibold text-gray-700 mb-1">Herramientas (S/)</label>
+                            <label className="block text-xs font-semibold text-gray-700 mb-1">Herramientas</label>
                             <input
                                 type="number"
                                 step="0.01"
@@ -924,7 +931,7 @@ const Produccion = () => {
                         </div>
 
                         <div>
-                            <label className="block text-xs font-semibold text-gray-700 mb-1">Otros Gastos (S/)</label>
+                            <label className="block text-xs font-semibold text-gray-700 mb-1">Otros gastos</label>
                             <input
                                 type="number"
                                 step="0.01"
@@ -945,11 +952,11 @@ const Produccion = () => {
                     <div className="mt-4 bg-white rounded-lg p-3 border-2 border-blue-200 shadow-sm">
                         <div className="grid grid-cols-2 gap-2 text-sm">
                             <div className="flex justify-between items-center pb-2 border-b border-gray-100 col-span-2">
-                                <span className="text-gray-600 font-medium">Costo Total Unitario:</span>
+                                <span className="text-gray-600 font-medium">Costo unitario:</span>
                                 <span className="font-bold text-gray-800">S/ {costoTotalUnitario.toFixed(2)}</span>
                             </div>
                             <div className="flex justify-between items-center col-span-2 pt-2">
-                                <span className="text-gray-800 font-bold text-base">COSTO TOTAL PRODUCCIÓN:</span>
+                                <span className="text-gray-800 font-bold text-base">Costo total de producción:</span>
                                 <span className="font-bold text-xl text-blue-700">S/ {costoTotalProduccion.toFixed(2)}</span>
                             </div>
                         </div>
@@ -965,7 +972,7 @@ const Produccion = () => {
                             className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2"
                             value={formData.observaciones}
                             onChange={handleChange}
-                            placeholder="Notas sobre la producción..."
+                            placeholder="Notas internas del taller"
                         />
                     </div>
 
@@ -981,7 +988,7 @@ const Produccion = () => {
                                 } ${loading ? 'opacity-50 cursor-not-allowed' : ''} flex justify-center items-center gap-2`}
                         >
                             <FaSave />
-                            {loading ? 'Guardando...' : (editingId ? 'Actualizar Producción' : 'Guardar Producción')}
+                            {loading ? 'Guardando...' : (editingId ? 'Actualizar Producción' : 'Guardar producción')}
                         </button>
                     </div>
                 </form>
@@ -995,22 +1002,22 @@ const Produccion = () => {
                 <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
                     <div className="flex space-x-2">
                         <button
-                            onClick={() => setFilterType('todos')}
-                            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${filterType === 'todos' ? 'bg-purple-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
+                            onClick={() => setFilterType('pedidos')}
+                            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${filterType === 'pedidos' ? 'bg-amber-600 text-white shadow-md' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
                         >
-                            Todos
+                            Pedidos
                         </button>
                         <button
                             onClick={() => setFilterType('stock')}
-                            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${filterType === 'stock' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
+                            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${filterType === 'stock' ? 'bg-blue-600 text-white shadow-md' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
                         >
                             Stock
                         </button>
                         <button
-                            onClick={() => setFilterType('pedidos')}
-                            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${filterType === 'pedidos' ? 'bg-amber-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
+                            onClick={() => setFilterType('todos')}
+                            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${filterType === 'todos' ? 'bg-purple-600 text-white shadow-md' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
                         >
-                            Pedidos
+                            Todos
                         </button>
                     </div>
 
@@ -1029,7 +1036,8 @@ const Produccion = () => {
                         <thead className="bg-gray-50 border-b border-gray-100">
                             <tr className="h-[48px]">
                                 <th className="px-3 text-left text-[11px] font-semibold text-gray-400 uppercase tracking-wider align-middle">Origen</th>
-                                <th className="px-3 text-left text-[11px] font-semibold text-gray-400 uppercase tracking-wider align-middle">Producto</th>
+                                <th className="px-3 text-left text-[11px] font-semibold text-gray-400 uppercase tracking-wider align-middle">Nombre</th>
+                                <th className="px-3 text-left text-[11px] font-semibold text-gray-400 uppercase tracking-wider align-middle min-w-[180px] md:min-w-[220px]">Producto</th>
                                 <th className="hidden md:table-cell px-3 text-center text-[11px] font-semibold text-gray-400 uppercase tracking-wider align-middle">Cant</th>
                                 <th className="px-3 text-center text-[11px] font-semibold text-gray-400 uppercase tracking-wider align-middle">Est.</th>
                                 <th className="px-3 text-right text-[11px] font-semibold text-gray-400 uppercase tracking-wider align-middle">Fecha</th>
@@ -1052,13 +1060,20 @@ const Produccion = () => {
                                         )}
                                     </td>
 
-                                    {/* 2. Producto */}
-                                    <td className="px-3 align-middle">
-                                        <div className="text-[14px] text-gray-700 font-normal leading-tight">
+                                    {/* 1.5 Nombre del Cliente (Solo primer nombre para pedidos) */}
+                                    <td className="px-3 whitespace-nowrap align-middle">
+                                        <span className="text-[14px] text-gray-500 font-normal capitalize">
+                                            {item.pedido_id && item.nombre_cliente ? item.nombre_cliente.trim().split(' ')[0].toLowerCase() : '-'}
+                                        </span>
+                                    </td>
+
+                                    <td className="px-3 align-middle py-3">
+                                        <div className="text-[14px] text-gray-700 font-normal leading-tight whitespace-nowrap">
                                             {item.tipo_producto} – {item.metal}
                                         </div>
-                                        <div className="md:hidden text-[11px] text-gray-400 font-normal mt-0.5">
-                                            {item.cantidad}u
+                                        {/* Cantidad siempre debajo en responsive (dos filas) */}
+                                        <div className="md:hidden text-[12px] text-gray-400 font-medium mt-1.5 flex items-center">
+                                            <span>{item.cantidad}u</span>
                                         </div>
                                     </td>
 
@@ -1104,20 +1119,20 @@ const Produccion = () => {
                                             {/* Ver Detalle */}
                                             <button
                                                 onClick={() => handleView(item)}
-                                                className="w-[40px] h-[40px] md:w-[36px] md:h-[36px] flex items-center justify-center text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-all"
+                                                className="w-[44px] h-[44px] md:w-[40px] md:h-[40px] flex items-center justify-center text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-all"
                                                 title="Ver detalle"
                                             >
-                                                <span className="text-[22px] md:text-[20px]">👁️</span>
+                                                <span className="text-[26px] md:text-[24px]">👁️</span>
                                             </button>
 
                                             {/* Subir Foto - Solo si terminado */}
                                             {item.estado_produccion === 'terminado' && (
                                                 <button
                                                     onClick={() => { setFinishedItemForPhoto(item); setShowPhotoUploadModal(true); }}
-                                                    className="w-[40px] h-[40px] md:w-[36px] md:h-[36px] flex items-center justify-center text-gray-400 hover:text-orange-500 hover:bg-orange-50 rounded-full transition-all"
+                                                    className="w-[44px] h-[44px] md:w-[40px] md:h-[40px] flex items-center justify-center text-gray-400 hover:text-orange-500 hover:bg-orange-50 rounded-full transition-all"
                                                     title="Subir foto"
                                                 >
-                                                    <FaCamera size={18} className="md:w-4 md:h-4" />
+                                                    <FaCamera size={22} className="md:w-6 md:h-6" />
                                                 </button>
                                             )}
 
@@ -1125,10 +1140,10 @@ const Produccion = () => {
                                             {item.estado_produccion === 'terminado' && (
                                                 <button
                                                     onClick={() => handleAnular(item)}
-                                                    className="w-[40px] h-[40px] md:w-[36px] md:h-[36px] flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-all"
+                                                    className="w-[44px] h-[44px] md:w-[40px] md:h-[40px] flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-all"
                                                     title="Anular"
                                                 >
-                                                    <FaBan size={18} className="md:w-4 md:h-4" />
+                                                    <FaBan size={22} className="md:w-6 md:h-6" />
                                                 </button>
                                             )}
                                         </div>

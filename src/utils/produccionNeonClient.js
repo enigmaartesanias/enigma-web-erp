@@ -12,7 +12,7 @@ if (!DATABASE_URL) {
 const sql = neon(DATABASE_URL);
 
 // Constantes
-const METALES = ['Plata', 'Alpaca', 'Cobre', 'Bronce'];
+const METALES = ['Plata', 'Alpaca', 'Cobre', 'Bronce', 'Bisutería'];
 const TIPOS_PRODUCTO = ['Anillo', 'Arete', 'Collar', 'Pulsera'];
 
 // Helper para queries de producción

@@ -847,12 +847,15 @@ const Pedidos = () => {
             for (const detalle of pedido.detalles_pedido) {
                 await produccionDB.createFromPedido(pedido.id_pedido, {
                     cantidad: detalle.cantidad,
+                    metal: detalle.metal,
+                    tipo_producto: detalle.tipo_producto,
+                    nombre_producto: `${detalle.tipo_producto || 'Producto'} - ${detalle.metal || 'Metal'}`,
                     costo_materiales: 0,
                     mano_de_obra: 0,
                     porcentaje_alquiler: 0,
                     costo_herramientas: 0,
                     otros_gastos: 0,
-                    observaciones: `Producción creada desde pedido #${pedido.id_pedido} - ${detalle.tipo_producto || 'Producto'} de ${detalle.metal || 'Metal'}`
+                    observaciones: `Producción creada desde pedido #${pedido.id_pedido}`
                 });
             }
 

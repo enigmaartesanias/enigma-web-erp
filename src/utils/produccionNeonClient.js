@@ -70,8 +70,8 @@ export const produccionDB = {
   },
 
   // Crear producción desde pedido
-  async createFromPedido(pedidoId, costos = {}) {
-    // Obtener datos del pedido
+  async createFromPedido(pedidoId, data = {}) {
+    // Obtener datos del pedido (para nombre_cliente y fallback)
     const [pedido] = await sql`
       SELECT metal, tipo_producto, nombre_cliente FROM pedidos
       WHERE id_pedido = ${pedidoId}
@@ -79,26 +79,37 @@ export const produccionDB = {
 
     if (!pedido) throw new Error('Pedido no encontrado');
 
+    // Usar valores pasados o fallback a los del pedido
+    const metal = data.metal || pedido.metal || 'Plata';
+    const tipo_producto = data.tipo_producto || pedido.tipo_producto || 'Anillo';
+
+    // Si no se pasa nombre_producto, construimos uno descriptivo
+    const nombre_producto = data.nombre_producto ||
+      (data.tipo_producto ? `${data.tipo_producto} - ${pedido.nombre_cliente}` : `${pedido.nombre_cliente} - Pedido ${pedidoId}`);
+
     const [produccion] = await sql`
       INSERT INTO produccion_taller (
         pedido_id, tipo_produccion, metal, tipo_producto, nombre_producto,
         cantidad, costo_materiales, mano_de_obra, porcentaje_alquiler,
-        costo_herramientas, otros_gastos, estado_produccion, observaciones, imagen_url
+        costo_herramientas, otros_gastos, estado_produccion, observaciones, imagen_url,
+        fecha_produccion, fecha_inicio_produccion
       ) VALUES (
         ${pedidoId},
         'PEDIDO',
-        ${pedido.metal || 'Plata'},
-        ${pedido.tipo_producto || 'Anillo'},
-        ${pedido.nombre_cliente + ' - Pedido ' + pedidoId},
-        ${costos.cantidad || 1},
-        ${costos.costo_materiales || 0},
-        ${costos.mano_de_obra || 0},
-        ${costos.porcentaje_alquiler || 0},
-        ${costos.costo_herramientas || 0},
-        ${costos.otros_gastos || 0},
+        ${metal},
+        ${tipo_producto},
+        ${nombre_producto},
+        ${data.cantidad || 1},
+        ${data.costo_materiales || 0},
+        ${data.mano_de_obra || 0},
+        ${data.porcentaje_alquiler || 0},
+        ${data.costo_herramientas || 0},
+        ${data.otros_gastos || 0},
         'en_proceso',
-        ${costos.observaciones || 'Producción creada desde pedido'},
-        ${costos.imagen_url || ''}
+        ${data.observaciones || 'Producción creada desde pedido'},
+        ${data.imagen_url || ''},
+        ${getLocalDate()},
+        ${getLocalDate()}
       )
       RETURNING *
     `;

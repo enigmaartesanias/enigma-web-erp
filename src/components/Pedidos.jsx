@@ -205,7 +205,6 @@ const Pedidos = () => {
         metal: '',
         tipo_producto: '',
         forma_pago: 'Efectivo',
-        comprobante_pago: '',
         requiere_envio: false,
         modalidad_envio: 'Fijo',
         envio_cobrado_al_cliente: '',
@@ -450,7 +449,6 @@ const Pedidos = () => {
             metal: pedido.metal || 'Plata', // This is for the form, but products are now individual
             tipo_producto: pedido.tipo_producto || 'Anillo', // This is for the form, but products are now individual
             forma_pago: pedido.forma_pago || 'Efectivo',
-            comprobante_pago: pedido.comprobante_pago || '',
             requiere_envio: pedido.requiere_envio,
             modalidad_envio: pedido.modalidad_envio || 'Fijo',
             envio_cobrado_al_cliente: pedido.envio_cobrado_al_cliente || 0,
@@ -543,7 +541,6 @@ const Pedidos = () => {
             metal: '',
             tipo_producto: '',
             forma_pago: 'Efectivo',
-            comprobante_pago: '',
             requiere_envio: false,
             modalidad_envio: 'Fijo',
             envio_cobrado_al_cliente: 0,
@@ -597,7 +594,6 @@ const Pedidos = () => {
                 metal: formData.metal || (listaProductos.length > 0 ? listaProductos[0].metal : ''),
                 tipo_producto: formData.tipo_producto || (listaProductos.length > 0 ? listaProductos[0].tipo_producto : ''),
                 forma_pago: formData.forma_pago,
-                comprobante_pago: formData.comprobante_pago,
                 requiere_envio: formData.requiere_envio,
                 modalidad_envio: formData.modalidad_envio,
                 envio_cobrado_al_cliente: parseFloat(formData.envio_cobrado_al_cliente) || 0,
@@ -660,7 +656,7 @@ const Pedidos = () => {
                         monto: pedidoData.monto_a_cuenta,
                         fecha_pago: getLocalDate(),
                         metodo_pago: formData.forma_pago,
-                        referencia: formData.comprobante_pago || ''
+                        referencia: ''
                     });
                     console.log('✅ Pago registrado');
                 }
@@ -952,7 +948,6 @@ const Pedidos = () => {
             envio_cobrado_al_cliente: data.envio_cobrado_al_cliente !== undefined ? data.envio_cobrado_al_cliente : prev.envio_cobrado_al_cliente,
             // Fase 4: Pago
             forma_pago: data.forma_pago !== undefined ? data.forma_pago : prev.forma_pago,
-            comprobante_pago: data.comprobante_pago !== undefined ? data.comprobante_pago : prev.comprobante_pago,
             incluye_igv: data.incluye_igv !== undefined ? data.incluye_igv : prev.incluye_igv,
             monto_a_cuenta: data.monto_a_cuenta !== undefined ? data.monto_a_cuenta : prev.monto_a_cuenta,
         }));
@@ -1058,7 +1053,6 @@ const Pedidos = () => {
                 modalidad_envio: d.modalidad_envio !== undefined ? d.modalidad_envio : prev.modalidad_envio,
                 envio_cobrado_al_cliente: d.envio_cobrado_al_cliente !== undefined ? d.envio_cobrado_al_cliente : prev.envio_cobrado_al_cliente,
                 forma_pago: d.forma_pago !== undefined ? d.forma_pago : prev.forma_pago,
-                comprobante_pago: d.comprobante_pago !== undefined ? d.comprobante_pago : prev.comprobante_pago,
                 incluye_igv: d.incluye_igv !== undefined ? d.incluye_igv : prev.incluye_igv,
                 monto_a_cuenta: d.monto_a_cuenta !== undefined ? d.monto_a_cuenta : prev.monto_a_cuenta,
             }));
@@ -1078,7 +1072,7 @@ const Pedidos = () => {
 
             <div className="bg-white shadow-lg rounded-lg p-4 md:p-6 mb-8 max-w-4xl mx-auto">
                 <div className="flex justify-between items-center border-b pb-4 mb-6">
-                    <h2 className="text-2xl md:text-3xl font-medium text-gray-800">{editingId ? 'Editar Pedido' : 'Registrar Nuevo Pedido'}</h2>
+                    <h2 className="text-2xl md:text-3xl font-medium text-gray-800">{editingId ? 'Editar Pedido' : 'Nuevo Pedido'}</h2>
                     {editingId && (
                         <button onClick={resetForm} className="text-sm text-gray-500 hover:text-gray-700 underline">
                             Cancelar Edición
@@ -1097,36 +1091,33 @@ const Pedidos = () => {
                     <div className="bg-gray-50/50 p-4 md:p-6 rounded-2xl border border-gray-200 shadow-sm transition-all hover:shadow-md">
                         <h3 className="text-lg md:text-xl font-bold mb-4 text-blue-700 flex items-center gap-2">
                             <FaUser className="text-blue-500" />
-                            Datos del Cliente
+                            Cliente
                         </h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
                             <div className="md:col-span-2 relative" ref={searchRef}>
-                                <label className="block text-sm font-semibold text-gray-700">Nombre</label>
-                                <div className="relative">
-                                    <input
-                                        type="text"
-                                        name="nombre_cliente"
-                                        value={formData.nombre_cliente}
-                                        onChange={(e) => handleSearchCliente(e.target.value)}
-                                        onFocus={handleFocus}
-                                        autoComplete="off"
-                                        className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2.5 transition-all bg-white pr-10"
-                                        placeholder="Escribe para buscar cliente..."
-                                    />
-                                    {formData.nombre_cliente && !formData.telefono && (
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                setNombreBusqueda('');
-                                                setFormData(prev => ({ ...prev, nombre_cliente: '' }));
-                                                setShowSugerencias(false);
-                                            }}
-                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-1"
-                                        >
-                                            <FaPlus size={12} className="rotate-45" />
-                                        </button>
-                                    )}
-                                </div>
+                                <input
+                                    type="text"
+                                    name="nombre_cliente"
+                                    value={formData.nombre_cliente}
+                                    onChange={(e) => handleSearchCliente(e.target.value)}
+                                    onFocus={handleFocus}
+                                    autoComplete="off"
+                                    className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2.5 transition-all bg-white pr-10"
+                                    placeholder="Buscar cliente por nombre..."
+                                />
+                                {formData.nombre_cliente && !formData.telefono && (
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setNombreBusqueda('');
+                                            setFormData(prev => ({ ...prev, nombre_cliente: '' }));
+                                            setShowSugerencias(false);
+                                        }}
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-1"
+                                    >
+                                        <FaPlus size={12} className="rotate-45" />
+                                    </button>
+                                )}
 
                                 {showSugerencias && (
                                     <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-2xl max-h-72 overflow-y-auto overflow-x-hidden">
@@ -1215,9 +1206,9 @@ const Pedidos = () => {
                     <div className="bg-gray-50/50 p-4 md:p-6 rounded-2xl border border-gray-200 shadow-sm transition-all hover:shadow-md">
                         <h3 className="text-lg md:text-xl font-bold mb-4 text-blue-700 flex items-center gap-2">
                             <FaBox className="text-blue-500" />
-                            Detalles del Producto
+                            Producto
                         </h3>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4 md:items-start border border-gray-200 p-4 rounded-xl bg-white/50">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-4 md:items-start border border-gray-200 p-3 md:p-4 rounded-xl bg-white/50">
 
                             <div>
                                 <label className="block text-sm font-semibold text-gray-700">Metal *</label>
@@ -1226,7 +1217,7 @@ const Pedidos = () => {
                                     value={productoActual.metal}
                                     onChange={handleProductoChange}
                                     onFocus={handleFocus}
-                                    className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2.5 transition-all bg-white"
+                                    className="mt-2 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2.5 transition-all bg-white"
                                 >
                                     <option value="">-- Selecciona metal --</option>
                                     {MATERIALES_PEDIDO.map(m => <option key={m} value={m}>{m}</option>)}
@@ -1241,7 +1232,7 @@ const Pedidos = () => {
                                     value={productoActual.tipo_producto}
                                     onChange={handleProductoChange}
                                     onFocus={handleFocus}
-                                    className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2.5 transition-all bg-white"
+                                    className="mt-2 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2.5 transition-all bg-white"
                                 >
                                     <option value="">-- Selecciona tipo --</option>
                                     {tiposDisponibles.map(t => (
@@ -1253,10 +1244,10 @@ const Pedidos = () => {
                             </div>
 
 
-                            <div className="md:col-span-3">
+                            <div className="md:col-span-3 -mx-1 md:mx-0">
 
 
-                                <label className="block text-sm font-semibold text-gray-700">Descripción del Producto *</label>
+                                <label className="block text-sm font-semibold text-gray-700 mb-2">Descripción *</label>
                                 <DictationTextarea
                                     id="nombre_producto"
                                     name="nombre_producto"
@@ -1265,7 +1256,8 @@ const Pedidos = () => {
                                     onFocus={handleFocus}
                                     isListening={voiceState.isListening && focusedField === 'nombre_producto'}
                                     interimText={focusedField === 'nombre_producto' ? voiceState.transcriptActual : ""}
-                                    rows={2}
+                                    placeholder="Ej: pulsera con mostacillas rojas"
+                                    rows={6}
                                 />
                             </div>
                             <div>
@@ -1349,7 +1341,7 @@ const Pedidos = () => {
                     <div className="bg-gray-50/50 p-4 md:p-6 rounded-2xl border border-gray-200 shadow-sm transition-all hover:shadow-md">
                         <h3 className="text-lg md:text-xl font-bold mb-4 text-blue-700 flex items-center gap-2">
                             <FaTruck className="text-blue-500" />
-                            Envío
+                            Envío (opcional)
                         </h3>
                         <div className="space-y-2">
                             <div className="flex items-center bg-white/50 p-3 rounded-xl border border-gray-100">
@@ -1361,7 +1353,7 @@ const Pedidos = () => {
                                     id="requiere_envio"
                                     className="h-5 w-5 text-blue-600 focus:ring-blue-500 border-gray-300 rounded transition-all cursor-pointer"
                                 />
-                                <label htmlFor="requiere_envio" className="ml-3 block text-sm font-semibold text-gray-700 cursor-pointer">Dirección de Entrega</label>
+                                <label htmlFor="requiere_envio" className="ml-3 block text-sm font-semibold text-gray-700 cursor-pointer">Dirección de entrega</label>
                             </div>
 
                             {formData.requiere_envio && (
@@ -1409,11 +1401,11 @@ const Pedidos = () => {
                     <div className="bg-gray-50/50 p-4 md:p-6 rounded-2xl border border-gray-200 shadow-sm transition-all hover:shadow-md">
                         <h3 className="text-lg md:text-xl font-bold mb-4 text-blue-700 flex items-center gap-2">
                             <FaMoneyBillWave className="text-blue-500" />
-                            Pago y Totales
+                            Pago
                         </h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                                <label className="block text-sm font-semibold text-gray-700">Forma de Pago del Adelanto</label>
+                                <label className="block text-sm font-semibold text-gray-700">Forma de pago</label>
                                 <select
                                     name="forma_pago"
                                     value={formData.forma_pago}
@@ -1427,17 +1419,7 @@ const Pedidos = () => {
                                     <option value="Transferencia">Transferencia</option>
                                 </select>
                             </div>
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-700">N° Operación / Comprobante</label>
-                                <input
-                                    type="text"
-                                    name="comprobante_pago"
-                                    value={formData.comprobante_pago}
-                                    onChange={handleChange}
-                                    onFocus={handleFocus}
-                                    className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2.5 bg-white"
-                                />
-                            </div>
+
 
                             <div className="flex items-center bg-white/50 p-3 rounded-xl border border-gray-100 md:col-span-2">
                                 <input
@@ -1452,7 +1434,7 @@ const Pedidos = () => {
                             </div>
 
                             <div className="md:col-span-2">
-                                <label className="block text-sm font-bold text-blue-800 mb-2">💰 Monto Pagado (Adelanto)</label>
+                                <label className="block text-sm font-bold text-blue-800 mb-2">💰 Adelanto</label>
                                 <input
                                     type="number"
                                     name="monto_a_cuenta"
@@ -1515,11 +1497,11 @@ const Pedidos = () => {
                             disabled={loading}
                             className={`w-full py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
                         >
-                            {loading ? 'Guardando...' : (editingId ? 'Actualizar Pedido' : 'Registrar Pedido')}
+                            {loading ? 'Guardando...' : (editingId ? 'Actualizar Pedido' : 'Guardar Pedido')}
                         </button>
                     </div>
                 </form>
-            </div >
+            </div>
 
             {/* Listado de Pedidos */}
             <div className="bg-white shadow-lg rounded-lg p-6 max-w-6xl mx-auto pb-8 md:pb-6">
@@ -1532,61 +1514,63 @@ const Pedidos = () => {
                 {/* FASE 2: Navegación de Tabs - Pendientes y Producción */}
                 {/* FASE 2: Navegación de Tabs - Pendientes y Producción */}
                 {/* Calculamos los conteos dinámicamente */}
-                {(() => {
-                    const counts = {
-                        pendientes: pedidos.filter(p => p.estado_pedido !== 'entregado' && p.estado_produccion !== 'terminado' && p.estado_produccion !== 'en_proceso' && p.estado_pedido !== 'cancelado').length,
-                        produccion: pedidos.filter(p => p.estado_produccion === 'en_proceso' && p.estado_pedido !== 'entregado').length,
-                        terminados: pedidos.filter(p => p.estado_produccion === 'terminado' && p.estado_pedido !== 'entregado').length
-                    };
+                {
+                    (() => {
+                        const counts = {
+                            pendientes: pedidos.filter(p => p.estado_pedido !== 'entregado' && p.estado_produccion !== 'terminado' && p.estado_produccion !== 'en_proceso' && p.estado_pedido !== 'cancelado').length,
+                            produccion: pedidos.filter(p => p.estado_produccion === 'en_proceso' && p.estado_pedido !== 'entregado').length,
+                            terminados: pedidos.filter(p => p.estado_produccion === 'terminado' && p.estado_pedido !== 'entregado').length
+                        };
 
-                    return (
-                        <div className="border-b border-gray-200 mb-6 font-sans">
-                            <nav className="-mb-px flex space-x-4 md:space-x-8 overflow-x-auto pb-1">
-                                <button
-                                    onClick={() => setActiveTab('pendientes')}
-                                    className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors flex items-center gap-2 ${activeTab === 'pendientes'
-                                        ? 'border-blue-500 text-blue-600'
-                                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                                        }`}
-                                >
-                                    <span className="text-xl">📋</span>
-                                    <span>Pendientes</span>
-                                    <span className={`ml-1 py-0.5 px-2.5 rounded-full text-xs font-bold ${activeTab === 'pendientes' ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-600'}`}>
-                                        {counts.pendientes}
-                                    </span>
-                                </button>
+                        return (
+                            <div className="border-b border-gray-200 mb-6 font-sans">
+                                <nav className="-mb-px flex space-x-4 md:space-x-8 overflow-x-auto pb-1">
+                                    <button
+                                        onClick={() => setActiveTab('pendientes')}
+                                        className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors flex items-center gap-2 ${activeTab === 'pendientes'
+                                            ? 'border-blue-500 text-blue-600'
+                                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                            }`}
+                                    >
+                                        <span className="text-xl">📋</span>
+                                        <span>Pendientes</span>
+                                        <span className={`ml-1 py-0.5 px-2.5 rounded-full text-xs font-bold ${activeTab === 'pendientes' ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-600'}`}>
+                                            {counts.pendientes}
+                                        </span>
+                                    </button>
 
-                                <button
-                                    onClick={() => setActiveTab('produccion')}
-                                    className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors flex items-center gap-2 ${activeTab === 'produccion'
-                                        ? 'border-indigo-500 text-indigo-600'
-                                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                                        }`}
-                                >
-                                    <span className="text-xl">⚒️</span>
-                                    <span>Producción</span>
-                                    <span className={`ml-1 py-0.5 px-2.5 rounded-full text-xs font-bold ${activeTab === 'produccion' ? 'bg-indigo-100 text-indigo-600' : 'bg-gray-100 text-gray-600'}`}>
-                                        {counts.produccion}
-                                    </span>
-                                </button>
+                                    <button
+                                        onClick={() => setActiveTab('produccion')}
+                                        className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors flex items-center gap-2 ${activeTab === 'produccion'
+                                            ? 'border-indigo-500 text-indigo-600'
+                                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                            }`}
+                                    >
+                                        <span className="text-xl">⚒️</span>
+                                        <span>Producción</span>
+                                        <span className={`ml-1 py-0.5 px-2.5 rounded-full text-xs font-bold ${activeTab === 'produccion' ? 'bg-indigo-100 text-indigo-600' : 'bg-gray-100 text-gray-600'}`}>
+                                            {counts.produccion}
+                                        </span>
+                                    </button>
 
-                                <button
-                                    onClick={() => setActiveTab('terminados')}
-                                    className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors flex items-center gap-2 ${activeTab === 'terminados'
-                                        ? 'border-green-500 text-green-600'
-                                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                                        }`}
-                                >
-                                    <span className="text-xl">✅</span>
-                                    <span>Listos</span>
-                                    <span className={`ml-1 py-0.5 px-2.5 rounded-full text-xs font-bold ${activeTab === 'terminados' ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-600'}`}>
-                                        {counts.terminados}
-                                    </span>
-                                </button>
-                            </nav>
-                        </div>
-                    );
-                })()}
+                                    <button
+                                        onClick={() => setActiveTab('terminados')}
+                                        className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors flex items-center gap-2 ${activeTab === 'terminados'
+                                            ? 'border-green-500 text-green-600'
+                                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                            }`}
+                                    >
+                                        <span className="text-xl">✅</span>
+                                        <span>Listos</span>
+                                        <span className={`ml-1 py-0.5 px-2.5 rounded-full text-xs font-bold ${activeTab === 'terminados' ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-600'}`}>
+                                            {counts.terminados}
+                                        </span>
+                                    </button>
+                                </nav>
+                            </div>
+                        );
+                    })()
+                }
 
                 {/* Estadísticas por Tab */}
                 <div className="mb-6">
@@ -2147,168 +2131,170 @@ const Pedidos = () => {
             />
 
             {/* Voice Review Modal - Rediseño Compacto y Elegante (Estilo Imagen 1) */}
-            {showVoiceReviewModal && reviewData && (
-                <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[70] flex items-center justify-center p-4">
-                    <div className="bg-white rounded-[2rem] shadow-2xl max-w-[360px] w-[95%] overflow-hidden animate-in zoom-in-95 duration-200 border border-white/20">
-                        {/* Header Moderno Compacto */}
-                        <div className="bg-blue-600 px-5 py-3 sm:py-4 flex items-center justify-between relative overflow-hidden">
-                            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl"></div>
-                            <h3 className="text-white font-bold flex items-center gap-2 relative z-10 text-lg">
-                                <FaCheckCircle className="text-blue-200" /> Revisión de Registro
-                            </h3>
-                            <button onClick={() => { window.speechSynthesis.cancel(); setShowVoiceReviewModal(false); }} className="text-white/80 hover:text-white transition-colors relative z-10 bg-white/20 p-1.5 rounded-full">
-                                <FaTimesCircle size={18} />
-                            </button>
-                        </div>
-
-                        {/* Contenido Compacto */}
-                        <div className="p-4 sm:p-6 space-y-4 sm:space-y-5">
-                            {/* Cliente y Teléfono en rejilla limpia - Compacto */}
-                            <div className="grid grid-cols-2 gap-4 pb-3 border-b border-gray-100">
-                                <div className="space-y-1">
-                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">Cliente</label>
-                                    <input
-                                        type="text"
-                                        name="nombre_cliente"
-                                        value={formData.nombre_cliente}
-                                        onChange={handleChange}
-                                        className="w-full text-sm font-bold text-gray-800 bg-transparent border-none p-0 focus:ring-0"
-                                    />
-                                </div>
-                                <div className="space-y-1 text-right">
-                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">Teléfono</label>
-                                    <input
-                                        type="text"
-                                        name="telefono"
-                                        value={formData.telefono}
-                                        onChange={handleChange}
-                                        className="w-full text-sm font-bold text-gray-800 bg-transparent border-none p-0 focus:ring-0 text-right"
-                                    />
-                                </div>
+            {
+                showVoiceReviewModal && reviewData && (
+                    <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[70] flex items-center justify-center p-4">
+                        <div className="bg-white rounded-[2rem] shadow-2xl max-w-[360px] w-[95%] overflow-hidden animate-in zoom-in-95 duration-200 border border-white/20">
+                            {/* Header Moderno Compacto */}
+                            <div className="bg-blue-600 px-5 py-3 sm:py-4 flex items-center justify-between relative overflow-hidden">
+                                <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl"></div>
+                                <h3 className="text-white font-bold flex items-center gap-2 relative z-10 text-lg">
+                                    <FaCheckCircle className="text-blue-200" /> Revisión de Registro
+                                </h3>
+                                <button onClick={() => { window.speechSynthesis.cancel(); setShowVoiceReviewModal(false); }} className="text-white/80 hover:text-white transition-colors relative z-10 bg-white/20 p-1.5 rounded-full">
+                                    <FaTimesCircle size={18} />
+                                </button>
                             </div>
 
-                            {/* Listado de Productos Estilo "Card Minimalista" */}
-                            <div className="space-y-3">
-                                <div className="flex items-center justify-between">
-                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Productos</label>
-                                    <span className="text-[9px] bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full font-bold">{listaProductos.length} ítem(s)</span>
-                                </div>
-                                <div className="space-y-2 max-h-[160px] sm:max-h-[220px] overflow-y-auto pr-1 custom-scrollbar">
-                                    {listaProductos.map((p, i) => (
-                                        <div key={i} className="group relative bg-gray-50 p-2.5 rounded-xl border border-gray-100 flex items-center justify-between gap-2 hover:bg-blue-50/30 transition-colors">
-                                            <div className="flex-1 min-w-0">
-                                                <input
-                                                    type="text"
-                                                    value={p.nombre_producto}
-                                                    onChange={(e) => {
-                                                        const newList = [...listaProductos];
-                                                        newList[i].nombre_producto = e.target.value;
-                                                        setListaProductos(newList);
-                                                    }}
-                                                    className="w-full bg-transparent border-none p-0 text-xs font-medium text-gray-600 truncate focus:ring-0"
-                                                />
-                                                <div className="flex items-center gap-2 mt-0.5">
-                                                    <span className="text-[10px] font-bold text-blue-500">{p.cantidad}x</span>
-                                                    <span className="text-[10px] text-gray-400">@ S/ {parseFloat(p.precio_unitario).toFixed(2)}</span>
-                                                </div>
-                                            </div>
-                                            <div className="text-right whitespace-nowrap">
-                                                <span className="text-xs font-black text-blue-700">S/ {(p.cantidad * p.precio_unitario).toFixed(2)}</span>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-
-                            {/* Entrega y Pago en paralelo compacto */}
-                            <div className="grid grid-cols-2 gap-4 pt-1">
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">Entrega</label>
-                                    {formData.requiere_envio ? (
+                            {/* Contenido Compacto */}
+                            <div className="p-4 sm:p-6 space-y-4 sm:space-y-5">
+                                {/* Cliente y Teléfono en rejilla limpia - Compacto */}
+                                <div className="grid grid-cols-2 gap-4 pb-3 border-b border-gray-100">
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">Cliente</label>
                                         <input
                                             type="text"
-                                            name="direccion_entrega"
-                                            value={formData.direccion_entrega}
+                                            name="nombre_cliente"
+                                            value={formData.nombre_cliente}
                                             onChange={handleChange}
-                                            placeholder="Dirección..."
-                                            className="w-full text-[11px] font-semibold text-gray-700 bg-gray-50 border-gray-100 rounded-lg p-2 focus:ring-2 focus:ring-blue-100 italic"
-                                        />
-                                    ) : (
-                                        <p className="text-[11px] text-gray-400 italic bg-gray-50 p-2 rounded-lg text-center">No requiere</p>
-                                    )}
-                                </div>
-                                <div className="space-y-2 text-right">
-                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">Pago ({formData.forma_pago})</label>
-                                    <div className="flex items-center justify-end gap-1.5">
-                                        <span className="text-[11px] font-bold text-green-600 uppercase tracking-tighter">Adelanto: S/</span>
-                                        <input
-                                            type="number"
-                                            name="monto_a_cuenta"
-                                            value={formData.monto_a_cuenta}
-                                            onChange={(e) => setFormData(prev => ({ ...prev, monto_a_cuenta: e.target.value }))}
-                                            className="w-16 text-right text-sm font-black text-green-700 bg-green-50/50 border-none p-1 rounded-lg focus:ring-0"
+                                            className="w-full text-sm font-bold text-gray-800 bg-transparent border-none p-0 focus:ring-0"
                                         />
                                     </div>
-                                    <p className="text-[11px] font-bold text-red-500">
-                                        Saldo: S/ {calculos.monto_saldo.toFixed(2)}
-                                    </p>
+                                    <div className="space-y-1 text-right">
+                                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">Teléfono</label>
+                                        <input
+                                            type="text"
+                                            name="telefono"
+                                            value={formData.telefono}
+                                            onChange={handleChange}
+                                            className="w-full text-sm font-bold text-gray-800 bg-transparent border-none p-0 focus:ring-0 text-right"
+                                        />
+                                    </div>
                                 </div>
-                            </div>
 
-                            {/* IGV y Total Final - Ultra Relevante */}
-                            <div className="pt-4 border-t border-dashed border-gray-200">
-                                <div className="flex items-center justify-between mb-4">
-                                    <label className="flex items-center gap-2 cursor-pointer group">
-                                        <div className="relative flex items-center">
+                                {/* Listado de Productos Estilo "Card Minimalista" */}
+                                <div className="space-y-3">
+                                    <div className="flex items-center justify-between">
+                                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Productos</label>
+                                        <span className="text-[9px] bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full font-bold">{listaProductos.length} ítem(s)</span>
+                                    </div>
+                                    <div className="space-y-2 max-h-[160px] sm:max-h-[220px] overflow-y-auto pr-1 custom-scrollbar">
+                                        {listaProductos.map((p, i) => (
+                                            <div key={i} className="group relative bg-gray-50 p-2.5 rounded-xl border border-gray-100 flex items-center justify-between gap-2 hover:bg-blue-50/30 transition-colors">
+                                                <div className="flex-1 min-w-0">
+                                                    <input
+                                                        type="text"
+                                                        value={p.nombre_producto}
+                                                        onChange={(e) => {
+                                                            const newList = [...listaProductos];
+                                                            newList[i].nombre_producto = e.target.value;
+                                                            setListaProductos(newList);
+                                                        }}
+                                                        className="w-full bg-transparent border-none p-0 text-xs font-medium text-gray-600 truncate focus:ring-0"
+                                                    />
+                                                    <div className="flex items-center gap-2 mt-0.5">
+                                                        <span className="text-[10px] font-bold text-blue-500">{p.cantidad}x</span>
+                                                        <span className="text-[10px] text-gray-400">@ S/ {parseFloat(p.precio_unitario).toFixed(2)}</span>
+                                                    </div>
+                                                </div>
+                                                <div className="text-right whitespace-nowrap">
+                                                    <span className="text-xs font-black text-blue-700">S/ {(p.cantidad * p.precio_unitario).toFixed(2)}</span>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Entrega y Pago en paralelo compacto */}
+                                <div className="grid grid-cols-2 gap-4 pt-1">
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">Entrega</label>
+                                        {formData.requiere_envio ? (
                                             <input
-                                                type="checkbox"
-                                                name="incluye_igv"
-                                                checked={formData.incluye_igv}
+                                                type="text"
+                                                name="direccion_entrega"
+                                                value={formData.direccion_entrega}
                                                 onChange={handleChange}
-                                                className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 transition-all group-hover:scale-110"
+                                                placeholder="Dirección..."
+                                                className="w-full text-[11px] font-semibold text-gray-700 bg-gray-50 border-gray-100 rounded-lg p-2 focus:ring-2 focus:ring-blue-100 italic"
+                                            />
+                                        ) : (
+                                            <p className="text-[11px] text-gray-400 italic bg-gray-50 p-2 rounded-lg text-center">No requiere</p>
+                                        )}
+                                    </div>
+                                    <div className="space-y-2 text-right">
+                                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">Pago ({formData.forma_pago})</label>
+                                        <div className="flex items-center justify-end gap-1.5">
+                                            <span className="text-[11px] font-bold text-green-600 uppercase tracking-tighter">Adelanto: S/</span>
+                                            <input
+                                                type="number"
+                                                name="monto_a_cuenta"
+                                                value={formData.monto_a_cuenta}
+                                                onChange={(e) => setFormData(prev => ({ ...prev, monto_a_cuenta: e.target.value }))}
+                                                className="w-16 text-right text-sm font-black text-green-700 bg-green-50/50 border-none p-1 rounded-lg focus:ring-0"
                                             />
                                         </div>
-                                        <span className="text-[10px] font-bold text-gray-500 group-hover:text-blue-600 transition-colors uppercase tracking-widest">¿IGV?</span>
-                                    </label>
-                                    <div className="text-right">
-                                        <div className="flex items-baseline justify-end gap-2">
-                                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Total:</span>
-                                            <span className="text-xl sm:text-2xl font-black text-gray-900 tracking-tight">
-                                                S/ {calculos.precio_total.toFixed(2)}
-                                            </span>
-                                        </div>
-                                        {calculos.monto_igv > 0 && <span className="text-[9px] text-blue-500 font-bold block">(IGV: S/ {calculos.monto_igv.toFixed(2)})</span>}
+                                        <p className="text-[11px] font-bold text-red-500">
+                                            Saldo: S/ {calculos.monto_saldo.toFixed(2)}
+                                        </p>
                                     </div>
                                 </div>
 
-                                {/* Mensaje de advertencia optimizado */}
-                                <div className="bg-amber-50 rounded-xl p-3 flex items-start gap-2 border border-amber-100/50 shadow-inner">
-                                    <FaExclamationTriangle className="text-amber-500 shrink-0 mt-0.5 text-[10px]" />
-                                    <p className="text-[9px] text-amber-800 font-bold leading-tight pr-1">
-                                        Confirme si los datos son correctos para proceder con el registro manual.
-                                    </p>
+                                {/* IGV y Total Final - Ultra Relevante */}
+                                <div className="pt-4 border-t border-dashed border-gray-200">
+                                    <div className="flex items-center justify-between mb-4">
+                                        <label className="flex items-center gap-2 cursor-pointer group">
+                                            <div className="relative flex items-center">
+                                                <input
+                                                    type="checkbox"
+                                                    name="incluye_igv"
+                                                    checked={formData.incluye_igv}
+                                                    onChange={handleChange}
+                                                    className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 transition-all group-hover:scale-110"
+                                                />
+                                            </div>
+                                            <span className="text-[10px] font-bold text-gray-500 group-hover:text-blue-600 transition-colors uppercase tracking-widest">¿IGV?</span>
+                                        </label>
+                                        <div className="text-right">
+                                            <div className="flex items-baseline justify-end gap-2">
+                                                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Total:</span>
+                                                <span className="text-xl sm:text-2xl font-black text-gray-900 tracking-tight">
+                                                    S/ {calculos.precio_total.toFixed(2)}
+                                                </span>
+                                            </div>
+                                            {calculos.monto_igv > 0 && <span className="text-[9px] text-blue-500 font-bold block">(IGV: S/ {calculos.monto_igv.toFixed(2)})</span>}
+                                        </div>
+                                    </div>
+
+                                    {/* Mensaje de advertencia optimizado */}
+                                    <div className="bg-amber-50 rounded-xl p-3 flex items-start gap-2 border border-amber-100/50 shadow-inner">
+                                        <FaExclamationTriangle className="text-amber-500 shrink-0 mt-0.5 text-[10px]" />
+                                        <p className="text-[9px] text-amber-800 font-bold leading-tight pr-1">
+                                            Confirme si los datos son correctos para proceder con el registro manual.
+                                        </p>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
 
-                        {/* Footer Flotante */}
-                        <div className="p-4 bg-gray-50/50 border-t border-gray-100 flex flex-col gap-2">
-                            <button
-                                onClick={() => { window.speechSynthesis.cancel(); setShowVoiceReviewModal(false); handleSubmit({ preventDefault: () => { } }); }}
-                                className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-black text-sm shadow-xl shadow-blue-200 transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-2 group"
-                            >
-                                <FaCheckCircle className="text-blue-200 group-hover:rotate-12 transition-transform" />
-                                Sí, Registrar Pedido
-                            </button>
-                            <button onClick={() => { window.speechSynthesis.cancel(); setShowVoiceReviewModal(false); }} className="w-full py-2 text-xs font-bold text-gray-500 hover:text-gray-800 transition-colors">
-                                Necesito Modificar Datos
-                            </button>
+                            {/* Footer Flotante */}
+                            <div className="p-4 bg-gray-50/50 border-t border-gray-100 flex flex-col gap-2">
+                                <button
+                                    onClick={() => { window.speechSynthesis.cancel(); setShowVoiceReviewModal(false); handleSubmit({ preventDefault: () => { } }); }}
+                                    className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-black text-sm shadow-xl shadow-blue-200 transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-2 group"
+                                >
+                                    <FaCheckCircle className="text-blue-200 group-hover:rotate-12 transition-transform" />
+                                    Sí, Registrar Pedido
+                                </button>
+                                <button onClick={() => { window.speechSynthesis.cancel(); setShowVoiceReviewModal(false); }} className="w-full py-2 text-xs font-bold text-gray-500 hover:text-gray-800 transition-colors">
+                                    Necesito Modificar Datos
+                                </button>
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
+                )
+            }
 
-            {/* Diálogo de Voz */}
+            {/* Diálogo de Voz - DESACTIVADO POR AHORA 
             <VoiceDialog
                 onConfirm={handleVoiceConfirm}
                 onPartialUpdate={handleVoicePartial}
@@ -2317,8 +2303,9 @@ const Pedidos = () => {
                 focusedField={focusedField}
                 onStateChange={setVoiceState}
             />
+            */}
 
-        </div >
+        </div>
     );
 };
 

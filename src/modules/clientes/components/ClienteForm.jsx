@@ -4,7 +4,9 @@ import { FaTimes } from 'react-icons/fa';
 const ClienteForm = ({ isOpen, onClose, onSave, initialData = null }) => {
     const [formData, setFormData] = useState({
         nombre: initialData?.nombre || '',
-        telefono: initialData?.telefono || ''
+        telefono: initialData?.telefono || '',
+        dni: initialData?.dni || '',
+        direccion: initialData?.direccion || ''
     });
     const [errors, setErrors] = useState({});
 
@@ -13,7 +15,9 @@ const ClienteForm = ({ isOpen, onClose, onSave, initialData = null }) => {
         if (isOpen) {
             setFormData({
                 nombre: initialData?.nombre || '',
-                telefono: initialData?.telefono || ''
+                telefono: initialData?.telefono || '',
+                dni: initialData?.dni || '',
+                direccion: initialData?.direccion || ''
             });
             setErrors({});
         }
@@ -28,10 +32,11 @@ const ClienteForm = ({ isOpen, onClose, onSave, initialData = null }) => {
             newErrors.nombre = 'Mínimo 2 caracteres';
         }
 
-        if (!formData.telefono.trim()) {
-            newErrors.telefono = 'El teléfono es requerido';
-        } else if (!/^\d{7,15}$/.test(formData.telefono.replace(/\s/g, ''))) {
-            newErrors.telefono = 'Formato inválido';
+        // Teléfono es opcional, pero si se ingresa debe tener formato correcto
+        if (formData.telefono.trim()) {
+            if (!/^\d{7,15}$/.test(formData.telefono.replace(/\s/g, ''))) {
+                newErrors.telefono = 'Formato inválido';
+            }
         }
 
         setErrors(newErrors);
@@ -100,7 +105,7 @@ const ClienteForm = ({ isOpen, onClose, onSave, initialData = null }) => {
                     {/* Teléfono */}
                     <div>
                         <label className="block text-xs font-medium text-gray-700 mb-1">
-                            Teléfono *
+                            Teléfono
                         </label>
                         <input
                             type="tel"
@@ -114,6 +119,36 @@ const ClienteForm = ({ isOpen, onClose, onSave, initialData = null }) => {
                         {errors.telefono && (
                             <p className="text-xs text-red-600 mt-1">{errors.telefono}</p>
                         )}
+                    </div>
+
+                    {/* DNI */}
+                    <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                            DNI
+                        </label>
+                        <input
+                            type="text"
+                            name="dni"
+                            value={formData.dni}
+                            onChange={handleChange}
+                            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-1 focus:ring-gray-400 outline-none"
+                            placeholder="Ej: 12345678"
+                        />
+                    </div>
+
+                    {/* Dirección */}
+                    <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                            Dirección
+                        </label>
+                        <textarea
+                            name="direccion"
+                            value={formData.direccion}
+                            onChange={handleChange}
+                            rows={2}
+                            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-1 focus:ring-gray-400 outline-none resize-none"
+                            placeholder="Ej: Av. Principal 123..."
+                        />
                     </div>
 
                     {/* Botones */}

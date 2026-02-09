@@ -1,5 +1,6 @@
 ﻿import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { pedidosDB } from '../utils/pedidosNeonClient';
+import { clientesDB } from '../utils/clientesNeonClient';
 import { produccionDB, METALES, TIPOS_PRODUCTO } from '../utils/produccionNeonClient';
 import { tiposProductoDB } from '../utils/tiposProductoDB';
 import { getLocalDate } from '../utils/dateUtils';
@@ -207,11 +208,12 @@ const Pedidos = () => {
         comprobante_pago: '',
         requiere_envio: false,
         modalidad_envio: 'Fijo',
-        envio_cobrado_al_cliente: 0,
+        envio_cobrado_al_cliente: '',
         monto_a_cuenta: '',
         incluye_igv: false,
         estado_pedido: 'aceptado',
         estado_produccion: 'no_iniciado',
+        direccion_cliente_db: '', // Guardamos la dirección del registro para autocompletado
     });
 
     // Estado para el producto actual siendo agregado
@@ -242,6 +244,25 @@ const Pedidos = () => {
     // FASE 1: Estado para tabs - Empezamos solo con Pendientes
     const [activeTab, setActiveTab] = useState('pendientes');
     const [tiposDisponibles, setTiposDisponibles] = useState([]);
+    const [clientesSugeridos, setClientesSugeridos] = useState([]);
+    const [showSugerencias, setShowSugerencias] = useState(false);
+    const [nombreBusqueda, setNombreBusqueda] = useState('');
+    const searchRef = useRef(null);
+
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (searchRef.current && !searchRef.current.contains(event.target)) {
+                setShowSugerencias(false);
+                // Si cerramos y no hay un cliente seleccionado (validado por teléfono), reseteamos el nombre y búsqueda
+                if (!formData.telefono && formData.nombre_cliente) {
+                    setNombreBusqueda('');
+                    setFormData(prev => ({ ...prev, nombre_cliente: '' }));
+                }
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [formData.telefono, formData.nombre_cliente]);
 
     useEffect(() => {
         fetchPedidos();
@@ -255,6 +276,42 @@ const Pedidos = () => {
         } catch (error) {
             console.error('Error cargando tipos:', error);
         }
+    };
+
+    const handleSearchCliente = async (query) => {
+        setNombreBusqueda(query);
+        setFormData(prev => ({
+            ...prev,
+            nombre_cliente: query,
+            telefono: '', // Limpiar datos de cliente previo mientras se busca
+            dni_ruc: '',
+            direccion_cliente_db: ''
+        }));
+
+        if (query.trim().length > 1) {
+            try {
+                const results = await clientesDB.search(query);
+                setClientesSugeridos(results);
+                setShowSugerencias(true);
+            } catch (error) {
+                console.error('Error buscando clientes:', error);
+            }
+        } else {
+            setClientesSugeridos([]);
+            setShowSugerencias(false);
+        }
+    };
+
+    const handleSelectCliente = (cliente) => {
+        setFormData(prev => ({
+            ...prev,
+            nombre_cliente: cliente.nombre,
+            telefono: cliente.telefono || prev.telefono,
+            dni_ruc: cliente.dni || cliente.dni_ruc || prev.dni_ruc,
+            direccion_cliente_db: cliente.direccion || ''
+        }));
+        setNombreBusqueda(cliente.nombre);
+        setShowSugerencias(false);
     };
 
     const fetchPedidos = async () => {
@@ -310,10 +367,19 @@ const Pedidos = () => {
 
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target;
-        setFormData(prev => ({
-            ...prev,
-            [name]: type === 'checkbox' ? checked : value
-        }));
+        setFormData(prev => {
+            const newData = {
+                ...prev,
+                [name]: type === 'checkbox' ? checked : value
+            };
+
+            // Si se activa el check de envío y hay una dirección guardada en el cliente, la cargamos
+            if (name === 'requiere_envio' && checked && prev.direccion_cliente_db) {
+                newData.direccion_entrega = prev.direccion_cliente_db;
+            }
+
+            return newData;
+        });
     };
 
     const handleProductoChange = (e) => {
@@ -1034,43 +1100,114 @@ const Pedidos = () => {
                             Datos del Cliente
                         </h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
-                            <div className="md:col-span-2">
-                                <label className="block text-sm font-semibold text-gray-700">Nombre Cliente *</label>
-                                <input
-                                    type="text"
-                                    name="nombre_cliente"
-                                    value={formData.nombre_cliente}
-                                    onChange={handleChange}
-                                    onFocus={handleFocus}
-                                    className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2.5 transition-all bg-white"
-                                />
-                            </div>
-                            <div className="grid grid-cols-2 gap-3 md:col-span-2">
-                                <div>
-                                    <label className="block text-sm font-semibold text-gray-700">Teléfono *</label>
+                            <div className="md:col-span-2 relative" ref={searchRef}>
+                                <label className="block text-sm font-semibold text-gray-700">Nombre</label>
+                                <div className="relative">
                                     <input
                                         type="text"
-                                        name="telefono"
-                                        value={formData.telefono}
-                                        onChange={handleChange}
+                                        name="nombre_cliente"
+                                        value={formData.nombre_cliente}
+                                        onChange={(e) => handleSearchCliente(e.target.value)}
                                         onFocus={handleFocus}
-                                        className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2.5 transition-all bg-white"
+                                        autoComplete="off"
+                                        className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2.5 transition-all bg-white pr-10"
+                                        placeholder="Escribe para buscar cliente..."
                                     />
+                                    {formData.nombre_cliente && !formData.telefono && (
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setNombreBusqueda('');
+                                                setFormData(prev => ({ ...prev, nombre_cliente: '' }));
+                                                setShowSugerencias(false);
+                                            }}
+                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-1"
+                                        >
+                                            <FaPlus size={12} className="rotate-45" />
+                                        </button>
+                                    )}
                                 </div>
-                                <div>
-                                    <label className="block text-sm font-semibold text-gray-700">DNI/RUC</label>
-                                    <input
-                                        type="text"
-                                        name="dni_ruc"
-                                        value={formData.dni_ruc}
-                                        onChange={handleChange}
-                                        onFocus={handleFocus}
-                                        className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2.5 transition-all bg-white"
-                                    />
-                                </div>
+
+                                {showSugerencias && (
+                                    <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-2xl max-h-72 overflow-y-auto overflow-x-hidden">
+                                        {clientesSugeridos.length > 0 ? (
+                                            clientesSugeridos.map(cliente => (
+                                                <button
+                                                    key={cliente.id}
+                                                    type="button"
+                                                    onClick={() => handleSelectCliente(cliente)}
+                                                    className="w-full text-left px-5 py-4 hover:bg-gray-50 border-b border-gray-100 last:border-0 transition-all group"
+                                                >
+                                                    <div className="flex justify-between items-start mb-1">
+                                                        <span className="text-[16px] font-semibold text-gray-800 group-hover:text-blue-700 transition-colors capitalize">
+                                                            {cliente.nombre.toLowerCase()}
+                                                        </span>
+                                                        <span className="text-[14px] text-gray-600 font-medium flex items-center gap-1.5 whitespace-nowrap">
+                                                            <FaPhone size={10} className="text-gray-400" />
+                                                            {cliente.telefono || '---'}
+                                                        </span>
+                                                    </div>
+                                                    {cliente.dni && (
+                                                        <div className="text-[12px] text-gray-400 flex items-center gap-1.5">
+                                                            <span>🪪</span>
+                                                            <span className="uppercase tracking-wider">DNI: {cliente.dni}</span>
+                                                        </div>
+                                                    )}
+                                                </button>
+                                            ))
+                                        ) : (
+                                            <div className="p-8 bg-gray-50/50 flex flex-col items-center gap-4 text-center">
+                                                <div className="text-[13px] text-gray-400 font-medium tracking-tight">Cliente no encontrado en la base de datos</div>
+                                                <div className="flex flex-col w-full gap-2 px-4">
+                                                    <Link
+                                                        to="/clientes"
+                                                        className="w-full inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-white border border-gray-200 rounded-full text-[11px] font-bold text-blue-600 hover:bg-blue-50 hover:border-blue-200 transition-all shadow-sm group"
+                                                    >
+                                                        <FaPlus size={10} className="text-blue-400 group-hover:text-blue-600" />
+                                                        REGISTRAR NUEVO CLIENTE
+                                                    </Link>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setNombreBusqueda('');
+                                                            setFormData(prev => ({ ...prev, nombre_cliente: '' }));
+                                                            setShowSugerencias(false);
+                                                        }}
+                                                        className="text-[10px] font-bold text-gray-400 hover:text-gray-600 uppercase tracking-widest transition-colors py-1"
+                                                    >
+                                                        Limpiar búsqueda
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
                             </div>
 
+                            {/* Información del Cliente Cargada (Solo lectura) */}
+                            {(formData.nombre_cliente && formData.telefono && !showSugerencias) && (
+                                <div className="md:col-span-2 grid grid-cols-2 gap-4 p-5 bg-white rounded-2xl border border-gray-100 shadow-sm animate-in fade-in slide-in-from-top-2 duration-300">
+                                    <div className="flex flex-col gap-1">
+                                        <span className="text-sm font-semibold text-gray-700 flex items-center gap-1.5">
+                                            <FaPhone size={12} className="text-gray-400" /> Teléfono
+                                        </span>
+                                        <span className="text-sm font-medium text-gray-800 tracking-tight">
+                                            {formData.telefono || '---'}
+                                        </span>
+                                    </div>
 
+                                    {formData.dni_ruc && (
+                                        <div className="flex flex-col gap-1">
+                                            <span className="text-sm font-semibold text-gray-700 flex items-center gap-1.5">
+                                                <span className="text-gray-400 font-normal">🪪</span> DNI / RUC
+                                            </span>
+                                            <span className="text-sm font-medium text-gray-800 tracking-tight uppercase">
+                                                {formData.dni_ruc}
+                                            </span>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     </div>
 
@@ -1129,7 +1266,6 @@ const Pedidos = () => {
                                     isListening={voiceState.isListening && focusedField === 'nombre_producto'}
                                     interimText={focusedField === 'nombre_producto' ? voiceState.transcriptActual : ""}
                                     rows={2}
-                                    placeholder="Ej: Anillo de compromiso con grabado..."
                                 />
                             </div>
                             <div>
@@ -1215,7 +1351,7 @@ const Pedidos = () => {
                             <FaTruck className="text-blue-500" />
                             Envío
                         </h3>
-                        <div className="space-y-4">
+                        <div className="space-y-2">
                             <div className="flex items-center bg-white/50 p-3 rounded-xl border border-gray-100">
                                 <input
                                     type="checkbox"
@@ -1225,24 +1361,18 @@ const Pedidos = () => {
                                     id="requiere_envio"
                                     className="h-5 w-5 text-blue-600 focus:ring-blue-500 border-gray-300 rounded transition-all cursor-pointer"
                                 />
-                                <label htmlFor="requiere_envio" className="ml-3 block text-sm font-semibold text-gray-700 cursor-pointer">Requiere Envío a Domicilio / Agencia</label>
+                                <label htmlFor="requiere_envio" className="ml-3 block text-sm font-semibold text-gray-700 cursor-pointer">Dirección de Entrega</label>
                             </div>
 
                             {formData.requiere_envio && (
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border border-blue-100 p-4 rounded-xl bg-blue-50/30">
                                     <div className="md:col-span-2">
-                                        <label className="block text-sm font-semibold text-gray-700">Dirección de Entrega / Referencia</label>
-                                        <DictationTextarea
-                                            id="direccion_entrega"
-                                            name="direccion_entrega"
-                                            value={formData.direccion_entrega}
-                                            onChange={(val) => setFormData(prev => ({ ...prev, direccion_entrega: val }))}
-                                            onFocus={handleFocus}
-                                            isListening={voiceState.isListening && focusedField === 'direccion_entrega'}
-                                            interimText={focusedField === 'direccion_entrega' ? voiceState.transcriptActual : ""}
-                                            rows={2}
-                                            placeholder="Ciudad, Agencia o Dirección exacta..."
-                                        />
+                                        <div className="flex flex-col gap-1.5 p-4 bg-white rounded-xl border border-gray-100 shadow-sm animate-in fade-in slide-in-from-top-2 duration-300">
+
+                                            <span className="text-sm font-medium text-gray-800 tracking-tight">
+                                                {formData.direccion_cliente_db || 'Sin dirección registrada'}
+                                            </span>
+                                        </div>
                                     </div>
                                     <div>
                                         <label className="block text-sm font-semibold text-gray-700">Modalidad de Envío</label>
@@ -1266,7 +1396,6 @@ const Pedidos = () => {
                                             onChange={handleChange}
                                             onFocus={handleFocus}
                                             step="0.01"
-                                            placeholder="0.00"
                                             className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2.5 bg-white"
                                             onWheel={handleWheel}
                                         />
@@ -1306,7 +1435,6 @@ const Pedidos = () => {
                                     value={formData.comprobante_pago}
                                     onChange={handleChange}
                                     onFocus={handleFocus}
-                                    placeholder="Ej: Op. 123456"
                                     className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2.5 bg-white"
                                 />
                             </div>
@@ -1332,7 +1460,6 @@ const Pedidos = () => {
                                     onChange={handleChange}
                                     onFocus={handleFocus}
                                     step="0.01"
-                                    placeholder="0.00"
                                     className="mt-1 block w-full rounded-xl border-2 border-blue-200 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-3 text-lg font-bold text-blue-900 bg-white"
                                     required
                                     onWheel={handleWheel}
@@ -2190,6 +2317,7 @@ const Pedidos = () => {
                 focusedField={focusedField}
                 onStateChange={setVoiceState}
             />
+
         </div >
     );
 };

@@ -42,11 +42,11 @@ export const clientesDB = {
     },
 
     // Crear nuevo cliente
-    async create({ nombre, telefono }) {
+    async create({ nombre, telefono, dni, direccion }) {
         try {
             const [cliente] = await sql`
-                INSERT INTO clientes (nombre, telefono) 
-                VALUES (${nombre}, ${telefono}) 
+                INSERT INTO clientes (nombre, telefono, dni, direccion) 
+                VALUES (${nombre}, ${telefono}, ${dni || null}, ${direccion || null}) 
                 RETURNING *
             `;
             return cliente;
@@ -57,11 +57,14 @@ export const clientesDB = {
     },
 
     // Actualizar cliente
-    async update(id, { nombre, telefono }) {
+    async update(id, { nombre, telefono, dni, direccion }) {
         try {
             const [cliente] = await sql`
                 UPDATE clientes 
-                SET nombre = ${nombre}, telefono = ${telefono} 
+                SET nombre = ${nombre}, 
+                    telefono = ${telefono},
+                    dni = ${dni || null},
+                    direccion = ${direccion || null}
                 WHERE id = ${id}
                 RETURNING *
             `;

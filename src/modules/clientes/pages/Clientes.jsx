@@ -123,49 +123,64 @@ const Clientes = () => {
                 </div>
             </div>
 
-            {/* Lista de Clientes */}
-            <div className="flex-1 overflow-y-auto p-3 space-y-2">
+            {/* Lista de Clientes en Tabla */}
+            <div className="flex-1 overflow-auto p-3">
                 {loading ? (
                     <div className="text-center py-8 text-gray-400 text-sm">Cargando...</div>
                 ) : filteredClientes.length === 0 ? (
-                    <div className="text-center py-8 text-gray-400 text-sm">
+                    <div className="text-center py-8 text-gray-400 text-sm italic">
                         {searchQuery ? 'No se encontraron clientes' : 'No hay clientes registrados'}
                     </div>
                 ) : (
-                    filteredClientes.map(cliente => (
-                        <div
-                            key={cliente.id}
-                            className="bg-white rounded-lg border border-gray-200 p-3 hover:shadow-md transition"
-                        >
-                            <div className="flex justify-between items-start">
-                                <div className="flex-1">
-                                    <h3 className="font-semibold text-gray-800 text-sm mb-1">
-                                        {cliente.nombre}
-                                    </h3>
-                                    <div className="flex items-center gap-1.5 text-gray-600 text-xs">
-                                        <FaPhone size={10} />
-                                        <span>{cliente.telefono}</span>
-                                    </div>
-                                </div>
-                                <div className="flex gap-1">
-                                    <button
-                                        onClick={() => handleEdit(cliente)}
-                                        className="p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded transition"
-                                        title="Editar"
-                                    >
-                                        <FaEdit size={14} />
-                                    </button>
-                                    <button
-                                        onClick={() => handleDelete(cliente.id)}
-                                        className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded transition"
-                                        title="Eliminar"
-                                    >
-                                        <FaTrash size={14} />
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    ))
+                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-x-auto">
+                        <table className="min-w-[800px] w-full divide-y divide-gray-200">
+                            <thead className="bg-gray-50">
+                                <tr>
+                                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Nombre</th>
+                                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Teléfono</th>
+                                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">DNI</th>
+                                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Dirección</th>
+                                    <th className="px-4 py-3 text-right text-xs font-bold text-gray-600 uppercase tracking-wider">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody className="bg-white divide-y divide-gray-200">
+                                {filteredClientes.map(cliente => (
+                                    <tr key={cliente.id} className="hover:bg-gray-50 transition-colors">
+                                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                                            {cliente.nombre}
+                                        </td>
+                                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
+                                            {cliente.telefono}
+                                        </td>
+                                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600 font-mono">
+                                            {cliente.dni || '-'}
+                                        </td>
+                                        <td className="px-4 py-3 text-sm text-gray-600 max-w-xs truncate">
+                                            {cliente.direccion || '-'}
+                                        </td>
+                                        <td className="px-4 py-3 whitespace-nowrap text-right text-sm font-medium">
+                                            <div className="flex justify-end gap-2">
+                                                <button
+                                                    onClick={() => handleEdit(cliente)}
+                                                    className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition"
+                                                    title="Editar"
+                                                >
+                                                    <FaEdit size={16} />
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDelete(cliente.id)}
+                                                    className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition"
+                                                    title="Eliminar"
+                                                >
+                                                    <FaTrash size={16} />
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
                 )}
             </div>
 

@@ -109,10 +109,11 @@ const CategoriaShowcase = () => {
         <section className="py-10 bg-gray-50">
             <div className="container mx-auto px-3">
                 {/* Título del showcase */}
-                <div className="text-left mb-4">
-                    <h2 className="text-2xl font-normal text-gray-900">
+                <div className="text-center mb-8 md:mb-10">
+                    <h2 className="text-xl md:text-2xl font-light text-gray-900 mb-2">
                         Creaciones del Momento
                     </h2>
+                    <div className="w-16 h-0.5 bg-yellow-500 mx-auto"></div>
                 </div>
 
                 {/* Carrusel */}

@@ -7,11 +7,14 @@ const HomeVideoShort = () => {
     };
 
     return (
-        <section className="bg-gray-50 pt-10 pb-4 md:py-24 border-t border-gray-100">
+        <section className="bg-gray-50 pt-6 pb-4 md:py-24 border-t border-gray-100">
             <div className="container mx-auto px-4 text-center">
-                <h2 className="text-lg md:text-3xl font-semibold text-gray-900 mb-6 font-serif uppercase tracking-widest">
-                    La Magia detrás del Metal
-                </h2>
+                <div className="text-center mb-8 md:mb-10">
+                    <h2 className="text-xl md:text-2xl font-light text-gray-900 mb-2">
+                        La Magia detrás del Metal
+                    </h2>
+                    <div className="w-16 h-0.5 bg-yellow-500 mx-auto"></div>
+                </div>
 
                 <div className="flex flex-col items-center">
                     <div

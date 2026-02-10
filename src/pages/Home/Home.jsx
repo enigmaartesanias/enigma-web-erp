@@ -6,6 +6,8 @@ import CelebrityCollaboration from '../../components/CelebrityCollaboration';
 import SocialProof from '../../components/SocialProof';
 import HomeVideoShort from '../../components/HomeVideoShort';
 
+import PublicCarousel from '../../components/PublicCarousel';
+
 const Home = () => {
   return (
     <>
@@ -23,6 +25,7 @@ const Home = () => {
         <Hero3 />
         <CelebrityCollaboration />
         <HomeVideoShort />
+        <PublicCarousel />
         <SocialProof />
       </main>
     </>

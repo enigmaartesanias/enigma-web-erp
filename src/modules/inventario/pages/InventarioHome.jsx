@@ -5,11 +5,10 @@ import {
     ClipboardList, Users, Database, QrCode, LayoutDashboard,
     Plus, Receipt, Tag, History, Layers
 } from 'lucide-react';
-import { useAlerts } from '../../../hooks/useAlerts';
-import SubtleAlert from '../../../components/SubtleAlert';
+import StatusPopup from '../components/StatusPopup';
 
 export default function InventarioHome() {
-    const { alertMessage, loading } = useAlerts();
+    // Los contadores de estado se manejan internamente en StatusPopup
 
     const groups = [
         {
@@ -120,12 +119,8 @@ export default function InventarioHome() {
             </header>
 
             <main className="max-w-6xl mx-auto px-6 mt-12">
-                {/* Alertas */}
-                {!loading && alertMessage && (
-                    <div className="mb-10 max-w-4xl mx-auto">
-                        <SubtleAlert message={alertMessage} />
-                    </div>
-                )}
+                {/* Notificaciones de Estado */}
+                <StatusPopup />
 
                 {/* Grupos de Módulos */}
                 <div className="space-y-12">

@@ -129,6 +129,31 @@ const Produccion = () => {
         }
     }, [urlPedidoId, location.search, pedidosFiltradosDropdown.length]); // Dependencia simplificada
 
+    // Parámetro para edición automática (redirigido desde Pedidos)
+    const urlEditProdId = useMemo(() => {
+        const params = new URLSearchParams(location.search);
+        return params.get('edit_prod');
+    }, [location.search]);
+
+    // Efecto para entrar en modo edición automáticamente si viene de Pedidos
+    useEffect(() => {
+        if (urlEditProdId && produccion.length > 0) {
+            const itemToEdit = produccion.find(p => String(p.id_produccion) === String(urlEditProdId));
+            if (itemToEdit) {
+                // Pequeño delay para asegurar que el scroll y el estado estén listos
+                setTimeout(() => {
+                    handleEdit(itemToEdit);
+                }, 100);
+
+                // Limpiar el parámetro de la URL para evitar re-ediciones accidentales al recargar
+                const newSearchParams = new URLSearchParams(location.search);
+                newSearchParams.delete('edit_prod');
+                const newSearch = newSearchParams.toString();
+                navigate({ search: newSearch ? `?${newSearch}` : '' }, { replace: true });
+            }
+        }
+    }, [urlEditProdId, produccion]);
+
     const handleChange = (e) => {
         const { name, value } = e.target;
         setFormData(prev => ({
@@ -1470,159 +1495,123 @@ const Produccion = () => {
                 )
             }
 
-            {/* Modal Detalle de Producción */}
+            {/* Modal Detalle de Producción - Refinado y Minimalista */}
             {
                 showDetailModal && selectedItem && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-[2px] p-4 animate-in fade-in duration-200">
-                        <div className="bg-white rounded-xl shadow-xl w-full max-w-sm overflow-hidden flex flex-col max-h-[85vh] border border-gray-100">
-                            {/* Header Refinado */}
-                            <div className="bg-white border-b border-gray-100 px-4 h-[48px] flex justify-between items-center shrink-0">
-                                <div className="flex items-center gap-2">
-                                    <div className="w-1.5 h-4 bg-blue-500 rounded-full"></div>
-                                    <h3 className="text-[15px] font-semibold text-gray-800">Detalle Registro #{selectedItem.id_produccion}</h3>
-                                </div>
-                                <button onClick={() => setShowDetailModal(false)} className="text-gray-400 hover:text-gray-600 p-1.5 rounded-full hover:bg-gray-50 transition-colors">
+                    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+                        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden flex flex-col max-h-[90vh] border border-white/20">
+                            {/* Header Minimalista */}
+                            <div className="px-5 py-4 flex justify-between items-center border-b border-gray-50 bg-white sticky top-0 z-10">
+                                <h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none">Detalle de Registro</h3>
+                                <button onClick={() => setShowDetailModal(false)} className="text-gray-400 hover:text-gray-600 p-1 transition-colors">
                                     <FaTimes size={16} />
                                 </button>
                             </div>
 
-                            {/* Contenido Compacto */}
-                            <div className="overflow-y-auto p-3 space-y-2 bg-white flex-1 custom-scrollbar">
-
-                                {/* Estado - Badge Compacto */}
-                                <div className="flex justify-between items-center h-[34px] border-b border-gray-50 px-1">
-                                    <span className="text-[11px] font-normal text-gray-500 uppercase tracking-tight">Estado:</span>
-                                    <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold uppercase tracking-tighter ${selectedItem.estado_produccion === 'terminado' ? 'bg-green-50 text-green-600 border border-green-100' :
-                                        selectedItem.estado_produccion === 'en_proceso' ? 'bg-orange-50 text-orange-600 border border-orange-100' :
-                                            'bg-gray-50 text-gray-600 border border-gray-100'
+                            {/* Contenido con Scroll */}
+                            <div className="overflow-y-auto p-6 space-y-6 custom-scrollbar">
+                                {/* Estado Destacado */}
+                                <div className="flex justify-between items-center">
+                                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Estado actual</span>
+                                    <span className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${selectedItem.estado_produccion === 'terminado' ? 'bg-green-50 text-green-700 border border-green-100' :
+                                            selectedItem.estado_produccion === 'en_proceso' ? 'bg-orange-50 text-orange-700 border border-orange-100' :
+                                                'bg-gray-50 text-gray-600 border border-gray-200'
                                         }`}>
-                                        {selectedItem.estado_produccion === 'terminado' && <FaCheckCircle className="mr-1 text-[10px]" />}
                                         {selectedItem.estado_produccion.replace('_', ' ')}
                                     </span>
                                 </div>
 
-                                {/* Sección Producto - Minimalista */}
-                                <div className="bg-gray-50/50 rounded-lg p-2.5 border border-gray-100">
-                                    <div className="mb-2">
-                                        <span className="block text-[11px] text-gray-400 uppercase font-normal mb-0.5">Nombre / Modelo:</span>
-                                        <span className="text-[14px] text-gray-800 font-medium leading-tight">
-                                            {selectedItem.nombre_producto?.replace(/^.*?\s*-\s*/, '') || '-'}
-                                        </span>
+                                {/* Información del Producto */}
+                                <div className="space-y-4">
+                                    <div className="border-l-[3px] border-blue-500 pl-4 py-0.5">
+                                        <h4 className="text-base font-bold text-gray-900 leading-tight">
+                                            {selectedItem.tipo_producto} de {selectedItem.metal}
+                                        </h4>
+                                        <p className="text-xs text-gray-500 mt-1 font-medium">
+                                            {selectedItem.cantidad} {selectedItem.cantidad === 1 ? 'unidad' : 'unidades'}
+                                        </p>
                                     </div>
-                                    <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
-                                        <div className="h-[32px] flex flex-col justify-center">
-                                            <span className="text-[11px] text-gray-400 uppercase font-normal leading-none">Tipo:</span>
-                                            <span className="text-[12px] text-gray-700 font-normal">{selectedItem.tipo_producto}</span>
+
+                                    {/* Cliente (Solo si el origen es pedido) */}
+                                    {selectedItem.pedido_id && (
+                                        <div className="bg-blue-50/50 rounded-xl p-4 flex items-center justify-between border border-blue-100/50">
+                                            <div className="flex flex-col">
+                                                <span className="text-[9px] font-bold text-blue-400 uppercase tracking-wider">Origen del Pedido</span>
+                                                <span className="text-sm font-semibold text-gray-800 leading-tight mt-0.5">{selectedItem.nombre_cliente}</span>
+                                            </div>
+                                            <span className="text-[9px] bg-white border border-blue-200 px-2 py-1 rounded text-blue-600 font-black shadow-sm">
+                                                #{selectedItem.pedido_id}
+                                            </span>
                                         </div>
-                                        <div className="h-[32px] flex flex-col justify-center">
-                                            <span className="text-[11px] text-gray-400 uppercase font-normal leading-none">Cantidad:</span>
-                                            <span className="text-[12px] text-gray-700 font-normal">{selectedItem.cantidad} unidades</span>
-                                        </div>
-                                        <div className="col-span-2 h-[32px] flex flex-col justify-center border-t border-gray-100 mt-1 pt-1">
-                                            <span className="text-[11px] text-gray-400 uppercase font-normal leading-none">Material / Metal:</span>
-                                            <span className="text-[12px] text-gray-700 font-normal">{selectedItem.metal}</span>
-                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Resumen de Costos - Minimalista */}
+                                <div className="bg-gray-50/50 rounded-xl p-4 space-y-3 border border-gray-100">
+                                    <div className="flex justify-between text-xs text-gray-500 font-medium">
+                                        <span>Costo total unitario</span>
+                                        <span className="text-gray-900 font-semibold">S/ {parseFloat(selectedItem.costo_total_unitario || 0).toFixed(2)}</span>
+                                    </div>
+                                    <div className="flex justify-between items-baseline border-t border-gray-200/50 pt-3">
+                                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Inversión Total</span>
+                                        <span className="text-xl font-black text-blue-600 tracking-tighter">
+                                            S/ {parseFloat(selectedItem.costo_total_produccion || 0).toFixed(2)}
+                                        </span>
                                     </div>
                                 </div>
 
-                                {/* Sección Cliente - Solo si corresponde */}
-                                {selectedItem.pedido_id && (
-                                    <div className="bg-blue-50/30 border border-blue-50 rounded-lg p-2.5 flex justify-between items-center group">
-                                        <div>
-                                            <span className="block text-[11px] text-blue-400 uppercase font-normal">Cliente:</span>
-                                            <span className="text-[13px] text-gray-800 font-normal">{selectedItem.nombre_cliente}</span>
-                                        </div>
-                                        <div className="text-right">
-                                            <span className="inline-block px-2 py-0.5 bg-blue-100 text-blue-700 text-[10px] font-bold rounded">
-                                                PED #{selectedItem.pedido_id}
-                                            </span>
+                                {/* Observaciones */}
+                                {selectedItem.observaciones && (
+                                    <div className="space-y-1.5">
+                                        <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest ml-1">Notas de Producción</span>
+                                        <div className="bg-amber-50/40 rounded-xl p-3.5 border border-amber-100/30">
+                                            <p className="text-[11px] text-amber-800 leading-relaxed font-medium italic">
+                                                "{selectedItem.observaciones}"
+                                            </p>
                                         </div>
                                     </div>
                                 )}
 
-                                {/* Sección Costos - Limpia y Compacta */}
-                                <div className="p-2 px-1">
-                                    <div className="flex justify-between items-center h-[28px] text-[12px] text-gray-600 font-normal">
-                                        <span>Insumos / Materiales</span>
-                                        <span>S/ {parseFloat(selectedItem.costo_materiales || 0).toFixed(2)}</span>
-                                    </div>
-                                    <div className="flex justify-between items-center h-[28px] text-[12px] text-gray-600 font-normal">
-                                        <span>Mano de Obra</span>
-                                        <span>S/ {parseFloat(selectedItem.mano_de_obra || 0).toFixed(2)}</span>
-                                    </div>
-                                    <div className="flex justify-between items-center h-[28px] text-[12px] text-gray-600 font-normal">
-                                        <span>Costos Indirectos / Otros</span>
-                                        <span>S/ {(parseFloat(selectedItem.costo_herramientas || 0) + parseFloat(selectedItem.otros_gastos || 0)).toFixed(2)}</span>
-                                    </div>
-                                    <div className="mt-1.5 pt-1.5 border-t border-gray-100 flex justify-between items-center">
-                                        <span className="text-[11px] text-gray-400 uppercase font-normal">Costo Total Unitario</span>
-                                        <span className="text-[13px] font-semibold text-blue-600 tracking-tight">
-                                            S/ {parseFloat(selectedItem.costo_total_unitario || 0).toFixed(2)}
-                                        </span>
-                                    </div>
+                                {/* Fecha Simplificada - Elimina redundancia */}
+                                <div className="text-center pt-2 border-t border-gray-50">
+                                    <span className="text-[9px] font-bold text-gray-300 uppercase tracking-[0.2em]">
+                                        Registro: {new Date(selectedItem.created_at).toLocaleDateString('es-ES')}
+                                    </span>
                                 </div>
-
-                                {/* Observaciones - Secundarias */}
-                                <div className="pt-1 border-t border-gray-50">
-                                    <span className="block text-[11px] text-gray-400 uppercase font-normal mb-1">Observaciones:</span>
-                                    <p className="text-[11px] text-gray-500 font-normal leading-relaxed overflow-hidden">
-                                        {selectedItem.observaciones || "Sin notas adicionales."}
-                                    </p>
-                                </div>
-
-                                {/* Fechas - Pie del contenido */}
-                                <div className="flex justify-between items-center pt-3 text-[11px] text-gray-400 font-normal border-t border-gray-50 px-1">
-                                    <span>Fabricado: {selectedItem.fecha_produccion ? new Date(selectedItem.fecha_produccion).toLocaleDateString() : '-'}</span>
-                                    <span className="opacity-70">Registro: {new Date(selectedItem.created_at).toLocaleDateString()}</span>
-                                    <span>Fabricado: {selectedItem.fecha_produccion ? new Date(selectedItem.fecha_produccion).toLocaleDateString('es-ES') : '-'}</span>
-                                    <span className="opacity-70">Registro: {new Date(selectedItem.created_at).toLocaleDateString('es-ES')}</span>
-                                </div>
-
                             </div>
 
-                            {/* Footer Refinado */}
-                            <div className="bg-white px-4 py-3 border-t border-gray-100 shrink-0 flex gap-2.5">
-                                {/* Botón Terminar (Nuevo lugar para limpiar el grid) */}
+                            {/* Footer / Acciones Comprimidas */}
+                            <div className="p-4 bg-white border-t border-gray-50 flex gap-2 sm:gap-3">
                                 {selectedItem.estado_produccion === 'en_proceso' && (
                                     <button
                                         onClick={() => { setShowDetailModal(false); handleMarkAsComplete(selectedItem); }}
-                                        className="flex-1 h-[38px] bg-green-600 hover:bg-green-700 text-white text-[13px] font-bold rounded-lg transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+                                        className="flex-[2] h-10 px-3 bg-green-600 hover:bg-green-700 text-white text-[11px] font-black uppercase tracking-wider rounded-xl transition-all shadow-lg shadow-green-100 flex items-center justify-center gap-2 active:scale-95"
                                     >
-                                        <FaCheck size={14} /> Terminar Proceso
+                                        <FaCheck className="w-3 h-3" /> Terminar
                                     </button>
                                 )}
 
                                 <button
                                     onClick={() => { setShowDetailModal(false); handleEditingFromDetail(selectedItem); }}
-                                    className="h-[38px] w-[38px] flex items-center justify-center text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors border border-blue-100"
-                                    title="Editar"
+                                    className="flex-1 h-10 px-3 bg-white border border-gray-200 hover:bg-gray-50 text-gray-600 rounded-xl transition-all shadow-sm flex items-center justify-center gap-2 active:scale-95"
                                 >
-                                    <FaEdit size={16} />
+                                    <FaEdit className="w-3 h-3" /> <span className="text-[11px] font-bold uppercase tracking-wider">Editar</span>
                                 </button>
 
                                 {selectedItem.estado_produccion !== 'terminado' && (
                                     <button
                                         onClick={() => { setShowDetailModal(false); handleDelete(selectedItem); }}
-                                        className="h-[38px] w-[38px] flex items-center justify-center text-red-500 bg-red-50 hover:bg-red-100 rounded-lg transition-colors border border-red-100"
+                                        className="w-10 h-10 flex items-center justify-center bg-red-50 text-red-500 rounded-xl hover:bg-red-100 transition-colors border border-red-100 active:scale-95"
                                         title="Eliminar"
                                     >
-                                        <FaTrash size={15} />
+                                        <FaTrash className="w-3.5 h-3.5" />
                                     </button>
                                 )}
 
-                                {selectedItem.estado_produccion !== 'en_proceso' && (
+                                {selectedItem.estado_produccion === 'terminado' && (
                                     <button
                                         onClick={() => setShowDetailModal(false)}
-                                        className="flex-1 h-[38px] bg-gray-900 hover:bg-black text-white text-[13px] font-medium rounded-lg transition-all active:scale-[0.98]"
-                                    >
-                                        Cerrar Detalle
-                                    </button>
-                                )}
-
-                                {selectedItem.estado_produccion === 'en_proceso' && (
-                                    <button
-                                        onClick={() => setShowDetailModal(false)}
-                                        className="px-4 h-[38px] bg-gray-100 hover:bg-gray-200 text-gray-700 text-[13px] font-medium rounded-lg transition-all"
+                                        className="flex-1 h-10 bg-gray-900 hover:bg-black text-white text-[11px] font-bold uppercase tracking-wider rounded-xl transition-all active:scale-95"
                                     >
                                         Cerrar
                                     </button>

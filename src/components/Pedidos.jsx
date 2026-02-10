@@ -843,9 +843,11 @@ const Pedidos = () => {
 
             toast.loading('Creando registros de producción...', { id: 'creating-production', duration: 2000 });
 
+            let firstNewId = null;
+
             // Crear un registro de producción por cada producto del pedido
             for (const detalle of pedido.detalles_pedido) {
-                await produccionDB.createFromPedido(pedido.id_pedido, {
+                const newRecord = await produccionDB.createFromPedido(pedido.id_pedido, {
                     cantidad: detalle.cantidad,
                     metal: detalle.metal,
                     tipo_producto: detalle.tipo_producto,
@@ -857,6 +859,10 @@ const Pedidos = () => {
                     otros_gastos: 0,
                     observaciones: `Producción creada desde pedido #${pedido.id_pedido}`
                 });
+
+                if (newRecord && newRecord.id_produccion && !firstNewId) {
+                    firstNewId = newRecord.id_produccion;
+                }
             }
 
             // Actualizar el estado del pedido a 'en_proceso'
@@ -865,13 +871,20 @@ const Pedidos = () => {
                 estado_produccion: 'en_proceso'
             });
 
-            toast.success(`✓ Producción creada: ${pedido.detalles_pedido.length} producto(s)`, {
+            toast.success(`✓ Pedido ingresado a producción`, {
                 id: 'creating-production',
                 duration: 3000
             });
 
             // Refrescar la lista de pedidos
             fetchPedidos();
+
+            // Redirigir automáticamente al Registro de Producción en modo edición para el primer producto creado
+            if (firstNewId) {
+                setTimeout(() => {
+                    navigate(`/produccion?edit_prod=${firstNewId}`);
+                }, 1500);
+            }
 
         } catch (error) {
             console.error('Error al crear producción:', error);

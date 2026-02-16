@@ -2,11 +2,11 @@ import andruDonalds from '../assets/images/andru.jpg';
 
 const CelebrityCollaboration = () => {
     return (
-        <section className="relative bg-gradient-to-br from-gray-800 via-gray-900 to-black text-white py-8 md:py-14 overflow-hidden">
+        <section className="relative bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200 py-12 md:py-20 overflow-hidden flex items-center min-h-[350px] md:min-h-[500px]">
             {/* Decorative background elements */}
-            <div className="absolute inset-0 opacity-5">
-                <div className="absolute top-0 left-0 w-64 h-64 bg-yellow-500 rounded-full filter blur-3xl"></div>
-                <div className="absolute bottom-0 right-0 w-96 h-96 bg-purple-500 rounded-full filter blur-3xl"></div>
+            <div className="absolute inset-0 opacity-10">
+                <div className="absolute top-0 left-0 w-64 h-64 bg-yellow-400 rounded-full filter blur-3xl"></div>
+                <div className="absolute bottom-0 right-0 w-96 h-96 bg-orange-300 rounded-full filter blur-3xl"></div>
             </div>
 
             <div className="container mx-auto px-4 md:px-8 lg:px-16 relative z-10">
@@ -16,14 +16,14 @@ const CelebrityCollaboration = () => {
                     <div className="flex justify-center lg:justify-end">
                         <div className="relative">
                             {/* Badge "Artista de Confianza" */}
-                            <div className="absolute -top-3 -left-3 bg-yellow-500 text-black px-3 py-1.5 rounded-full text-xs font-semibold shadow-lg z-10">
+                            <div className="absolute -top-3 -left-3 bg-gradient-to-br from-yellow-500 to-orange-500 text-white px-3 py-1.5 rounded-full text-xs font-semibold shadow-lg z-10">
                                 ⭐ Artista de Confianza
                             </div>
 
                             <img
                                 src={andruDonalds}
                                 alt="Andru Donalds luciendo joyas de Enigma Artesanías"
-                                className="w-full max-w-sm h-auto rounded-2xl shadow-2xl object-cover border-4 border-yellow-500/30"
+                                className="w-full max-w-sm h-auto rounded-full shadow-2xl object-cover border-4 border-white"
                             />
 
                             {/* Badge "Desde 2022" - Ahora es un botón de Instagram */}
@@ -31,7 +31,8 @@ const CelebrityCollaboration = () => {
                                 href="https://www.instagram.com/andrudonalds/"
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="absolute -bottom-3 -right-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white px-4 py-2 rounded-full text-xs font-semibold shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 flex items-center gap-1.5 group"
+                                className="absolute -bottom-3 -right-3 text-white px-4 py-2 rounded-full text-xs font-semibold shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 flex items-center gap-1.5 group"
+                                style={{ backgroundColor: '#1A1A1A' }}
                             >
                                 <span>Desde 2022</span>
                                 <svg className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" fill="currentColor" viewBox="0 0 24 24">
@@ -43,22 +44,30 @@ const CelebrityCollaboration = () => {
 
                     {/* Contenido */}
                     <div className="text-center lg:text-left">
-                        <div className="inline-block bg-yellow-500/20 text-yellow-400 px-3 py-1 rounded-full text-[10px] md:text-xs font-semibold mb-3">
-                            COLABORACIÓN INTERNACIONAL
+                        <div className="inline-block text-gray-500 px-3 py-1 text-[10px] md:text-xs font-medium mb-3 uppercase tracking-widest">
+                            COLABORACIÓN EXCLUSIVA
                         </div>
 
-                        <h2 className="text-2xl md:text-3xl lg:text-4xl font-semibold mb-4 leading-tight">
-                            Creando Arte para
-                            <span className="block text-yellow-400 mt-1">Andru Donalds</span>
+                        <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-4 leading-tight">
+                            <span className="text-yellow-600">Andru Donalds</span>
+                            <span className="block text-yellow-600 mt-1">& Enigma</span>
                         </h2>
 
-                        <p className="text-base md:text-lg text-gray-300 mb-4 leading-relaxed">
-                            Desde 2022, tengo el honor de crear piezas únicas para <strong className="font-semibold text-white">Andru Donalds</strong>, voz principal del legendario proyecto musical <strong className="font-semibold text-yellow-400">ENIGMA</strong>.
+                        <p className="text-sm md:text-base text-gray-700 mb-6 leading-relaxed">
+                            Desde 2022, creo piezas únicas que capturan la esencia del legendista de ENIGMA.
                         </p>
 
-                        <p className="text-sm md:text-base text-gray-400 leading-relaxed">
-                            Una conexión que inspiró el nombre de mi taller y que representa mi compromiso con la excelencia artesanal. Cada pieza es diseñada exclusivamente para reflejar su estilo único: anillos con piedras naturales, cuarzos y dijes que combinan fuerza y elegancia.
-                        </p>
+                        {/* Botón deshabilitado pero visible */}
+                        <button
+                            disabled
+                            className="inline-flex items-center gap-2 border border-yellow-600 text-yellow-600 px-6 py-2.5 rounded-md text-sm font-medium opacity-60 cursor-not-allowed transition-all"
+                            style={{ paddingLeft: '24px', paddingRight: '24px' }}
+                        >
+                            Explorar la Colección Privada
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                            </svg>
+                        </button>
                     </div>
                 </div>
             </div>

@@ -28,7 +28,7 @@ const Hero3 = () => {
 
             {/* Cita */}
             <blockquote className="text-left text-base md:text-lg text-gray-800 pl-0 mb-4 leading-relaxed">
-              En Enigma Artesanías y Accesorios, combinamos técnicas ancestrales como el alambrismo y el martillado con acabados envejecidos que otorgan carácter y autenticidad. Cada joya es trabajada a mano con precisión, soldadura experta y el dominio de metales como la plata, el cobre, la alpaca y el bronce.
+              En Enigma Artesanías y Accesorios, combinamos técnicas ancestrales como el alambrismo y el martillado con acabados envejecidos que otorgan carácter y autenticidad.
             </blockquote>
 
             <Link

@@ -46,7 +46,7 @@ const SocialProof = () => {
                         Únete a Nuestra Comunidad
                     </h2>
                     <div className="w-16 h-0.5 bg-yellow-500 mx-auto mb-3"></div>
-                    <p className="text-sm md:text-lg text-gray-600">
+                    <p className="text-base md:text-xl text-gray-600">
                         Más de <span className="font-bold text-gray-900">38,000 seguidores</span> confían en nuestro arte
                     </p>
                 </div>
@@ -65,7 +65,7 @@ const SocialProof = () => {
                             >
                                 <div className="bg-white border-2 border-gray-200 rounded-lg p-2 md:p-4 text-center hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
                                     <Icon className={`w-5 h-5 md:w-8 md:h-8 mx-auto mb-1 md:mb-2 ${social.iconColor} group-hover:scale-110 transition-transform`} />
-                                    <div className="text-base md:text-2xl font-medium text-gray-900">
+                                    <div className="text-sm md:text-xl font-medium text-gray-900">
                                         {social.followers}
                                     </div>
                                 </div>

@@ -18,12 +18,13 @@ const Home = () => {
         <div className="md:hidden">
           <SimpleImageHero />
         </div>
+        <CelebrityCollaboration />
         <CategoriaShowcase />
 
         <Galeria />
 
         <Hero3 />
-        <CelebrityCollaboration />
+
         <HomeVideoShort />
         <PublicCarousel />
         <SocialProof />

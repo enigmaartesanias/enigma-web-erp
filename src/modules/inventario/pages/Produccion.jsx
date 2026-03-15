@@ -154,6 +154,33 @@ const Produccion = () => {
         }
     }, [urlEditProdId, produccion]);
 
+    // NUEVO: Efecto para detectar cuando un pedido ha sido completamente ingresado
+    useEffect(() => {
+        // Solo verificamos si ha terminado de cargar pendientes y tenemos un pedido específico
+        if (urlPedidoId && pedidosPendientes.length > 0) {
+            const hasPendingItems = pedidosPendientes.some(p => String(p.id_pedido) === String(urlPedidoId));
+            
+            if (!hasPendingItems) {
+                toast.success('🎉 Todos los productos de este pedido ya están en producción.', { 
+                    duration: 5000,
+                    icon: '✅'
+                });
+                
+                // Limpiar URL
+                const newSearchParams = new URLSearchParams(location.search);
+                newSearchParams.delete('pedido');
+                const newSearch = newSearchParams.toString();
+                navigate({ search: newSearch ? `?${newSearch}` : '' }, { replace: true });
+                
+                // Regresar a tipo STOCK
+                setFormData(prev => ({
+                    ...prev,
+                    tipo_produccion: 'STOCK'
+                }));
+            }
+        }
+    }, [pedidosPendientes, urlPedidoId, navigate, location.search]);
+
     const handleChange = (e) => {
         const { name, value } = e.target;
         setFormData(prev => ({
@@ -496,7 +523,7 @@ const Produccion = () => {
 
     const resetForm = () => {
         setFormData({
-            tipo_produccion: 'STOCK',
+            tipo_produccion: urlPedidoId ? 'PEDIDO' : 'STOCK',
             pedido_id: '',
             metal: '',
             tipo_producto: '',

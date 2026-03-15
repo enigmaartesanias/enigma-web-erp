@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { pedidosDB } from '../utils/pedidosNeonClient';
 import { clientesDB } from '../utils/clientesNeonClient';
 import { produccionDB, METALES, TIPOS_PRODUCTO } from '../utils/produccionNeonClient';
@@ -208,6 +208,7 @@ const Pedidos = () => {
         requiere_envio: false,
         modalidad_envio: 'Fijo',
         envio_cobrado_al_cliente: '',
+        envio_pago_pendiente: false,
         monto_a_cuenta: '',
         incluye_igv: false,
         estado_pedido: 'aceptado',
@@ -328,7 +329,8 @@ const Pedidos = () => {
             return acc + (item.cantidad * item.precio_unitario);
         }, 0);
 
-        const envio = formData.requiere_envio ? (parseFloat(formData.envio_cobrado_al_cliente) || 0) : 0;
+        // Si está marcado como pago pendiente, NO lo sumamos al total del ticket ni a las cuentas
+        const envio = formData.requiere_envio && !formData.envio_pago_pendiente ? (parseFloat(formData.envio_cobrado_al_cliente) || 0) : 0;
 
         // Nueva Lógica: precio_total_sin_igv es SOLO productos (Valor Venta)
         const precio_total_sin_igv = subtotalProductos;
@@ -452,6 +454,7 @@ const Pedidos = () => {
             requiere_envio: pedido.requiere_envio,
             modalidad_envio: pedido.modalidad_envio || 'Fijo',
             envio_cobrado_al_cliente: pedido.envio_cobrado_al_cliente || 0,
+            envio_pago_pendiente: pedido.envio_pago_pendiente || false,
             envio_referencia: pedido.envio_referencia || 0,
             monto_a_cuenta: pedido.monto_a_cuenta || 0,
             entregado: pedido.entregado,
@@ -544,6 +547,7 @@ const Pedidos = () => {
             requiere_envio: false,
             modalidad_envio: 'Fijo',
             envio_cobrado_al_cliente: 0,
+            envio_pago_pendiente: false,
             monto_a_cuenta: '',
             incluye_igv: false,
             entregado: false,
@@ -597,6 +601,7 @@ const Pedidos = () => {
                 requiere_envio: formData.requiere_envio,
                 modalidad_envio: formData.modalidad_envio,
                 envio_cobrado_al_cliente: parseFloat(formData.envio_cobrado_al_cliente) || 0,
+                envio_pago_pendiente: formData.envio_pago_pendiente,
                 envio_referencia: parseFloat(formData.envio_referencia || 0),
                 precio_total_sin_igv: calculos.precio_total_sin_igv,
                 precio_total: calculos.precio_total,
@@ -832,64 +837,12 @@ const Pedidos = () => {
                 return;
             }
 
-            // Validar que no existan ya registros de producción para este pedido
-            const produccionExistente = await produccionDB.getAll();
-            const yaEnProduccion = produccionExistente.some(p => p.pedido_id === pedido.id_pedido);
-
-            if (yaEnProduccion) {
-                toast.warning('Este pedido ya tiene registros de producción creados', { duration: 4000 });
-                return;
-            }
-
-            toast.loading('Creando registros de producción...', { id: 'creating-production', duration: 2000 });
-
-            let firstNewId = null;
-
-            // Crear un registro de producción por cada producto del pedido
-            for (const detalle of pedido.detalles_pedido) {
-                const newRecord = await produccionDB.createFromPedido(pedido.id_pedido, {
-                    cantidad: detalle.cantidad,
-                    metal: detalle.metal,
-                    tipo_producto: detalle.tipo_producto,
-                    nombre_producto: `${detalle.tipo_producto || 'Producto'} - ${detalle.metal || 'Metal'}`,
-                    costo_materiales: 0,
-                    mano_de_obra: 0,
-                    porcentaje_alquiler: 0,
-                    costo_herramientas: 0,
-                    otros_gastos: 0,
-                    observaciones: `Producción creada desde pedido #${pedido.id_pedido}`
-                });
-
-                if (newRecord && newRecord.id_produccion && !firstNewId) {
-                    firstNewId = newRecord.id_produccion;
-                }
-            }
-
-            // Actualizar el estado del pedido a 'en_proceso'
-            await pedidosDB.update(pedido.id_pedido, {
-                ...pedido,
-                estado_produccion: 'en_proceso'
-            });
-
-            toast.success(`✓ Pedido ingresado a producción`, {
-                id: 'creating-production',
-                duration: 3000
-            });
-
-            // Refrescar la lista de pedidos
-            fetchPedidos();
-
-            // Redirigir automáticamente al Registro de Producción en modo edición para el primer producto creado
-            if (firstNewId) {
-                setTimeout(() => {
-                    navigate(`/produccion?edit_prod=${firstNewId}`);
-                }, 1500);
-            }
+            // Redirigir al formulario de Producción con el ID del pedido en la URL
+            navigate(`/produccion?pedido=${pedido.id_pedido}`);
 
         } catch (error) {
-            console.error('Error al crear producción:', error);
-            toast.error(`Error al crear producción: ${error.message}`, {
-                id: 'creating-production',
+            console.error('Error al navegar a producción:', error);
+            toast.error(`Error de navegación: ${error.message}`, {
                 duration: 4000
             });
         }
@@ -1395,18 +1348,35 @@ const Pedidos = () => {
                                             <option value="Por Pagar">Por Pagar en Agencia</option>
                                         </select>
                                     </div>
-                                    <div>
-                                        <label className="block text-sm font-semibold text-gray-700">Costo de Envío (S/)</label>
-                                        <input
-                                            type="number"
-                                            name="envio_cobrado_al_cliente"
-                                            value={formData.envio_cobrado_al_cliente}
-                                            onChange={handleChange}
-                                            onFocus={handleFocus}
-                                            step="0.01"
-                                            className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2.5 bg-white"
-                                            onWheel={handleWheel}
-                                        />
+                                    <div className="flex flex-col gap-2">
+                                        <div>
+                                            <label className="block text-sm font-semibold text-gray-700">Costo de Envío (S/)</label>
+                                            <input
+                                                type="number"
+                                                name="envio_cobrado_al_cliente"
+                                                value={formData.envio_cobrado_al_cliente}
+                                                // Bloquear si se designa que el cliente lo pagará en agencia
+                                                disabled={formData.envio_pago_pendiente}
+                                                onChange={handleChange}
+                                                onFocus={handleFocus}
+                                                step="0.01"
+                                                className={`mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2.5 transition-colors ${formData.envio_pago_pendiente ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white'}`}
+                                                onWheel={handleWheel}
+                                            />
+                                        </div>
+                                        <div className="flex items-center mt-1">
+                                            <input
+                                                type="checkbox"
+                                                name="envio_pago_pendiente"
+                                                id="envio_pago_pendiente"
+                                                checked={formData.envio_pago_pendiente || false}
+                                                onChange={handleChange}
+                                                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded transition-all cursor-pointer"
+                                            />
+                                            <label htmlFor="envio_pago_pendiente" className="ml-2 block text-sm font-medium text-gray-600 cursor-pointer">
+                                                Envío pendiente de pago (pago en destino)
+                                            </label>
+                                        </div>
                                     </div>
                                 </div>
                             )}
@@ -1861,10 +1831,16 @@ const Pedidos = () => {
                                         )}
 
                                         {/* Costo de Envío (Azul) */}
-                                        {printPedido.envio_cobrado_al_cliente > 0 && (
+                                        {printPedido.envio_cobrado_al_cliente > 0 && !printPedido.envio_pago_pendiente && (
                                             <div className="flex justify-between text-blue-600 font-medium mt-1">
                                                 <span>Costo de Envío:</span>
                                                 <span>S/ {printPedido.envio_cobrado_al_cliente.toFixed(2)}</span>
+                                            </div>
+                                        )}
+                                        {printPedido.envio_pago_pendiente && (
+                                            <div className="flex justify-between text-blue-600 font-medium mt-1">
+                                                <span>Costo de Envío:</span>
+                                                <span>PENDIENTE (Pago en destino)</span>
                                             </div>
                                         )}
 
@@ -1909,6 +1885,12 @@ const Pedidos = () => {
                                     <span>SALDO PENDIENTE:</span>
                                     <span>S/ {printPedido.monto_saldo > 0.1 ? printPedido.monto_saldo.toFixed(2) : '0.00'}</span>
                                 </div>
+                                
+                                {printPedido.envio_pago_pendiente && (
+                                    <div className="mt-2 text-center text-xs text-red-600 font-semibold bg-red-50 py-1.5 px-2 rounded border border-red-100 italic">
+                                        ⚠️ El total cancelado solo cubre los productos. El costo de envío se encuentra pendiente de pago.
+                                    </div>
+                                )}
 
 
                                 <div className="mt-8 pt-4 border-t text-center">

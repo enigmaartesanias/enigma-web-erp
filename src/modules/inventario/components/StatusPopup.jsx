@@ -30,8 +30,10 @@ export default function StatusPopup() {
 
             setCounts({ pending: pendingCount, production: productionCount });
 
-            // Mostrar solo si hay algo pendiente
-            if (pendingCount > 0 || productionCount > 0) {
+            // Mostrar solo si hay algo pendiente y NO ha sido visto en esta sesión
+            const yaVisto = sessionStorage.getItem('resumen_operativo_visto') === 'true';
+            
+            if (!yaVisto && (pendingCount > 0 || productionCount > 0)) {
                 // Pequeño delay para una entrada más elegante
                 setTimeout(() => setVisible(true), 800);
             }
@@ -40,6 +42,11 @@ export default function StatusPopup() {
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleClose = () => {
+        setVisible(false);
+        sessionStorage.setItem('resumen_operativo_visto', 'true');
     };
 
     if (!visible || loading) return null;
@@ -54,7 +61,7 @@ export default function StatusPopup() {
                         <h3 className="text-gray-900 text-[11px] font-black uppercase tracking-[0.3em]">Resumen Operativo</h3>
                     </div>
                     <button
-                        onClick={() => setVisible(false)}
+                        onClick={handleClose}
                         className="text-gray-300 hover:text-gray-600 transition-colors bg-gray-50 p-1.5 rounded-full"
                     >
                         <X size={16} />
@@ -66,7 +73,7 @@ export default function StatusPopup() {
                     {counts.pending > 0 && (
                         <Link
                             to="/admin/pedidos"
-                            onClick={() => setVisible(false)}
+                            onClick={handleClose}
                             className="flex items-center gap-4 p-4 rounded-2xl bg-white border border-gray-100 hover:border-amber-200 hover:bg-amber-50/30 transition-all group"
                         >
                             <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-500 flex items-center justify-center border border-amber-100 shadow-sm transition-transform group-hover:scale-110">
@@ -86,7 +93,7 @@ export default function StatusPopup() {
                     {counts.production > 0 && (
                         <Link
                             to="/produccion"
-                            onClick={() => setVisible(false)}
+                            onClick={handleClose}
                             className="flex items-center gap-4 p-4 rounded-2xl bg-white border border-gray-100 hover:border-blue-200 hover:bg-blue-50/30 transition-all group"
                         >
                             <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-500 flex items-center justify-center border border-blue-100 shadow-sm transition-transform group-hover:scale-110">
@@ -104,7 +111,7 @@ export default function StatusPopup() {
 
                     <div className="pt-3">
                         <button
-                            onClick={() => setVisible(false)}
+                            onClick={handleClose}
                             className="w-full py-3.5 bg-gray-900 text-white rounded-2xl text-[11px] font-bold uppercase tracking-widest hover:bg-gray-800 transition-all shadow-lg shadow-gray-200"
                         >
                             Confirmar lectura

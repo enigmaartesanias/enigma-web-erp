@@ -90,6 +90,7 @@ export const pedidosDB = {
         monto_igv: parseFloat(p.monto_igv) || 0,
         monto_saldo: parseFloat(p.monto_saldo) || 0,
         envio_cobrado_al_cliente: parseFloat(p.envio_cobrado_al_cliente) || 0,
+        envio_pago_pendiente: p.envio_pago_pendiente || false,
         envio_referencia: parseFloat(p.envio_referencia) || 0,
         detalles_pedido: p.detalles_pedido?.map(d => ({
           ...d,
@@ -115,7 +116,7 @@ export const pedidosDB = {
         nombre_cliente, telefono, dni_ruc, direccion_entrega,
         metal, tipo_producto,
         forma_pago, comprobante_pago, requiere_envio, modalidad_envio,
-        envio_cobrado_al_cliente, envio_referencia,
+        envio_cobrado_al_cliente, envio_pago_pendiente, envio_referencia,
         precio_total_sin_igv, precio_total, monto_a_cuenta,
         monto_igv, monto_saldo, entregado, cancelado, incluye_igv,
         estado_pedido, estado_produccion
@@ -125,7 +126,7 @@ export const pedidosDB = {
         ${pedidoData.metal}, ${pedidoData.tipo_producto},
         ${pedidoData.forma_pago}, ${pedidoData.comprobante_pago},
         ${pedidoData.requiere_envio}, ${pedidoData.modalidad_envio},
-        ${pedidoData.envio_cobrado_al_cliente}, ${pedidoData.envio_referencia || 0},
+        ${pedidoData.envio_cobrado_al_cliente}, ${pedidoData.envio_pago_pendiente || false}, ${pedidoData.envio_referencia || 0},
         ${pedidoData.precio_total_sin_igv}, ${pedidoData.precio_total}, ${pedidoData.monto_a_cuenta},
         ${pedidoData.monto_igv}, ${pedidoData.monto_saldo}, ${pedidoData.entregado || false},
         ${pedidoData.cancelado}, ${pedidoData.incluye_igv},
@@ -151,6 +152,7 @@ export const pedidosDB = {
         requiere_envio = ${pedidoData.requiere_envio},
         modalidad_envio = ${pedidoData.modalidad_envio},
         envio_cobrado_al_cliente = ${pedidoData.envio_cobrado_al_cliente},
+        envio_pago_pendiente = ${pedidoData.envio_pago_pendiente || false},
         envio_referencia = ${pedidoData.envio_referencia || 0},
         precio_total_sin_igv = ${pedidoData.precio_total_sin_igv},
         precio_total = ${pedidoData.precio_total},

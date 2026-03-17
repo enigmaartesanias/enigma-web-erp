@@ -13,6 +13,7 @@ const ProduccionReporte = () => {
     });
     const [loading, setLoading] = useState(true);
     const [filtroActivo, setFiltroActivo] = useState('en_proceso');
+    const [filtroDestino, setFiltroDestino] = useState('todos'); // 'todos' | 'pedidos' | 'stock'
     const [selectedItem, setSelectedItem] = useState(null); // Para modal de detalle
     const [selectedImage, setSelectedImage] = useState(null); // Para modal de imagen
     const [currentPage, setCurrentPage] = useState(1); // Paginación
@@ -69,8 +70,8 @@ const ProduccionReporte = () => {
         };
     }, [produccionConFiltroFecha]);
 
-    // Filtrar por pestaña activa
-    const produccionFiltrada = useMemo(() => {
+    // Filtrar por pestaña activa (estado)
+    const produccionPorEstado = useMemo(() => {
         switch (filtroActivo) {
             case 'en_proceso':
                 return produccionConFiltroFecha.filter(p => p.estado_produccion === 'en_proceso');
@@ -81,7 +82,26 @@ const ProduccionReporte = () => {
         }
     }, [produccionConFiltroFecha, filtroActivo]);
 
-    // Calcular inversión total filtrada
+    // Filtrar además por destino (Pedido / Stock)
+    const produccionFiltrada = useMemo(() => {
+        if (filtroDestino === 'pedidos') return produccionPorEstado.filter(p => p.tipo_produccion === 'PEDIDO');
+        if (filtroDestino === 'stock')   return produccionPorEstado.filter(p => p.tipo_produccion === 'STOCK');
+        return produccionPorEstado;
+    }, [produccionPorEstado, filtroDestino]);
+
+    // Totales por destino (sobre produccionPorEstado, sin filtro de destino)
+    const totalesPorDestino = useMemo(() => {
+        const pedidos = produccionPorEstado.filter(p => p.tipo_produccion === 'PEDIDO');
+        const stock   = produccionPorEstado.filter(p => p.tipo_produccion === 'STOCK');
+        const suma = arr => arr.reduce((s, i) => s + (Number(i.costo_total_produccion) || 0), 0);
+        return {
+            pedidos: { count: pedidos.length, valor: suma(pedidos) },
+            stock:   { count: stock.length,   valor: suma(stock) },
+            todos:   { count: produccionPorEstado.length, valor: suma(produccionPorEstado) }
+        };
+    }, [produccionPorEstado]);
+
+    // Inversión total del conjunto filtrado actualmente
     const inversionTotal = useMemo(() => {
         return produccionFiltrada.reduce((sum, item) => sum + (Number(item.costo_total_produccion) || 0), 0);
     }, [produccionFiltrada]);
@@ -93,10 +113,10 @@ const ProduccionReporte = () => {
         { id: 'todos', label: 'Todos', icon: '📋', count: statsCalculados.total_registros, color: 'purple' }
     ];
 
-    // Resetear a página 1 cuando cambia el filtro
+    // Resetear a página 1 cuando cambia cualquier filtro
     useEffect(() => {
         setCurrentPage(1);
-    }, [filtroActivo]);
+    }, [filtroActivo, filtroDestino]);
 
     // Cálculo de paginación
     const totalPages = Math.ceil(produccionFiltrada.length / itemsPerPage);
@@ -148,26 +168,39 @@ const ProduccionReporte = () => {
                     <h1 className="text-xl font-light text-gray-800">Reporte de Producción</h1>
                 </div>
 
-                {/* Resumen de Valorización Compacto */}
+                {/* Resumen de Valorización — cards dinámicas según filtroDestino */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-                    <div className="bg-white rounded-lg shadow-sm p-2 border-l-4 border-blue-600 flex items-center justify-between">
-                        <div>
-                            <p className="text-[8px] font text-blue-600 uppercase tracking-tight mb-0.5">Valor Producido</p>
-                            <p className="text-sm font-black text-gray-800">
-                                <span className="text-[10px] font-normal text-gray-400 mr-0.5">S/</span>
-                                {inversionTotal.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                            </p>
-                        </div>
+                    {/* Card Valor Producido */}
+                    <div className="bg-white rounded-lg shadow-sm p-2 border-l-4 border-blue-600">
+                        <p className="text-[8px] font text-blue-600 uppercase tracking-tight mb-0.5">Valor Producido</p>
+                        <p className="text-sm font-black text-gray-800">
+                            <span className="text-[10px] font-normal text-gray-400 mr-0.5">S/</span>
+                            {inversionTotal.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </p>
+                        {/* Desglose sutil solo cuando se ven Todos */}
+                        {filtroDestino === 'todos' && (
+                            <div className="mt-1 flex items-center gap-2">
+                                <span className="text-[9px] text-blue-500">📦 S/ {totalesPorDestino.pedidos.valor.toLocaleString('es-PE', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
+                                <span className="text-gray-300">·</span>
+                                <span className="text-[9px] text-purple-500">🏪 S/ {totalesPorDestino.stock.valor.toLocaleString('es-PE', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
+                            </div>
+                        )}
                     </div>
 
-                    <div className="bg-white rounded-lg shadow-sm p-3 border-l-4 border-slate-700 flex items-center justify-between">
-                        <div>
-                            <p className="text-[9px] font text-slate-500 uppercase tracking-tight mb-0.5">Total Registros</p>
-                            <p className="text-sm font-black text-gray-800">
-                                {produccionFiltrada.length}
-                                <span className="text-[9px] font-normal text-gray-400 ml-1">Items</span>
-                            </p>
-                        </div>
+                    {/* Card Total Registros */}
+                    <div className="bg-white rounded-lg shadow-sm p-3 border-l-4 border-slate-700">
+                        <p className="text-[9px] font text-slate-500 uppercase tracking-tight mb-0.5">Total Registros</p>
+                        <p className="text-sm font-black text-gray-800">
+                            {produccionFiltrada.length}
+                            <span className="text-[9px] font-normal text-gray-400 ml-1">Items</span>
+                        </p>
+                        {filtroDestino === 'todos' && (
+                            <div className="mt-1 flex items-center gap-2">
+                                <span className="text-[9px] text-blue-500">📦 {totalesPorDestino.pedidos.count}</span>
+                                <span className="text-gray-300">·</span>
+                                <span className="text-[9px] text-purple-500">🏪 {totalesPorDestino.stock.count}</span>
+                            </div>
+                        )}
                     </div>
                 </div>
 
@@ -238,7 +271,44 @@ const ProduccionReporte = () => {
                     </div>
                 </div>
 
-                {/* Tabla Profesional - Mismo diseño Mobile y Desktop */}
+                {/* Selector de Destino — toggle subtle */}
+                <div className="mb-4 bg-white rounded-lg shadow-sm px-3 py-2 flex flex-wrap items-center gap-2">
+                    <span className="text-[10px] uppercase tracking-widest text-gray-400 font-medium mr-1 hidden sm:inline">Destino</span>
+                    {[
+                        { id: 'todos',   label: 'Todos',   emoji: '📋', count: totalesPorDestino.todos.count,   valor: totalesPorDestino.todos.valor },
+                        { id: 'pedidos', label: 'Pedidos', emoji: '📦', count: totalesPorDestino.pedidos.count, valor: totalesPorDestino.pedidos.valor },
+                        { id: 'stock',   label: 'Stock',   emoji: '🏪', count: totalesPorDestino.stock.count,   valor: totalesPorDestino.stock.valor },
+                    ].map(opt => (
+                        <button
+                            key={opt.id}
+                            onClick={() => setFiltroDestino(opt.id)}
+                            className={`
+                                flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all border
+                                ${filtroDestino === opt.id
+                                    ? opt.id === 'pedidos'
+                                        ? 'bg-blue-50 text-blue-700 border-blue-300 shadow-sm'
+                                        : opt.id === 'stock'
+                                            ? 'bg-purple-50 text-purple-700 border-purple-300 shadow-sm'
+                                            : 'bg-gray-100 text-gray-700 border-gray-300 shadow-sm'
+                                    : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'}
+                            `}
+                        >
+                            <span>{opt.emoji}</span>
+                            <span className="hidden sm:inline">{opt.label}</span>
+                            <span className={`
+                                px-1.5 py-0.5 rounded-full text-[10px] font-bold
+                                ${filtroDestino === opt.id ? 'bg-white/60' : 'bg-gray-100 text-gray-500'}
+                            `}>{opt.count}</span>
+                            {opt.count > 0 && (
+                                <span className="text-[9px] opacity-70">
+                                    S/{opt.valor.toLocaleString('es-PE', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                                </span>
+                            )}
+                        </button>
+                    ))}
+                </div>
+
+                {/* Tabla Profesional */}
                 <div className="bg-white shadow rounded-lg overflow-hidden">
                     {/* Título */}
                     <div className="px-4 py-3 border-b border-gray-100">
@@ -262,7 +332,7 @@ const ProduccionReporte = () => {
                                         Estado
                                     </th>
                                     <th className="px-3 py-3 text-center text-[11px] font-medium text-gray-500 uppercase tracking-wide align-middle hidden md:table-cell">
-                                        Duración
+                                        Destino
                                     </th>
                                     <th className="px-3 py-3 text-center text-[11px] font-medium text-gray-500 uppercase tracking-wide align-middle w-24">
                                         Acciones
@@ -271,13 +341,6 @@ const ProduccionReporte = () => {
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-50">
                                 {produccionPaginada.map((item) => {
-                                    // Calcular duración
-                                    const fechaInicio = new Date(item.fecha_inicio_produccion || item.created_at);
-                                    const fechaFin = item.fecha_fin_produccion || item.fecha_terminado
-                                        ? new Date(item.fecha_fin_produccion || item.fecha_terminado)
-                                        : new Date();
-                                    const duracionDias = Math.ceil((fechaFin - fechaInicio) / (1000 * 60 * 60 * 24));
-
                                     return (
                                         <tr key={item.id_produccion} className="h-14 md:h-12 hover:bg-gray-50/50 transition-colors">
                                             {/* Fecha de Término */}
@@ -302,18 +365,12 @@ const ProduccionReporte = () => {
                                                     <span className="text-[13px] md:text-sm font-normal text-gray-700 leading-tight">
                                                         {item.tipo_producto} – {item.metal}
                                                     </span>
-                                                    {/* Estado en mobile */}
+                                                    {/* Destino en mobile */}
                                                     <div className="md:hidden flex items-center gap-1.5 mt-1">
-                                                        {item.estado_produccion === 'terminado' ? (
-                                                            <>
-                                                                <span className="text-emerald-600 w-5 h-5 flex items-center justify-center">✅</span>
-                                                                <span className="text-xs text-gray-500">Terminado</span>
-                                                            </>
+                                                        {item.tipo_produccion === 'PEDIDO' ? (
+                                                            <span className="text-xs text-blue-600 font-medium">📦 Pedido</span>
                                                         ) : (
-                                                            <>
-                                                                <span className="text-amber-500 w-5 h-5 flex items-center justify-center">⏳</span>
-                                                                <span className="text-xs text-gray-500">{duracionDias}d</span>
-                                                            </>
+                                                            <span className="text-xs text-purple-600 font-medium">🏪 Stock</span>
                                                         )}
                                                     </div>
                                                 </div>
@@ -336,35 +393,40 @@ const ProduccionReporte = () => {
                                                 </div>
                                             </td>
 
-                                            {/* Duración - Solo Desktop */}
+                                            {/* Destino - Solo Desktop */}
                                             <td className="hidden md:table-cell px-3 py-2 text-center align-middle">
-                                                <span className="text-xs text-gray-500">
-                                                    {duracionDias} {duracionDias === 1 ? 'día' : 'días'}
-                                                </span>
+                                                {item.tipo_produccion === 'PEDIDO' ? (
+                                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700">
+                                                        📦 Pedido
+                                                    </span>
+                                                ) : (
+                                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-purple-50 text-purple-700">
+                                                        🏪 Stock
+                                                    </span>
+                                                )}
                                             </td>
 
                                             {/* Acciones */}
-                                            <td className="px-3 py-3 md:py-2 text-center align-middle">
-                                                <div className="flex items-center justify-center gap-2">
-                                                    {/* Botón de Ver Detalle */}
+                                            <td className="py-2 text-center align-middle w-20">
+                                                <div className="flex items-center justify-center">
+                                                    {/* Slot 1: Ver Detalle — siempre visible */}
                                                     <button
                                                         onClick={() => setSelectedItem(item)}
-                                                        className="w-10 h-10 md:w-8 md:h-8 flex items-center justify-center text-gray-600 hover:text-gray-900 transition-colors rounded-full hover:bg-gray-100"
+                                                        className="w-8 h-8 flex-shrink-0 flex items-center justify-center text-gray-500 hover:text-gray-900 transition-colors rounded-full hover:bg-gray-100"
                                                         title="Ver detalle"
                                                     >
-                                                        <span className="text-[24px] md:text-[22px]">👁️</span>
+                                                        <span className="text-[20px] leading-none">👁️</span>
                                                     </button>
 
-                                                    {/* Botón de Ver Imagen - Solo si tiene imagen */}
-                                                    {item.imagen_url && (
-                                                        <button
-                                                            onClick={() => setSelectedImage(item)}
-                                                            className="w-10 h-10 md:w-8 md:h-8 flex items-center justify-center text-gray-600 hover:text-blue-600 transition-colors rounded-full hover:bg-blue-50"
-                                                            title="Ver imagen"
-                                                        >
-                                                            <FaImage className="w-6 h-6 md:w-5 h-5" />
-                                                        </button>
-                                                    )}
+                                                    {/* Slot 2: Ver Imagen — siempre ocupa espacio, invisible si no hay img */}
+                                                    <button
+                                                        onClick={() => item.imagen_url && setSelectedImage(item)}
+                                                        className={`w-8 h-8 flex-shrink-0 flex items-center justify-center rounded-full transition-colors ${item.imagen_url ? 'text-gray-500 hover:text-blue-600 hover:bg-blue-50 cursor-pointer' : 'text-transparent cursor-default pointer-events-none'}`}
+                                                        title={item.imagen_url ? "Ver imagen" : ""}
+                                                        tabIndex={item.imagen_url ? 0 : -1}
+                                                    >
+                                                        <FaImage className="w-4 h-4" />
+                                                    </button>
                                                 </div>
                                             </td>
                                         </tr>

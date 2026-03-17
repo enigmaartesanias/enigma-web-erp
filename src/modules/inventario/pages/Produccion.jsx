@@ -14,6 +14,7 @@ import { tiposProductoDB } from '../../../utils/tiposProductoDB';
 import toast, { Toaster } from 'react-hot-toast';
 import ConfirmModal from '../../../components/ui/ConfirmModal';
 import Tooltip from '../../../components/ui/Tooltip';
+import StockIngressModal from '../components/StockIngressModal';
 
 
 const Produccion = () => {
@@ -57,6 +58,9 @@ const Produccion = () => {
     const [sendingToStockItem, setSendingToStockItem] = useState(null);
     const [currentPage, setCurrentPage] = useState(1); // Estado para paginación
     const [tiposProducto, setTiposProducto] = useState([]);
+    // Modal de ingreso a stock desde producción STOCK
+    const [showStockIngressModal, setShowStockIngressModal] = useState(false);
+    const [finishedStockItem, setFinishedStockItem] = useState(null);
 
     // Bloquear scroll cuando el modal está abierto
     useEffect(() => {
@@ -357,28 +361,21 @@ const Produccion = () => {
     };
 
     const handleMarkAsComplete = async (item) => {
-        const isPedido = item.tipo_produccion === 'PEDIDO';
-        const confirmMessage = isPedido
-            ? `¿Marcar como terminado: ${item.nombre_producto || item.tipo_producto}?\n\nEste producto pertenece a un PEDIDO y NO irá al stock general.`
-            : `¿Marcar como terminado: ${item.nombre_producto || item.tipo_producto}?\n\nEsto agregará el producto al inventario de STOCK.`;
-
-        if (!window.confirm(confirmMessage)) return;
-
-        try {
-            await produccionDB.updateEstado(item.id_produccion, 'terminado');
-
-            // 1. Actualizar UI
-            fetchProduccion();
-            fetchStats();
-            toast.success('Producción marcada como terminada');
-
-            // 2. Preparar Prompt de Foto
-            setFinishedItemForPhoto(item);
-            setShowPhotoPrompt(true);
-
-        } catch (error) {
-            console.error('Error al marcar como terminado:', error);
-            toast.error('Error al actualizar: ' + error.message);
+        if (item.tipo_produccion === 'STOCK') {
+            // STOCK → abrir modal de ingreso a inventario
+            setFinishedStockItem(item);
+            setShowStockIngressModal(true);
+        } else {
+            // PEDIDO → marcar terminado directamente (el pedido se actualiza por su propio flujo)
+            try {
+                await produccionDB.updateEstado(item.id_produccion, 'terminado');
+                fetchProduccion();
+                fetchStats();
+                toast.success('Producción del pedido marcada como terminada');
+            } catch (error) {
+                console.error('Error al marcar como terminado:', error);
+                toast.error('Error al actualizar: ' + error.message);
+            }
         }
     };
 
@@ -675,6 +672,11 @@ const Produccion = () => {
     }, [filterType, searchTerm]);
 
     const filteredProduccion = produccion.filter(p => {
+        // Solo mostrar registros activos (en proceso o pendientes)
+        // Los terminados y anulados van al Reporte de Producción
+        const isActive = p.estado_produccion !== 'terminado' && p.estado_produccion !== 'anulado';
+        if (!isActive) return false;
+
         let matchesType = true;
         if (filterType === 'stock') matchesType = p.tipo_produccion === 'STOCK';
         if (filterType === 'pedidos') matchesType = p.tipo_produccion === 'PEDIDO';
@@ -1648,6 +1650,23 @@ const Produccion = () => {
                     </div>
                 )
             }
+
+        {/* Modal de Ingreso a Stock desde Producción STOCK */}
+        {showStockIngressModal && finishedStockItem && (
+            <StockIngressModal
+                item={finishedStockItem}
+                onSuccess={() => {
+                    setShowStockIngressModal(false);
+                    setFinishedStockItem(null);
+                    fetchProduccion();
+                    fetchStats();
+                }}
+                onCancel={() => {
+                    setShowStockIngressModal(false);
+                    setFinishedStockItem(null);
+                }}
+            />
+        )}
 
         </div >
     );

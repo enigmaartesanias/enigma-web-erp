@@ -211,6 +211,7 @@ export const productosExternosDB = {
           precio,
           stock_actual,
           stock_minimo,
+          imagen_url,
           origen,
           produccion_id,
           precio_adicional,
@@ -218,12 +219,13 @@ export const productosExternosDB = {
           estado_activo
         ) VALUES (
           ${codigo},
-          ${`${tipo_producto} - ${codigo}`},
-          ${tipo_producto.toUpperCase()},
+          ${data.nombre || `${tipo_producto} - ${codigo}`},
+          ${data.categoria || tipo_producto.toUpperCase()},
           0,
           ${precio || 0},
           ${cantidad},
           5,
+          ${data.imagen_url || null},
           'PRODUCCION',
           ${produccionId},
           ${precioReferencial || null},
@@ -234,6 +236,20 @@ export const productosExternosDB = {
       `;
       return result;
     }
+  },
+
+  // Verificar si un código ya existe en inventario (para feedback en tiempo real)
+  async checkCodigo(codigo) {
+    if (!codigo) return { exists: false };
+    const [p] = await sql`
+      SELECT id, nombre, stock_actual, precio
+      FROM productos_externos
+      WHERE codigo_usuario = ${codigo.toUpperCase()} AND estado_activo = TRUE
+      LIMIT 1
+    `;
+    return p
+      ? { exists: true, stockActual: Number(p.stock_actual) || 0, nombre: p.nombre, precio: Number(p.precio) || 0 }
+      : { exists: false };
   }
 };
 

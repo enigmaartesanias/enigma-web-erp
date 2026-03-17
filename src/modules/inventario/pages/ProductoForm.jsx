@@ -383,26 +383,42 @@ const ProductoForm = () => {
 
                             {/* 2. Imagen */}
                             <div className="bg-white p-3 md:p-4 rounded-lg shadow-sm border border-gray-100 flex justify-center">
-                                <div
-                                    className="w-24 h-24 md:w-32 md:h-32 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center cursor-pointer hover:border-gray-400 hover:bg-gray-100 transition-all"
-                                    onClick={() => fileInputRef.current.click()}
-                                >
-                                    {previewUrl ? (
-                                        <img src={previewUrl} alt="Preview" className="w-full h-full object-cover rounded-lg" />
-                                    ) : (
-                                        <div className="text-center text-gray-400">
-                                            <FaCamera size={24} className="mx-auto mb-1" />
-                                            <span className="text-xs">Foto</span>
+                                {/* Si viene de producción con imagen: solo mostrar thumbnail informativo */}
+                                {isFromProduction && previewUrl ? (
+                                    <div className="flex items-center gap-3 w-full px-2">
+                                        <img
+                                            src={previewUrl}
+                                            alt="Imagen de producción"
+                                            className="w-16 h-16 object-cover rounded-lg border border-gray-200 flex-shrink-0"
+                                        />
+                                        <div>
+                                            <p className="text-xs font-medium text-gray-600">Imagen incluida</p>
+                                            <p className="text-[10px] text-gray-400">Viene automáticamente desde producción</p>
                                         </div>
-                                    )}
-                                    <input
-                                        type="file"
-                                        ref={fileInputRef}
-                                        className="hidden"
-                                        accept="image/*"
-                                        onChange={handleImageChange}
-                                    />
-                                </div>
+                                    </div>
+                                ) : (
+                                    /* Compra directa o producción sin imagen → campo de subida */
+                                    <div
+                                        className="w-24 h-24 md:w-32 md:h-32 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center cursor-pointer hover:border-gray-400 hover:bg-gray-100 transition-all"
+                                        onClick={() => fileInputRef.current.click()}
+                                    >
+                                        {previewUrl ? (
+                                            <img src={previewUrl} alt="Preview" className="w-full h-full object-cover rounded-lg" />
+                                        ) : (
+                                            <div className="text-center text-gray-400">
+                                                <FaCamera size={24} className="mx-auto mb-1" />
+                                                <span className="text-xs">Foto</span>
+                                            </div>
+                                        )}
+                                        <input
+                                            type="file"
+                                            ref={fileInputRef}
+                                            className="hidden"
+                                            accept="image/*"
+                                            onChange={handleImageChange}
+                                        />
+                                    </div>
+                                )}
                             </div>
 
                             {/* 3. Stock y Precios */}

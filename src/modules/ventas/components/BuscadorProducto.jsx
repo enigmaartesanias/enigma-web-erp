@@ -119,26 +119,56 @@ const BuscadorProducto = ({ onScan, onSelect, onQRClick }) => {
                 </div>
             )}
 
-            {/* Dropdown de resultados - Debajo del input */}
+            {/* Dropdown de resultados - Mejorado con stock y estilos limpios */}
             {showResults && results.length > 0 && (
-                <div className="absolute top-full mt-1 w-full bg-gray-100 rounded shadow-md border border-gray-200 overflow-hidden max-h-64 overflow-y-auto z-50">
-                    {results.map(product => (
-                        <div
-                            key={product.id}
-                            onClick={() => {
-                                onSelect(product);
-                                setQuery('');
-                                setShowResults(false);
-                            }}
-                            className="px-3 py-2 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-0 transition-colors"
-                        >
-                            <div className="flex items-center justify-between gap-3 text-xs text-gray-600">
-                                <span className="font-mono text-gray-500">{product.codigo_usuario}</span>
-                                <span className="flex-1 truncate">{product.nombre}</span>
-                                <span className="text-gray-700">S/ {product.precio}</span>
+                <div className="absolute top-full mt-2 w-full bg-white rounded-xl shadow-2xl border border-gray-100 overflow-hidden max-h-80 overflow-y-auto z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                    <div className="bg-gray-50 px-3 py-1.5 border-b border-gray-100">
+                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Resultados de búsqueda</span>
+                    </div>
+                    {results.map(product => {
+                        const hasStock = (product.stock_actual || 0) > 0;
+                        return (
+                            <div
+                                key={product.id}
+                                onClick={() => {
+                                    if (hasStock) {
+                                        onSelect(product);
+                                        setQuery('');
+                                        setShowResults(false);
+                                    }
+                                }}
+                                className={`px-4 py-3 border-b border-gray-50 last:border-0 transition-all flex items-center justify-between group ${
+                                    hasStock 
+                                    ? 'hover:bg-blue-50 cursor-pointer' 
+                                    : 'bg-gray-50/50 cursor-not-allowed grayscale-[0.5] opacity-60'
+                                }`}
+                            >
+                                <div className="flex flex-col gap-0.5">
+                                    <span className={`font-mono text-[10px] px-1.5 py-0.5 rounded w-fit transition-colors ${
+                                        hasStock ? 'text-blue-600 bg-blue-50 group-hover:bg-blue-100' : 'text-gray-400 bg-gray-100'
+                                    }`}>
+                                        {product.codigo_usuario}
+                                    </span>
+                                    <span className="text-sm font-semibold text-gray-800 truncate max-w-[200px]">
+                                        {product.nombre}
+                                    </span>
+                                </div>
+                                
+                                <div className="flex flex-col items-end gap-1">
+                                    <span className={`text-sm font-black leading-none ${hasStock ? 'text-gray-900' : 'text-gray-400'}`}>
+                                        S/ {Number(product.precio).toFixed(2)}
+                                    </span>
+                                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
+                                        hasStock 
+                                        ? 'bg-green-100 text-green-700' 
+                                        : 'bg-red-200 text-red-900'
+                                    }`}>
+                                        {hasStock ? `Stock: ${product.stock_actual}` : 'AGOTADO'}
+                                    </span>
+                                </div>
                             </div>
-                        </div>
-                    ))}
+                        );
+                    })}
                 </div>
             )}
         </div>

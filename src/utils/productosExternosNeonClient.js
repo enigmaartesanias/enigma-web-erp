@@ -32,6 +32,7 @@ export const productosExternosDB = {
         map[codigo].nombre = p.nombre || map[codigo].nombre;
         map[codigo].categoria = p.categoria || map[codigo].categoria;
         map[codigo].precio = p.precio || map[codigo].precio;
+        map[codigo].costo = (Number(p.costo) || map[codigo].costo);
       }
     });
     return Object.values(map);
@@ -73,6 +74,7 @@ export const productosExternosDB = {
           codigo_usuario,
           nombre,
           categoria,
+          material,
           descripcion,
           costo,
           precio,
@@ -87,6 +89,7 @@ export const productosExternosDB = {
           ${data.codigo_usuario},
           ${data.nombre},
           ${data.categoria},
+          ${data.material || ''},
           ${data.descripcion || ''},
           ${data.costo || 0},
           ${data.precio || 0},
@@ -109,6 +112,7 @@ export const productosExternosDB = {
           codigo_usuario = ${data.codigo_usuario},
           nombre = ${data.nombre},
           categoria = ${data.categoria},
+          material = ${data.material || ''},
           descripcion = ${data.descripcion},
           costo = ${data.costo},
           precio = ${data.precio},
@@ -181,21 +185,25 @@ export const productosExternosDB = {
 
   // Proceso especial: Enviar desde Producción a Stock (Actualiza o Crea)
   async enviarAStock(data) {
-    const { codigo, cantidad, precio, precioReferencial, produccionId, tipo_producto } = data;
+    const { codigo, cantidad, precio, precioReferencial, produccionId, tipo_producto, costo, material, imagen_url } = data;
 
     // Buscar si ya existe el producto
     const [producto] = await sql`SELECT * FROM productos_externos WHERE codigo_usuario = ${codigo} AND estado_activo = TRUE`;
 
     if (producto) {
-      // CASO A: ACTUALIZAR EXISTENTE (Incrementar stock)
+      // CASO A: ACTUALIZAR EXISTENTE (Incrementar stock y actualizar costos/precios)
       const [result] = await sql`
         UPDATE productos_externos SET
           stock_actual = stock_actual + ${cantidad},
           fecha_registro = CURRENT_TIMESTAMP,
           origen = 'PRODUCCION',
           produccion_id = ${produccionId},
+          costo = ${costo || 0},
           precio = COALESCE(${precio}, precio),
-          precio_adicional = COALESCE(${precioReferencial}, precio_adicional)
+          precio_adicional = COALESCE(${precioReferencial}, precio_adicional),
+          categoria = COALESCE(${tipo_producto?.toUpperCase()}, categoria),
+          material = COALESCE(${material}, material),
+          imagen_url = COALESCE(${imagen_url}, imagen_url)
         WHERE id = ${producto.id}
         RETURNING *
       `;
@@ -207,6 +215,7 @@ export const productosExternosDB = {
           codigo_usuario,
           nombre,
           categoria,
+          material,
           costo,
           precio,
           stock_actual,
@@ -220,12 +229,13 @@ export const productosExternosDB = {
         ) VALUES (
           ${codigo},
           ${data.nombre || `${tipo_producto} - ${codigo}`},
-          ${data.categoria || tipo_producto.toUpperCase()},
-          0,
+          ${data.categoria || tipo_producto?.toUpperCase()},
+          ${material || ''},
+          ${costo || 0},
           ${precio || 0},
           ${cantidad},
-          5,
-          ${data.imagen_url || null},
+          0,
+          ${imagen_url || null},
           'PRODUCCION',
           ${produccionId},
           ${precioReferencial || null},

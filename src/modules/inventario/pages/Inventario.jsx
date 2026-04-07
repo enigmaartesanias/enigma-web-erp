@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { productosExternosDB } from '../../../utils/productosExternosNeonClient';
-import { FaPlus, FaEdit, FaTrash, FaSearch, FaQrcode, FaArrowLeft, FaBox, FaDollarSign, FaWarehouse } from 'react-icons/fa';
+import { FaPlus, FaEdit, FaTrash, FaSearch, FaQrcode, FaArrowLeft, FaBox, FaDollarSign, FaWarehouse, FaShoppingCart } from 'react-icons/fa';
 import QRCode from 'react-qr-code';
 import toast, { Toaster } from 'react-hot-toast';
 import ConfirmModal from '../../../components/ui/ConfirmModal';
@@ -202,7 +202,10 @@ export default function Inventario() {
                                                 <span className="font-mono text-gray-600 text-xs">{producto.codigo_usuario}</span>
                                             </td>
                                             <td className="px-4 py-3">
-                                                <div className="text-gray-700 text-xs uppercase">{producto.categoria}</div>
+                                                <div className="text-gray-700 text-xs uppercase font-medium">{producto.categoria}</div>
+                                                {producto.material && (
+                                                    <div className="text-[10px] text-gray-400 uppercase italic leading-tight">{producto.material}</div>
+                                                )}
                                             </td>
                                             {/* <td className="px-4 py-3">
                                                 <span className="px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs">
@@ -243,6 +246,16 @@ export default function Inventario() {
                                                             <FaQrcode size={16} />
                                                         </button>
                                                     </Tooltip>
+                                                    {producto.stock_actual > 0 && (
+                                                        <Tooltip text="Vender este producto">
+                                                            <button
+                                                                onClick={() => navigate(`/ventas/nueva?codigo=${producto.codigo_usuario}`)}
+                                                                className="p-2 text-orange-600 hover:bg-orange-50 rounded transition-colors"
+                                                            >
+                                                                <FaShoppingCart size={16} />
+                                                            </button>
+                                                        </Tooltip>
+                                                    )}
                                                     <Tooltip text="Editar producto">
                                                         <button
                                                             onClick={() => navigate(`/inventario/editar/${producto.id}`)}

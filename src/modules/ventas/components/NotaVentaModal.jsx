@@ -90,25 +90,19 @@ const NotaVentaModal = ({ isOpen, onClose, ventaData }) => {
                     </div>
                 </div>
 
-                {/* Footer con botones */}
-                <div className="p-4 border-t border-gray-200 bg-white space-y-3">
-                    <button
-                        onClick={handleDescargar}
-                        className="w-full bg-green-700 text-white py-3.5 rounded-lg font-semibold text-base shadow-md hover:bg-green-800 transition flex justify-center items-center gap-2"
-                    >
-                        <FaDownload size={18} />
-                        <span>Descargar JPG</span>
-                    </button>
+                {/* Footer Minimalista - Solo Texto */}
+                <div className="p-6 border-t border-gray-50 bg-white flex justify-end items-center gap-8">
                     <button
                         onClick={handleCompartirWhatsApp}
-                        className="w-full bg-green-500 text-white py-3.5 rounded-lg font-semibold text-base shadow-md hover:bg-green-600 transition flex justify-center items-center gap-2"
+                        className="text-[11px] font-bold uppercase tracking-[0.2em] text-blue-600 hover:text-blue-800 transition-all flex items-center gap-2"
                     >
-                        <FaWhatsapp size={20} />
-                        <span>Compartir por WhatsApp</span>
+                        <div className="w-1.5 h-1.5 bg-blue-600 rounded-full animate-pulse"></div>
+                        Compartir Nota
                     </button>
+
                     <button
                         onClick={onClose}
-                        className="w-full bg-gray-300 text-gray-700 py-3.5 rounded-lg font-semibold text-base hover:bg-gray-400 transition"
+                        className="text-[11px] font-bold uppercase tracking-[0.2em] text-gray-400 hover:text-gray-900 transition-all"
                     >
                         Cerrar
                     </button>

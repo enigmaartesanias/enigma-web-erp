@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { productosExternosDB } from '../../../utils/productosExternosNeonClient';
+import { toast } from 'react-hot-toast';
 
 export const useVentas = () => {
     const [cart, setCart] = useState([]);
@@ -64,11 +65,21 @@ export const useVentas = () => {
         }
     };
 
-    // Agregar producto al carrito (manual o scanner)
     const addProductToCart = (producto) => {
+        const stockActual = parseInt(producto.stock_actual) || 0;
+        
+        if (stockActual <= 0) {
+            toast.error(`"${producto.nombre}" no tiene stock disponible`, { position: 'bottom-center' });
+            return;
+        }
+
         setCart(prev => {
             const existing = prev.find(item => item.id === producto.id);
             if (existing) {
+                if (existing.cantidad + 1 > stockActual) {
+                    toast.error(`Stock máximo alcanzado (${stockActual} unid.)`, { position: 'bottom-center' });
+                    return prev;
+                }
                 return prev.map(item =>
                     item.id === producto.id
                         ? { ...item, cantidad: item.cantidad + 1 }
@@ -78,7 +89,6 @@ export const useVentas = () => {
                 const precioBase = parseFloat(producto.precio) || 0;
                 const precioAlt = parseFloat(producto.precio_adicional) || null;
 
-                // Limpiar nombre si trae el código pegado para la visualización UX
                 let nombreLimpio = producto.nombre;
                 if (producto.codigo_usuario && nombreLimpio.includes(producto.codigo_usuario)) {
                     nombreLimpio = nombreLimpio.replace(`- ${producto.codigo_usuario}`, '').replace(producto.codigo_usuario, '').trim();
@@ -93,18 +103,24 @@ export const useVentas = () => {
                     precio_alternativo: precioAlt,
                     precio_venta: precioBase,
                     cantidad: 1,
-                    stockMax: producto.stock_actual,
+                    stockMax: stockActual,
                     categoria: producto.categoria
                 }];
             }
         });
     };
 
-    // Función para actualizar campos de un item
     const updateItem = (productId, changes) => {
         setCart(prev => prev.map(item => {
             if (item.id === productId) {
                 const updated = { ...item, ...changes };
+                
+                // Control de stock en actualización
+                if (updated.cantidad > item.stockMax) {
+                    toast.error(`Solo hay ${item.stockMax} unidades disponibles`, { position: 'bottom-center' });
+                    updated.cantidad = item.stockMax;
+                }
+
                 if (updated.cantidad < 1) updated.cantidad = 1;
                 if (updated.precio_venta < 0) updated.precio_venta = 0;
                 return updated;

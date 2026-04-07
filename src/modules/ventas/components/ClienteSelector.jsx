@@ -55,118 +55,127 @@ const ClienteSelector = ({ isOpen, onClose, onSelect }) => {
         onClose();
     };
 
-    const filteredClientes = clientes.filter(c =>
-        c.nombre.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        c.telefono.includes(searchQuery)
-    );
+    const filteredClientes = searchQuery.length > 0
+        ? clientes.filter(c =>
+            (c.nombre && c.nombre.toLowerCase().includes(searchQuery.toLowerCase())) ||
+            (c.telefono && c.telefono.includes(searchQuery))
+        )
+        : [];
 
     if (!isOpen) return null;
 
     return (
-        <>
-            <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-                <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[80vh] flex flex-col">
-                    {/* Header */}
-                    <div className="bg-gray-700 text-white px-4 py-3 rounded-t-lg flex justify-between items-center flex-shrink-0">
-                        <h3 className="text-base font-semibold">Seleccionar Cliente</h3>
-                        <button
-                            onClick={handleClose}
-                            className="text-white hover:text-gray-200 transition"
-                        >
-                            <FaTimes size={18} />
-                        </button>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-start justify-center p-4 pt-16 md:pt-24 transition-all">
+            <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden flex flex-col animate-in fade-in slide-in-from-top-4 duration-300">
+                {/* Header Profesional */}
+                <div className="bg-gray-800 p-5 text-white flex justify-between items-center relative overflow-hidden">
+                    <div className="relative z-10">
+                        <h3 className="text-lg font-bold">Buscar Cliente</h3>
+                        <p className="text-gray-400 text-[10px] uppercase tracking-widest mt-1">Enigma Sistema ERP</p>
                     </div>
+                    <button
+                        onClick={handleClose}
+                        className="relative z-10 w-10 h-10 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors"
+                    >
+                        <FaTimes size={20} />
+                    </button>
+                    {/* Elemento decorativo */}
+                    <div className="absolute -right-4 -bottom-4 w-24 h-24 bg-blue-600/20 rounded-full blur-2xl"></div>
+                </div>
 
-                    {/* Search */}
-                    <div className="p-3 border-b border-gray-100 flex-shrink-0">
-                        <div className="relative">
+                <div className="p-5 space-y-5">
+                    {/* Buscador Autocomplete */}
+                    <div className="relative">
+                        <label className="block text-xs font-bold text-gray-500 uppercase mb-2 tracking-wide">
+                            Nombre del Cliente o Celular
+                        </label>
+                        <div className="relative group">
+                            <FaSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-blue-500 transition-colors" size={16} />
                             <input
                                 type="text"
+                                autoFocus
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                placeholder="Buscar cliente..."
-                                className="w-full pl-9 pr-3 py-2 text-sm bg-gray-50 border border-gray-300 rounded-lg focus:ring-1 focus:ring-gray-400 outline-none"
+                                placeholder="Escribe para buscar..."
+                                className="w-full pl-12 pr-4 py-4 bg-gray-50 border-2 border-gray-100 rounded-xl focus:bg-white focus:border-blue-500 transition-all outline-none text-gray-800 font-medium"
                             />
-                            <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={12} />
                         </div>
                     </div>
 
-                    {/* Lista */}
-                    <div className="flex-1 overflow-y-auto p-3 space-y-2">
+                    {/* Resultados de Búsqueda DINÁMICOS */}
+                    <div className="max-h-64 overflow-y-auto space-y-2 py-2">
                         {loading ? (
-                            <div className="text-center py-8 text-gray-400 text-sm">Cargando...</div>
+                            <div className="text-center py-6">
+                                <div className="w-6 h-6 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
+                            </div>
+                        ) : searchQuery.length < 2 ? (
+                            <div className="text-center py-10 opacity-40">
+                                <FaSearch size={40} className="mx-auto mb-3" />
+                                <p className="text-xs font-bold uppercase">Empieza a escribir...</p>
+                            </div>
                         ) : filteredClientes.length === 0 ? (
-                            <div className="text-center py-8 text-gray-400 text-sm">
-                                No hay clientes
+                            <div className="text-center py-10">
+                                <p className="text-sm text-gray-400 mb-4">No encontramos a ningún cliente</p>
+                                <button
+                                    onClick={() => setShowForm(true)}
+                                    className="px-6 py-2 bg-blue-50 text-blue-600 rounded-full text-xs font-bold hover:bg-blue-100 transition-colors"
+                                >
+                                    + Crear Nuevo Cliente
+                                </button>
                             </div>
                         ) : (
-                            filteredClientes.map(cliente => (
-                                <label
-                                    key={cliente.id}
-                                    className={`block p-3 rounded-lg border cursor-pointer transition ${selectedId === cliente.id
-                                            ? 'border-gray-600 bg-gray-50'
-                                            : 'border-gray-200 hover:border-gray-400'
-                                        }`}
-                                >
-                                    <div className="flex items-start gap-2">
-                                        <input
-                                            type="radio"
-                                            name="cliente"
-                                            checked={selectedId === cliente.id}
-                                            onChange={() => setSelectedId(cliente.id)}
-                                            className="mt-1"
-                                        />
-                                        <div className="flex-1">
-                                            <div className="font-medium text-gray-800 text-sm">
-                                                {cliente.nombre}
+                            <div className="grid gap-2">
+                                {filteredClientes.map(cliente => (
+                                    <button
+                                        key={cliente.id}
+                                        onClick={() => onSelect(cliente)}
+                                        className="w-full text-left p-4 rounded-2xl border-2 border-transparent hover:border-blue-200 hover:bg-blue-50 transition-all group flex items-center justify-between"
+                                    >
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-10 h-10 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center font-black text-xs uppercase group-hover:bg-blue-600 group-hover:text-white transition-all">
+                                                {cliente.nombre.substring(0, 2)}
                                             </div>
-                                            <div className="text-gray-600 text-xs">
-                                                📞 {cliente.telefono}
+                                            <div>
+                                                <div className="font-bold text-gray-800 text-sm group-hover:text-blue-700 transition-colors">
+                                                    {cliente.nombre}
+                                                </div>
+                                                <div className="text-[10px] text-gray-500 font-medium mt-0.5">
+                                                    {cliente.telefono || 'Sin teléfono'}
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
-                                </label>
-                            ))
+                                        <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <div className="bg-blue-600 text-white p-1.5 rounded-full">
+                                                <FaPlus size={10} />
+                                            </div>
+                                        </div>
+                                    </button>
+                                ))}
+                            </div>
                         )}
                     </div>
+                </div>
 
-                    {/* Crear Nuevo Cliente */}
-                    <div className="p-3 border-t border-gray-100 flex-shrink-0">
+                {/* Footer con Botón Crear Siempre Visible si hay búsqueda */}
+                {(searchQuery.length >= 2 || filteredClientes.length > 0) && (
+                    <div className="p-4 bg-gray-50 border-t border-gray-100 flex justify-center">
                         <button
                             onClick={() => setShowForm(true)}
-                            className="w-full px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition flex items-center justify-center gap-2"
+                            className="text-[10px] font-black text-gray-400 hover:text-blue-600 uppercase tracking-widest transition-colors"
                         >
-                            <FaPlus size={12} />
-                            Crear nuevo cliente
+                            ¿No está en la lista? Crea un cliente nuevo
                         </button>
                     </div>
-
-                    {/* Botones de Acción */}
-                    <div className="p-3 border-t border-gray-100 flex gap-2 flex-shrink-0">
-                        <button
-                            onClick={handleClose}
-                            className="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition"
-                        >
-                            Cancelar
-                        </button>
-                        <button
-                            onClick={handleConfirm}
-                            disabled={!selectedId}
-                            className="flex-1 px-4 py-2 text-sm font-medium text-white bg-gray-600 rounded-lg hover:bg-gray-700 transition disabled:bg-gray-300 disabled:cursor-not-allowed"
-                        >
-                            Aceptar
-                        </button>
-                    </div>
-                </div>
+                )}
             </div>
 
-            {/* Formulario de Crear Cliente */}
+            {/* Modal de Formulario (Mantiene su estado arriba) */}
             <ClienteForm
                 isOpen={showForm}
                 onClose={() => setShowForm(false)}
                 onSave={handleSaveCliente}
             />
-        </>
+        </div>
     );
 };
 

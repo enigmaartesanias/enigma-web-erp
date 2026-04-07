@@ -4,7 +4,7 @@ const SocialProof = () => {
     const socialStats = [
         {
             platform: 'Instagram',
-            followers: '16.8k',
+            followers: '17.5k',
             icon: FaInstagram,
             url: 'https://www.instagram.com/enigma_artesanias/',
             color: 'from-purple-600 to-pink-600',
@@ -12,7 +12,7 @@ const SocialProof = () => {
         },
         {
             platform: 'TikTok',
-            followers: '2k',
+            followers: '2.8k',
             icon: FaTiktok,
             url: 'https://www.tiktok.com/@artesaniasenigma',
             color: 'from-gray-900 to-gray-700',
@@ -20,7 +20,7 @@ const SocialProof = () => {
         },
         {
             platform: 'Facebook',
-            followers: '12k',
+            followers: '14.5k',
             icon: FaFacebook,
             url: 'https://www.facebook.com/enigmaartesaniasyaccesorios/',
             color: 'from-blue-600 to-blue-800',
@@ -28,7 +28,7 @@ const SocialProof = () => {
         },
         {
             platform: 'YouTube',
-            followers: '7.3k',
+            followers: '7.4k',
             icon: FaYoutube,
             url: 'https://www.youtube.com/@artesaniasenigma',
             color: 'from-red-600 to-red-700',
@@ -47,7 +47,7 @@ const SocialProof = () => {
                     </h2>
                     <div className="w-16 h-0.5 bg-yellow-500 mx-auto mb-3"></div>
                     <p className="text-base md:text-xl text-gray-600">
-                        Más de <span className="font-bold text-gray-900">38,000 seguidores</span> confían en nuestro arte
+                        Más de <span className="font-bold text-gray-900">42,000 seguidores</span> confían en nuestro arte
                     </p>
                 </div>
 

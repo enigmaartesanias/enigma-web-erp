@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useVentas } from '../hooks/useVentas';
 import { ventasDB } from '../../../utils/ventasClient';
 import { cuentasPorCobrarDB } from '../../../utils/cuentasPorCobrarClient';
@@ -22,6 +22,19 @@ const NuevaVenta = () => {
         loadingProducto, scanProduct, addProductToCart,
         updateItem, removeFromCart, clearCart
     } = useVentas();
+
+    const [searchParams, setSearchParams] = useSearchParams();
+
+    // Auto-scan si viene un código por URL (desde inventario)
+    useEffect(() => {
+        const codigoUrl = searchParams.get('codigo');
+        if (codigoUrl) {
+            handleScan(codigoUrl);
+            // Limpiar parámetro de la URL
+            searchParams.delete('codigo');
+            setSearchParams(searchParams);
+        }
+    }, [searchParams]);
 
     const [formaPago, setFormaPago] = useState('Efectivo');
     const [fechaVenta, setFechaVenta] = useState(getLocalDate());
@@ -106,6 +119,7 @@ const NuevaVenta = () => {
                 }),
                 cliente: venta.cliente_nombre || 'Cliente General',
                 productos: cart.map(item => ({
+                    codigo: item.codigo,
                     nombre: item.nombre,
                     cantidad: item.cantidad,
                     precioUnitario: item.precio_venta
@@ -202,6 +216,7 @@ const NuevaVenta = () => {
                 }),
                 cliente: venta.cliente_nombre || 'Cliente General',
                 productos: cart.map(item => ({
+                    codigo: item.codigo,
                     nombre: item.nombre,
                     cantidad: item.cantidad,
                     precioUnitario: item.precio_venta
@@ -223,7 +238,29 @@ const NuevaVenta = () => {
         }
     };
 
-
+    const handlePreview = () => {
+        if (cart.length === 0) {
+            alert("Agregue al menos un producto");
+            return;
+        }
+        setVentaRegistrada({
+            numeroVenta: 'PREVIEW',
+            fecha: fechaVenta,
+            cliente: config.cliente, // objeto o string
+            productos: cart.map(item => ({
+                codigo: item.codigo,
+                nombre: item.nombre,
+                cantidad: item.cantidad,
+                precioUnitario: item.precio_venta
+            })),
+            subtotal: totals.subtotal,
+            igv: totals.impuesto,
+            descuento: totals.descuento,
+            total: totals.total,
+            formaPago: formaPago
+        });
+        setShowNotaVenta(true);
+    };
 
     return (
         <div className="min-h-screen bg-gray-50 flex flex-col h-screen overflow-hidden">
@@ -324,6 +361,7 @@ const NuevaVenta = () => {
                         onCancel={clearCart}
                         fechaVenta={fechaVenta}
                         setFechaVenta={setFechaVenta}
+                        onPreview={handlePreview}
                         // En desktop pasamos false implícitamente si quisiéramos controlar, pero aquí pasamos true.
                         // El truco es que ResumenVenta oculte la lista en MD.
                         showCartList={true}

@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { productosExternosDB } from '../../../utils/productosExternosNeonClient';
+import { produccionDB } from '../../../utils/produccionNeonClient';
 import { tiposProductoDB } from '../../../utils/tiposProductoDB';
 import { storage } from '../../../firebaseConfig';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -26,12 +27,13 @@ const ProductoEdit = () => {
         precio: '',
         codigo_usuario: '',
         stock_actual: '',
-        stock_minimo: '',
         unidad: 'UND',
         categoria: '',
+        material: '',
         descripcion: '',
         precio_adicional: '',
-        origen: 'COMPRA'
+        origen: 'COMPRA',
+        produccion_id: null
     });
 
     useEffect(() => {
@@ -49,18 +51,33 @@ const ProductoEdit = () => {
             setCategorias(categoriasData);
 
             if (productData) {
+                let currentMaterial = productData.material || '';
+
+                // Si es de producción y no tiene material, intentar recuperarlo del registro original
+                if (productData.origen === 'PRODUCCION' && !currentMaterial && productData.produccion_id) {
+                    try {
+                        const originalProd = await produccionDB.getById(productData.produccion_id);
+                        if (originalProd && originalProd.metal) {
+                            currentMaterial = originalProd.metal;
+                        }
+                    } catch (err) {
+                        console.error('Error recuperando metal de producción:', err);
+                    }
+                }
+
                 setFormData({
                     nombre: productData.nombre || '',
                     costo: productData.costo || '',
                     precio: productData.precio || '',
                     codigo_usuario: productData.codigo_usuario || '',
                     stock_actual: productData.stock_actual || 0,
-                    stock_minimo: productData.stock_minimo || 0,
                     unidad: productData.unidad || 'UND',
                     categoria: productData.categoria || '',
+                    material: currentMaterial,
                     descripcion: productData.descripcion || '',
                     precio_adicional: productData.precio_adicional || '',
-                    origen: productData.origen || 'COMPRA'
+                    origen: productData.origen || 'COMPRA',
+                    produccion_id: productData.produccion_id || null
                 });
                 setPreviewUrl(productData.imagen_url);
             } else {
@@ -88,7 +105,6 @@ const ProductoEdit = () => {
         const file = e.target.files[0];
         if (!file) return;
 
-        // Validar archivo
         const validation = validateImageFile(file, 5);
         if (!validation.valid) {
             alert(validation.error);
@@ -98,17 +114,15 @@ const ProductoEdit = () => {
         setProcessingImage(true);
 
         try {
-            // Comprimir y redimensionar imagen
             const optimizedFile = await compressAndResizeImage(file, {
                 maxSizeMB: 1,
-                maxWidth: 1200,
-                maxHeight: 1200,
-                quality: 0.95
+                maxWidth: 1000,
+                maxHeight: 1000,
+                quality: 0.8
             });
 
             setImageFile(optimizedFile);
 
-            // Mostrar preview
             const reader = new FileReader();
             reader.onloadend = () => {
                 setPreviewUrl(reader.result);
@@ -116,7 +130,7 @@ const ProductoEdit = () => {
             reader.readAsDataURL(optimizedFile);
         } catch (error) {
             console.error('Error al procesar imagen:', error);
-            alert('Error al procesar la imagen. Intente con otra imagen.');
+            alert('Error al procesar la imagen.');
         } finally {
             setProcessingImage(false);
         }
@@ -132,9 +146,8 @@ const ProductoEdit = () => {
 
         try {
             setLoading(true);
-            let imageUrl = previewUrl; // Mantener URL actual por defecto
+            let imageUrl = previewUrl;
 
-            // 1. Subir nueva imagen si se seleccionó
             if (imageFile) {
                 const fileName = `productos_externos/${uuidv4()}_${imageFile.name}`;
                 const storageRef = ref(storage, fileName);
@@ -142,22 +155,36 @@ const ProductoEdit = () => {
                 imageUrl = await getDownloadURL(storageRef);
             }
 
-            // 2. Actualizar en Base de Datos
             const productData = {
                 ...formData,
                 costo: parseFloat(formData.costo),
                 precio: parseFloat(formData.precio),
                 stock_actual: parseInt(formData.stock_actual) || 0,
-                stock_minimo: parseInt(formData.stock_minimo) || 0,
+                stock_minimo: 0,
                 precio_adicional: formData.precio_adicional ? parseFloat(formData.precio_adicional) : null,
                 imagen_url: imageUrl,
-                origen: formData.origen
+                material: formData.material
             };
 
             await productosExternosDB.update(id, productData);
 
+            // Si es de producción, actualizar también la imagen en el registro original
+            if (formData.origen === 'PRODUCCION' && formData.produccion_id && imageUrl !== previewUrl) {
+                try {
+                    const prodRecord = await produccionDB.getById(formData.produccion_id);
+                    if (prodRecord) {
+                        await produccionDB.update(formData.produccion_id, {
+                            ...prodRecord,
+                            imagen_url: imageUrl
+                        });
+                    }
+                } catch (err) {
+                    console.error('Error sincronizando con producción:', err);
+                }
+            }
+
             alert('Producto actualizado correctamente');
-            navigate('/inventario'); // Volver al reporte
+            navigate('/inventario');
 
         } catch (error) {
             console.error('Error al actualizar:', error);
@@ -170,229 +197,188 @@ const ProductoEdit = () => {
     if (fetching) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-gray-50">
-                <div className="text-xl font-semibold text-gray-500">Cargando producto...</div>
+                <div className="text-xl font-semibold text-gray-500 italic">Cargando información...</div>
             </div>
         );
     }
 
+    const isFromProduction = formData.origen === 'PRODUCCION';
+
     return (
-        <div className="min-h-screen bg-gray-50 pb-20">
-            {/* Header Sticky */}
-            <div className="bg-white shadow-sm sticky top-0 z-10 px-4 py-4 flex justify-between items-center mb-6">
+        <div className="min-h-screen bg-gray-50 pb-10">
+            <div className="bg-white shadow-sm sticky top-0 z-20 px-4 py-3 flex justify-between items-center mb-4">
                 <button
                     onClick={() => navigate('/inventario')}
-                    className="p-2 text-gray-500 hover:bg-gray-100 rounded-full transition-colors"
+                    className="p-2 text-gray-400 hover:bg-gray-100 rounded-full transition-colors"
                 >
-                    <FaTimes size={24} />
+                    <FaTimes size={20} />
                 </button>
-                <h1 className="text-xl font-bold text-gray-800">Editar Producto</h1>
+                <h1 className="text-lg font-bold text-gray-800">
+                    {isFromProduction ? 'Ficha de Producción' : 'Editar Producto'}
+                </h1>
                 <div className="w-10"></div>
             </div>
 
-            <div className="max-w-2xl mx-auto px-4 space-y-6">
-
-                {/* 1. Información Principal */}
-                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-6">
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Nombre del Producto *</label>
-                        <input
-                            type="text"
-                            name="nombre"
-                            value={formData.nombre}
-                            onChange={handleChange}
-                            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all text-gray-900"
-                        />
+            <div className="max-w-xl mx-auto px-4 space-y-4">
+                
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col items-center justify-center relative">
+                        <div
+                            className="w-32 h-32 bg-gray-50 rounded-lg border-2 border-dashed border-gray-200 flex items-center justify-center relative overflow-hidden cursor-pointer hover:border-blue-400"
+                            onClick={() => fileInputRef.current.click()}
+                        >
+                            {previewUrl ? (
+                                <img src={previewUrl} alt="Preview" className="w-full h-full object-cover" />
+                            ) : (
+                                <FaCamera size={30} className="text-gray-300" />
+                            )}
+                            <div className="absolute inset-x-0 bottom-0 bg-black/40 text-white text-[9px] py-1 text-center font-bold">EDITAR FOTO</div>
+                        </div>
+                        <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleImageChange} />
+                        <span className="text-[10px] text-gray-400 mt-2 font-medium">REPRESENTATIVO</span>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-6">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Costo (S/) *</label>
-                            <div>
-                                <input
-                                    type="number"
-                                    name="costo"
-                                    value={formData.costo}
-                                    onChange={handleChange}
-                                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-gray-900"
-                                    step="0.01"
-                                />
-                            </div>
+                    <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col items-center justify-center">
+                        <div className="w-32 h-32 bg-white p-2 border border-blue-50 rounded-lg flex items-center justify-center">
+                            {formData.codigo_usuario ? (
+                                <QRCode value={formData.codigo_usuario} size={100} />
+                            ) : (
+                                <FaQrcode className="text-gray-200 text-5xl" />
+                            )}
                         </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Precio Venta (S/) *</label>
-                            <div>
-                                <input
-                                    type="number"
-                                    name="precio"
-                                    value={formData.precio}
-                                    onChange={handleChange}
-                                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-gray-900"
-                                    step="0.01"
-                                />
-                            </div>
-                        </div>
+                        <span className="text-[10px] text-gray-400 mt-2 font-mono font-bold uppercase tracking-widest">{formData.codigo_usuario}</span>
                     </div>
                 </div>
 
-                {/* 2. Imagen Central */}
-                <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center">
-                    <div
-                        className="w-48 h-48 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-300 flex items-center justify-center cursor-pointer relative overflow-hidden group hover:border-blue-500 hover:bg-blue-50 transition-all duration-300"
-                        onClick={() => fileInputRef.current.click()}
-                    >
-                        {previewUrl ? (
-                            <img src={previewUrl} alt="Preview" className="w-full h-full object-cover" />
-                        ) : (
-                            <div className="text-center text-gray-400 group-hover:text-blue-500 transition-colors">
-                                <FaCamera size={40} className="mx-auto mb-3" />
-                                <span className="text-sm font-medium">Cambiar Foto</span>
-                            </div>
-                        )}
-                        <input
-                            type="file"
-                            ref={fileInputRef}
-                            className="hidden"
-                            accept="image/*"
-                            onChange={handleImageChange}
-                        />
-                    </div>
-                    <p className="text-xs text-gray-500 mt-2">Haz clic para cambiar la imagen</p>
-                </div>
+                <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="col-span-2">
+                            <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Nombre del Producto</label>
+                            <input
+                                type="text"
+                                name="nombre"
+                                value={formData.nombre}
+                                onChange={handleChange}
+                                disabled={isFromProduction}
+                                className={`w-full px-3 py-2 border rounded-lg text-sm transition-all outline-none ${isFromProduction ? 'bg-gray-50 text-gray-600 border-gray-100 font-medium' : 'border-gray-300 focus:ring-1 focus:ring-blue-500'}`}
+                            />
+                        </div>
+                        
+                        <div>
+                            <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Tipo de Producto</label>
+                            {isFromProduction ? (
+                                <div className="w-full px-3 py-2 border border-gray-100 rounded-lg text-sm bg-gray-50 text-gray-600 font-medium uppercase">
+                                    {formData.categoria}
+                                </div>
+                            ) : (
+                                <select
+                                    name="categoria"
+                                    value={formData.categoria}
+                                    onChange={handleChange}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:ring-1 focus:ring-blue-500 outline-none"
+                                >
+                                    <option value="">-- Seleccionar --</option>
+                                    {categorias.map(cat => <option key={cat.id} value={cat.nombre}>{cat.nombre}</option>)}
+                                </select>
+                            )}
+                        </div>
 
-                {/* 3. Identificación y QR */}
-                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                    <div className="flex items-start space-x-6">
-                        <div className="flex-1">
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Código / Clave *</label>
+                        <div>
+                            <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Material / Metal</label>
+                            <input
+                                type="text"
+                                name="material"
+                                value={formData.material}
+                                onChange={handleChange}
+                                disabled={isFromProduction}
+                                placeholder=""
+                                className={`w-full px-3 py-2 border rounded-lg text-sm transition-all outline-none ${isFromProduction ? 'bg-gray-50 text-gray-600 border-gray-100 font-medium' : 'border-gray-300 focus:ring-1 focus:ring-blue-500'}`}
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Código SKU</label>
                             <input
                                 type="text"
                                 name="codigo_usuario"
                                 value={formData.codigo_usuario}
                                 onChange={handleChange}
-                                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 font-mono text-lg uppercase tracking-wider text-gray-900"
+                                disabled={isFromProduction}
+                                className={`w-full px-3 py-2 border rounded-lg text-sm font-mono transition-all outline-none ${isFromProduction ? 'bg-gray-50 text-gray-500 border-gray-100 uppercase' : 'border-gray-300 focus:ring-1 focus:ring-blue-500 uppercase'}`}
                             />
-                        </div>
-
-                        {/* QR Preview */}
-                        <div className="flex flex-col items-center pt-1">
-                            <div className="w-28 h-28 bg-white p-2 border border-gray-200 rounded-xl flex items-center justify-center shadow-sm">
-                                {formData.codigo_usuario ? (
-                                    <QRCode value={formData.codigo_usuario} size={100} />
-                                ) : (
-                                    <FaQrcode className="text-gray-300 text-5xl" />
-                                )}
-                            </div>
                         </div>
                     </div>
                 </div>
 
-                {/* 4. Stock e Inventario */}
-                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                    <div className="grid grid-cols-2 gap-6">
+                <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100">
+                    <div className="grid grid-cols-3 gap-4">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Cantidad Actual</label>
+                            <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Stock Actual</label>
                             <input
                                 type="number"
                                 name="stock_actual"
                                 value={formData.stock_actual}
                                 onChange={handleChange}
-                                className="w-full px-4 py-3 border border-gray-300 rounded-xl text-center font-semibold text-lg text-gray-900"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-bold text-center focus:ring-1 focus:ring-blue-500 outline-none"
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Stock Mínimo</label>
+                            <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Costo Total (S/)</label>
                             <input
                                 type="number"
-                                name="stock_minimo"
-                                value={formData.stock_minimo}
+                                name="costo"
+                                value={formData.costo}
                                 onChange={handleChange}
-                                className="w-full px-4 py-3 border border-gray-300 rounded-xl text-center text-lg text-gray-900"
+                                disabled={isFromProduction}
+                                className={`w-full px-3 py-2 border rounded-lg text-center text-sm transition-all outline-none ${isFromProduction ? 'bg-gray-50 text-gray-500 border-gray-100 font-mono' : 'border-gray-300 focus:ring-1 focus:ring-blue-500'}`}
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-[10px] font-bold text-blue-600 uppercase mb-1">Precio Venta</label>
+                            <input
+                                type="number"
+                                name="precio"
+                                value={formData.precio}
+                                onChange={handleChange}
+                                className="w-full px-3 py-2 border border-blue-200 bg-blue-50/30 rounded-lg text-center text-sm font-bold text-blue-700 focus:ring-1 focus:ring-blue-500 outline-none"
                             />
                         </div>
                     </div>
-                </div>
-
-                {/* 5. Clasificación y Detalles */}
-                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-6">
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Categoría</label>
-                        <select
-                            name="categoria"
-                            value={formData.categoria}
+                    
+                    <div className="mt-4 pt-4 border-t border-gray-50">
+                        <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Precio Miembro / Liq. (S/)</label>
+                        <input
+                            type="number"
+                            name="precio_adicional"
+                            value={formData.precio_adicional}
                             onChange={handleChange}
-                            className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none"
-                        >
-                            <option value="">-- Seleccionar --</option>
-                            {categorias.map(cat => (
-                                <option key={cat.id} value={cat.nombre}>{cat.nombre}</option>
-                            ))}
-                        </select>
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Información Adicional</label>
-                        <textarea
-                            name="descripcion"
-                            value={formData.descripcion}
-                            onChange={handleChange}
-                            rows="3"
-                            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none resize-none text-gray-900"
+                            placeholder="0.00"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-1 focus:ring-blue-500 outline-none"
                         />
                     </div>
-
-                    <div>
-                        <label className="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wide">Origen</label>
-                        <div className="flex space-x-3">
-                            <label className={`cursor-pointer group relative flex items-center justify-center px-4 py-1.5 rounded-md text-xs font-medium transition-all ${formData.origen === 'COMPRA' ? 'bg-green-600 text-white shadow-sm' : 'bg-white text-gray-600 border border-gray-200 hover:border-gray-300'}`}>
-                                <input
-                                    type="radio"
-                                    name="origen"
-                                    value="COMPRA"
-                                    checked={formData.origen === 'COMPRA'}
-                                    onChange={handleChange}
-                                    className="sr-only"
-                                />
-                                <span>Compra / Externo</span>
-                            </label>
-
-                            <label className={`cursor-pointer group relative flex items-center justify-center px-4 py-1.5 rounded-md text-xs font-medium transition-all ${formData.origen === 'PRODUCCION' ? 'bg-purple-600 text-white shadow-sm' : 'bg-white text-gray-600 border border-gray-200 hover:border-gray-300'}`}>
-                                <input
-                                    type="radio"
-                                    name="origen"
-                                    value="PRODUCCION"
-                                    checked={formData.origen === 'PRODUCCION'}
-                                    onChange={handleChange}
-                                    className="sr-only"
-                                />
-                                <span>Producción Taller</span>
-                            </label>
-                        </div>
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Precios Adicionales (S/) (Liquidación)</label>
-                        <div>
-                            <input
-                                type="number"
-                                name="precio_adicional"
-                                value={formData.precio_adicional}
-                                onChange={handleChange}
-                                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-gray-900"
-                                step="0.01"
-                            />
-                        </div>
-                    </div>
                 </div>
 
-                {/* Botón Final */}
+                <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100">
+                    <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Información Adicional</label>
+                    <textarea
+                        name="descripcion"
+                        value={formData.descripcion}
+                        onChange={handleChange}
+                        disabled={isFromProduction}
+                        rows="2"
+                        className={`w-full px-3 py-2 border rounded-lg text-xs transition-all outline-none resize-none ${isFromProduction ? 'bg-gray-50 text-gray-500 border-gray-100 italic' : 'border-gray-300 focus:ring-1 focus:ring-blue-500'}`}
+                        placeholder="Sin notas añadidas..."
+                    />
+                </div>
+
                 <div className="pt-4 pb-8">
                     <button
                         onClick={handleSubmit}
                         disabled={loading}
-                        className="w-full bg-blue-600 text-white text-lg font-bold py-4 rounded-2xl shadow-lg hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2"
+                        className="w-full bg-blue-600 text-white text-lg font-bold py-4 rounded-2xl shadow-lg hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2 shadow-blue-200"
                     >
                         {loading ? (
-                            <span>Guardando...</span>
+                            <span>Actualizando...</span>
                         ) : (
                             <>
                                 <FaSave size={24} />
@@ -400,6 +386,11 @@ const ProductoEdit = () => {
                             </>
                         )}
                     </button>
+                    {isFromProduction && (
+                        <p className="text-[10px] text-gray-400 text-center mt-3 uppercase tracking-tighter">
+                            * Los cambios de imagen se reflejarán también en el reporte de producción
+                        </p>
+                    )}
                 </div>
 
             </div>

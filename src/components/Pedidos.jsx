@@ -857,11 +857,17 @@ const Pedidos = () => {
 
         // FASE 3: Filtrado por tab (Pendientes, Producción, Terminados)
         if (activeTab === 'pendientes') {
-            // Tab Pendientes: pedidos aceptados sin iniciar producción
+            // Tab Pendientes: pedidos aceptados sin iniciar producción O con items pendientes
             const isNoIniciado = estadoProd === 'no_iniciado' || estadoProd === 'pendiente' || !estadoProd;
-            if (!isNoIniciado || estadoPed === 'entregado') {
-                return false;
-            }
+            
+            // Si no está iniciado, es pendiente. 
+            // Si está en proceso pero tiene productos pendientes (tiene_productos_pendientes), también es pendiente.
+            if (estadoPed === 'entregado' || estadoPed === 'cancelado') return false;
+            
+            if (isNoIniciado) return true;
+            if (p.tiene_productos_pendientes) return true;
+            
+            return false;
         } else if (activeTab === 'produccion') {
             // Tab Producción: pedidos EN PROCESO (no terminados, no entregados)
             // Normaliza variaciones: 'en_proceso', 'en proceso', 'en_produccion'
@@ -1058,9 +1064,19 @@ const Pedidos = () => {
                 <form onSubmit={handleSubmit} className="space-y-6">
                     {/* Sección Cliente */}
                     <div className="bg-gray-50/50 p-4 md:p-6 rounded-2xl border border-gray-200 shadow-sm transition-all hover:shadow-md">
-                        <h3 className="text-lg md:text-xl font-bold mb-4 text-blue-700 flex items-center gap-2">
-                            <FaUser className="text-blue-500" />
-                            Cliente
+                        <h3 className="text-lg md:text-xl font-bold mb-4 text-blue-700 flex items-center justify-between gap-2">
+                            <span className="flex items-center gap-2">
+                                <FaUser className="text-blue-500" />
+                                Cliente
+                            </span>
+                            <Link
+                                to="/clientes"
+                                className="flex items-center gap-1 text-[9px] font-extrabold text-blue-600 bg-blue-50 px-2 py-1 rounded-full hover:bg-blue-100 transition-all border border-blue-100 shadow-sm whitespace-nowrap"
+                                title="Registrar nuevo cliente"
+                            >
+                                <FaPlus size={8} />
+                                REGISTRAR
+                            </Link>
                         </h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
                             <div className="md:col-span-2 relative" ref={searchRef}>
@@ -1119,13 +1135,7 @@ const Pedidos = () => {
                                             <div className="p-8 bg-gray-50/50 flex flex-col items-center gap-4 text-center">
                                                 <div className="text-[13px] text-gray-400 font-medium tracking-tight">Cliente no encontrado en la base de datos</div>
                                                 <div className="flex flex-col w-full gap-2 px-4">
-                                                    <Link
-                                                        to="/clientes"
-                                                        className="w-full inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-white border border-gray-200 rounded-full text-[11px] font-bold text-blue-600 hover:bg-blue-50 hover:border-blue-200 transition-all shadow-sm group"
-                                                    >
-                                                        <FaPlus size={10} className="text-blue-400 group-hover:text-blue-600" />
-                                                        REGISTRAR NUEVO CLIENTE
-                                                    </Link>
+                                                    <div className="text-[11px] text-gray-400 font-medium px-4">Utilice el botón superior para registrar</div>
                                                     <button
                                                         type="button"
                                                         onClick={() => {
@@ -1229,41 +1239,43 @@ const Pedidos = () => {
                                     rows={6}
                                 />
                             </div>
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-700">Cantidad *</label>
-                                <input
-                                    type="number"
-                                    name="cantidad"
-                                    value={productoActual.cantidad}
-                                    onChange={handleProductoChange}
-                                    onFocus={handleFocus}
-                                    min="1"
-                                    className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2.5 transition-all bg-white"
-                                    onWheel={handleWheel}
-                                />
-                            </div>
-                            <div className="flex space-x-2">
-                                <div className="flex-1">
-                                    <label className="block text-sm font-semibold text-gray-700">Precio Unitario *</label>
+                            <div className="md:col-span-3 grid grid-cols-[100px_1fr] gap-3">
+                                <div>
+                                    <label className="block text-sm font-semibold text-gray-700">Cantidad *</label>
                                     <input
                                         type="number"
-                                        name="precio_unitario"
-                                        value={productoActual.precio_unitario}
+                                        name="cantidad"
+                                        value={productoActual.cantidad}
                                         onChange={handleProductoChange}
                                         onFocus={handleFocus}
-                                        step="0.01"
+                                        min="1"
                                         className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2.5 transition-all bg-white"
                                         onWheel={handleWheel}
                                     />
                                 </div>
-                                <button
-                                    type="button"
-                                    onClick={agregarProducto}
-                                    className="mt-7 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-sm flex items-center justify-center transition-all active:scale-95"
-                                    title="Agregar Producto"
-                                >
-                                    <FaPlus />
-                                </button>
+                                <div className="flex space-x-2">
+                                    <div className="flex-1">
+                                        <label className="block text-sm font-semibold text-gray-700">Precio Unitario *</label>
+                                        <input
+                                            type="number"
+                                            name="precio_unitario"
+                                            value={productoActual.precio_unitario}
+                                            onChange={handleProductoChange}
+                                            onFocus={handleFocus}
+                                            step="0.01"
+                                            className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2.5 transition-all bg-white"
+                                            onWheel={handleWheel}
+                                        />
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={agregarProducto}
+                                        className="mt-7 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-sm flex items-center justify-center transition-all active:scale-95"
+                                        title="Agregar Producto"
+                                    >
+                                        <FaPlus />
+                                    </button>
+                                </div>
                             </div>
                         </div>
 
@@ -1420,7 +1432,7 @@ const Pedidos = () => {
                             </div>
 
                             <div className="md:col-span-2">
-                                <label className="block text-sm font-bold text-blue-800 mb-2">💰 Adelanto</label>
+                                <label className="block text-sm font-bold text-blue-800 mb-2">💰 Adelanto o Cancelación</label>
                                 <input
                                     type="number"
                                     name="monto_a_cuenta"
@@ -1503,7 +1515,7 @@ const Pedidos = () => {
                 {
                     (() => {
                         const counts = {
-                            pendientes: pedidos.filter(p => p.estado_pedido !== 'entregado' && p.estado_produccion !== 'terminado' && p.estado_produccion !== 'en_proceso' && p.estado_pedido !== 'cancelado').length,
+                            pendientes: pedidos.filter(p => p.estado_pedido !== 'entregado' && p.estado_pedido !== 'cancelado' && (p.estado_produccion === 'no_iniciado' || p.tiene_productos_pendientes)).length,
                             produccion: pedidos.filter(p => p.estado_produccion === 'en_proceso' && p.estado_pedido !== 'entregado').length,
                             terminados: pedidos.filter(p => p.estado_produccion === 'terminado' && p.estado_pedido !== 'entregado').length
                         };
@@ -1695,6 +1707,13 @@ const Pedidos = () => {
                                                 <td className={`px-4 py-4 whitespace-nowrap text-sm font-bold text-right ${pedido.monto_saldo > 0 ? 'text-red-600' : 'text-green-600'}`}>S/ {pedido.monto_saldo.toFixed(2)}</td>
                                                 <td className="px-4 py-4 whitespace-nowrap text-right">
                                                     <div className="flex justify-end gap-4">
+                                                        {pedido.tiene_productos_pendientes && (
+                                                            <Tooltip text="Continuar producción (items faltantes)">
+                                                                <button onClick={() => handleCrearProduccion(pedido)} className="text-purple-600 hover:text-purple-900 transition-colors">
+                                                                    <FaHammer className="h-6 w-6" />
+                                                                </button>
+                                                            </Tooltip>
+                                                        )}
                                                         <Tooltip text="Ver Nota">
                                                             <button onClick={() => handlePrint(pedido)} className="text-gray-500 hover:text-gray-800 transition-colors">
                                                                 <FaEye className="h-6 w-6" />
@@ -1718,7 +1737,13 @@ const Pedidos = () => {
                                                 </td>
                                                 <td className="px-4 py-4 whitespace-nowrap text-right text-sm font-semibold text-gray-900">S/ {pedido.precio_total?.toFixed(2)}</td>
                                                 <td className="px-4 py-4 whitespace-nowrap text-center">
-                                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">● Pendiente</span>
+                                                    {pedido.estado_produccion === 'en_proceso' ? (
+                                                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700">
+                                                            ● Ini. Parcial
+                                                        </span>
+                                                    ) : (
+                                                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">● Pendiente</span>
+                                                    )}
                                                 </td>
                                                 <td className="px-4 py-4 whitespace-nowrap text-center"><EstadoPagoBadge pedido={pedido} /></td>
                                                 <td className={`px-4 py-4 whitespace-nowrap text-sm font-bold text-right ${pedido.monto_saldo > 0 ? 'text-red-600' : 'text-green-600'}`}>S/ {pedido.monto_saldo.toFixed(2)}</td>

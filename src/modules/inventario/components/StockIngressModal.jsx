@@ -126,7 +126,9 @@ const StockIngressModal = ({ item, onSuccess, onCancel }) => {
                 produccionId: item.id_produccion,
                 tipo_producto: item.tipo_producto,
                 nombre: item.nombre_producto || `${item.tipo_producto} de ${item.metal}`,
+                material: item.metal || '', 
                 imagen_url: finalImageUrl,
+                costo: parseFloat(item.costo_total_unitario || item.costo_materiales || 0) // Pasar el costo
             });
 
             // 3. Marcar como transferido en producción

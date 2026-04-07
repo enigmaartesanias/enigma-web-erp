@@ -371,7 +371,13 @@ const Produccion = () => {
                 await produccionDB.updateEstado(item.id_produccion, 'terminado');
                 fetchProduccion();
                 fetchStats();
-                toast.success('Producción del pedido marcada como terminada');
+                toast.success('Producción marcada como terminada');
+                
+                // Disparar flujo de subida de fotos SOLO para pedidos si no tiene una
+                if (item.tipo_produccion === 'PEDIDO' && !item.imagen_url) {
+                    setFinishedItemForPhoto(item);
+                    setShowPhotoPrompt(true);
+                }
             } catch (error) {
                 console.error('Error al marcar como terminado:', error);
                 toast.error('Error al actualizar: ' + error.message);
@@ -717,6 +723,12 @@ const Produccion = () => {
             setMessage(null);
             window.scrollTo({ top: 0, behavior: 'smooth' });
             fetchData();
+
+            // Disparar flujo de subida de fotos SOLO para pedidos si no tiene una
+            if (item.tipo_produccion === 'PEDIDO' && !item.imagen_url) {
+                setFinishedItemForPhoto(item);
+                setShowPhotoPrompt(true);
+            }
         } catch (error) {
             console.error('Error al terminar producción:', error);
             toast.error('Error al actualizar el estado: ' + error.message);
@@ -747,10 +759,14 @@ const Produccion = () => {
     };
 
     const handleSendToInventory = (item) => {
-        // En lugar de redirigir, abrimos el nuevo modal simplificado
+        // Generar una sugerencia de código si no existe uno previo
+        const datePart = new Date().toISOString().slice(2, 10).replace(/-/g, '');
+        const typePrefix = (item.tipo_producto || 'PROD').substring(0, 3).toUpperCase();
+        const suggestedCode = item.codigo_producto || `${typePrefix}${datePart}${item.id_produccion}`;
+
         setSendingToStockItem(item);
         setStockFormData({
-            codigo: item.codigo_producto || '',
+            codigo: suggestedCode,
             cantidad: item.cantidad || '',
             precio: '',
             precioReferencial: '',
@@ -774,7 +790,11 @@ const Produccion = () => {
                 precio: stockFormData.precio ? parseFloat(stockFormData.precio) : null,
                 precioReferencial: stockFormData.precioReferencial ? parseFloat(stockFormData.precioReferencial) : null,
                 produccionId: sendingToStockItem.id_produccion,
-                tipo_producto: stockFormData.tipo_producto
+                tipo_producto: stockFormData.tipo_producto,
+                costo: parseFloat(sendingToStockItem.costo_total_unitario) || 0, // Pasar el costo calculado
+                nombre: sendingToStockItem.nombre_producto || `${stockFormData.tipo_producto} - ${stockFormData.codigo}`,
+                material: sendingToStockItem.metal || '', // Nuevo campo
+                imagen_url: sendingToStockItem.imagen_url || null // Pasar imagen si existe
             });
 
             // Marcar el registro de producción como transferido en la base de datos
@@ -1179,12 +1199,12 @@ const Produccion = () => {
                                                 <span className="text-[26px] md:text-[24px]">👁️</span>
                                             </button>
 
-                                            {/* Subir Foto - Solo si terminado */}
-                                            {item.estado_produccion === 'terminado' && (
+                                            {/* Subir Foto - Disponible para PEDIDOS si no tiene una o está terminado */}
+                                            {item.tipo_produccion === 'PEDIDO' && (!item.imagen_url || item.estado_produccion === 'terminado') && (
                                                 <button
                                                     onClick={() => { setFinishedItemForPhoto(item); setShowPhotoUploadModal(true); }}
-                                                    className="w-[44px] h-[44px] md:w-[40px] md:h-[40px] flex items-center justify-center text-gray-400 hover:text-orange-500 hover:bg-orange-50 rounded-full transition-all"
-                                                    title="Subir foto"
+                                                    className="w-[44px] h-[44px] md:w-[40px] md:h-[40px] flex items-center justify-center text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-full transition-all"
+                                                    title="Subir foto del producto"
                                                 >
                                                     <FaCamera size={22} className="md:w-6 md:h-6" />
                                                 </button>

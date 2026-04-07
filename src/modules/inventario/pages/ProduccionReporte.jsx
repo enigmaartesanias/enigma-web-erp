@@ -1,7 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { produccionDB } from '../../../utils/produccionNeonClient';
 import { Link } from 'react-router-dom';
-import { FaArrowLeft, FaCoins, FaChartBar, FaImage, FaTimes, FaWhatsapp, FaDownload, FaPrint } from 'react-icons/fa';
+import { FaArrowLeft, FaCoins, FaChartBar, FaImage, FaTimes, FaWhatsapp, FaDownload, FaPrint, FaCamera, FaSpinner, FaEdit } from 'react-icons/fa';
+import { storage } from '../../../firebaseConfig';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { compressAndResizeImage, validateImageFile } from '../../../utils/imageOptimizer';
+import toast, { Toaster } from 'react-hot-toast';
 
 const ProduccionReporte = () => {
     const [produccion, setProduccion] = useState([]);
@@ -23,6 +27,11 @@ const ProduccionReporte = () => {
     const currentYear = new Date().getFullYear();
     const [fechaInicio, setFechaInicio] = useState('2025-01-01');
     const [fechaFin, setFechaFin] = useState(`${currentYear}-12-31`);
+
+    // Estados para subida de fotos en reporte
+    const [showPhotoUploadModal, setShowPhotoUploadModal] = useState(false);
+    const [itemForPhoto, setItemForPhoto] = useState(null);
+    const [uploadingImage, setUploadingImage] = useState(false);
 
     useEffect(() => {
         fetchData();
@@ -157,8 +166,47 @@ const ProduccionReporte = () => {
         };
     };
 
+    const handlePhotoUpload = async (file) => {
+        if (!itemForPhoto || !file) return;
+
+        setUploadingImage(true);
+        try {
+            const optimizedFile = await compressAndResizeImage(file, {
+                maxSizeMB: 0.5,
+                maxWidth: 1024,
+                quality: 0.8
+            });
+
+            const fileExtension = optimizedFile.name?.split('.').pop() || 'jpg';
+            const uniqueId = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+            const fileName = `produccion/${uniqueId}.${fileExtension}`;
+
+            const storageRef = ref(storage, fileName);
+            await uploadBytes(storageRef, optimizedFile);
+            const downloadURL = await getDownloadURL(storageRef);
+
+            // Actualizar registro en DB
+            await produccionDB.update(itemForPhoto.id_produccion, {
+                ...itemForPhoto,
+                imagen_url: downloadURL
+            });
+
+            toast.success('Foto actualizada correctamente');
+            setShowPhotoUploadModal(false);
+            setItemForPhoto(null);
+            fetchData(); // Recargar datos
+
+        } catch (error) {
+            console.error('Error subiendo foto:', error);
+            toast.error('Error al subir foto: ' + error.message);
+        } finally {
+            setUploadingImage(false);
+        }
+    };
+
     return (
         <>
+            <Toaster position="top-right" />
             <div className="container mx-auto p-4 md:p-6 bg-gray-50 min-h-screen">
                 <div className="mb-6 flex justify-between items-center">
                     <Link to="/inventario-home" className="flex items-center text-gray-600 hover:text-blue-600 transition-colors">
@@ -362,9 +410,14 @@ const ProduccionReporte = () => {
                                             {/* Producción */}
                                             <td className="px-3 py-3 md:py-2 align-middle">
                                                 <div className="flex flex-col">
-                                                    <span className="text-[13px] md:text-sm font-normal text-gray-700 leading-tight">
-                                                        {item.tipo_producto} – {item.metal}
-                                                    </span>
+                                                    <div className="flex items-center gap-1.5">
+                                                        <span className="text-[13px] md:text-sm font-normal text-gray-700 leading-tight">
+                                                            {item.tipo_producto} – {item.metal}
+                                                        </span>
+                                                        {item.imagen_url && (
+                                                            <FaCamera className="text-blue-400 opacity-60 flex-shrink-0" size={10} title="Imagen disponible" />
+                                                        )}
+                                                     </div>
                                                     {/* Destino en mobile */}
                                                     <div className="md:hidden flex items-center gap-1.5 mt-1">
                                                         {item.tipo_produccion === 'PEDIDO' ? (
@@ -420,12 +473,14 @@ const ProduccionReporte = () => {
 
                                                     {/* Slot 2: Ver Imagen — siempre ocupa espacio, invisible si no hay img */}
                                                     <button
-                                                        onClick={() => item.imagen_url && setSelectedImage(item)}
-                                                        className={`w-8 h-8 flex-shrink-0 flex items-center justify-center rounded-full transition-colors ${item.imagen_url ? 'text-gray-500 hover:text-blue-600 hover:bg-blue-50 cursor-pointer' : 'text-transparent cursor-default pointer-events-none'}`}
-                                                        title={item.imagen_url ? "Ver imagen" : ""}
-                                                        tabIndex={item.imagen_url ? 0 : -1}
+                                                        onClick={() => {
+                                                            if (item.imagen_url) setSelectedImage(item);
+                                                            else { setItemForPhoto(item); setShowPhotoUploadModal(true); }
+                                                        }}
+                                                        className={`w-8 h-8 flex-shrink-0 flex items-center justify-center rounded-full transition-all border ${item.imagen_url ? 'text-blue-600 bg-blue-50 border-blue-100 hover:bg-blue-100' : 'text-gray-400 bg-gray-50 border-gray-100 hover:bg-gray-100'} cursor-pointer shadow-sm active:scale-95`}
+                                                        title={item.imagen_url ? "Ver / Editar imagen" : "Subir imagen"}
                                                     >
-                                                        <FaImage className="w-4 h-4" />
+                                                        <FaCamera size={14} />
                                                     </button>
                                                 </div>
                                             </td>
@@ -641,22 +696,94 @@ const ProduccionReporte = () => {
                             />
                         </div>
 
-                        {/* Footer con WhatsApp */}
-                        <div className="px-4 py-3 border-t border-gray-100 bg-gray-50">
+                        {/* Footer con WhatsApp y Editar */}
+                        <div className="px-4 py-3 border-t border-gray-100 bg-gray-50 flex gap-2">
                             <button
                                 onClick={() => {
                                     const text = `🛠️ *${selectedImage.nombre_producto}*\n\n📸 Ver imagen: ${selectedImage.imagen_url}`;
                                     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
                                 }}
-                                className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-green-500 text-white rounded text-sm font-medium hover:bg-green-600 transition-colors"
+                                className="flex-[2] flex items-center justify-center gap-2 px-4 py-2 bg-green-500 text-white rounded text-sm font-medium hover:bg-green-600 transition-colors"
                             >
                                 <FaWhatsapp size={16} />
-                                Compartir imagen
+                                Compartir
+                            </button>
+                            <button
+                                onClick={() => {
+                                    setItemForPhoto(selectedImage);
+                                    setSelectedImage(null);
+                                    setShowPhotoUploadModal(true);
+                                }}
+                                className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded text-sm font-medium hover:bg-blue-700 transition-colors"
+                                title="Cambiar imagen"
+                            >
+                                <FaEdit size={14} />
+                                Editar
                             </button>
                         </div>
                     </div>
                 </div>
             )}
+            {/* Modal Subida de Foto Final */}
+            {
+                showPhotoUploadModal && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in">
+                        <div className="bg-white rounded-xl shadow-2xl max-w-sm w-full overflow-hidden">
+                            <div className="bg-gradient-to-r from-blue-600 to-blue-800 p-4 text-white flex justify-between items-start">
+                                <div>
+                                    <h3 className="text-lg font-bold flex items-center gap-2">
+                                        <FaCamera /> {itemForPhoto?.imagen_url ? 'Actualizar Foto' : 'Subir Foto'}
+                                    </h3>
+                                    <p className="text-xs text-blue-100 mt-1 max-w-[250px] truncate">
+                                        {itemForPhoto?.nombre_producto || itemForPhoto?.tipo_producto || 'Producto'}
+                                    </p>
+                                </div>
+                                <button onClick={() => setShowPhotoUploadModal(false)} className="text-white/80 hover:text-white">
+                                    <FaTimes size={20} />
+                                </button>
+                            </div>
+
+                            <div className="p-6">
+                                <div
+                                    className="border-2 border-dashed border-blue-200 bg-blue-50/30 rounded-xl h-48 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-blue-50 transition-colors group relative"
+                                    onClick={() => !uploadingImage && document.getElementById('report-photo-input').click()}
+                                >
+                                    <input
+                                        id="report-photo-input"
+                                        type="file"
+                                        accept="image/*"
+                                        className="hidden"
+                                        onChange={(e) => {
+                                            if (e.target.files[0]) handlePhotoUpload(e.target.files[0]);
+                                        }}
+                                        disabled={uploadingImage}
+                                    />
+                                    {uploadingImage ? (
+                                        <div className="animate-pulse flex flex-col items-center justify-center w-full h-full bg-white/80 absolute inset-0 z-10">
+                                            <FaSpinner className="animate-spin text-blue-500 text-3xl mb-2" />
+                                            <span className="text-blue-600 font-bold text-sm">Subiendo foto...</span>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <div className="w-12 h-12 bg-blue-100 text-blue-500 rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                                                <FaCamera size={24} />
+                                            </div>
+                                            <span className="text-gray-600 font-medium text-sm">Haz clic para subir imagen</span>
+                                            <span className="text-gray-400 text-xs mt-1">JPG, PNG • Máx 5MB</span>
+                                        </>
+                                    )}
+                                </div>
+                                <button
+                                    onClick={() => setShowPhotoUploadModal(false)}
+                                    className="w-full mt-6 bg-gray-100 text-gray-500 font-bold py-3 rounded-lg text-xs uppercase tracking-wide"
+                                >
+                                    Cancelar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )
+            }
         </>
     );
 };

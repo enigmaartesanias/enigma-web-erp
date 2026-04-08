@@ -94,27 +94,16 @@ const BuscadorProducto = ({ onScan, onSelect, onQRClick }) => {
                 </button>
             </form>
 
-            {/* Botones de Escaneo */}
             {onQRClick && (
-                <div className="flex gap-1.5 flex-shrink-0">
+                <div className="flex-shrink-0">
                     <button
                         type="button"
                         onClick={onQRClick}
-                        className="px-3 py-2 bg-gray-800 text-white rounded-lg hover:bg-black transition-all shadow-sm border border-gray-700 flex items-center justify-center group"
-                        title="Escanear QR"
+                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all shadow-md shadow-blue-100 border border-blue-500 flex items-center justify-center group gap-2 active:scale-95"
+                        title="Activar Escáner de Productos"
                     >
-                        <FaQrcode size={16} className="group-hover:scale-110 transition-transform" />
-                        <span className="text-[10px] ml-1.5 font-bold hidden lg:inline tracking-tighter">QR</span>
-                    </button>
-
-                    <button
-                        type="button"
-                        onClick={onQRClick}
-                        className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all shadow-md shadow-blue-100 border border-blue-500 flex items-center justify-center group"
-                        title="Activar Cámara"
-                    >
-                        <FaCamera size={16} className="group-hover:scale-110 transition-transform" />
-                        <span className="text-[10px] ml-1.5 font-bold hidden lg:inline tracking-tighter">CÁMARA</span>
+                        <FaCamera size={18} className="group-hover:scale-110 transition-transform text-white/90" />
+                        <span className="text-[10px] font-black tracking-tighter uppercase">Escáner</span>
                     </button>
                 </div>
             )}

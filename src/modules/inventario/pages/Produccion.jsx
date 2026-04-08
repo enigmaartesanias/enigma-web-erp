@@ -790,6 +790,7 @@ const Produccion = () => {
                 precio: stockFormData.precio ? parseFloat(stockFormData.precio) : null,
                 precioReferencial: stockFormData.precioReferencial ? parseFloat(stockFormData.precioReferencial) : null,
                 produccionId: sendingToStockItem.id_produccion,
+                codigo_produccion: sendingToStockItem.codigo_correlativo || `PR-${String(sendingToStockItem.id_produccion).padStart(4, '0')}`,
                 tipo_producto: stockFormData.tipo_producto,
                 costo: parseFloat(sendingToStockItem.costo_total_unitario) || 0, // Pasar el costo calculado
                 nombre: sendingToStockItem.nombre_producto || `${stockFormData.tipo_producto} - ${stockFormData.codigo}`,

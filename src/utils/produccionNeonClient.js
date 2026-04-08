@@ -43,6 +43,7 @@ export const produccionDB = {
     // Convertir fechas y números
     return produccion.map(p => ({
       ...p,
+      codigo_correlativo: p.codigo_correlativo || `PR-${String(p.id_produccion).padStart(4, '0')}`,
       fecha_produccion: p.fecha_produccion ?
         (typeof p.fecha_produccion === 'string' ? p.fecha_produccion : new Date(p.fecha_produccion).toISOString().split('T')[0])
         : null,

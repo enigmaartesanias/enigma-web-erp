@@ -33,6 +33,9 @@ export const productosExternosDB = {
         map[codigo].categoria = p.categoria || map[codigo].categoria;
         map[codigo].precio = p.precio || map[codigo].precio;
         map[codigo].costo = (Number(p.costo) || map[codigo].costo);
+        map[codigo].codigo_produccion_origen = p.codigo_produccion_origen || map[codigo].codigo_produccion_origen;
+        map[codigo].material = p.material || map[codigo].material;
+        map[codigo].imagen_url = p.imagen_url || map[codigo].imagen_url;
       }
     });
     return Object.values(map);
@@ -196,8 +199,8 @@ export const productosExternosDB = {
         UPDATE productos_externos SET
           stock_actual = stock_actual + ${cantidad},
           fecha_registro = CURRENT_TIMESTAMP,
-          origen = 'PRODUCCION',
           produccion_id = ${produccionId},
+          codigo_produccion_origen = COALESCE(${data.codigo_produccion}, codigo_produccion_origen),
           costo = ${costo || 0},
           precio = COALESCE(${precio}, precio),
           precio_adicional = COALESCE(${precioReferencial}, precio_adicional),
@@ -223,6 +226,7 @@ export const productosExternosDB = {
           imagen_url,
           origen,
           produccion_id,
+          codigo_produccion_origen,
           precio_adicional,
           fecha_registro,
           estado_activo
@@ -238,6 +242,7 @@ export const productosExternosDB = {
           ${imagen_url || null},
           'PRODUCCION',
           ${produccionId},
+          ${data.codigo_produccion || null},
           ${precioReferencial || null},
           CURRENT_TIMESTAMP,
           TRUE

@@ -17,7 +17,12 @@ const ProduccionReporte = () => {
     });
     const [loading, setLoading] = useState(true);
     const [filtroActivo, setFiltroActivo] = useState('en_proceso');
-    const [filtroDestino, setFiltroDestino] = useState('todos'); // 'todos' | 'pedidos' | 'stock'
+    const [filtros, setFiltros] = useState({
+        productos: [],
+        metales: [],
+        destinos: []
+    });
+    const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
     const [selectedItem, setSelectedItem] = useState(null); // Para modal de detalle
     const [selectedImage, setSelectedImage] = useState(null); // Para modal de imagen
     const [currentPage, setCurrentPage] = useState(1); // Paginación
@@ -89,21 +94,20 @@ const ProduccionReporte = () => {
         }
     }, [produccionConFiltroFecha, filtroActivo]);
 
-    // Filtrar además por destino (Pedido / Stock)
+    // Filtrar por producto, metal y destino (múltiple)
     const produccionFiltrada = useMemo(() => {
-        if (filtroDestino === 'pedidos') return produccionPorEstado.filter(p => p.tipo_produccion === 'PEDIDO');
-        if (filtroDestino === 'stock')   return produccionPorEstado.filter(p => p.tipo_produccion === 'STOCK');
-        return produccionPorEstado;
-    }, [produccionPorEstado, filtroDestino]);
+        return produccionPorEstado.filter(p => {
+            const matchesProducto = filtros.productos.length === 0 || filtros.productos.includes(p.tipo_producto);
+            const matchesMetal = filtros.metales.length === 0 || filtros.metales.includes(p.metal);
+            const matchesDestino = filtros.destinos.length === 0 || filtros.destinos.includes(p.tipo_produccion);
+            return matchesProducto && matchesMetal && matchesDestino;
+        });
+    }, [produccionPorEstado, filtros]);
 
-    // Totales por destino (sobre produccionPorEstado, sin filtro de destino)
-    const totalesPorDestino = useMemo(() => {
-        const pedidos = produccionPorEstado.filter(p => p.tipo_produccion === 'PEDIDO');
-        const stock   = produccionPorEstado.filter(p => p.tipo_produccion === 'STOCK');
+    // Totales resumidos (opcional, para visualización general)
+    const totalesResumen = useMemo(() => {
         const suma = arr => arr.reduce((s, i) => s + (Number(i.costo_total_produccion) || 0), 0);
         return {
-            pedidos: { count: pedidos.length, valor: suma(pedidos) },
-            stock:   { count: stock.length,   valor: suma(stock) },
             todos:   { count: produccionPorEstado.length, valor: suma(produccionPorEstado) }
         };
     }, [produccionPorEstado]);
@@ -123,7 +127,7 @@ const ProduccionReporte = () => {
     // Resetear a página 1 cuando cambia cualquier filtro
     useEffect(() => {
         setCurrentPage(1);
-    }, [filtroActivo, filtroDestino]);
+    }, [filtroActivo, filtros]);
 
     // Cálculo de paginación
     const totalPages = Math.ceil(produccionFiltrada.length / itemsPerPage);
@@ -300,32 +304,25 @@ const ProduccionReporte = () => {
                     </div>
                 </div>
 
-                {/* Selector de Destino */}
-                <div className="mb-4 bg-white rounded-lg shadow-sm px-3 py-2 flex flex-wrap items-center gap-2">
-                    <span className="text-[10px] uppercase tracking-widest text-gray-400 font-medium mr-1 hidden sm:inline">Destino</span>
-                    {[
-                        { id: 'todos',   label: 'Todos',   emoji: '📋', count: totalesPorDestino.todos.count },
-                        { id: 'pedidos', label: 'Pedidos', emoji: '📦', count: totalesPorDestino.pedidos.count },
-                        { id: 'stock',   label: 'Stock',   emoji: '🏪', count: totalesPorDestino.stock.count },
-                    ].map(opt => (
-                        <button
-                            key={opt.id}
-                            onClick={() => setFiltroDestino(opt.id)}
-                            className={`
-                                flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all border
-                                ${filtroDestino === opt.id
-                                    ? 'bg-blue-50 text-blue-700 border-blue-300 shadow-sm'
-                                    : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'}
-                            `}
-                        >
-                            <span>{opt.emoji}</span>
-                            <span className="hidden sm:inline">{opt.label}</span>
-                            <span className={`
-                                px-1.5 py-0.5 rounded-full text-[10px] font-bold
-                                ${filtroDestino === opt.id ? 'bg-white/60' : 'bg-gray-100 text-gray-500'}
-                            `}>{opt.count}</span>
-                        </button>
-                    ))}
+                {/* Botón de Filtro Avanzado */}
+                <div className="mb-4 flex justify-end">
+                    <button 
+                        onClick={() => setShowAdvancedFilters(true)}
+                        className={`
+                            flex items-center gap-2 px-4 py-2 rounded-full text-xs transition-all border
+                            ${(filtros.productos.length > 0 || filtros.metales.length > 0 || filtros.destinos.length > 0)
+                                ? 'bg-blue-50 text-blue-600 border-blue-200 shadow-sm' 
+                                : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'}
+                        `}
+                    >
+                        <span>🔍</span>
+                        <span>Filtro Avanzado</span>
+                        {(filtros.productos.length > 0 || filtros.metales.length > 0 || filtros.destinos.length > 0) && (
+                            <span className="bg-blue-600 text-white w-4 h-4 rounded-full flex items-center justify-center text-[10px] ml-1">
+                                {filtros.productos.length + filtros.metales.length + filtros.destinos.length}
+                            </span>
+                        )}
+                    </button>
                 </div>
 
                 {/* Tabla */}
@@ -337,6 +334,7 @@ const ProduccionReporte = () => {
                         <table className="min-w-full divide-y divide-gray-100">
                             <thead className="bg-gray-50">
                                 <tr>
+                                    <th className="px-3 py-3 text-left text-[11px] font-medium text-gray-500 uppercase tracking-wide align-middle w-20">Cód.</th>
                                     <th className="px-3 py-3 text-left text-[11px] font-medium text-gray-500 uppercase tracking-wide align-middle">Fecha Término</th>
                                     <th className="px-3 py-3 text-left text-[11px] font-medium text-gray-500 uppercase tracking-wide align-middle">Producción</th>
                                     <th className="px-3 py-3 text-center text-[11px] font-medium text-gray-500 uppercase tracking-wide align-middle hidden md:table-cell">Estado</th>
@@ -347,6 +345,11 @@ const ProduccionReporte = () => {
                             <tbody className="bg-white divide-y divide-gray-50">
                                 {produccionPaginada.map((item) => (
                                     <tr key={item.id_produccion} className="hover:bg-gray-50/50 transition-colors">
+                                        <td className="px-3 py-3 md:py-2 align-middle">
+                                            <span className="text-xs font-normal text-gray-500">
+                                                {item.codigo_correlativo}
+                                            </span>
+                                        </td>
                                         <td className="px-3 py-3 md:py-2 align-middle">
                                             <div className="text-[13px] md:text-sm font-normal text-gray-700">
                                                 {(() => {
@@ -457,9 +460,23 @@ const ProduccionReporte = () => {
                             <button onClick={() => setSelectedItem(null)}><FaTimes size={16} /></button>
                         </div>
                         <div className="p-4 space-y-3">
-                            <div>
-                                <label className="text-[10px] uppercase text-gray-400 block">Producto</label>
-                                <p className="text-sm font-medium">{selectedItem.nombre_producto}</p>
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="col-span-1">
+                                    <label className="text-[10px] uppercase text-gray-400 block font-bold tracking-wider">Código</label>
+                                    <p className="text-sm font-bold text-blue-600">{selectedItem.codigo_correlativo}</p>
+                                </div>
+                                <div className="col-span-1">
+                                    <label className="text-[10px] uppercase text-gray-400 block font-bold tracking-wider">Producto</label>
+                                    <p className="text-sm font-medium text-gray-800">{selectedItem.nombre_producto}</p>
+                                </div>
+                                {selectedItem.pedido_id && (
+                                    <div className="col-span-2 bg-blue-50/50 p-2 rounded-lg border border-blue-100">
+                                        <label className="text-[10px] uppercase text-blue-600 block font-black tracking-wider">Cliente / Pedido</label>
+                                        <p className="text-sm font-bold text-blue-800">
+                                            #{selectedItem.pedido_id} — {selectedItem.nombre_cliente}
+                                        </p>
+                                    </div>
+                                )}
                             </div>
                             <div className="grid grid-cols-2 gap-2">
                                 <div><label className="text-[10px] uppercase text-gray-400 block">Tipo</label><p className="text-xs">{selectedItem.tipo_producto}</p></div>
@@ -565,6 +582,104 @@ const ProduccionReporte = () => {
                                 className="w-full mt-6 bg-gray-100 text-gray-500 font-bold py-3 rounded-lg text-xs uppercase tracking-wide"
                             >
                                 Cancelar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {/* Modal de Filtro Avanzado */}
+            {showAdvancedFilters && (
+                <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-[60]" onClick={() => setShowAdvancedFilters(false)}>
+                    <div className="bg-white rounded-xl shadow-xl max-w-sm w-full overflow-hidden animate-in zoom-in duration-200" onClick={e => e.stopPropagation()}>
+                        <div className="px-5 py-4 border-b flex items-center justify-between bg-gray-50/50">
+                            <h3 className="text-sm font-normal text-gray-800">Filtros Avanzados</h3>
+                            <button onClick={() => setShowAdvancedFilters(false)} className="text-gray-400 hover:text-gray-600"><FaTimes size={14} /></button>
+                        </div>
+                        <div className="p-5 space-y-6 max-h-[70vh] overflow-y-auto">
+                            {/* Bloque 1: Producto */}
+                            <div>
+                                <label className="text-[11px] uppercase tracking-wider text-gray-400 mb-3 block">Tipo de Producto</label>
+                                <div className="grid grid-cols-2 gap-2">
+                                    {['Arete', 'Pulsera', 'Collar', 'Anillo'].map(item => (
+                                        <label key={item} className="flex items-center gap-2 cursor-pointer group">
+                                            <input 
+                                                type="checkbox" 
+                                                checked={filtros.productos.includes(item)}
+                                                onChange={(e) => {
+                                                    const newArr = e.target.checked 
+                                                        ? [...filtros.productos, item] 
+                                                        : filtros.productos.filter(i => i !== item);
+                                                    setFiltros({ ...filtros, productos: newArr });
+                                                }}
+                                                className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                                            />
+                                            <span className="text-sm text-gray-600 font-light group-hover:text-gray-900 transition-colors">{item}</span>
+                                        </label>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Bloque 2: Metal */}
+                            <div>
+                                <label className="text-[11px] uppercase tracking-wider text-gray-400 mb-3 block">Tipo de Metal</label>
+                                <div className="grid grid-cols-2 gap-2">
+                                    {['Cobre', 'Plata', 'Alpaca', 'Bronce'].map(item => (
+                                        <label key={item} className="flex items-center gap-2 cursor-pointer group">
+                                            <input 
+                                                type="checkbox" 
+                                                checked={filtros.metales.includes(item)}
+                                                onChange={(e) => {
+                                                    const newArr = e.target.checked 
+                                                        ? [...filtros.metales, item] 
+                                                        : filtros.metales.filter(i => i !== item);
+                                                    setFiltros({ ...filtros, metales: newArr });
+                                                }}
+                                                className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                                            />
+                                            <span className="text-sm text-gray-600 font-light group-hover:text-gray-900 transition-colors">{item}</span>
+                                        </label>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Bloque 3: Origen */}
+                            <div>
+                                <label className="text-[11px] uppercase tracking-wider text-gray-400 mb-3 block">Origen / Destino</label>
+                                <div className="grid grid-cols-2 gap-2">
+                                    {[
+                                        { id: 'STOCK', label: 'Stock' },
+                                        { id: 'PEDIDO', label: 'Pedido' }
+                                    ].map(item => (
+                                        <label key={item.id} className="flex items-center gap-2 cursor-pointer group">
+                                            <input 
+                                                type="checkbox" 
+                                                checked={filtros.destinos.includes(item.id)}
+                                                onChange={(e) => {
+                                                    const newArr = e.target.checked 
+                                                        ? [...filtros.destinos, item.id] 
+                                                        : filtros.destinos.filter(i => i !== item.id);
+                                                    setFiltros({ ...filtros, destinos: newArr });
+                                                }}
+                                                className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                                            />
+                                            <span className="text-sm text-gray-600 font-light group-hover:text-gray-900 transition-colors">{item.label}</span>
+                                        </label>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                        <div className="p-4 bg-gray-50 border-t flex gap-2">
+                            <button 
+                                onClick={() => setFiltros({ productos: [], metales: [], destinos: [] })}
+                                className="flex-1 py-2 text-xs text-gray-500 hover:text-gray-700 font-medium transition-colors"
+                            >
+                                Limpiar todo
+                            </button>
+                            <button 
+                                onClick={() => setShowAdvancedFilters(false)}
+                                className="flex-1 py-2 bg-slate-800 text-white rounded-lg text-xs font-medium hover:bg-slate-900 transition-colors shadow-sm"
+                            >
+                                Aplicar filtros
                             </button>
                         </div>
                     </div>

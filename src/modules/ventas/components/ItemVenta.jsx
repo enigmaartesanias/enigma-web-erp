@@ -31,15 +31,12 @@ const ItemVenta = ({ item, onUpdateItem, onRemove }) => {
         <div className="flex items-center gap-3 py-2 px-3 border-b border-gray-50 hover:bg-gray-50 transition-all">
             {/* 1. Detalle: Nombre y Código */}
             <div className="flex-1 min-w-0 flex flex-col">
-                <span className="text-[12px] text-gray-700 truncate leading-tight uppercase font-medium">
+                <span className="text-[10px] text-gray-700 truncate leading-tight uppercase font-normal">
                     {item.nombre}
                 </span>
                 <div className="flex items-center gap-2 mt-0.5">
                     <span className="text-[8px] text-gray-400 font-mono tracking-tighter">
                         {item.codigo}
-                    </span>
-                    <span className="text-[8px] bg-blue-50 text-blue-400 px-1 rounded font-black">
-                        Stock: {item.stockMax}
                     </span>
                 </div>
             </div>

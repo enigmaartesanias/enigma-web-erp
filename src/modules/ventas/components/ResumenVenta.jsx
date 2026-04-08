@@ -152,7 +152,7 @@ const ResumenVenta = ({
                             />
                         </div>
                     ) : (
-                        <button onClick={() => setShowDiscountInput(true)} className="text-blue-500 hover:underline uppercase text-[9px] font-black tracking-tighter">
+                        <button onClick={() => setShowDiscountInput(true)} className="text-gray-900 hover:underline uppercase text-[9px] font-normal tracking-tighter">
                             + Aplicar Descuento
                         </button>
                     )}
@@ -161,7 +161,7 @@ const ResumenVenta = ({
 
                 {/* TOTAL GRANDE */}
                 <div className="flex justify-between items-end pt-1 border-t border-gray-50">
-                    <span className="text-[10px] font-black uppercase text-gray-400 tracking-[0.2em]">Total</span>
+                    <span className="text-[10px] font-normal uppercase text-gray-400 tracking-[0.2em]">Total</span>
                     <span className="text-2xl font-black tracking-tighter text-gray-900 leading-none">S/ {totals.total.toFixed(2)}</span>
                 </div>
 
@@ -231,7 +231,7 @@ const ResumenVenta = ({
                         className="w-14 h-14 flex items-center justify-center rounded-xl bg-red-600 text-white hover:bg-red-700 transition-all shadow-lg shadow-red-100 flex-shrink-0"
                         title="Cancelar Venta"
                     >
-                        <FaTimes size={18} />
+                        <FaTimes size={10} />
                     </button>
                 </div>
             </div>

@@ -143,28 +143,39 @@ const BuscadorProducto = ({ onScan, onSelect, onQRClick }) => {
                                     : 'bg-gray-50/50 cursor-not-allowed grayscale-[0.5] opacity-60'
                                 }`}
                             >
-                                <div className="flex flex-col gap-0.5">
-                                    <span className={`font-mono text-[10px] px-1.5 py-0.5 rounded w-fit transition-colors ${
-                                        hasStock ? 'text-blue-600 bg-blue-50 group-hover:bg-blue-100' : 'text-gray-400 bg-gray-100'
-                                    }`}>
-                                        {product.codigo_usuario}
-                                    </span>
-                                    <span className="text-sm font-semibold text-gray-800 truncate max-w-[200px]">
-                                        {product.nombre}
-                                    </span>
+                                <div className="flex items-center gap-3">
+                                    {product.imagen_url ? (
+                                        <img 
+                                            src={product.imagen_url} 
+                                            alt={product.nombre} 
+                                            className="w-10 h-10 rounded-lg object-cover border border-gray-100 shadow-sm"
+                                        />
+                                    ) : (
+                                        <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center text-gray-400 border border-gray-100">
+                                            <FaBarcode size={14} />
+                                        </div>
+                                    )}
+                                    <div className="flex flex-col gap-0.5">
+                                        <span className={`font-mono text-[10px] px-1.5 py-0.5 rounded w-fit transition-colors ${
+                                            hasStock ? 'text-blue-600 bg-blue-50 group-hover:bg-blue-100' : 'text-gray-400 bg-gray-100'
+                                        }`}>
+                                            {product.codigo_usuario}
+                                        </span>
+                                        <span className="text-sm font-semibold text-gray-800 truncate max-w-[200px]">
+                                            {product.nombre}
+                                        </span>
+                                    </div>
                                 </div>
                                 
                                 <div className="flex flex-col items-end gap-1">
                                     <span className={`text-sm font-black leading-none ${hasStock ? 'text-gray-900' : 'text-gray-400'}`}>
                                         S/ {Number(product.precio).toFixed(2)}
                                     </span>
-                                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
-                                        hasStock 
-                                        ? 'bg-green-100 text-green-700' 
-                                        : 'bg-red-200 text-red-900'
-                                    }`}>
-                                        {hasStock ? `Stock: ${product.stock_actual}` : 'AGOTADO'}
-                                    </span>
+                                    {!hasStock && (
+                                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-red-200 text-red-900">
+                                            AGOTADO
+                                        </span>
+                                    )}
                                 </div>
                             </div>
                         );

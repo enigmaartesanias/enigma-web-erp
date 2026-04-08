@@ -124,6 +124,7 @@ const StockIngressModal = ({ item, onSuccess, onCancel }) => {
                 precio: parseFloat(precio),
                 precioReferencial: precioOferta ? parseFloat(precioOferta) : null,
                 produccionId: item.id_produccion,
+                codigo_produccion: item.codigo_correlativo || `PR-${String(item.id_produccion).padStart(4, '0')}`,
                 tipo_producto: item.tipo_producto,
                 nombre: item.nombre_producto || `${item.tipo_producto} de ${item.metal}`,
                 material: item.metal || '', 

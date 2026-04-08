@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { productosExternosDB } from '../../../utils/productosExternosNeonClient';
-import { FaPlus, FaEdit, FaTrash, FaSearch, FaQrcode, FaArrowLeft, FaBox, FaDollarSign, FaWarehouse, FaShoppingCart } from 'react-icons/fa';
+import { FaPlus, FaEdit, FaTrash, FaSearch, FaArrowLeft, FaBox, FaDollarSign, FaWarehouse, FaEye, FaCalendarAlt, FaTimes } from 'react-icons/fa';
 import QRCode from 'react-qr-code';
 import toast, { Toaster } from 'react-hot-toast';
 import ConfirmModal from '../../../components/ui/ConfirmModal';
@@ -14,6 +14,7 @@ export default function Inventario() {
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedCategory, setSelectedCategory] = useState('');
     const [showQR, setShowQR] = useState(null);
+    const [selectedImage, setSelectedImage] = useState(null);
 
     // Estado para Confirm Modal
     const [confirmModal, setConfirmModal] = useState({
@@ -77,7 +78,10 @@ export default function Inventario() {
     const stats = {
         total: filteredProductos.length,
         valorTotal: filteredProductos.reduce((sum, p) => sum + (p.stock_actual * p.precio), 0),
-        stockBajo: filteredProductos.filter(p => p.stock_actual <= (p.stock_minimo || 0)).length
+        stockBajo: filteredProductos.filter(p => p.stock_actual <= (p.stock_minimo || 0)).length,
+        ultimoIngreso: productos.length > 0 
+            ? new Date(Math.max(...productos.map(p => new Date(p.fecha_registro || p.created_at).getTime()))).toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', year: '2-digit' })
+            : '-'
     };
 
     return (
@@ -130,13 +134,13 @@ export default function Inventario() {
                         </div>
                     </div>
 
-                    <div className="bg-white p-2 sm:p-4 rounded-lg shadow-sm border-l-2 sm:border-l-4 border-red-500">
+                    <div className="bg-white p-2 sm:p-4 rounded-lg shadow-sm border-l-2 sm:border-l-4 border-orange-500">
                         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center">
                             <div>
-                                <p className="text-[10px] sm:text-sm text-gray-500 font-medium">Bajo Stock</p>
-                                <p className="text-sm sm:text-lg text-gray-900">{stats.stockBajo}</p>
+                                <p className="text-[10px] sm:text-sm text-gray-500 font-medium uppercase tracking-wider">Último Ingreso</p>
+                                <p className="text-sm sm:text-lg text-gray-900">{stats.ultimoIngreso}</p>
                             </div>
-                            <div className="text-red-500 text-lg sm:text-2xl opacity-50 hidden sm:block">⚠️</div>
+                            <FaCalendarAlt className="text-orange-500 text-lg sm:text-3xl opacity-50 hidden sm:block" />
                         </div>
                     </div>
                 </div>
@@ -186,12 +190,12 @@ export default function Inventario() {
                             <table className="w-full">
                                 <thead className="bg-gray-50 border-b">
                                     <tr>
-                                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Código</th>
+                                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Cód. Usuario</th>
+                                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Cód. Prod.</th>
                                         <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Producto</th>
                                         <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase">Saldo Total</th>
                                         <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase">Costo Prom. (S/)</th>
-                                        <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase">Origen</th>
-                                        <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase">Precio (S/)</th>
+                                        <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase">Fecha Ingreso</th>
                                         <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase">Acciones</th>
                                     </tr>
                                 </thead>
@@ -202,74 +206,56 @@ export default function Inventario() {
                                                 <span className="font-mono text-gray-600 text-xs">{producto.codigo_usuario}</span>
                                             </td>
                                             <td className="px-4 py-3">
+                                                <span className="text-xs font-normal text-blue-600">
+                                                    {producto.codigo_produccion_origen || '-'}
+                                                </span>
+                                            </td>
+                                            <td className="px-4 py-3">
                                                 <div className="text-gray-700 text-xs uppercase font-medium">{producto.categoria}</div>
                                                 {producto.material && (
                                                     <div className="text-[10px] text-gray-400 uppercase italic leading-tight">{producto.material}</div>
                                                 )}
                                             </td>
-                                            {/* <td className="px-4 py-3">
-                                                <span className="px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs">
-                                                    {producto.categoria || 'Sin categoría'}
-                                                </span>
-                                            </td> */}
                                             <td className="px-4 py-3 text-center">
                                                 <span className={`text-xs ${producto.stock_actual <= (producto.stock_minimo || 0)
-                                                    ? 'text-red-600'
+                                                    ? 'text-red-600 font-bold'
                                                     : 'text-green-600'
                                                     }`}>
                                                     {producto.stock_actual}
                                                 </span>
                                             </td>
-                                            <td className="px-4 py-3 text-right text-gray-600 text-xs">
-                                                {Number(producto.costo).toFixed(2)}
+                                            <td className="px-4 py-3 text-right text-gray-600 text-xs font-medium">
+                                                S/ {Number(producto.costo).toFixed(2)}
                                             </td>
-                                            <td className="px-4 py-3 text-center">
-                                                <span className={`text-[10px] uppercase ${producto.origen === 'PRODUCCION' ? 'text-purple-600' :
-                                                    producto.origen === 'COMPRA' ? 'text-green-600' :
-                                                        'text-gray-500'
-                                                    }`}>
-                                                    {producto.origen === 'PRODUCCION' ? 'Prod.' :
-                                                        producto.origen === 'COMPRA' ? 'Compra' :
-                                                            'Otro'}
-                                                </span>
-                                            </td>
-                                            <td className="px-4 py-3 text-right text-gray-700 text-xs text-black">
-                                                {Number(producto.precio).toFixed(2)}
+                                            <td className="px-4 py-3 text-center text-gray-500 text-[10px]">
+                                                {producto.fecha_registro ? new Date(producto.fecha_registro).toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', year: '2-digit' }) : '-'}
                                             </td>
                                             <td className="px-4 py-3">
-                                                <div className="flex justify-center gap-2">
-                                                    <Tooltip text="Ver código QR">
-                                                        <button
-                                                            onClick={() => setShowQR(producto.codigo_usuario)}
-                                                            className="p-2 text-blue-600 hover:bg-blue-50 rounded transition-colors"
-                                                        >
-                                                            <FaQrcode size={16} />
-                                                        </button>
-                                                    </Tooltip>
-                                                    {producto.stock_actual > 0 && (
-                                                        <Tooltip text="Vender este producto">
+                                                <div className="flex justify-center gap-1">
+                                                    {producto.imagen_url && (
+                                                        <Tooltip text="Ver imagen del producto">
                                                             <button
-                                                                onClick={() => navigate(`/ventas/nueva?codigo=${producto.codigo_usuario}`)}
-                                                                className="p-2 text-orange-600 hover:bg-orange-50 rounded transition-colors"
+                                                                onClick={() => setSelectedImage(producto)}
+                                                                className="p-2 text-blue-600 hover:bg-blue-50 rounded transition-colors"
                                                             >
-                                                                <FaShoppingCart size={16} />
+                                                                <FaEye size={16} />
                                                             </button>
                                                         </Tooltip>
                                                     )}
                                                     <Tooltip text="Editar producto">
                                                         <button
                                                             onClick={() => navigate(`/inventario/editar/${producto.id}`)}
-                                                            className="p-2 text-green-600 hover:bg-green-50 rounded transition-colors"
+                                                            className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded transition-colors"
                                                         >
-                                                            <FaEdit size={16} />
+                                                            <FaEdit size={14} />
                                                         </button>
                                                     </Tooltip>
                                                     <Tooltip text="Eliminar del inventario">
                                                         <button
                                                             onClick={() => handleDelete(producto.id, producto.nombre)}
-                                                            className="p-2 text-red-600 hover:bg-red-50 rounded transition-colors"
+                                                            className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
                                                         >
-                                                            <FaTrash size={16} />
+                                                            <FaTrash size={14} />
                                                         </button>
                                                     </Tooltip>
                                                 </div>
@@ -282,6 +268,43 @@ export default function Inventario() {
                     )}
                 </div>
             </div>
+
+            {/* Image Modal */}
+            {selectedImage && (
+                <div 
+                    className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+                    onClick={() => setSelectedImage(null)}
+                >
+                    <div 
+                        className="bg-white rounded-xl shadow-2xl max-w-sm w-full overflow-hidden"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="p-4 border-b flex justify-between items-center bg-gray-50">
+                            <div>
+                                <h3 className="text-sm font-bold text-gray-800 uppercase">{selectedImage.categoria}</h3>
+                                <p className="text-[10px] text-gray-500 font-mono">{selectedImage.codigo_usuario}</p>
+                            </div>
+                            <button 
+                                onClick={() => setSelectedImage(null)}
+                                className="text-gray-400 hover:text-gray-600"
+                            >
+                                <FaTimes size={20} />
+                            </button>
+                        </div>
+                        <div className="bg-gray-100 flex items-center justify-center min-h-[300px]">
+                            <img 
+                                src={selectedImage.imagen_url} 
+                                alt={selectedImage.nombre}
+                                className="max-w-full max-h-[70vh] object-contain"
+                            />
+                        </div>
+                        <div className="p-4 bg-gray-50 border-t flex justify-between items-center text-xs">
+                             <span className="text-gray-600 font-medium">Stock: {selectedImage.stock_actual}</span>
+                             <span className="text-blue-600 font-bold text-sm">S/ {Number(selectedImage.precio).toFixed(2)}</span>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* QR Modal */}
             {showQR && (

@@ -147,15 +147,25 @@ export const ventasDB = {
     },
 
     async getAll() {
-        const ventas = await sql`SELECT * FROM ventas ORDER BY fecha_venta DESC`;
-
-        // Cargar detalles para cada venta
-        for (const venta of ventas) {
-            const detalles = await sql`SELECT * FROM detalles_venta WHERE venta_id = ${venta.id}`;
-            venta.detalles = detalles;
+        try {
+            // Optimización: Una sola consulta con JOIN y agregación JSON para evitar N+1
+            const ventas = await sql`
+                SELECT 
+                    v.*,
+                    COALESCE(
+                        (SELECT json_agg(d.*) 
+                         FROM detalles_venta d 
+                         WHERE d.venta_id = v.id), 
+                        '[]'
+                    ) as detalles
+                FROM ventas v
+                ORDER BY v.fecha_venta DESC
+            `;
+            return ventas;
+        } catch (error) {
+            console.error("Error al obtener ventas:", error);
+            throw error;
         }
-
-        return ventas;
     },
 
     async getById(id) {

@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { produccionDB } from '../../../utils/produccionNeonClient';
 import { Link } from 'react-router-dom';
-import { FaArrowLeft, FaCoins, FaChartBar, FaImage, FaTimes, FaWhatsapp, FaDownload, FaPrint, FaCamera, FaSpinner, FaEdit } from 'react-icons/fa';
+import { FaArrowLeft, FaImage, FaTimes, FaWhatsapp, FaCamera, FaSpinner, FaEdit } from 'react-icons/fa';
 import { storage } from '../../../firebaseConfig';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { compressAndResizeImage, validateImageFile } from '../../../utils/imageOptimizer';
+import { compressAndResizeImage } from '../../../utils/imageOptimizer';
 import toast, { Toaster } from 'react-hot-toast';
 
 const ProduccionReporte = () => {
@@ -50,8 +50,6 @@ const ProduccionReporte = () => {
             setLoading(false);
         }
     };
-
-
 
     // Filtrar producción por fechas (con excepción de "En Proceso")
     const produccionConFiltroFecha = useMemo(() => {
@@ -133,8 +131,6 @@ const ProduccionReporte = () => {
     const endIndex = startIndex + itemsPerPage;
     const produccionPaginada = produccionFiltrada.slice(startIndex, endIndex);
 
-
-
     // Obtener estilos de pestaña según color
     const getTabStyles = (tabColor, isActive) => {
         const colorMap = {
@@ -204,6 +200,15 @@ const ProduccionReporte = () => {
         }
     };
 
+    if (loading) {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50">
+                <FaSpinner className="animate-spin text-blue-600 text-4xl mb-4" />
+                <p className="text-gray-600 font-medium tracking-tight">Cargando reporte...</p>
+            </div>
+        );
+    }
+
     return (
         <>
             <Toaster position="top-right" />
@@ -216,39 +221,22 @@ const ProduccionReporte = () => {
                     <h1 className="text-xl font-light text-gray-800">Reporte de Producción</h1>
                 </div>
 
-                {/* Resumen de Valorización — cards dinámicas según filtroDestino */}
+                {/* Resumen de Valorización */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-                    {/* Card Valor Producido */}
-                    <div className="bg-white rounded-lg shadow-sm p-2 border-l-4 border-blue-600">
-                        <p className="text-[8px] font text-blue-600 uppercase tracking-tight mb-0.5">Valor Producido</p>
-                        <p className="text-sm font-black text-gray-800">
-                            <span className="text-[10px] font-normal text-gray-400 mr-0.5">S/</span>
+                    <div className="bg-white rounded-lg shadow-sm p-3 border-l-4 border-blue-600">
+                        <p className="text-[10px] font-bold text-blue-600 uppercase tracking-tight mb-0.5">Valor Producido</p>
+                        <p className="text-lg font-black text-gray-800">
+                            <span className="text-xs font-normal text-gray-400 mr-0.5">S/</span>
                             {inversionTotal.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </p>
-                        {/* Desglose sutil solo cuando se ven Todos */}
-                        {filtroDestino === 'todos' && (
-                            <div className="mt-1 flex items-center gap-2">
-                                <span className="text-[9px] text-blue-500">📦 S/ {totalesPorDestino.pedidos.valor.toLocaleString('es-PE', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
-                                <span className="text-gray-300">·</span>
-                                <span className="text-[9px] text-purple-500">🏪 S/ {totalesPorDestino.stock.valor.toLocaleString('es-PE', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
-                            </div>
-                        )}
                     </div>
 
-                    {/* Card Total Registros */}
                     <div className="bg-white rounded-lg shadow-sm p-3 border-l-4 border-slate-700">
-                        <p className="text-[9px] font text-slate-500 uppercase tracking-tight mb-0.5">Total Registros</p>
-                        <p className="text-sm font-black text-gray-800">
+                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-tight mb-0.5">Total Registros</p>
+                        <p className="text-lg font-black text-gray-800">
                             {produccionFiltrada.length}
-                            <span className="text-[9px] font-normal text-gray-400 ml-1">Items</span>
+                            <span className="text-xs font-normal text-gray-400 ml-1">Items</span>
                         </p>
-                        {filtroDestino === 'todos' && (
-                            <div className="mt-1 flex items-center gap-2">
-                                <span className="text-[9px] text-blue-500">📦 {totalesPorDestino.pedidos.count}</span>
-                                <span className="text-gray-300">·</span>
-                                <span className="text-[9px] text-purple-500">🏪 {totalesPorDestino.stock.count}</span>
-                            </div>
-                        )}
                     </div>
                 </div>
 
@@ -275,7 +263,6 @@ const ProduccionReporte = () => {
                         </div>
                         <button
                             onClick={() => {
-                                const currentYear = new Date().getFullYear();
                                 setFechaInicio('2025-01-01');
                                 setFechaFin(`${currentYear}-12-31`);
                             }}
@@ -286,7 +273,7 @@ const ProduccionReporte = () => {
                     </div>
                 </div>
 
-                {/* Pestañas de Filtrado - Responsive */}
+                {/* Pestañas de Filtrado */}
                 <div className="mb-4 bg-white rounded-lg shadow-sm p-2 overflow-x-auto">
                     <div className="flex gap-2 min-w-max">
                         {pestanas.map(tab => {
@@ -301,15 +288,9 @@ const ProduccionReporte = () => {
                                         flex-col min-w-[70px]
                                         ${styles.button}
                                     `}
-                                    title={tab.label}
                                 >
-                                    {/* Icono */}
                                     <span className="text-xl md:text-base">{tab.icon}</span>
-
-                                    {/* Label: visible en desktop, oculto en móvil */}
                                     <span className="hidden md:inline">{tab.label}</span>
-
-                                    {/* Contador */}
                                     <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${styles.badge}`}>
                                         {tab.count}
                                     </span>
@@ -319,13 +300,13 @@ const ProduccionReporte = () => {
                     </div>
                 </div>
 
-                {/* Selector de Destino — toggle subtle */}
+                {/* Selector de Destino */}
                 <div className="mb-4 bg-white rounded-lg shadow-sm px-3 py-2 flex flex-wrap items-center gap-2">
                     <span className="text-[10px] uppercase tracking-widest text-gray-400 font-medium mr-1 hidden sm:inline">Destino</span>
                     {[
-                        { id: 'todos',   label: 'Todos',   emoji: '📋', count: totalesPorDestino.todos.count,   valor: totalesPorDestino.todos.valor },
-                        { id: 'pedidos', label: 'Pedidos', emoji: '📦', count: totalesPorDestino.pedidos.count, valor: totalesPorDestino.pedidos.valor },
-                        { id: 'stock',   label: 'Stock',   emoji: '🏪', count: totalesPorDestino.stock.count,   valor: totalesPorDestino.stock.valor },
+                        { id: 'todos',   label: 'Todos',   emoji: '📋', count: totalesPorDestino.todos.count },
+                        { id: 'pedidos', label: 'Pedidos', emoji: '📦', count: totalesPorDestino.pedidos.count },
+                        { id: 'stock',   label: 'Stock',   emoji: '🏪', count: totalesPorDestino.stock.count },
                     ].map(opt => (
                         <button
                             key={opt.id}
@@ -333,11 +314,7 @@ const ProduccionReporte = () => {
                             className={`
                                 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all border
                                 ${filtroDestino === opt.id
-                                    ? opt.id === 'pedidos'
-                                        ? 'bg-blue-50 text-blue-700 border-blue-300 shadow-sm'
-                                        : opt.id === 'stock'
-                                            ? 'bg-purple-50 text-purple-700 border-purple-300 shadow-sm'
-                                            : 'bg-gray-100 text-gray-700 border-gray-300 shadow-sm'
+                                    ? 'bg-blue-50 text-blue-700 border-blue-300 shadow-sm'
                                     : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'}
                             `}
                         >
@@ -347,206 +324,123 @@ const ProduccionReporte = () => {
                                 px-1.5 py-0.5 rounded-full text-[10px] font-bold
                                 ${filtroDestino === opt.id ? 'bg-white/60' : 'bg-gray-100 text-gray-500'}
                             `}>{opt.count}</span>
-                            {opt.count > 0 && (
-                                <span className="text-[9px] opacity-70">
-                                    S/{opt.valor.toLocaleString('es-PE', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-                                </span>
-                            )}
                         </button>
                     ))}
                 </div>
 
-                {/* Tabla Profesional */}
+                {/* Tabla */}
                 <div className="bg-white shadow rounded-lg overflow-hidden">
-                    {/* Título */}
                     <div className="px-4 py-3 border-b border-gray-100">
-                        <h3 className="text-sm font-semibold text-gray-800 tracking-tight">
-                            Detalle de Producción
-                        </h3>
+                        <h3 className="text-sm font-semibold text-gray-800 tracking-tight">Detalle de Producción</h3>
                     </div>
-
-                    {/* Tabla sin scroll horizontal */}
                     <div className="overflow-hidden">
                         <table className="min-w-full divide-y divide-gray-100">
                             <thead className="bg-gray-50">
                                 <tr>
-                                    <th className="px-3 py-3 text-left text-[11px] font-medium text-gray-500 uppercase tracking-wide align-middle">
-                                        Fecha Término
-                                    </th>
-                                    <th className="px-3 py-3 text-left text-[11px] font-medium text-gray-500 uppercase tracking-wide align-middle">
-                                        Producción
-                                    </th>
-                                    <th className="px-3 py-3 text-center text-[11px] font-medium text-gray-500 uppercase tracking-wide align-middle hidden md:table-cell">
-                                        Estado
-                                    </th>
-                                    <th className="px-3 py-3 text-center text-[11px] font-medium text-gray-500 uppercase tracking-wide align-middle hidden md:table-cell">
-                                        Destino
-                                    </th>
-                                    <th className="px-3 py-3 text-center text-[11px] font-medium text-gray-500 uppercase tracking-wide align-middle w-24">
-                                        Acciones
-                                    </th>
+                                    <th className="px-3 py-3 text-left text-[11px] font-medium text-gray-500 uppercase tracking-wide align-middle">Fecha Término</th>
+                                    <th className="px-3 py-3 text-left text-[11px] font-medium text-gray-500 uppercase tracking-wide align-middle">Producción</th>
+                                    <th className="px-3 py-3 text-center text-[11px] font-medium text-gray-500 uppercase tracking-wide align-middle hidden md:table-cell">Estado</th>
+                                    <th className="px-3 py-3 text-center text-[11px] font-medium text-gray-500 uppercase tracking-wide align-middle hidden md:table-cell">Destino</th>
+                                    <th className="px-3 py-3 text-center text-[11px] font-medium text-gray-500 uppercase tracking-wide align-middle w-24">Acciones</th>
                                 </tr>
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-50">
-                                {produccionPaginada.map((item) => {
-                                    return (
-                                        <tr key={item.id_produccion} className="h-14 md:h-12 hover:bg-gray-50/50 transition-colors">
-                                            {/* Fecha de Término */}
-                                            <td className="px-3 py-3 md:py-2 align-middle">
-                                                <div className="text-[13px] md:text-sm font-normal text-gray-700">
-                                                    {(() => {
-                                                        const dateStr = item.fecha_fin_produccion || item.fecha_terminado;
-                                                        if (!dateStr) return <span className="text-gray-400 text-xs">En proceso</span>;
-                                                        const date = new Date(dateStr.toString().includes('T') ? dateStr : dateStr + 'T00:00:00');
-                                                        return isNaN(date.getTime()) ? '-' : date.toLocaleDateString('es-PE', {
-                                                            day: '2-digit',
-                                                            month: '2-digit',
-                                                            year: '2-digit'
-                                                        });
-                                                    })()}
-                                                </div>
-                                            </td>
-
-                                            {/* Producción */}
-                                            <td className="px-3 py-3 md:py-2 align-middle">
-                                                <div className="flex flex-col">
-                                                    <div className="flex items-center gap-1.5">
-                                                        <span className="text-[13px] md:text-sm font-normal text-gray-700 leading-tight">
-                                                            {item.tipo_producto} – {item.metal}
-                                                        </span>
-                                                        {item.imagen_url && (
-                                                            <FaCamera className="text-blue-400 opacity-60 flex-shrink-0" size={10} title="Imagen disponible" />
-                                                        )}
-                                                     </div>
-                                                    {/* Destino en mobile */}
-                                                    <div className="md:hidden flex items-center gap-1.5 mt-1">
-                                                        {item.tipo_produccion === 'PEDIDO' ? (
-                                                            <span className="text-xs text-blue-600 font-medium">📦 Pedido</span>
-                                                        ) : (
-                                                            <span className="text-xs text-purple-600 font-medium">🏪 Stock</span>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            </td>
-
-                                            {/* Estado - Solo Desktop */}
-                                            <td className="hidden md:table-cell px-3 py-2 text-center align-middle">
-                                                <div className="flex items-center justify-center gap-1.5">
-                                                    {item.estado_produccion === 'terminado' ? (
-                                                        <>
-                                                            <span className="text-emerald-600 w-4 h-4 flex items-center justify-center">✅</span>
-                                                            <span className="text-xs text-gray-500">Terminado</span>
-                                                        </>
-                                                    ) : (
-                                                        <>
-                                                            <span className="text-amber-500 w-4 h-4 flex items-center justify-center">⏳</span>
-                                                            <span className="text-xs text-gray-500">En proceso</span>
-                                                        </>
-                                                    )}
-                                                </div>
-                                            </td>
-
-                                            {/* Destino - Solo Desktop */}
-                                            <td className="hidden md:table-cell px-3 py-2 text-center align-middle">
-                                                {item.tipo_produccion === 'PEDIDO' ? (
-                                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700">
-                                                        📦 Pedido
+                                {produccionPaginada.map((item) => (
+                                    <tr key={item.id_produccion} className="hover:bg-gray-50/50 transition-colors">
+                                        <td className="px-3 py-3 md:py-2 align-middle">
+                                            <div className="text-[13px] md:text-sm font-normal text-gray-700">
+                                                {(() => {
+                                                    const dateStr = item.fecha_fin_produccion || item.fecha_terminado;
+                                                    if (!dateStr) return <span className="text-gray-400 text-xs">En proceso</span>;
+                                                    const date = new Date(dateStr.toString().includes('T') ? dateStr : dateStr + 'T00:00:00');
+                                                    return isNaN(date.getTime()) ? '-' : date.toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', year: '2-digit' });
+                                                })()}
+                                            </div>
+                                        </td>
+                                        <td className="px-3 py-3 md:py-2 align-middle">
+                                            <div className="flex flex-col">
+                                                <div className="flex items-center gap-1.5">
+                                                    <span className="text-[13px] md:text-sm font-normal text-gray-700 leading-tight">
+                                                        {item.tipo_producto} – {item.metal}
                                                     </span>
+                                                    {item.imagen_url && <FaCamera className="text-blue-400 opacity-60 flex-shrink-0" size={10} />}
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td className="hidden md:table-cell px-3 py-2 text-center align-middle">
+                                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${item.estado_produccion === 'terminado' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'}`}>
+                                                {item.estado_produccion === 'terminado' ? 'Terminado' : 'En proceso'}
+                                            </span>
+                                        </td>
+                                        <td className="hidden md:table-cell px-3 py-2 text-center align-middle">
+                                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${item.tipo_produccion === 'PEDIDO' ? 'bg-blue-50 text-blue-700' : 'bg-purple-50 text-purple-700'}`}>
+                                                {item.tipo_produccion === 'PEDIDO' ? '📦 Pedido' : '🏪 Stock'}
+                                            </span>
+                                        </td>
+                                        <td className="py-2 text-center align-middle w-24">
+                                            <div className="flex items-center justify-center gap-1.5">
+                                                <button onClick={() => setSelectedItem(item)} className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-900 rounded-full hover:bg-gray-100" title="Ver detalle">
+                                                    <span className="text-[18px]">👁️</span>
+                                                </button>
+
+                                                {item.imagen_url ? (
+                                                    <>
+                                                        <button
+                                                            onClick={() => setSelectedImage(item)}
+                                                            className="w-8 h-8 flex items-center justify-center rounded-lg text-blue-600 bg-blue-50 border border-blue-100 hover:bg-blue-100 shadow-sm transition-all"
+                                                            title="Ver foto"
+                                                        >
+                                                            <FaImage size={14} />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => { setItemForPhoto(item); setShowPhotoUploadModal(true); }}
+                                                            className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 bg-white border border-gray-200 hover:text-blue-600 hover:border-blue-200 shadow-sm transition-all"
+                                                            title="Editar foto"
+                                                        >
+                                                            <FaCamera size={14} />
+                                                        </button>
+                                                    </>
                                                 ) : (
-                                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-purple-50 text-purple-700">
-                                                        🏪 Stock
-                                                    </span>
-                                                )}
-                                            </td>
-
-                                            {/* Acciones */}
-                                            <td className="py-2 text-center align-middle w-20">
-                                                <div className="flex items-center justify-center">
-                                                    {/* Slot 1: Ver Detalle — siempre visible */}
                                                     <button
-                                                        onClick={() => setSelectedItem(item)}
-                                                        className="w-8 h-8 flex-shrink-0 flex items-center justify-center text-gray-500 hover:text-gray-900 transition-colors rounded-full hover:bg-gray-100"
-                                                        title="Ver detalle"
-                                                    >
-                                                        <span className="text-[20px] leading-none">👁️</span>
-                                                    </button>
-
-                                                    {/* Slot 2: Ver Imagen — siempre ocupa espacio, invisible si no hay img */}
-                                                    <button
-                                                        onClick={() => {
-                                                            if (item.imagen_url) setSelectedImage(item);
-                                                            else { setItemForPhoto(item); setShowPhotoUploadModal(true); }
-                                                        }}
-                                                        className={`w-8 h-8 flex-shrink-0 flex items-center justify-center rounded-full transition-all border ${item.imagen_url ? 'text-blue-600 bg-blue-50 border-blue-100 hover:bg-blue-100' : 'text-gray-400 bg-gray-50 border-gray-100 hover:bg-gray-100'} cursor-pointer shadow-sm active:scale-95`}
-                                                        title={item.imagen_url ? "Ver / Editar imagen" : "Subir imagen"}
+                                                        onClick={() => { setItemForPhoto(item); setShowPhotoUploadModal(true); }}
+                                                        className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 bg-gray-50 border border-gray-100 hover:bg-gray-100 shadow-sm transition-all"
+                                                        title="Subir foto"
                                                     >
                                                         <FaCamera size={14} />
                                                     </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    );
-                                })}
+                                                )}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
                             </tbody>
                         </table>
-
-                        {/* Mensaje si no hay registros */}
-                        {produccionPaginada.length === 0 && (
-                            <div className="text-center py-8 text-gray-500 text-sm">
-                                No hay registros para mostrar
-                            </div>
+                        {produccionFiltrada.length === 0 && (
+                            <div className="text-center py-8 text-gray-500 text-sm">No hay registros para mostrar</div>
                         )}
                     </div>
 
                     {/* Paginación */}
                     {totalPages > 1 && (
-                        <div className="px-4 py-3 border-t border-gray-100">
-                            {/* Desktop */}
-                            <div className="hidden md:flex items-center justify-between">
-                                <div className="text-xs text-gray-500">
-                                    Mostrando {startIndex + 1} - {Math.min(endIndex, produccionFiltrada.length)} de {produccionFiltrada.length} registros
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <button
-                                        onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                                        disabled={currentPage === 1}
-                                        className="px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                                    >
-                                        Anterior
-                                    </button>
-                                    <span className="text-xs text-gray-600 font-medium">
-                                        Página {currentPage} de {totalPages}
-                                    </span>
-                                    <button
-                                        onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                                        disabled={currentPage === totalPages}
-                                        className="px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                                    >
-                                        Siguiente
-                                    </button>
-                                </div>
+                        <div className="px-4 py-3 border-t border-gray-100 flex items-center justify-between">
+                            <div className="text-xs text-gray-500">
+                                Mostrando {startIndex + 1} - {Math.min(endIndex, produccionFiltrada.length)} de {produccionFiltrada.length}
                             </div>
-
-                            {/* Mobile - Solo flechas */}
-                            <div className="md:hidden flex items-center justify-center gap-3">
+                            <div className="flex items-center gap-2">
                                 <button
                                     onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                                     disabled={currentPage === 1}
-                                    className="w-10 h-10 flex items-center justify-center text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                                    aria-label="Página anterior"
+                                    className="px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-200 rounded disabled:opacity-30"
                                 >
-                                    <span className="text-lg">←</span>
+                                    Anterior
                                 </button>
-                                <span className="text-xs text-gray-600 font-medium">
-                                    Página {currentPage} de {totalPages}
-                                </span>
+                                <span className="text-xs text-gray-600">Pág {currentPage} de {totalPages}</span>
                                 <button
                                     onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                                     disabled={currentPage === totalPages}
-                                    className="w-10 h-10 flex items-center justify-center text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                                    aria-label="Página siguiente"
+                                    className="px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-200 rounded disabled:opacity-30"
                                 >
-                                    <span className="text-lg">→</span>
+                                    Siguiente
                                 </button>
                             </div>
                         </div>
@@ -554,236 +448,128 @@ const ProduccionReporte = () => {
                 </div>
             </div>
 
-            {/* Modal de Detalle Mejorado */}
+            {/* Modales */}
             {selectedItem && (
-                <div
-                    className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
-                    onClick={() => setSelectedItem(null)}
-                >
-                    <div
-                        className="relative bg-white rounded-lg shadow-lg overflow-hidden max-w-md w-full"
-                        onClick={(e) => e.stopPropagation()}
-                    >
-                        {/* Header */}
-                        <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
-                            <h3 className="text-sm font-semibold text-gray-800">Detalle de Producción</h3>
-                            <button
-                                onClick={() => setSelectedItem(null)}
-                                className="text-gray-400 hover:text-gray-600 transition-colors"
-                            >
-                                <FaTimes size={16} />
-                            </button>
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50" onClick={() => setSelectedItem(null)}>
+                    <div className="bg-white rounded-lg shadow-lg overflow-hidden max-w-md w-full" onClick={e => e.stopPropagation()}>
+                        <div className="px-4 py-3 border-b flex items-center justify-between">
+                            <h3 className="text-sm font-bold text-gray-800">Detalle</h3>
+                            <button onClick={() => setSelectedItem(null)}><FaTimes size={16} /></button>
                         </div>
-
-                        {/* Información */}
                         <div className="p-4 space-y-3">
-                            {/* Producto */}
                             <div>
-                                <label className="text-xs uppercase tracking-wide text-gray-500 block mb-1">Producto</label>
-                                <p className="text-sm text-gray-700">{selectedItem.nombre_producto}</p>
+                                <label className="text-[10px] uppercase text-gray-400 block">Producto</label>
+                                <p className="text-sm font-medium">{selectedItem.nombre_producto}</p>
                             </div>
-
-                            {/* Grid de información */}
-                            <div className="grid grid-cols-2 gap-3">
-                                <div>
-                                    <label className="text-xs uppercase tracking-wide text-gray-500 block mb-1">Tipo</label>
-                                    <p className="text-sm text-gray-700">{selectedItem.tipo_producto}</p>
-                                </div>
-                                <div>
-                                    <label className="text-xs uppercase tracking-wide text-gray-500 block mb-1">Metal</label>
-                                    <p className="text-sm text-gray-700">{selectedItem.metal}</p>
-                                </div>
-                                <div>
-                                    <label className="text-xs uppercase tracking-wide text-gray-500 block mb-1">Cantidad</label>
-                                    <p className="text-sm text-gray-700">{selectedItem.cantidad} und</p>
-                                </div>
-                                <div>
-                                    <label className="text-xs uppercase tracking-wide text-gray-500 block mb-1">Estado</label>
-                                    <p className="text-sm text-gray-700">
-                                        {selectedItem.estado_produccion === 'terminado' ? 'Terminado' : 'En proceso'}
-                                    </p>
-                                </div>
+                            <div className="grid grid-cols-2 gap-2">
+                                <div><label className="text-[10px] uppercase text-gray-400 block">Tipo</label><p className="text-xs">{selectedItem.tipo_producto}</p></div>
+                                <div><label className="text-[10px] uppercase text-gray-400 block">Metal</label><p className="text-xs">{selectedItem.metal}</p></div>
+                                <div><label className="text-[10px] uppercase text-gray-400 block">Cantidad</label><p className="text-xs">{selectedItem.cantidad} und</p></div>
+                                <div><label className="text-[10px] uppercase text-gray-400 block">Costo Total</label><p className="text-xs font-bold text-blue-600">S/ {parseFloat(selectedItem.costo_total_produccion || 0).toFixed(2)}</p></div>
                             </div>
-
-                            {/* Costos */}
-                            <div className="border-t border-gray-100 pt-3">
-                                <label className="text-xs uppercase tracking-wide text-gray-500 block mb-2">Costos</label>
-                                <div className="space-y-1.5">
-                                    <div className="flex justify-between text-sm">
-                                        <span className="text-gray-600">Materiales:</span>
-                                        <span className="text-gray-700">S/ {parseFloat(selectedItem.costo_materiales || 0).toFixed(2)}</span>
-                                    </div>
-                                    <div className="flex justify-between text-sm">
-                                        <span className="text-gray-600">Mano de obra:</span>
-                                        <span className="text-gray-700">S/ {parseFloat(selectedItem.mano_de_obra || 0).toFixed(2)}</span>
-                                    </div>
-                                    <div className="flex justify-between text-sm">
-                                        <span className="text-gray-600">Herramientas:</span>
-                                        <span className="text-gray-700">S/ {parseFloat(selectedItem.costo_herramientas || 0).toFixed(2)}</span>
-                                    </div>
-                                    <div className="flex justify-between text-sm pt-2 border-t border-gray-100">
-                                        <span className="text-gray-800 font-medium">Total:</span>
-                                        <span className="text-gray-900 font-semibold">S/ {parseFloat(selectedItem.costo_total_produccion || 0).toFixed(2)}</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Observaciones */}
                             {selectedItem.observaciones && (
-                                <div>
-                                    <label className="text-xs uppercase tracking-wide text-gray-500 block mb-1">Observaciones</label>
-                                    <p className="text-sm text-gray-700">{selectedItem.observaciones}</p>
-                                </div>
-                            )}
-
-                            {/* Cliente */}
-                            {selectedItem.nombre_cliente && (
-                                <div>
-                                    <label className="text-xs uppercase tracking-wide text-gray-500 block mb-1">Cliente</label>
-                                    <p className="text-sm text-gray-700">{selectedItem.nombre_cliente}</p>
-                                </div>
+                                <div><label className="text-[10px] uppercase text-gray-400 block">Observaciones</label><p className="text-xs italic text-gray-600">{selectedItem.observaciones}</p></div>
                             )}
                         </div>
-
-                        {/* Footer con acción */}
                         {selectedItem.imagen_url && (
-                            <div className="px-4 py-3 border-t border-gray-100 bg-gray-50">
+                             <div className="p-4 bg-gray-50 border-t">
                                 <button
                                     onClick={() => {
-                                        const text = `🛠️ *Reporte de Producción*\n\n*Producto:* ${selectedItem.nombre_producto}\n*Tipo:* ${selectedItem.tipo_producto} - ${selectedItem.metal}\n*Cantidad:* ${selectedItem.cantidad} und\n*Costo Total:* S/ ${parseFloat(selectedItem.costo_total_produccion || 0).toFixed(2)}\n\n🖼️ Ver imagen: ${selectedItem.imagen_url}`;
+                                        const text = `🛠️ *Reporte:* ${selectedItem.nombre_producto}\n🖼️ ${selectedItem.imagen_url}`;
                                         window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
                                     }}
-                                    className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-green-500 text-white rounded text-sm font-medium hover:bg-green-600 transition-colors"
+                                    className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-green-500 text-white rounded text-xs"
                                 >
-                                    <FaWhatsapp size={16} />
-                                    Compartir por WhatsApp
+                                    <FaWhatsapp /> Compartir
                                 </button>
-                            </div>
+                             </div>
                         )}
                     </div>
                 </div>
             )}
 
-            {/* Modal de Imagen Separado */}
             {selectedImage && (
-                <div
-                    className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50"
-                    onClick={() => setSelectedImage(null)}
-                >
-                    <div
-                        className="relative bg-white rounded-lg shadow-lg overflow-hidden max-w-2xl w-full"
-                        onClick={(e) => e.stopPropagation()}
-                    >
-                        {/* Header */}
-                        <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
-                            <h3 className="text-sm font-semibold text-gray-800">
-                                {selectedImage.nombre_producto}
-                            </h3>
-                            <button
-                                onClick={() => setSelectedImage(null)}
-                                className="text-gray-400 hover:text-gray-600 transition-colors"
-                            >
-                                <FaTimes size={16} />
-                            </button>
+                <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50" onClick={() => setSelectedImage(null)}>
+                    <div className="bg-white rounded-lg shadow-lg overflow-hidden max-w-sm w-full" onClick={e => e.stopPropagation()}>
+                        <div className="px-4 py-2 border-b flex justify-between items-center bg-gray-50">
+                            <h3 className="text-xs font-bold truncate pr-4">{selectedImage.nombre_producto}</h3>
+                            <button onClick={() => setSelectedImage(null)}><FaTimes size={16} /></button>
                         </div>
-
-                        {/* Imagen */}
-                        <div className="aspect-square bg-gray-100 flex items-center justify-center">
-                            <img
-                                src={selectedImage.imagen_url}
-                                alt={selectedImage.nombre_producto}
-                                className="w-full h-full object-cover"
-                            />
-                        </div>
-
-                        {/* Footer con WhatsApp y Editar */}
-                        <div className="px-4 py-3 border-t border-gray-100 bg-gray-50 flex gap-2">
-                            <button
+                        <img src={selectedImage.imagen_url} alt="Preview" className="w-full h-auto max-h-[70vh] object-contain bg-gray-100" />
+                        <div className="p-3 flex gap-2">
+                             <button
                                 onClick={() => {
-                                    const text = `🛠️ *${selectedImage.nombre_producto}*\n\n📸 Ver imagen: ${selectedImage.imagen_url}`;
+                                    const text = `🛠️ *${selectedImage.nombre_producto}*\n📸 ${selectedImage.imagen_url}`;
                                     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
                                 }}
-                                className="flex-[2] flex items-center justify-center gap-2 px-4 py-2 bg-green-500 text-white rounded text-sm font-medium hover:bg-green-600 transition-colors"
+                                className="flex-1 flex items-center justify-center gap-2 bg-green-500 text-white py-2 rounded text-xs"
                             >
-                                <FaWhatsapp size={16} />
-                                Compartir
+                                <FaWhatsapp /> WhatsApp
                             </button>
                             <button
-                                onClick={() => {
-                                    setItemForPhoto(selectedImage);
-                                    setSelectedImage(null);
-                                    setShowPhotoUploadModal(true);
-                                }}
-                                className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded text-sm font-medium hover:bg-blue-700 transition-colors"
-                                title="Cambiar imagen"
+                                onClick={() => { setItemForPhoto(selectedImage); setSelectedImage(null); setShowPhotoUploadModal(true); }}
+                                className="flex-1 flex items-center justify-center gap-2 bg-blue-600 text-white py-2 rounded text-xs"
                             >
-                                <FaEdit size={14} />
-                                Editar
+                                <FaEdit /> Editar
                             </button>
                         </div>
                     </div>
                 </div>
             )}
-            {/* Modal Subida de Foto Final */}
-            {
-                showPhotoUploadModal && (
-                    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in">
-                        <div className="bg-white rounded-xl shadow-2xl max-w-sm w-full overflow-hidden">
-                            <div className="bg-gradient-to-r from-blue-600 to-blue-800 p-4 text-white flex justify-between items-start">
-                                <div>
-                                    <h3 className="text-lg font-bold flex items-center gap-2">
-                                        <FaCamera /> {itemForPhoto?.imagen_url ? 'Actualizar Foto' : 'Subir Foto'}
-                                    </h3>
-                                    <p className="text-xs text-blue-100 mt-1 max-w-[250px] truncate">
-                                        {itemForPhoto?.nombre_producto || itemForPhoto?.tipo_producto || 'Producto'}
-                                    </p>
-                                </div>
-                                <button onClick={() => setShowPhotoUploadModal(false)} className="text-white/80 hover:text-white">
-                                    <FaTimes size={20} />
-                                </button>
-                            </div>
 
-                            <div className="p-6">
-                                <div
-                                    className="border-2 border-dashed border-blue-200 bg-blue-50/30 rounded-xl h-48 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-blue-50 transition-colors group relative"
-                                    onClick={() => !uploadingImage && document.getElementById('report-photo-input').click()}
-                                >
-                                    <input
-                                        id="report-photo-input"
-                                        type="file"
-                                        accept="image/*"
-                                        className="hidden"
-                                        onChange={(e) => {
-                                            if (e.target.files[0]) handlePhotoUpload(e.target.files[0]);
-                                        }}
-                                        disabled={uploadingImage}
-                                    />
-                                    {uploadingImage ? (
-                                        <div className="animate-pulse flex flex-col items-center justify-center w-full h-full bg-white/80 absolute inset-0 z-10">
-                                            <FaSpinner className="animate-spin text-blue-500 text-3xl mb-2" />
-                                            <span className="text-blue-600 font-bold text-sm">Subiendo foto...</span>
-                                        </div>
-                                    ) : (
-                                        <>
-                                            <div className="w-12 h-12 bg-blue-100 text-blue-500 rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-                                                <FaCamera size={24} />
-                                            </div>
-                                            <span className="text-gray-600 font-medium text-sm">Haz clic para subir imagen</span>
-                                            <span className="text-gray-400 text-xs mt-1">JPG, PNG • Máx 5MB</span>
-                                        </>
-                                    )}
-                                </div>
-                                <button
-                                    onClick={() => setShowPhotoUploadModal(false)}
-                                    className="w-full mt-6 bg-gray-100 text-gray-500 font-bold py-3 rounded-lg text-xs uppercase tracking-wide"
-                                >
-                                    Cancelar
-                                </button>
+            {showPhotoUploadModal && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in">
+                    <div className="bg-white rounded-xl shadow-2xl max-w-sm w-full overflow-hidden">
+                        <div className="bg-gradient-to-r from-blue-600 to-blue-800 p-4 text-white flex justify-between items-start">
+                            <div>
+                                <h3 className="text-lg font-bold flex items-center gap-2">
+                                    <FaCamera /> {itemForPhoto?.imagen_url ? 'Actualizar Foto' : 'Subir Foto'}
+                                </h3>
+                                <p className="text-xs text-blue-100 mt-1 truncate max-w-[250px]">
+                                    {itemForPhoto?.nombre_producto || 'Producto'}
+                                </p>
                             </div>
+                            <button onClick={() => setShowPhotoUploadModal(false)} className="text-white/80 hover:text-white"><FaTimes size={20} /></button>
+                        </div>
+
+                        <div className="p-6">
+                            <div
+                                className="border-2 border-dashed border-blue-200 bg-blue-50/30 rounded-xl h-48 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-blue-50 transition-colors group relative"
+                                onClick={() => !uploadingImage && document.getElementById('report-photo-input').click()}
+                            >
+                                <input
+                                    id="report-photo-input"
+                                    type="file"
+                                    accept="image/*"
+                                    className="hidden"
+                                    onChange={(e) => { if (e.target.files[0]) handlePhotoUpload(e.target.files[0]); }}
+                                    disabled={uploadingImage}
+                                />
+                                {uploadingImage ? (
+                                    <div className="animate-pulse flex flex-col items-center justify-center w-full h-full bg-white/80 absolute inset-0 z-10">
+                                        <FaSpinner className="animate-spin text-blue-500 text-3xl mb-2" />
+                                        <span className="text-blue-600 font-bold text-sm">Subiendo...</span>
+                                    </div>
+                                ) : (
+                                    <>
+                                        <div className="w-12 h-12 bg-blue-100 text-blue-500 rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                                            <FaCamera size={24} />
+                                        </div>
+                                        <span className="text-gray-600 font-medium text-sm">Haz clic para subir</span>
+                                        <span className="text-gray-400 text-[10px] mt-1">JPG, PNG • Máx 5MB</span>
+                                    </>
+                                )}
+                            </div>
+                            <button
+                                onClick={() => setShowPhotoUploadModal(false)}
+                                className="w-full mt-6 bg-gray-100 text-gray-500 font-bold py-3 rounded-lg text-xs uppercase tracking-wide"
+                            >
+                                Cancelar
+                            </button>
                         </div>
                     </div>
-                )
-            }
+                </div>
+            )}
         </>
     );
 };

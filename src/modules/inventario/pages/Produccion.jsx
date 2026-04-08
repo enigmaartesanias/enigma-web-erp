@@ -222,9 +222,9 @@ const Produccion = () => {
         );
 
         if (producto) {
-            // CONSTRUCCIÓN DEL DETALLE ENRIQUECIDO REQUERIDO
-            // Formato: Tipo - Nombre/Modelo - Descripción/Metal (Pedido #ID)
-            const detalleEnriquecido = `${producto.tipo_producto} - ${producto.nombre_producto} - ${producto.metal || ''} (Pedido #${producto.id_pedido})`;
+            // CONSTRUCCIÓN DEL DETALLE ENRIQUECIDO REQUERIDO: Si ya tiene el tipo/metal en el nombre, no lo repetimos demasiado
+            const detalleBase = producto.nombre_producto || `${producto.tipo_producto} ${producto.metal || ''}`;
+            const detalleEnriquecido = `${detalleBase} (Pedido #${producto.id_pedido})`;
 
             setFormData(prev => ({
                 ...prev,
@@ -232,7 +232,7 @@ const Produccion = () => {
                 metal: producto.metal || '',
                 tipo_producto: producto.tipo_producto || '',
                 nombre_producto: detalleEnriquecido,
-                cantidad: producto.cantidad // Aquí sí mantenemos la cantidad del pedido
+                cantidad: producto.cantidad
             }));
         }
     };
@@ -373,10 +373,10 @@ const Produccion = () => {
                 fetchStats();
                 toast.success('Producción marcada como terminada');
                 
-                // Disparar flujo de subida de fotos SOLO para pedidos si no tiene una
+                // Disparar flujo de subida de fotos AUTOMÁTICAMENTE para pedidos si no tiene una
                 if (item.tipo_produccion === 'PEDIDO' && !item.imagen_url) {
                     setFinishedItemForPhoto(item);
-                    setShowPhotoPrompt(true);
+                    setShowPhotoUploadModal(true); // Abrir directamente para flujo profesional
                 }
             } catch (error) {
                 console.error('Error al marcar como terminado:', error);
@@ -724,10 +724,10 @@ const Produccion = () => {
             window.scrollTo({ top: 0, behavior: 'smooth' });
             fetchData();
 
-            // Disparar flujo de subida de fotos SOLO para pedidos si no tiene una
+            // Disparar flujo de subida de fotos AUTOMÁTICAMENTE para pedidos
             if (item.tipo_produccion === 'PEDIDO' && !item.imagen_url) {
                 setFinishedItemForPhoto(item);
-                setShowPhotoPrompt(true);
+                setShowPhotoUploadModal(true);
             }
         } catch (error) {
             console.error('Error al terminar producción:', error);
@@ -1199,17 +1199,6 @@ const Produccion = () => {
                                                 <span className="text-[26px] md:text-[24px]">👁️</span>
                                             </button>
 
-                                            {/* Subir Foto - Disponible para PEDIDOS si no tiene una o está terminado */}
-                                            {item.tipo_produccion === 'PEDIDO' && (!item.imagen_url || item.estado_produccion === 'terminado') && (
-                                                <button
-                                                    onClick={() => { setFinishedItemForPhoto(item); setShowPhotoUploadModal(true); }}
-                                                    className="w-[44px] h-[44px] md:w-[40px] md:h-[40px] flex items-center justify-center text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-full transition-all"
-                                                    title="Subir foto del producto"
-                                                >
-                                                    <FaCamera size={22} className="md:w-6 md:h-6" />
-                                                </button>
-                                            )}
-
                                             {/* Anular - Solo si terminado */}
                                             {item.estado_produccion === 'terminado' && (
                                                 <button
@@ -1547,122 +1536,136 @@ const Produccion = () => {
             {/* Modal Detalle de Producción - Refinado y Minimalista */}
             {
                 showDetailModal && selectedItem && (
-                    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-                        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden flex flex-col max-h-[90vh] border border-white/20">
-                            {/* Header Minimalista */}
-                            <div className="px-5 py-4 flex justify-between items-center border-b border-gray-50 bg-white sticky top-0 z-10">
-                                <h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none">Detalle de Registro</h3>
-                                <button onClick={() => setShowDetailModal(false)} className="text-gray-400 hover:text-gray-600 p-1 transition-colors">
-                                    <FaTimes size={16} />
+                    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 backdrop-blur-sm p-3 animate-in fade-in duration-200">
+                        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-[340px] overflow-hidden flex flex-col max-h-[85vh] border border-white/20">
+                            {/* Header Comprimido */}
+                            <div className="px-4 py-3 flex justify-between items-center border-b border-gray-50 bg-white sticky top-0 z-10">
+                                <h3 className="text-[9px] font-black text-gray-400 uppercase tracking-[0.2em] leading-none">Detalle de Registro</h3>
+                                <button onClick={() => setShowDetailModal(false)} className="text-gray-300 hover:text-gray-600 p-1 transition-colors">
+                                    <FaTimes size={14} />
                                 </button>
                             </div>
 
-                            {/* Contenido con Scroll */}
-                            <div className="overflow-y-auto p-6 space-y-6 custom-scrollbar">
-                                {/* Estado Destacado */}
+                            {/* Contenido con Scroll Slim */}
+                            <div className="overflow-y-auto p-4 space-y-4 custom-scrollbar">
+                                {/* Imagen si existe */}
+                                {selectedItem.imagen_url && (
+                                    <div className="relative group rounded-xl overflow-hidden bg-gray-100 border border-gray-200">
+                                        <img 
+                                            src={selectedItem.imagen_url} 
+                                            alt="Producto" 
+                                            className="w-full h-40 object-cover group-hover:scale-105 transition-transform duration-500"
+                                        />
+                                        <div className="absolute top-2 right-2 px-2 py-1 bg-black/50 text-white text-[8px] rounded-md font-bold uppercase tracking-wider backdrop-blur-sm">
+                                            Referencia
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Estado con Badge Slim */}
                                 <div className="flex justify-between items-center">
-                                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Estado actual</span>
-                                    <span className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${selectedItem.estado_produccion === 'terminado' ? 'bg-green-50 text-green-700 border border-green-100' :
-                                            selectedItem.estado_produccion === 'en_proceso' ? 'bg-orange-50 text-orange-700 border border-orange-100' :
+                                    <span className="text-[8px] font-bold text-gray-400 uppercase tracking-wider">Estado</span>
+                                    <span className={`px-2 py-0.5 rounded text-[8px] font-bold uppercase tracking-widest ${selectedItem.estado_produccion === 'terminado' ? 'bg-green-50 text-green-700 border border-green-100' :
+                                            selectedItem.estado_produccion === 'en_proceso' ? 'bg-amber-50 text-amber-700 border border-amber-100' :
                                                 'bg-gray-50 text-gray-600 border border-gray-200'
                                         }`}>
                                         {selectedItem.estado_produccion.replace('_', ' ')}
                                     </span>
                                 </div>
 
-                                {/* Información del Producto */}
-                                <div className="space-y-4">
-                                    <div className="border-l-[3px] border-blue-500 pl-4 py-0.5">
-                                        <h4 className="text-base font-bold text-gray-900 leading-tight">
-                                            {selectedItem.tipo_producto} de {selectedItem.metal}
+                                {/* Información Principal Refinada */}
+                                <div className="space-y-3">
+                                    <div className="border-l-2 border-blue-500 pl-3">
+                                        <h4 className="text-[14px] font-bold text-gray-900 leading-tight">
+                                            {selectedItem.nombre_producto || `${selectedItem.tipo_producto} ${selectedItem.metal}`}
                                         </h4>
-                                        <p className="text-xs text-gray-500 mt-1 font-medium">
-                                            {selectedItem.cantidad} {selectedItem.cantidad === 1 ? 'unidad' : 'unidades'}
+                                        <div className="flex items-center gap-2 mt-1">
+                                            <span className="text-[10px] text-gray-400 font-bold uppercase">{selectedItem.tipo_producto}</span>
+                                            <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
+                                            <span className="text-[10px] text-gray-400 font-bold uppercase">{selectedItem.metal}</span>
+                                        </div>
+                                        <p className="text-[10px] text-gray-500 mt-1.5 font-bold bg-gray-100/50 w-fit px-2 py-0.5 rounded">
+                                            {selectedItem.cantidad} {selectedItem.cantidad === 1 ? 'UNIDAD' : 'UNIDADES'}
                                         </p>
                                     </div>
 
-                                    {/* Cliente (Solo si el origen es pedido) */}
+                                    {/* Origen del Pedido - Muy Slim */}
                                     {selectedItem.pedido_id && (
-                                        <div className="bg-blue-50/50 rounded-xl p-4 flex items-center justify-between border border-blue-100/50">
+                                        <div className="bg-blue-50/40 rounded-xl p-3 flex items-center justify-between border border-blue-100/30">
                                             <div className="flex flex-col">
-                                                <span className="text-[9px] font-bold text-blue-400 uppercase tracking-wider">Origen del Pedido</span>
-                                                <span className="text-sm font-semibold text-gray-800 leading-tight mt-0.5">{selectedItem.nombre_cliente}</span>
+                                                <span className="text-[7px] font-black text-blue-400 uppercase tracking-widest">Pedido Origen</span>
+                                                <span className="text-[12px] font-bold text-gray-800 leading-tight mt-0.5">{selectedItem.nombre_cliente}</span>
                                             </div>
-                                            <span className="text-[9px] bg-white border border-blue-200 px-2 py-1 rounded text-blue-600 font-black shadow-sm">
-                                                #{selectedItem.pedido_id}
-                                            </span>
+                                            <div className="flex flex-col items-end">
+                                                <span className="text-[11px] font-black text-blue-600">#{selectedItem.pedido_id}</span>
+                                            </div>
                                         </div>
                                     )}
                                 </div>
 
-                                {/* Resumen de Costos - Minimalista */}
-                                <div className="bg-gray-50/50 rounded-xl p-4 space-y-3 border border-gray-100">
-                                    <div className="flex justify-between text-xs text-gray-500 font-medium">
-                                        <span>Costo total unitario</span>
-                                        <span className="text-gray-900 font-semibold">S/ {parseFloat(selectedItem.costo_total_unitario || 0).toFixed(2)}</span>
+                                {/* Resumen Económico Comprimido */}
+                                <div className="bg-gray-50/50 rounded-xl p-3 space-y-2 border border-gray-100">
+                                    <div className="flex justify-between text-[10px] text-gray-500 font-medium tracking-tight">
+                                        <span>COSTO UNITARIO</span>
+                                        <span className="text-gray-900 font-bold">S/ {parseFloat(selectedItem.costo_total_unitario || 0).toFixed(2)}</span>
                                     </div>
-                                    <div className="flex justify-between items-baseline border-t border-gray-200/50 pt-3">
-                                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Inversión Total</span>
-                                        <span className="text-xl font-black text-blue-600 tracking-tighter">
+                                    <div className="flex justify-between items-baseline border-t border-gray-200/50 pt-2 shadow-sm shadow-white">
+                                        <span className="text-[8px] font-black text-gray-400 uppercase tracking-[0.15em]">Inversión Total</span>
+                                        <span className="text-[17px] font-black text-blue-700 tracking-tighter">
                                             S/ {parseFloat(selectedItem.costo_total_produccion || 0).toFixed(2)}
                                         </span>
                                     </div>
                                 </div>
 
-                                {/* Observaciones */}
+                                {/* Notas Compactas */}
                                 {selectedItem.observaciones && (
-                                    <div className="space-y-1.5">
-                                        <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest ml-1">Notas de Producción</span>
-                                        <div className="bg-amber-50/40 rounded-xl p-3.5 border border-amber-100/30">
-                                            <p className="text-[11px] text-amber-800 leading-relaxed font-medium italic">
-                                                "{selectedItem.observaciones}"
-                                            </p>
-                                        </div>
+                                    <div className="bg-amber-50/30 rounded-lg p-2.5 border border-amber-100/20">
+                                        <span className="text-[7px] font-black text-amber-500 uppercase tracking-widest block mb-1">Observaciones</span>
+                                        <p className="text-[10px] text-amber-900/80 leading-relaxed font-medium italic">
+                                            "{selectedItem.observaciones}"
+                                        </p>
                                     </div>
                                 )}
 
-                                {/* Fecha Simplificada - Elimina redundancia */}
-                                <div className="text-center pt-2 border-t border-gray-50">
-                                    <span className="text-[9px] font-bold text-gray-300 uppercase tracking-[0.2em]">
-                                        Registro: {new Date(selectedItem.created_at).toLocaleDateString('es-ES')}
+                                <div className="text-center pt-1">
+                                    <span className="text-[8px] font-bold text-gray-300 uppercase tracking-[0.2em]">
+                                        REGISTRO: {new Date(selectedItem.created_at).toLocaleDateString('es-ES')}
                                     </span>
                                 </div>
                             </div>
 
-                            {/* Footer / Acciones Comprimidas */}
-                            <div className="p-4 bg-white border-t border-gray-50 flex gap-2 sm:gap-3">
+                            {/* Footer Rediseñado y Mini */}
+                            <div className="p-3 bg-white border-t border-gray-50 grid grid-cols-5 gap-2">
                                 {selectedItem.estado_produccion === 'en_proceso' && (
                                     <button
                                         onClick={() => { setShowDetailModal(false); handleMarkAsComplete(selectedItem); }}
-                                        className="flex-[2] h-10 px-3 bg-green-600 hover:bg-green-700 text-white text-[11px] font-black uppercase tracking-wider rounded-xl transition-all shadow-lg shadow-green-100 flex items-center justify-center gap-2 active:scale-95"
+                                        className="col-span-2 h-9 bg-green-600 hover:bg-green-700 text-white text-[9px] font-black uppercase tracking-wider rounded-lg transition-all shadow-md shadow-green-100 flex items-center justify-center gap-1.5 active:scale-95"
                                     >
-                                        <FaCheck className="w-3 h-3" /> Terminar
+                                        <FaCheck className="w-2.5 h-2.5" /> Terminar
                                     </button>
                                 )}
 
                                 <button
                                     onClick={() => { setShowDetailModal(false); handleEditingFromDetail(selectedItem); }}
-                                    className="flex-1 h-10 px-3 bg-white border border-gray-200 hover:bg-gray-50 text-gray-600 rounded-xl transition-all shadow-sm flex items-center justify-center gap-2 active:scale-95"
+                                    className={`${selectedItem.estado_produccion === 'en_proceso' ? 'col-span-2' : 'col-span-4'} h-9 bg-gray-50 border border-gray-200 hover:bg-gray-100 text-gray-600 rounded-lg transition-all flex items-center justify-center gap-1.5 active:scale-95`}
                                 >
-                                    <FaEdit className="w-3 h-3" /> <span className="text-[11px] font-bold uppercase tracking-wider">Editar</span>
+                                    <FaEdit className="w-2.5 h-2.5" /> <span className="text-[9px] font-black uppercase tracking-wider">Editar</span>
                                 </button>
 
-                                {selectedItem.estado_produccion !== 'terminado' && (
+                                {selectedItem.estado_produccion !== 'terminado' ? (
                                     <button
                                         onClick={() => { setShowDetailModal(false); handleDelete(selectedItem); }}
-                                        className="w-10 h-10 flex items-center justify-center bg-red-50 text-red-500 rounded-xl hover:bg-red-100 transition-colors border border-red-100 active:scale-95"
+                                        className="col-span-1 h-9 flex items-center justify-center bg-red-50 text-red-500 rounded-lg hover:bg-red-100 transition-colors border border-red-100 active:scale-95"
                                         title="Eliminar"
                                     >
-                                        <FaTrash className="w-3.5 h-3.5" />
+                                        <FaTrash className="w-2.5 h-2.5" />
                                     </button>
-                                )}
-
-                                {selectedItem.estado_produccion === 'terminado' && (
+                                ) : (
                                     <button
                                         onClick={() => setShowDetailModal(false)}
-                                        className="flex-1 h-10 bg-gray-900 hover:bg-black text-white text-[11px] font-bold uppercase tracking-wider rounded-xl transition-all active:scale-95"
+                                        className="col-span-1 h-9 bg-gray-900 text-white rounded-lg flex items-center justify-center active:scale-95 shadow-sm"
                                     >
-                                        Cerrar
+                                        <FaTimes size={12} />
                                     </button>
                                 )}
                             </div>

@@ -38,6 +38,19 @@ const ProduccionReporte = () => {
     const [itemForPhoto, setItemForPhoto] = useState(null);
     const [uploadingImage, setUploadingImage] = useState(false);
 
+    // Estados para edición de texto de producción
+    const [showEditModal, setShowEditModal] = useState(false);
+    const [itemToEdit, setItemToEdit] = useState(null);
+    const [editFormData, setEditFormData] = useState({
+        cantidad: '',
+        costo_materiales: '',
+        mano_de_obra: '',
+        costo_herramientas: '',
+        otros_gastos: '',
+        observaciones: ''
+    });
+    const [savingEdit, setSavingEdit] = useState(false);
+
     useEffect(() => {
         fetchData();
     }, []);
@@ -164,6 +177,33 @@ const ProduccionReporte = () => {
             button: isActive ? colorMap[tabColor].active : 'bg-gray-50 text-gray-600 hover:bg-gray-100',
             badge: isActive ? colorMap[tabColor].badge : 'bg-gray-200 text-gray-700'
         };
+    };
+
+    const handleSaveEdit = async (e) => {
+        e.preventDefault();
+        if (!itemToEdit) return;
+
+        setSavingEdit(true);
+        try {
+            await produccionDB.update(itemToEdit.id_produccion, {
+                ...itemToEdit,
+                cantidad: Number(editFormData.cantidad),
+                costo_materiales: parseFloat(editFormData.costo_materiales) || 0,
+                mano_de_obra: parseFloat(editFormData.mano_de_obra) || 0,
+                costo_herramientas: parseFloat(editFormData.costo_herramientas) || 0,
+                otros_gastos: parseFloat(editFormData.otros_gastos) || 0,
+                observaciones: editFormData.observaciones
+            });
+            toast.success('Registro actualizado correctamente');
+            setShowEditModal(false);
+            setItemToEdit(null);
+            fetchData();
+        } catch (error) {
+            console.error('Error actualizando registro:', error);
+            toast.error('Error al actualizar: ' + error.message);
+        } finally {
+            setSavingEdit(false);
+        }
     };
 
     const handlePhotoUpload = async (file) => {
@@ -339,7 +379,7 @@ const ProduccionReporte = () => {
                                     <th className="px-3 py-3 text-left text-[11px] font-medium text-gray-500 uppercase tracking-wide align-middle">Producción</th>
                                     <th className="px-3 py-3 text-center text-[11px] font-medium text-gray-500 uppercase tracking-wide align-middle hidden md:table-cell">Estado</th>
                                     <th className="px-3 py-3 text-center text-[11px] font-medium text-gray-500 uppercase tracking-wide align-middle hidden md:table-cell">Destino</th>
-                                    <th className="px-3 py-3 text-center text-[11px] font-medium text-gray-500 uppercase tracking-wide align-middle w-24">Acciones</th>
+                                    <th className="px-3 py-3 text-center text-[11px] font-medium text-gray-500 uppercase tracking-wide align-middle w-32">Acciones</th>
                                 </tr>
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-50">
@@ -380,10 +420,29 @@ const ProduccionReporte = () => {
                                                 {item.tipo_produccion === 'PEDIDO' ? '📦 Pedido' : '🏪 Stock'}
                                             </span>
                                         </td>
-                                        <td className="py-2 text-center align-middle w-24">
+                                        <td className="py-2 text-center align-middle w-32">
                                             <div className="flex items-center justify-center gap-1.5">
                                                 <button onClick={() => setSelectedItem(item)} className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-900 rounded-full hover:bg-gray-100" title="Ver detalle">
                                                     <span className="text-[18px]">👁️</span>
+                                                </button>
+
+                                                <button 
+                                                    onClick={() => {
+                                                        setItemToEdit(item);
+                                                        setEditFormData({
+                                                            cantidad: item.cantidad || '',
+                                                            costo_materiales: item.costo_materiales || '',
+                                                            mano_de_obra: item.mano_de_obra || '',
+                                                            costo_herramientas: item.costo_herramientas || '',
+                                                            otros_gastos: item.otros_gastos || '',
+                                                            observaciones: item.observaciones || ''
+                                                        });
+                                                        setShowEditModal(true);
+                                                    }}
+                                                    className="w-8 h-8 flex items-center justify-center text-blue-500 hover:text-blue-700 rounded-full hover:bg-blue-50 transition-colors"
+                                                    title="Editar Información"
+                                                >
+                                                    <FaEdit size={14} />
                                                 </button>
 
                                                 {item.imagen_url ? (
@@ -587,6 +646,99 @@ const ProduccionReporte = () => {
                     </div>
                 </div>
             )}
+            {/* Modal de Edición de Información */}
+            {showEditModal && itemToEdit && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in" onClick={() => !savingEdit && setShowEditModal(false)}>
+                    <div className="bg-white rounded-xl shadow-2xl max-w-sm w-full overflow-hidden" onClick={e => e.stopPropagation()}>
+                        <div className="px-5 py-4 border-b flex items-center justify-between bg-gray-50/50">
+                            <div>
+                                <h3 className="text-sm font-bold text-gray-800">Editar Registro</h3>
+                                <p className="text-xs text-gray-500">{itemToEdit.nombre_producto}</p>
+                            </div>
+                            <button onClick={() => !savingEdit && setShowEditModal(false)} className="text-gray-400 hover:text-gray-600"><FaTimes size={16} /></button>
+                        </div>
+                        <form onSubmit={handleSaveEdit} className="p-5 space-y-4">
+                            <div>
+                                <label className="text-[11px] uppercase tracking-wider text-gray-500 mb-1 block font-medium">Cantidad</label>
+                                <input
+                                    type="number"
+                                    min="1"
+                                    required
+                                    value={editFormData.cantidad}
+                                    onChange={(e) => setEditFormData({ ...editFormData, cantidad: e.target.value })}
+                                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                />
+                            </div>
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label className="text-[11px] uppercase tracking-wider text-gray-500 mb-1 block font-medium">Materiales (S/)</label>
+                                    <input
+                                        type="number" step="0.01" min="0" required
+                                        value={editFormData.costo_materiales}
+                                        onChange={(e) => setEditFormData({ ...editFormData, costo_materiales: e.target.value })}
+                                        className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-[11px] uppercase tracking-wider text-gray-500 mb-1 block font-medium">Mano de obra (S/)</label>
+                                    <input
+                                        type="number" step="0.01" min="0" required
+                                        value={editFormData.mano_de_obra}
+                                        onChange={(e) => setEditFormData({ ...editFormData, mano_de_obra: e.target.value })}
+                                        className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-[11px] uppercase tracking-wider text-gray-500 mb-1 block font-medium">Herramientas (S/)</label>
+                                    <input
+                                        type="number" step="0.01" min="0" required
+                                        value={editFormData.costo_herramientas}
+                                        onChange={(e) => setEditFormData({ ...editFormData, costo_herramientas: e.target.value })}
+                                        className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-[11px] uppercase tracking-wider text-gray-500 mb-1 block font-medium">Otros gastos (S/)</label>
+                                    <input
+                                        type="number" step="0.01" min="0" required
+                                        value={editFormData.otros_gastos}
+                                        onChange={(e) => setEditFormData({ ...editFormData, otros_gastos: e.target.value })}
+                                        className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    />
+                                </div>
+                            </div>
+                            <div>
+                                <label className="text-[11px] uppercase tracking-wider text-gray-500 mb-1 block font-medium">Observaciones / Detalles</label>
+                                <textarea
+                                    rows="3"
+                                    value={editFormData.observaciones}
+                                    onChange={(e) => setEditFormData({ ...editFormData, observaciones: e.target.value })}
+                                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                                    placeholder="Detalles adicionales..."
+                                ></textarea>
+                            </div>
+                            <div className="pt-2 flex gap-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowEditModal(false)}
+                                    disabled={savingEdit}
+                                    className="flex-1 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={savingEdit}
+                                    className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                                >
+                                    {savingEdit ? <FaSpinner className="animate-spin" /> : 'Guardar'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
             {/* Modal de Filtro Avanzado */}
             {showAdvancedFilters && (
                 <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-[60]" onClick={() => setShowAdvancedFilters(false)}>

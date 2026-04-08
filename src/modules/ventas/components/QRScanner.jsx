@@ -12,11 +12,15 @@ const QRScanner = ({ isOpen, onClose, onScan }) => {
     const requestRef = useRef(null);
 
     useEffect(() => {
+        let timeoutId;
         if (isOpen) {
             setError('');
             setIsCameraReady(false);
             isScanningRef.current = true;
-            startCamera();
+            // Pequeño delay para asegurar que el modal y el elemento video estén en el DOM
+            timeoutId = setTimeout(() => {
+                startCamera();
+            }, 100);
         } else {
             isScanningRef.current = false;
             stopCamera();
@@ -24,52 +28,80 @@ const QRScanner = ({ isOpen, onClose, onScan }) => {
 
         return () => {
             isScanningRef.current = false;
+            if (timeoutId) clearTimeout(timeoutId);
             stopCamera();
         };
     }, [isOpen]);
 
     const startCamera = async () => {
         try {
+            // 1. Validar soporte básico y HTTPS
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                const isNotSecure = window.location.protocol !== 'https:' && window.location.hostname !== 'localhost';
+                if (isNotSecure) {
+                    setError('Acceso denegado: La cámara requiere una conexión segura (HTTPS).');
+                } else {
+                    setError('Tu navegador no parece soportar el acceso a la cámara.');
+                }
+                return;
+            }
+
             // Detener cualquier stream previo
             if (streamRef.current) {
                 streamRef.current.getTracks().forEach(track => track.stop());
             }
 
+            // 2. Intentar obtener el stream con parámetros balanceados
             const constraints = {
                 video: { 
-                    facingMode: 'environment', // Preferir cámara trasera
+                    facingMode: 'environment',
                     width: { ideal: 1280 },
                     height: { ideal: 720 }
                 }
             };
 
+            console.log("Solicitando acceso a la cámara...");
             const stream = await navigator.mediaDevices.getUserMedia(constraints);
+            console.log("Stream obtenido con éxito");
             
             if (videoRef.current) {
+                // Asignar el stream
                 videoRef.current.srcObject = stream;
                 streamRef.current = stream;
                 
-                // Esperar a que el video esté listo para reproducir
-                videoRef.current.onloadedmetadata = () => {
-                    videoRef.current.play()
-                        .then(() => {
-                            setIsCameraReady(true);
-                            scanQRCode();
-                        })
-                        .catch(err => {
-                            console.error("Error playing video:", err);
-                            setError("Error al iniciar la reproducción de video.");
-                        });
-                };
+                // Forzar carga y reproducción
+                videoRef.current.setAttribute('playsinline', 'true'); // redundante pero seguro
+                
+                try {
+                    // Esperar explícitamente a que el video esté listo
+                    await new Promise((resolve) => {
+                        if (videoRef.current.readyState >= 2) {
+                            resolve();
+                        } else {
+                            videoRef.current.onloadeddata = resolve;
+                        }
+                    });
+
+                    await videoRef.current.play();
+                    console.log("Video reproduciendo");
+                    setIsCameraReady(true);
+                    scanQRCode();
+                } catch (playErr) {
+                    console.error("Error al reproducir video:", playErr);
+                    // Si falla el auto-play, dar un mensaje amigable
+                    setError("No se pudo iniciar el video automáticamente. Toca la pantalla para intentar.");
+                }
             }
         } catch (err) {
-            console.error('Error accessing camera:', err);
-            if (err.name === 'NotAllowedError') {
-                setError('Permiso denegado. Por favor, permite el acceso a la cámara en los ajustes de tu navegador.');
-            } else if (err.name === 'NotFoundError') {
-                setError('No se encontró ninguna cámara en este dispositivo.');
+            console.error('Error detallado al acceder a la cámara:', err);
+            if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+                setError('Permiso denegado. Por favor, permite el acceso a la cámara en los ajustes de tu navegador o del celular.');
+            } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+                setError('No se encontró ninguna cámara trasera compatible.');
+            } else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
+                setError('La cámara está siendo usada por otra aplicación.');
             } else {
-                setError('No se pudo acceder a la cámara. Verifica que no esté siendo usada por otra app.');
+                setError(`Error de cámara: ${err.message || 'Error desconocido'}`);
             }
         }
     };
@@ -87,36 +119,44 @@ const QRScanner = ({ isOpen, onClose, onScan }) => {
         
         if (videoRef.current) {
             videoRef.current.srcObject = null;
+            // Limpiar eventos para evitar fugas de memoria
+            videoRef.current.onloadeddata = null;
+            videoRef.current.onloadedmetadata = null;
         }
         
         setIsCameraReady(false);
     };
 
     const scanQRCode = () => {
-        if (!isScanningRef.current || !videoRef.current || !canvasRef.current) return;
+        if (!isScanningRef.current || !videoRef.current || !canvasRef.current || !streamRef.current) return;
 
         const canvas = canvasRef.current;
         const video = videoRef.current;
+        
+        // Evitar procesar si el video no tiene dimensiones aún
+        if (video.videoWidth === 0 || video.videoHeight === 0) {
+            requestRef.current = requestAnimationFrame(scanQRCode);
+            return;
+        }
+
         const context = canvas.getContext('2d', { willReadFrequently: true });
 
-        if (video.readyState === video.HAVE_ENOUGH_DATA) {
-            canvas.height = video.videoHeight;
-            canvas.width = video.videoWidth;
-            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        canvas.height = video.videoHeight;
+        canvas.width = video.videoWidth;
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-            const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-            const code = jsQR(imageData.data, imageData.width, imageData.height, {
-                inversionAttempts: 'dontInvert',
-            });
+        const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+        const code = jsQR(imageData.data, imageData.width, imageData.height, {
+            inversionAttempts: 'dontInvert',
+        });
 
-            if (code && code.data) {
-                console.log('QR Code detected:', code.data);
-                onScan(code.data);
-                isScanningRef.current = false;
-                stopCamera();
-                onClose();
-                return;
-            }
+        if (code && code.data) {
+            console.log('Código QR detectado exitosamente');
+            onScan(code.data);
+            isScanningRef.current = false;
+            stopCamera();
+            onClose();
+            return;
         }
 
         requestRef.current = requestAnimationFrame(scanQRCode);
@@ -148,7 +188,19 @@ const QRScanner = ({ isOpen, onClose, onScan }) => {
             </div>
 
             {/* Camera View */}
-            <div className="flex-1 flex items-center justify-center relative overflow-hidden bg-black">
+            <div 
+                className="flex-1 flex items-center justify-center relative overflow-hidden bg-black cursor-pointer"
+                onClick={() => {
+                    if (!isCameraReady && !error && videoRef.current) {
+                        videoRef.current.play()
+                            .then(() => {
+                                setIsCameraReady(true);
+                                scanQRCode();
+                            })
+                            .catch(e => console.error("Manual play error:", e));
+                    }
+                }}
+            >
                 <video
                     ref={videoRef}
                     className="w-full h-full object-cover"

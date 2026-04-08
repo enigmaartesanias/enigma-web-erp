@@ -52,7 +52,7 @@ const ImageModal = ({ isOpen, onClose, imageUrl }) => {
         {({ zoomIn, zoomOut, resetTransform }) => (
           <TransformComponent
             wrapperClass="w-full zoom-wrapper-bg cursor-move"
-            wrapperStyle={{ height: '100vh', height: '100dvh' }}
+            wrapperStyle={{ height: '100dvh' }}
             contentClass="flex items-center justify-center transition-transform"
             contentStyle={{ width: '100%', height: '100%' }}
           >

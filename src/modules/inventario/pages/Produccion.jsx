@@ -563,7 +563,6 @@ const Produccion = () => {
                     costo_herramientas: parseFloat(formData.costo_herramientas) || 0,
                     otros_gastos: parseFloat(formData.otros_gastos) || 0,
                     estado_produccion: formData.estado_produccion,
-                    estado_produccion: formData.estado_produccion,
                     observaciones: formData.observaciones,
                     imagen_url: formData.imagen_url,
                     codigo_producto: formData.codigo_producto

@@ -239,72 +239,6 @@ const ProductoEdit = () => {
         img.src = image64;
     };
 
-    const handlePrintQR = () => {
-        const svgElement = document.getElementById('qr-svg-component');
-        if (!svgElement) return;
-        
-        const xml = new XMLSerializer().serializeToString(svgElement);
-        
-        const printWindow = window.open('', '_blank');
-        if (!printWindow) {
-            alert('Por favor, permite las ventanas emergentes (pop-ups) en tu navegador para usar la impresión.');
-            return;
-        }
-
-        printWindow.document.write(`
-            <!DOCTYPE html>
-            <html>
-                <head>
-                    <title>Etiqueta QR - ${formData.codigo_usuario}</title>
-                    <style>
-                        @page { size: 30mm 30mm; margin: 0; }
-                        body { 
-                            margin: 0; 
-                            padding: 0; 
-                            display: flex; 
-                            flex-direction: column; 
-                            align-items: center; 
-                            justify-content: center;
-                            width: 30mm; 
-                            height: 30mm; 
-                            font-family: monospace;
-                            background-color: white;
-                        }
-                        .qr-container {
-                            width: 22mm;
-                            height: 22mm;
-                            margin-top: 1mm;
-                        }
-                        .qr-container svg {
-                            width: 100%;
-                            height: 100%;
-                        }
-                        .text {
-                            font-size: 8pt;
-                            font-weight: bold;
-                            text-align: center;
-                            margin-top: 1mm;
-                            color: black;
-                            letter-spacing: 0.5px;
-                        }
-                    </style>
-                </head>
-                <body>
-                    <div class="qr-container">${xml}</div>
-                    <div class="text">${formData.codigo_usuario}</div>
-                    <script>
-                        window.onload = function() {
-                            setTimeout(function() {
-                                window.print();
-                                setTimeout(function() { window.close(); }, 500);
-                            }, 300);
-                        };
-                    </script>
-                </body>
-            </html>
-        `);
-        printWindow.document.close();
-    };
 
     if (fetching) {
         return (
@@ -369,12 +303,6 @@ const ProductoEdit = () => {
                                     className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 border border-gray-200 text-gray-700 text-[10px] font-bold rounded flex items-center transition"
                                 >
                                     Descargar
-                                </button>
-                                <button 
-                                    onClick={(e) => { e.preventDefault(); handlePrintQR(); }} 
-                                    className="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-700 text-[10px] font-bold rounded flex items-center transition"
-                                >
-                                    Imprimir
                                 </button>
                             </div>
                         )}

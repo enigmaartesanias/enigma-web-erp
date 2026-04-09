@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { FaSearch, FaBarcode, FaSpinner, FaCamera, FaQrcode } from 'react-icons/fa';
 import { productosExternosDB } from '../../../utils/productosExternosNeonClient';
 
@@ -7,7 +7,9 @@ const BuscadorProducto = ({ onScan, onSelect, onQRClick }) => {
     const [results, setResults] = useState([]);
     const [showResults, setShowResults] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [previewImg, setPreviewImg] = useState(null); // { url, rect }
     const searchRef = useRef(null);
+    const previewTimeoutRef = useRef(null);
 
     // Cerrar resultados al hacer click fuera
     useEffect(() => {
@@ -18,6 +20,22 @@ const BuscadorProducto = ({ onScan, onSelect, onQRClick }) => {
         };
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    // Limpiar preview al soltar en cualquier lugar (seguridad)
+    useEffect(() => {
+        const clearPreview = () => {
+            setPreviewImg(null);
+            if (previewTimeoutRef.current) clearTimeout(previewTimeoutRef.current);
+        };
+        window.addEventListener('mouseup', clearPreview);
+        window.addEventListener('touchend', clearPreview);
+        window.addEventListener('touchcancel', clearPreview);
+        return () => {
+            window.removeEventListener('mouseup', clearPreview);
+            window.removeEventListener('touchend', clearPreview);
+            window.removeEventListener('touchcancel', clearPreview);
+        };
     }, []);
 
     const handleSearch = async (e) => {
@@ -62,6 +80,24 @@ const BuscadorProducto = ({ onScan, onSelect, onQRClick }) => {
             setShowResults(false);
         }
     };
+
+    // --- Preview de imagen al mantener presionado ---
+    const startPreview = useCallback((url, e) => {
+        if (!url) return;
+        e.preventDefault();
+        e.stopPropagation();
+        const target = e.currentTarget;
+        const rect = target.getBoundingClientRect();
+        setPreviewImg({ url, rect });
+    }, []);
+
+    const stopPreview = useCallback((e) => {
+        if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        setPreviewImg(null);
+    }, []);
 
     return (
         <div className="relative w-full z-20 flex gap-2" ref={searchRef}>
@@ -108,7 +144,7 @@ const BuscadorProducto = ({ onScan, onSelect, onQRClick }) => {
                 </div>
             )}
 
-            {/* Dropdown de resultados - Mejorado con stock y estilos limpios */}
+            {/* Dropdown de resultados */}
             {showResults && results.length > 0 && (
                 <div className="absolute top-full mt-2 w-full bg-white rounded-xl shadow-2xl border border-gray-100 overflow-hidden max-h-80 overflow-y-auto z-50 animate-in fade-in slide-in-from-top-2 duration-200">
                     <div className="bg-gray-50 px-3 py-1.5 border-b border-gray-100">
@@ -120,7 +156,7 @@ const BuscadorProducto = ({ onScan, onSelect, onQRClick }) => {
                             <div
                                 key={product.id}
                                 onClick={() => {
-                                    if (hasStock) {
+                                    if (hasStock && !previewImg) {
                                         onSelect(product);
                                         setQuery('');
                                         setShowResults(false);
@@ -137,7 +173,14 @@ const BuscadorProducto = ({ onScan, onSelect, onQRClick }) => {
                                         <img 
                                             src={product.imagen_url} 
                                             alt={product.nombre} 
-                                            className="w-10 h-10 rounded-lg object-cover border border-gray-100 shadow-sm"
+                                            className="w-10 h-10 rounded-lg object-cover border border-gray-100 shadow-sm select-none"
+                                            draggable={false}
+                                            onMouseDown={(e) => startPreview(product.imagen_url, e)}
+                                            onMouseUp={stopPreview}
+                                            onTouchStart={(e) => startPreview(product.imagen_url, e)}
+                                            onTouchEnd={stopPreview}
+                                            onTouchCancel={stopPreview}
+                                            style={{ touchAction: 'none' }}
                                         />
                                     ) : (
                                         <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center text-gray-400 border border-gray-100">
@@ -158,7 +201,7 @@ const BuscadorProducto = ({ onScan, onSelect, onQRClick }) => {
                                 
                                 <div className="flex flex-col items-end gap-1">
                                     <span className={`text-sm font-black leading-none ${hasStock ? 'text-gray-900' : 'text-gray-400'}`}>
-                                        S/ {Number(product.precio).toFixed(2)}
+                                        S/ {Math.round(Number(product.precio))}
                                     </span>
                                     {!hasStock && (
                                         <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-red-200 text-red-900">
@@ -171,8 +214,35 @@ const BuscadorProducto = ({ onScan, onSelect, onQRClick }) => {
                     })}
                 </div>
             )}
+
+            {/* Overlay de previsualización de imagen (press & hold) */}
+            {previewImg && (
+                <div 
+                    className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 backdrop-blur-sm"
+                    onMouseUp={stopPreview}
+                    onTouchEnd={stopPreview}
+                    onTouchCancel={stopPreview}
+                    style={{ touchAction: 'none' }}
+                >
+                    <div className="relative animate-in zoom-in-75 duration-150">
+                        <img 
+                            src={previewImg.url} 
+                            alt="Preview" 
+                            className="w-32 h-32 rounded-2xl object-cover border-4 border-white shadow-2xl"
+                            draggable={false}
+                            style={{ touchAction: 'none' }}
+                        />
+                        <div className="absolute -bottom-6 left-0 right-0 text-center">
+                            <span className="text-[9px] text-white/80 font-medium bg-black/40 px-2 py-0.5 rounded-full">
+                                Mantén presionado
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
 
 export default BuscadorProducto;
+

@@ -384,7 +384,7 @@ const ProductoForm = () => {
                                         <button
                                             type="button"
                                             onClick={generarCodigoUnico}
-                                            className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-xs font-bold flex items-center gap-2 transition-colors shadow-sm"
+                                            className="px-4 py-2 bg-gray-900 hover:bg-gray-800 text-white rounded-lg text-xs font-bold flex items-center gap-2 transition-colors shadow-sm"
                                             title="Autogenerar código aleatorio"
                                         >
                                             <FaRandom /> Generar
@@ -533,7 +533,7 @@ const ProductoForm = () => {
                     <button
                         onClick={handleSubmit}
                         disabled={loading}
-                        className="w-full sm:w-2/3 flex items-center justify-center gap-2 px-4 py-3.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-bold text-sm transition-all shadow-md active:scale-[0.98]"
+                        className="w-full sm:w-2/3 flex items-center justify-center gap-2 px-4 py-3.5 bg-gray-900 hover:bg-gray-800 text-white rounded-xl font-bold text-sm transition-all shadow-md active:scale-[0.98]"
                     >
                         {loading ? (
                             <span>Guardando e iniciando stock...</span>

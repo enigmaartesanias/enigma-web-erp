@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FaMoneyBillWave, FaShoppingCart, FaUser, FaMobileAlt, FaRegCreditCard, FaCalendarAlt, FaPlus, FaUniversity, FaEye, FaTimes } from 'react-icons/fa';
+import { FaMoneyBillWave, FaShoppingCart, FaUser, FaMobileAlt, FaRegCreditCard, FaCalendarAlt, FaPlus, FaUniversity, FaEye, FaTimes, FaWallet } from 'react-icons/fa';
 import BuscadorProducto from './BuscadorProducto';
 import ItemVenta from './ItemVenta';
 
@@ -12,11 +12,10 @@ const ResumenVenta = ({
     const [showDiscountInput, setShowDiscountInput] = useState(false);
 
     const paymentOptions = [
-        { id: 'Efectivo', icon: FaMoneyBillWave, label: 'EFEC.', color: '#10b981' }, // Verde
-        { id: 'Yape', icon: FaMobileAlt, label: 'YAPE', color: '#9333ea' },             // Morado Yape
-        { id: 'Plin', icon: FaMobileAlt, label: 'PLIN', color: '#3b82f6' },             // Azul Plin
-        { id: 'Transferencia', icon: FaUniversity, label: 'TRANSF.', color: '#0d9488' }, // Teal
-        { id: 'CREDITO', icon: FaRegCreditCard, label: 'CRÉDITO', color: '#1f2937' }    // Gris oscuro/Negro
+        { id: 'Efectivo', icon: FaMoneyBillWave, label: 'EFEC.', color: '#10b981' },
+        { id: 'BilleteraMovil', icon: FaWallet, label: 'BILLETERA', color: '#7c3aed' },
+        { id: 'Transferencia', icon: FaUniversity, label: 'TRANSF.', color: '#0d9488' },
+        { id: 'CREDITO', icon: FaRegCreditCard, label: 'CRÉDITO', color: '#1f2937' }
     ];
 
     const handlePaymentSelect = (id) => {
@@ -167,7 +166,7 @@ const ResumenVenta = ({
 
                 {/* Formas de Pago - UNIFICADO (GRID 5) */}
                 <div style={{ backgroundColor: '#f0f4ff', borderColor: '#d1e0ff' }} className="rounded-xl border-2 p-2 shadow-sm">
-                    <div className="grid grid-cols-5 gap-1.5">
+                    <div className="grid grid-cols-4 gap-2">
                         {paymentOptions.map((opt) => {
                             const Icon = opt.icon;
                             const isSelected = displayFormaPago === opt.id;
@@ -182,7 +181,7 @@ const ResumenVenta = ({
                                     }}
                                     className={`flex flex-col items-center justify-center py-2 px-0.5 rounded-lg transition-all ${isSelected ? 'shadow-lg scale-[1.08] z-10' : 'opacity-40 grayscale-[0.3]'}`}
                                 >
-                                    <Icon style={{ color: isSelected ? opt.color : '#94a3b8' }} size={13} />
+                                    <Icon style={{ color: isSelected ? opt.color : '#94a3b8' }} size={18} />
                                     <span style={{
                                         color: isSelected ? opt.color : '#94a3b8',
                                         fontSize: '7.5px',

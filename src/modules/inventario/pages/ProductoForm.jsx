@@ -2,39 +2,35 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, useLocation, useSearchParams, Link } from 'react-router-dom';
 import { productosExternosDB } from '../../../utils/productosExternosNeonClient';
 import { tiposProductoDB } from '../../../utils/tiposProductoDB';
-import { produccionDB } from '../../../utils/produccionNeonClient';
 import { storage } from '../../../firebaseConfig';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { v4 as uuidv4 } from 'uuid';
 import QRCode from 'react-qr-code';
-import { FaCamera, FaSave, FaTimes, FaQrcode, FaArrowLeft } from 'react-icons/fa';
+import { FaCamera, FaSave, FaTimes, FaQrcode, FaArrowLeft, FaDownload, FaPrint, FaRandom, FaStore, FaTools } from 'react-icons/fa';
 import { compressAndResizeImage, validateImageFile } from '../../../utils/imageOptimizer';
 
-// Helper para mapear tipo de producto a categoría
+const METALES = ['Plata', 'Alpaca', 'Cobre', 'Bronce', 'Bisutería'];
+
+// Helper para mapear tipo de producto a categoría aproximada si fuera necesario
 const mapTipoToCategoria = (tipoProducto) => {
     if (!tipoProducto) return '';
-
     const tipo = tipoProducto.toLowerCase();
-
     if (tipo.includes('arete') || tipo.includes('aretes')) return 'ARETE';
     if (tipo.includes('pulsera') || tipo.includes('pulseras')) return 'PULSERA';
     if (tipo.includes('anillo') || tipo.includes('anillos')) return 'ANILLO';
     if (tipo.includes('collar') || tipo.includes('collares')) return 'COLLAR';
-
     return '';
 };
 
 const ProductoForm = () => {
     const navigate = useNavigate();
-    const location = useLocation();
     const fileInputRef = useRef(null);
+    const qrRef = useRef(null);
     const [loading, setLoading] = useState(false);
     const [previewUrl, setPreviewUrl] = useState(null);
     const [imageFile, setImageFile] = useState(null);
     const [processingImage, setProcessingImage] = useState(false);
     const [categorias, setCategorias] = useState([]);
-    const [produccionTerminada, setProduccionTerminada] = useState([]);
-    const [selectedProduccion, setSelectedProduccion] = useState('');
 
     const [formData, setFormData] = useState({
         nombre: '',
@@ -44,117 +40,15 @@ const ProductoForm = () => {
         stock_actual: '',
         unidad: 'UND',
         categoria: '',
+        material: '',
         descripcion: '',
         precio_adicional: '',
-        origen: 'COMPRA' // Default para manuales
+        origen: 'INV_COMPRA' // 'INV_COMPRA' O 'INV_TALLER'
     });
-
-    // Estados para progressive disclosure
-    const [isFromProduction, setIsFromProduction] = useState(false);
-    const [showExternalForm, setShowExternalForm] = useState(true); // Mostrar formulario directo
-    const [produccionInfo, setProduccionInfo] = useState(null);
-
-    const [searchParams] = useSearchParams();
 
     useEffect(() => {
         loadCategorias();
-        loadProduccionTerminada();
-
-        // Detectar produccion_id desde URL
-        const produccionId = searchParams.get('produccion_id');
-        if (produccionId) {
-            loadProduccionById(produccionId);
-        }
-    }, [searchParams]);
-
-    // Cargar producción específica por ID
-    const loadProduccionById = async (id) => {
-        try {
-            const data = await produccionDB.getAll();
-            const item = data.find(p => p.id_produccion === parseInt(id));
-
-            if (item) {
-                setIsFromProduction(true);
-                setShowExternalForm(true);
-                setProduccionInfo({
-                    id: item.id_produccion,
-                    fecha: item.fecha_registro,
-                    metal: item.metal,
-                    tipo: item.tipo_producto
-                });
-                applyProduccionData(item);
-            } else {
-                alert('Producción no encontrada');
-                navigate('/produccion');
-            }
-        } catch (error) {
-            console.error('Error cargando producción:', error);
-            alert('Error al cargar datos de producción');
-        }
-    };
-
-    // Efecto para manejar datos que vienen desde el botón de Producción (legacy)
-    useEffect(() => {
-        if (location.state?.prefill) {
-            const item = location.state.prefill;
-            setIsFromProduction(true);
-            setShowExternalForm(true); // Auto-expandir si es producción
-            setProduccionInfo({
-                id: item.id_produccion,
-                fecha: item.fecha_terminado,
-                metal: item.metal,
-                tipo: item.tipo_producto
-            });
-            applyProduccionData(item);
-        }
-    }, [location.state]);
-
-    const loadProduccionTerminada = async () => {
-        try {
-            const data = await produccionDB.getAll();
-            // Filtrar solo terminados y de stock
-            const terminados = data.filter(p => p.estado_produccion === 'terminado' && p.tipo_produccion === 'STOCK');
-            setProduccionTerminada(terminados);
-        } catch (error) {
-            console.error('Error cargando producción:', error);
-        }
-    };
-
-    const applyProduccionData = (item) => {
-        setSelectedProduccion(item.id_produccion);
-
-        // Generar código vacío para ingreso manual
-        // const timestamp = Date.now().toString().slice(-6); 
-        // const tipoPrefix = item.tipo_producto.substring(0, 3).toUpperCase();
-        // const codigoUnico = `${tipoPrefix}${timestamp}`;
-
-        setFormData(prev => ({
-            ...prev,
-            nombre: item.nombre_producto || `${item.tipo_producto} de ${item.metal}`,
-            costo: item.costo_total_unitario ? parseFloat(item.costo_total_unitario).toFixed(2) : '',
-            stock_actual: item.cantidad,
-            categoria: mapTipoToCategoria(item.tipo_producto), // Auto-mapear categoría
-            descripcion: `Producto fabricado en taller. Metal: ${item.metal}. Tipo: ${item.tipo_producto}.`,
-            origen: 'PRODUCCION',
-            codigo_usuario: '' // Código vacío para ingreso manual
-        }));
-        if (item.imagen_url) {
-            setPreviewUrl(item.imagen_url);
-            // Nota: No podemos setear imageFile porque es una URL remota, 
-            // pero el submit manejará esto si no hay nuevo archivo
-        }
-    };
-
-    const handleProduccionSelect = (e) => {
-        const id = e.target.value;
-        setSelectedProduccion(id);
-        if (id) {
-            const item = produccionTerminada.find(p => p.id_produccion === parseInt(id));
-            if (item) {
-                applyProduccionData(item);
-            }
-        }
-    };
+    }, []);
 
     const loadCategorias = async () => {
         try {
@@ -169,17 +63,24 @@ const ProductoForm = () => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
 
-        // Auto-capitalizar código
         if (name === 'codigo_usuario') {
             setFormData(prev => ({ ...prev, [name]: value.toUpperCase() }));
         }
+    };
+
+    const generarCodigoUnico = () => {
+        const timestamp = Date.now().toString().slice(-4);
+        const prefix = formData.categoria ? formData.categoria.substring(0, 3).toUpperCase() : 'INV';
+        setFormData(prev => ({
+            ...prev,
+            codigo_usuario: `${prefix}-${timestamp}`
+        }));
     };
 
     const handleImageChange = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
 
-        // Validar archivo
         const validation = validateImageFile(file, 5);
         if (!validation.valid) {
             alert(validation.error);
@@ -189,7 +90,6 @@ const ProductoForm = () => {
         setProcessingImage(true);
 
         try {
-            // Comprimir y redimensionar imagen
             const optimizedFile = await compressAndResizeImage(file, {
                 maxSizeMB: 1,
                 maxWidth: 1200,
@@ -199,7 +99,6 @@ const ProductoForm = () => {
 
             setImageFile(optimizedFile);
 
-            // Mostrar preview
             const reader = new FileReader();
             reader.onloadend = () => {
                 setPreviewUrl(reader.result);
@@ -213,11 +112,77 @@ const ProductoForm = () => {
         }
     };
 
+    const downloadQR = () => {
+        const svg = qrRef.current.querySelector("svg");
+        const svgData = new XMLSerializer().serializeToString(svg);
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
+        const img = new Image();
+        
+        img.onload = () => {
+            canvas.width = img.width + 40;
+            canvas.height = img.height + 40;
+            ctx.fillStyle = "white";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(img, 20, 20);
+            
+            const pngFile = canvas.toDataURL("image/png");
+            const a = document.createElement("a");
+            a.download = `QR_${formData.codigo_usuario || 'Producto'}.png`;
+            a.href = pngFile;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        };
+        img.src = "data:image/svg+xml;base64," + btoa(svgData);
+    };
+
+    const printQR = () => {
+        const svg = qrRef.current.querySelector("svg");
+        const svgData = new XMLSerializer().serializeToString(svg);
+        
+        const printWindow = window.open('', '', 'width=600,height=600');
+        printWindow.document.write(`
+            <html>
+                <head>
+                    <title>Imprimir QR - ${formData.codigo_usuario}</title>
+                    <style>
+                        body { margin: 0; padding: 0; display: flex; justify-content: center; align-items: center; height: 100vh; background: #fff; }
+                        .qr-container { width: 3cm; height: 3cm; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 1px dashed #ccc; padding: 0.2cm; box-sizing: border-box; }
+                        .qr-code { width: 2.2cm; height: 2.2cm; }
+                        .qr-text { font-family: monospace; font-size: 8px; font-weight: bold; margin-top: 2px; text-align: center; width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+                    </style>
+                </head>
+                <body>
+                    <div class="qr-container">
+                        <div class="qr-code">
+                            ${svgData}
+                        </div>
+                        <div class="qr-text">${formData.codigo_usuario || 'SIN-COD'}</div>
+                    </div>
+                    <script>
+                        // Ajustar viewBox del SVG para que se escale
+                        const svgElement = document.querySelector('svg');
+                        if(svgElement) {
+                            svgElement.style.width = '100%';
+                            svgElement.style.height = '100%';
+                        }
+                        window.onload = function() {
+                            window.print();
+                            setTimeout(function() { window.close(); }, 500);
+                        }
+                    </script>
+                </body>
+            </html>
+        `);
+        printWindow.document.close();
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
 
         if (!formData.costo || !formData.precio || !formData.codigo_usuario) {
-            alert('Por favor complete los campos obligatorios (*)');
+            alert('Por favor complete los campos obligatorios (*). El código es obligatorio.');
             return;
         }
 
@@ -225,18 +190,13 @@ const ProductoForm = () => {
             setLoading(true);
             let imageUrl = null;
 
-            // 1. Subir imagen si existe nueva
             if (imageFile) {
                 const fileName = `productos_externos/${uuidv4()}_${imageFile.name}`;
                 const storageRef = ref(storage, fileName);
                 await uploadBytes(storageRef, imageFile);
                 imageUrl = await getDownloadURL(storageRef);
-            } else if (previewUrl && previewUrl.startsWith('http')) {
-                // Si ya hay una URL (venida de producción) y no se cambió
-                imageUrl = previewUrl;
             }
 
-            // 2. Guardar en Base de Datos
             const productData = {
                 ...formData,
                 costo: parseFloat(formData.costo),
@@ -248,7 +208,7 @@ const ProductoForm = () => {
 
             await productosExternosDB.create(productData);
 
-            alert('Producto guardado correctamente');
+            alert('Producto de Inventario Inicial guardado correctamente.');
             navigate('/inventario-home');
 
         } catch (error) {
@@ -260,262 +220,332 @@ const ProductoForm = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50">
+        <div className="min-h-screen bg-gray-50 flex flex-col">
             {/* Header / Nav de Regreso */}
-            <div className="bg-white px-4 py-3 border-b border-gray-100">
-                <Link to="/inventario-home" className="flex items-center text-gray-600 hover:text-blue-600 transition-colors w-fit">
+            <div className="bg-white px-4 py-3 border-b border-gray-100 flex items-center justify-between sticky top-0 z-10 shadow-sm">
+                <Link to="/inventario-home" className="flex items-center text-gray-500 hover:text-blue-600 transition-colors">
                     <FaArrowLeft className="mr-2" size={14} />
-                    <span className="font-semibold text-sm">Enigma Sistema ERP</span>
+                    <span className="font-semibold text-sm">Regresar</span>
                 </Link>
-            </div>
-
-            {/* Header Sticky */}
-            <div className="bg-white shadow-sm px-4 py-3 flex justify-between items-center sticky top-0 z-10">
-                <button
-                    onClick={() => navigate(-1)}
-                    className="p-2 text-gray-500 hover:bg-gray-100 rounded-full transition-colors"
-                >
-                    <FaTimes size={20} />
-                </button>
-                <h1 className="text-lg font-semibold text-gray-800">Agregar producto - Stock</h1>
-                <div className="w-10"></div>
+                <h1 className="text-lg font-bold text-gray-800">Inventario Inicial</h1>
+                <div className="w-20"></div> {/* Spacer for centering */}
             </div>
 
             {/* Scrollable Content */}
-            <div className="pb-20">
-                <div className="max-w-xl mx-auto px-4 py-3 space-y-3">
+            <div className="flex-1 overflow-auto pb-24">
+                <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
+                    
+                    {/* Header Info */}
+                    <div className="text-center mb-4">
+                        <h2 className="text-2xl font-black text-gray-900">Registrar Producto</h2>
+                        <p className="text-sm text-gray-500 mt-1">Añade stock directamente al inventario general</p>
+                    </div>
 
-                    {/* Botón Nuevo Producto (solo si NO es de producción) */}
-                    {!isFromProduction && !showExternalForm && (
-                        <div className="flex justify-center py-8">
-                            <button
-                                onClick={() => setShowExternalForm(true)}
-                                className="px-6 py-2.5 bg-gray-200 text-gray-700 rounded-lg font-medium text-sm hover:bg-gray-300 transition"
-                            >
-                                + Nuevo Producto Externo
-                            </button>
+                    {/* SECCIÓN: PROCEDENCIA */}
+                    <div className="bg-white p-5 md:p-6 rounded-xl shadow-sm border border-gray-100">
+                        <h3 className="text-sm font-bold text-gray-800 mb-3 uppercase tracking-wider">Origen del Producto</h3>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <label className={`
+                                relative p-4 border-2 rounded-xl cursor-pointer flex flex-col items-center justify-center text-center transition-all
+                                ${formData.origen === 'INV_TALLER' ? 'border-blue-600 bg-blue-50/50' : 'border-gray-200 hover:border-gray-300 bg-white'}
+                            `}>
+                                <input 
+                                    type="radio" 
+                                    name="origen" 
+                                    value="INV_TALLER" 
+                                    checked={formData.origen === 'INV_TALLER'}
+                                    onChange={handleChange}
+                                    className="hidden" 
+                                />
+                                <FaTools className={`text-2xl mb-2 ${formData.origen === 'INV_TALLER' ? 'text-blue-600' : 'text-gray-400'}`} />
+                                <span className={`font-semibold text-sm ${formData.origen === 'INV_TALLER' ? 'text-blue-900' : 'text-gray-600'}`}>Taller / Producción</span>
+                                <span className="text-[10px] text-gray-500 mt-1">Fabricado interno pero nunca ingresado al sistema</span>
+                            </label>
+                            
+                            <label className={`
+                                relative p-4 border-2 rounded-xl cursor-pointer flex flex-col items-center justify-center text-center transition-all
+                                ${formData.origen === 'INV_COMPRA' ? 'border-green-600 bg-green-50/50' : 'border-gray-200 hover:border-gray-300 bg-white'}
+                            `}>
+                                <input 
+                                    type="radio" 
+                                    name="origen" 
+                                    value="INV_COMPRA" 
+                                    checked={formData.origen === 'INV_COMPRA'}
+                                    onChange={handleChange}
+                                    className="hidden" 
+                                />
+                                <FaStore className={`text-2xl mb-2 ${formData.origen === 'INV_COMPRA' ? 'text-green-600' : 'text-gray-400'}`} />
+                                <span className={`font-semibold text-sm ${formData.origen === 'INV_COMPRA' ? 'text-green-900' : 'text-gray-600'}`}>Mercadería Externa</span>
+                                <span className="text-[10px] text-gray-500 mt-1">Comprado directamente a proveedores</span>
+                            </label>
                         </div>
-                    )}
+                    </div>
 
-                    {/* Formulario expandido */}
-                    {showExternalForm && (
-                        <>
-                            {/* Badge indicador - Solo mostrar si es de producción */}
-                            {isFromProduction && (
-                                <div className="flex items-center justify-center gap-2 text-sm">
-                                    <span className="px-3 py-1.5 bg-purple-100 text-purple-700 rounded-lg font-medium">
-                                        📦 Producto de Producción
-                                    </span>
+                    <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+                        
+                        {/* COLUMNA IZQUIERDA: FOTO, QR */}
+                        <div className="md:col-span-4 space-y-4">
+                            {/* IMAGEN */}
+                            <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 flex flex-col items-center justify-center">
+                                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 w-full text-center">Fotografía</h3>
+                                <div
+                                    className="w-48 h-48 sm:w-full sm:h-56 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-300 flex items-center justify-center cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-all overflow-hidden relative group"
+                                    onClick={() => fileInputRef.current.click()}
+                                >
+                                    {previewUrl ? (
+                                        <>
+                                            <img src={previewUrl} alt="Preview" className="w-full h-full object-cover" />
+                                            <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <FaCamera className="text-white text-2xl mb-2" />
+                                                <span className="text-white text-xs font-medium">Cambiar foto</span>
+                                            </div>
+                                        </>
+                                    ) : (
+                                        <div className="text-center text-gray-400 group-hover:text-blue-500 flex flex-col items-center">
+                                            {processingImage ? (
+                                                <span className="text-sm font-medium animate-pulse">Procesando...</span>
+                                            ) : (
+                                                <>
+                                                    <div className="w-12 h-12 bg-white rounded-full shadow-sm flex items-center justify-center mb-3">
+                                                        <FaCamera size={20} />
+                                                    </div>
+                                                    <span className="text-xs font-semibold uppercase tracking-wider">Subir Foto</span>
+                                                </>
+                                            )}
+                                        </div>
+                                    )}
+                                    <input
+                                        type="file"
+                                        ref={fileInputRef}
+                                        className="hidden"
+                                        accept="image/*"
+                                        onChange={handleImageChange}
+                                    />
                                 </div>
-                            )}
+                            </div>
 
-                            <div className="h-px bg-gray-200"></div>
-
-                            {/* Info de Producción (si aplica) */}
-                            {isFromProduction && produccionInfo && (
-                                <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
-                                    <h3 className="text-xs font-semibold text-gray-600 mb-2">ℹ️ Origen: Producción Taller</h3>
-                                    <div className="text-xs text-gray-600 space-y-0.5">
-                                        <p>• ID Producción: #{produccionInfo.id}</p>
-                                        <p>• Metal: {produccionInfo.metal}</p>
-                                        <p>• Tipo: {produccionInfo.tipo}</p>
+                            {/* QR CODE */}
+                            <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 flex flex-col items-center">
+                                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4 w-full text-center">Código QR</h3>
+                                <div className="p-3 bg-white border border-gray-200 rounded-2xl shadow-inner max-w-fit" ref={qrRef}>
+                                    {formData.codigo_usuario ? (
+                                        <QRCode value={formData.codigo_usuario} size={150} level="M" />
+                                    ) : (
+                                        <div className="w-[150px] h-[150px] flex items-center justify-center bg-gray-50 border-2 border-dashed border-gray-200 rounded-xl">
+                                            <FaQrcode className="text-gray-300 text-4xl" />
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="mt-3 text-center w-full">
+                                    <p className="font-mono font-bold text-gray-800 text-sm tracking-wider">
+                                        {formData.codigo_usuario || 'AÚN NO DEFINIDO'}
+                                    </p>
+                                </div>
+                                
+                                {formData.codigo_usuario && (
+                                    <div className="grid grid-cols-2 gap-2 w-full mt-4">
+                                        <button 
+                                            type="button"
+                                            onClick={downloadQR}
+                                            className="py-2 flex justify-center items-center gap-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold rounded-lg transition-colors"
+                                        >
+                                            <FaDownload size={12} /> Descargar
+                                        </button>
+                                        <button 
+                                            type="button"
+                                            onClick={printQR}
+                                            className="py-2 flex justify-center items-center gap-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold rounded-lg transition-colors"
+                                        >
+                                            <FaPrint size={12} /> Imprimir 3x3
+                                        </button>
                                     </div>
-                                </div>
-                            )}
+                                )}
+                            </div>
+                        </div>
 
-                            {/* 1. Información Principal */}
-                            <div className="bg-white p-3 md:p-4 rounded-lg shadow-sm border border-gray-100 space-y-2 md:space-y-3">
-
-                                {/* Código con QR */}
+                        {/* COLUMNA DERECHA: DATOS */}
+                        <div className="md:col-span-8 space-y-5">
+                            
+                            {/* CODIGO Y NOMBRE */}
+                            <div className="bg-white p-5 md:p-6 rounded-xl shadow-sm border border-gray-100 space-y-4">
+                                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider border-b pb-2">Identificación</h3>
+                                
                                 <div>
-                                    <label className="block text-xs font-medium text-gray-700 mb-1">Código *</label>
-                                    <div className="flex gap-2 items-center">
+                                    <label className="block text-xs font-bold text-gray-700 mb-1.5">Código SKU *</label>
+                                    <div className="flex gap-2">
                                         <input
                                             type="text"
                                             name="codigo_usuario"
                                             value={formData.codigo_usuario}
                                             onChange={handleChange}
-                                            placeholder="Código único"
-                                            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono uppercase focus:ring-2 focus:ring-gray-400 outline-none"
+                                            placeholder="Ej: ARE-0045"
+                                            className="flex-1 px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm font-mono font-bold uppercase focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors outline-none"
                                         />
-                                        {/* QR Code - más pequeño en mobile */}
-                                        <div className="w-12 h-12 md:w-20 md:h-20 bg-white p-1 border border-gray-200 rounded-lg flex items-center justify-center flex-shrink-0">
-                                            {formData.codigo_usuario ? (
-                                                <QRCode value={formData.codigo_usuario} size={40} className="w-full h-full" />
-                                            ) : (
-                                                <FaQrcode className="text-gray-300 text-2xl md:text-3xl" />
-                                            )}
-                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={generarCodigoUnico}
+                                            className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-xs font-bold flex items-center gap-2 transition-colors shadow-sm"
+                                            title="Autogenerar código aleatorio"
+                                        >
+                                            <FaRandom /> Generar
+                                        </button>
                                     </div>
                                 </div>
 
-                                {/* Nombre */}
                                 <div>
-                                    <label className="block text-xs font-medium text-gray-700 mb-1">Nombre</label>
+                                    <label className="block text-xs font-bold text-gray-700 mb-1.5">Nombre del Producto</label>
                                     <input
                                         type="text"
                                         name="nombre"
                                         value={formData.nombre}
                                         onChange={handleChange}
-                                        disabled={isFromProduction}
-                                        placeholder="Descripción o nombre"
-                                        className={`w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-gray-400 outline-none ${isFromProduction ? 'bg-gray-50 text-gray-600 cursor-not-allowed' : ''}`}
+                                        placeholder="Opcional. Ej: Aretes con Piedra Luna"
+                                        className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors outline-none"
                                     />
                                 </div>
 
-                                {/* Categoría */}
-                                <div>
-                                    <label className="block text-xs font-medium text-gray-700 mb-1">Categoría</label>
-                                    <select
-                                        name="categoria"
-                                        value={formData.categoria}
-                                        onChange={handleChange}
-                                        disabled={isFromProduction}
-                                        className={`w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-gray-400 outline-none ${isFromProduction ? 'bg-gray-50 text-gray-600 cursor-not-allowed' : ''}`}
-                                    >
-                                        <option value="">-- Seleccionar --</option>
-                                        {categorias.map(cat => (
-                                            <option key={cat.id} value={cat.nombre}>{cat.nombre}</option>
-                                        ))}
-                                    </select>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-700 mb-1.5">Categoría</label>
+                                        <select
+                                            name="categoria"
+                                            value={formData.categoria}
+                                            onChange={handleChange}
+                                            className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors outline-none"
+                                        >
+                                            <option value="">-- Seleccionar --</option>
+                                            {categorias.map(cat => (
+                                                <option key={cat.id} value={cat.nombre}>{cat.nombre}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-700 mb-1.5">Material / Metal</label>
+                                        <select
+                                            name="material"
+                                            value={formData.material}
+                                            onChange={handleChange}
+                                            className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors outline-none"
+                                        >
+                                            <option value="">-- Seleccionar --</option>
+                                            {METALES.map(metal => (
+                                                <option key={metal} value={metal}>{metal}</option>
+                                            ))}
+                                        </select>
+                                    </div>
                                 </div>
                             </div>
-
-                            {/* 2. Imagen */}
-                            <div className="bg-white p-3 md:p-4 rounded-lg shadow-sm border border-gray-100 flex justify-center">
-                                {/* Si viene de producción con imagen: solo mostrar thumbnail informativo */}
-                                {isFromProduction && previewUrl ? (
-                                    <div className="flex items-center gap-3 w-full px-2">
-                                        <img
-                                            src={previewUrl}
-                                            alt="Imagen de producción"
-                                            className="w-16 h-16 object-cover rounded-lg border border-gray-200 flex-shrink-0"
-                                        />
-                                        <div>
-                                            <p className="text-xs font-medium text-gray-600">Imagen incluida</p>
-                                            <p className="text-[10px] text-gray-400">Viene automáticamente desde producción</p>
+                            
+                            {/* CANTIDADES Y PRECIOS */}
+                            <div className="bg-white p-5 md:p-6 rounded-xl shadow-sm border border-gray-100">
+                                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider border-b pb-2 mb-4">Stock y Finanzas</h3>
+                                
+                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                                    <div className="sm:col-span-2">
+                                        <label className="block text-xs font-bold text-gray-700 mb-1.5">Stock Inicial *</label>
+                                        <div className="relative">
+                                            <input
+                                                type="number"
+                                                name="stock_actual"
+                                                value={formData.stock_actual}
+                                                onChange={handleChange}
+                                                className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-lg text-center font-black focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors outline-none"
+                                            />
                                         </div>
                                     </div>
-                                ) : (
-                                    /* Compra directa o producción sin imagen → campo de subida */
-                                    <div
-                                        className="w-24 h-24 md:w-32 md:h-32 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center cursor-pointer hover:border-gray-400 hover:bg-gray-100 transition-all"
-                                        onClick={() => fileInputRef.current.click()}
-                                    >
-                                        {previewUrl ? (
-                                            <img src={previewUrl} alt="Preview" className="w-full h-full object-cover rounded-lg" />
-                                        ) : (
-                                            <div className="text-center text-gray-400">
-                                                <FaCamera size={24} className="mx-auto mb-1" />
-                                                <span className="text-xs">Foto</span>
-                                            </div>
-                                        )}
-                                        <input
-                                            type="file"
-                                            ref={fileInputRef}
-                                            className="hidden"
-                                            accept="image/*"
-                                            onChange={handleImageChange}
-                                        />
-                                    </div>
-                                )}
-                            </div>
+                                    <div className="col-span-2 sm:col-span-2 hidden sm:block"></div> {/* Espaciador visible solo en desktop */}
 
-                            {/* 3. Stock y Precios */}
-                            <div className="bg-white p-3 md:p-4 rounded-lg shadow-sm border border-gray-100">
-                                <div className="grid grid-cols-2 gap-x-3 gap-y-4">
                                     <div>
-                                        <label className="block text-xs font-medium text-gray-700 mb-1">Stock Inicial *</label>
-                                        <input
-                                            type="number"
-                                            name="stock_actual"
-                                            value={formData.stock_actual}
-                                            onChange={handleChange}
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-center font-semibold focus:ring-2 focus:ring-gray-400 outline-none"
-                                        />
+                                        <label className="flex items-center gap-1 text-xs font-bold text-gray-700 mb-1.5">Costo Unit. <span className="text-red-500">*</span></label>
+                                        <div className="relative">
+                                            <span className="absolute left-3 top-2.5 text-gray-500 font-bold">S/</span>
+                                            <input
+                                                type="number"
+                                                name="costo"
+                                                value={formData.costo}
+                                                onChange={handleChange}
+                                                className="w-full pl-8 pr-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors outline-none font-semibold text-gray-700"
+                                                step="0.01"
+                                            />
+                                        </div>
                                     </div>
+                                    
                                     <div>
-                                        <label className="block text-xs font-medium text-gray-700 mb-1">Costo (S/) *</label>
-                                        <input
-                                            type="number"
-                                            name="costo"
-                                            value={formData.costo}
-                                            onChange={handleChange}
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-gray-400 outline-none"
-                                            step="0.01"
-                                        />
+                                        <label className="flex items-center gap-1 text-xs font-bold text-blue-700 mb-1.5">Venta <span className="text-red-500">*</span></label>
+                                        <div className="relative">
+                                            <span className="absolute left-3 top-2.5 text-blue-500 font-bold">S/</span>
+                                            <input
+                                                type="number"
+                                                name="precio"
+                                                value={formData.precio}
+                                                onChange={handleChange}
+                                                className="w-full pl-8 pr-3 py-2.5 bg-blue-50/50 border border-blue-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors outline-none font-bold text-blue-800"
+                                                step="0.01"
+                                            />
+                                        </div>
                                     </div>
-                                    <div>
-                                        <label className="block text-xs font-medium text-gray-700 mb-1">Precio (S/) *</label>
-                                        <input
-                                            type="number"
-                                            name="precio"
-                                            value={formData.precio}
-                                            onChange={handleChange}
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-gray-400 outline-none font-bold text-gray-900"
-                                            step="0.01"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-xs font-medium text-gray-700 mb-1 text-blue-600">Precio Oferta (S/)</label>
-                                        <input
-                                            type="number"
-                                            name="precio_adicional"
-                                            value={formData.precio_adicional}
-                                            onChange={handleChange}
-                                            className="w-full px-3 py-2 border border-blue-200 bg-blue-50/30 rounded-lg text-sm focus:ring-2 focus:ring-blue-400 outline-none"
-                                            step="0.01"
-                                            placeholder="Opcional"
-                                        />
+
+                                    <div className="col-span-2 sm:col-span-2">
+                                        <label className="flex items-center gap-1 text-xs font-bold text-orange-600 mb-1.5">Precio Oferta / Liq.</label>
+                                        <div className="relative">
+                                            <span className="absolute left-3 top-2.5 text-orange-500 font-bold">S/</span>
+                                            <input
+                                                type="number"
+                                                name="precio_adicional"
+                                                value={formData.precio_adicional}
+                                                onChange={handleChange}
+                                                className="w-full pl-8 pr-3 py-2.5 bg-orange-50/30 border border-orange-200 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:bg-white transition-colors outline-none text-orange-800"
+                                                step="0.01"
+                                                placeholder="Opcional"
+                                            />
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-
-                            {/* 4. Información Adicional (solo para externos) */}
-                            {!isFromProduction && (
-                                <div className="bg-white p-3 md:p-4 rounded-lg shadow-sm border border-gray-100">
-                                    <label className="block text-xs font-medium text-gray-700 mb-1">Información Adicional</label>
-                                    <textarea
-                                        name="descripcion"
-                                        value={formData.descripcion}
-                                        onChange={handleChange}
-                                        rows="2"
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-gray-400 outline-none resize-none"
-                                        placeholder="Notas, características, etc."
-                                    />
-                                </div>
-                            )}
-
-                            {/* Botones de Acción - Sticky en mobile */}
-                            <div className="sticky bottom-0 bg-gray-50 pt-3 pb-2 space-y-2 -mx-4 px-4 md:static md:bg-transparent md:mx-0 md:px-0">
-                                <button
-                                    onClick={handleSubmit}
-                                    disabled={loading}
-                                    className="w-full bg-gray-600 text-white text-sm font-semibold py-2.5 rounded-lg shadow-sm hover:bg-gray-700 transition flex items-center justify-center gap-2"
-                                >
-                                    {loading ? (
-                                        <span>Guardando...</span>
-                                    ) : (
-                                        <>
-                                            <FaSave size={14} />
-                                            <span>Agregar Producto</span>
-                                        </>
-                                    )}
-                                </button>
-                                {!isFromProduction && (
-                                    <button
-                                        onClick={() => setShowExternalForm(false)}
-                                        className="w-full bg-gray-200 text-gray-700 text-sm font-medium py-2.5 rounded-lg hover:bg-gray-300 transition"
-                                    >
-                                        Cancelar
-                                    </button>
-                                )}
+                            
+                            {/* NOTAS */}
+                            <div className="bg-white p-5 md:p-6 rounded-xl shadow-sm border border-gray-100">
+                                <label className="block text-xs font-bold text-gray-700 mb-1.5">Notas / Características</label>
+                                <textarea
+                                    name="descripcion"
+                                    value={formData.descripcion}
+                                    onChange={handleChange}
+                                    rows="2"
+                                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors outline-none resize-none"
+                                    placeholder="Describe detalles extra, variaciones, etc."
+                                />
                             </div>
-                        </>
-                    )}
 
+                        </div>
+                    </div>
                 </div>
             </div>
+
+            {/* ACTION BAR STICKY BOTTOM */}
+            <div className="fixed bottom-0 left-0 right-0 md:pl-64 bg-white border-t border-gray-200 shadow-[0_-4px_6px_-1px_rgb(0,0,0,0.05)] z-20">
+                <div className="max-w-3xl mx-auto px-4 py-3 sm:py-4 flex flex-col sm:flex-row gap-3">
+                    <button
+                        onClick={() => navigate('/inventario-home')}
+                        className="w-full sm:w-1/3 text-center px-4 py-3.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-bold text-sm transition-colors"
+                    >
+                        Cancelar
+                    </button>
+                    <button
+                        onClick={handleSubmit}
+                        disabled={loading}
+                        className="w-full sm:w-2/3 flex items-center justify-center gap-2 px-4 py-3.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-bold text-sm transition-all shadow-md active:scale-[0.98]"
+                    >
+                        {loading ? (
+                            <span>Guardando e iniciando stock...</span>
+                        ) : (
+                            <>
+                                <FaSave size={16} /> Incorporar al Inventario
+                            </>
+                        )}
+                    </button>
+                </div>
+            </div>
+            
         </div>
     );
 };

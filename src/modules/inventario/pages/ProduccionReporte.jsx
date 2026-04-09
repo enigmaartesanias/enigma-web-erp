@@ -370,8 +370,8 @@ const ProduccionReporte = () => {
                     <div className="px-4 py-3 border-b border-gray-100">
                         <h3 className="text-sm font-semibold text-gray-800 tracking-tight">Detalle de Producción</h3>
                     </div>
-                    <div className="overflow-hidden">
-                        <table className="min-w-full divide-y divide-gray-100">
+                    <div className="overflow-x-auto pb-2">
+                        <table className="min-w-full divide-y divide-gray-100 whitespace-nowrap">
                             <thead className="bg-gray-50">
                                 <tr>
                                     <th className="px-3 py-3 text-left text-[11px] font-medium text-gray-500 uppercase tracking-wide align-middle w-20">Cód.</th>

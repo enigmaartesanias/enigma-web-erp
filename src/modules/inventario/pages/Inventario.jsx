@@ -191,7 +191,7 @@ export default function Inventario() {
                                 <thead className="bg-gray-50 border-b">
                                     <tr>
                                         <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Cód. Usuario</th>
-                                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Cód. Prod.</th>
+                                        <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase">Origen</th>
                                         <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Producto</th>
                                         <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase">Saldo Total</th>
                                         <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase">Costo Prom. (S/)</th>
@@ -205,10 +205,16 @@ export default function Inventario() {
                                             <td className="px-4 py-3">
                                                 <span className="font-mono text-gray-600 text-xs">{producto.codigo_usuario}</span>
                                             </td>
-                                            <td className="px-4 py-3">
-                                                <span className="text-xs font-normal text-blue-600">
-                                                    {producto.codigo_produccion_origen || '-'}
-                                                </span>
+                                            <td className="px-4 py-3 text-center">
+                                                {producto.origen === 'PRODUCCION' ? (
+                                                    <span className="text-[11px] text-gray-500 bg-gray-50 border border-gray-200 px-2 py-1 rounded">Prod. Taller</span>
+                                                ) : producto.origen === 'INV_TALLER' || producto.origen === 'TALLER' ? (
+                                                    <span className="text-[11px] text-gray-500 bg-gray-50 border border-gray-200 px-2 py-1 rounded">Inv. Taller</span>
+                                                ) : producto.origen === 'INV_COMPRA' || producto.origen === 'COMPRA' ? (
+                                                    <span className="text-[11px] text-gray-500 bg-gray-50 border border-gray-200 px-2 py-1 rounded">Inv. Compra</span>
+                                                ) : (
+                                                    <span className="text-[11px] text-gray-400 bg-gray-50 border border-gray-200 px-2 py-1 rounded">{producto.origen || '-'}</span>
+                                                )}
                                             </td>
                                             <td className="px-4 py-3">
                                                 <div className="text-gray-700 text-xs uppercase font-medium">{producto.categoria}</div>

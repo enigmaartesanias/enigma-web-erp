@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { FaSearch, FaBarcode, FaSpinner, FaCamera, FaQrcode } from 'react-icons/fa';
 import { productosExternosDB } from '../../../utils/productosExternosNeonClient';
 
@@ -7,9 +8,10 @@ const BuscadorProducto = ({ onScan, onSelect, onQRClick }) => {
     const [results, setResults] = useState([]);
     const [showResults, setShowResults] = useState(false);
     const [loading, setLoading] = useState(false);
-    const [previewImg, setPreviewImg] = useState(null); // { url, rect }
+    const [previewImg, setPreviewImg] = useState(null); // { url }
     const searchRef = useRef(null);
     const previewTimeoutRef = useRef(null);
+    const longPressRef = useRef(null);
 
     // Cerrar resultados al hacer click fuera
     useEffect(() => {
@@ -27,6 +29,7 @@ const BuscadorProducto = ({ onScan, onSelect, onQRClick }) => {
         const clearPreview = () => {
             setPreviewImg(null);
             if (previewTimeoutRef.current) clearTimeout(previewTimeoutRef.current);
+            if (longPressRef.current) clearTimeout(longPressRef.current);
         };
         window.addEventListener('mouseup', clearPreview);
         window.addEventListener('touchend', clearPreview);
@@ -81,20 +84,30 @@ const BuscadorProducto = ({ onScan, onSelect, onQRClick }) => {
         }
     };
 
-    // --- Preview de imagen al mantener presionado ---
+    // --- Preview de imagen al mantener presionado (long press para móvil) ---
     const startPreview = useCallback((url, e) => {
         if (!url) return;
-        e.preventDefault();
-        e.stopPropagation();
-        const target = e.currentTarget;
-        const rect = target.getBoundingClientRect();
-        setPreviewImg({ url, rect });
+        // En touch, usar long press (300ms) para evitar conflictos con scroll
+        if (e.type === 'touchstart') {
+            e.stopPropagation();
+            longPressRef.current = setTimeout(() => {
+                setPreviewImg({ url });
+            }, 300);
+        } else {
+            // Mouse: preview inmediato
+            e.preventDefault();
+            e.stopPropagation();
+            setPreviewImg({ url });
+        }
     }, []);
 
     const stopPreview = useCallback((e) => {
         if (e) {
-            e.preventDefault();
             e.stopPropagation();
+        }
+        if (longPressRef.current) {
+            clearTimeout(longPressRef.current);
+            longPressRef.current = null;
         }
         setPreviewImg(null);
     }, []);
@@ -146,7 +159,7 @@ const BuscadorProducto = ({ onScan, onSelect, onQRClick }) => {
 
             {/* Dropdown de resultados */}
             {showResults && results.length > 0 && (
-                <div className="absolute top-full mt-2 w-full bg-white rounded-xl shadow-2xl border border-gray-100 overflow-hidden max-h-80 overflow-y-auto z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                <div className="absolute top-full mt-2 left-0 right-0 bg-white rounded-xl shadow-2xl border border-gray-100 overflow-hidden max-h-72 overflow-y-auto z-50" style={{ animation: 'fadeSlideIn 0.15s ease-out' }}>
                     <div className="bg-gray-50 px-3 py-1.5 border-b border-gray-100">
                         <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Resultados de búsqueda</span>
                     </div>
@@ -162,49 +175,48 @@ const BuscadorProducto = ({ onScan, onSelect, onQRClick }) => {
                                         setShowResults(false);
                                     }
                                 }}
-                                className={`px-4 py-3 border-b border-gray-50 last:border-0 transition-all flex items-center justify-between group ${
+                                className={`px-3 py-2.5 border-b border-gray-50 last:border-0 transition-all flex items-center justify-between group ${
                                     hasStock 
-                                    ? 'hover:bg-blue-50 cursor-pointer' 
+                                    ? 'hover:bg-blue-50 cursor-pointer active:bg-blue-100' 
                                     : 'bg-gray-50/50 cursor-not-allowed grayscale-[0.5] opacity-60'
                                 }`}
                             >
-                                <div className="flex items-center gap-3">
+                                <div className="flex items-center gap-2.5 min-w-0 flex-1">
                                     {product.imagen_url ? (
                                         <img 
                                             src={product.imagen_url} 
                                             alt={product.nombre} 
-                                            className="w-10 h-10 rounded-lg object-cover border border-gray-100 shadow-sm select-none"
+                                            className="w-9 h-9 rounded-lg object-cover border border-gray-100 shadow-sm select-none flex-shrink-0"
                                             draggable={false}
                                             onMouseDown={(e) => startPreview(product.imagen_url, e)}
                                             onMouseUp={stopPreview}
                                             onTouchStart={(e) => startPreview(product.imagen_url, e)}
                                             onTouchEnd={stopPreview}
                                             onTouchCancel={stopPreview}
-                                            style={{ touchAction: 'none' }}
                                         />
                                     ) : (
-                                        <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center text-gray-400 border border-gray-100">
-                                            <FaBarcode size={14} />
+                                        <div className="w-9 h-9 rounded-lg bg-gray-100 flex items-center justify-center text-gray-400 border border-gray-100 flex-shrink-0">
+                                            <FaBarcode size={12} />
                                         </div>
                                     )}
-                                    <div className="flex flex-col gap-0.5">
+                                    <div className="flex flex-col gap-0.5 min-w-0">
                                         <span className={`font-mono text-[10px] px-1.5 py-0.5 rounded w-fit transition-colors ${
                                             hasStock ? 'text-blue-600 bg-blue-50 group-hover:bg-blue-100' : 'text-gray-400 bg-gray-100'
                                         }`}>
                                             {product.codigo_usuario}
                                         </span>
-                                        <span className="text-sm font-semibold text-gray-800 truncate max-w-[200px]">
+                                        <span className="text-xs text-gray-700 truncate max-w-[160px] sm:max-w-[250px]">
                                             {product.nombre}
                                         </span>
                                     </div>
                                 </div>
                                 
-                                <div className="flex flex-col items-end gap-1">
-                                    <span className={`text-sm font-black leading-none ${hasStock ? 'text-gray-900' : 'text-gray-400'}`}>
+                                <div className="flex flex-col items-end gap-1 flex-shrink-0 ml-2">
+                                    <span className={`text-sm font-medium leading-none ${hasStock ? 'text-gray-700' : 'text-gray-400'}`}>
                                         S/ {Math.round(Number(product.precio))}
                                     </span>
                                     {!hasStock && (
-                                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-red-200 text-red-900">
+                                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-red-200 text-red-900">
                                             AGOTADO
                                         </span>
                                     )}
@@ -215,31 +227,39 @@ const BuscadorProducto = ({ onScan, onSelect, onQRClick }) => {
                 </div>
             )}
 
-            {/* Overlay de previsualización de imagen (press & hold) */}
-            {previewImg && (
+            {/* Overlay de previsualización de imagen (press & hold) - Renderizado como portal */}
+            {previewImg && createPortal(
                 <div 
-                    className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 backdrop-blur-sm"
+                    className="fixed inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm"
+                    style={{ zIndex: 99999, touchAction: 'none' }}
                     onMouseUp={stopPreview}
                     onTouchEnd={stopPreview}
                     onTouchCancel={stopPreview}
-                    style={{ touchAction: 'none' }}
+                    onClick={stopPreview}
                 >
-                    <div className="relative animate-in zoom-in-75 duration-150">
+                    <div style={{ animation: 'previewZoomIn 0.15s ease-out' }}>
                         <img 
                             src={previewImg.url} 
                             alt="Preview" 
-                            className="w-32 h-32 rounded-2xl object-cover border-4 border-white shadow-2xl"
+                            className="w-44 h-44 rounded-2xl object-cover border-4 border-white shadow-2xl"
                             draggable={false}
-                            style={{ touchAction: 'none' }}
+                            style={{ touchAction: 'none', pointerEvents: 'none' }}
                         />
-                        <div className="absolute -bottom-6 left-0 right-0 text-center">
-                            <span className="text-[9px] text-white/80 font-medium bg-black/40 px-2 py-0.5 rounded-full">
-                                Mantén presionado
-                            </span>
-                        </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
+
+            <style>{`
+                @keyframes fadeSlideIn {
+                    from { opacity: 0; transform: translateY(-4px); }
+                    to { opacity: 1; transform: translateY(0); }
+                }
+                @keyframes previewZoomIn {
+                    from { opacity: 0; transform: scale(0.75); }
+                    to { opacity: 1; transform: scale(1); }
+                }
+            `}</style>
         </div>
     );
 };

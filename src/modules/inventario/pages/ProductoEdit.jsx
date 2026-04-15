@@ -32,6 +32,7 @@ const ProductoEdit = () => {
         material: '',
         descripcion: '',
         precio_adicional: '',
+        lote: '',
         origen: 'COMPRA',
         produccion_id: null
     });
@@ -76,6 +77,7 @@ const ProductoEdit = () => {
                     material: currentMaterial,
                     descripcion: productData.descripcion || '',
                     precio_adicional: productData.precio_adicional || '',
+                    lote: productData.lote || '',
                     origen: productData.origen || 'COMPRA',
                     produccion_id: productData.produccion_id || null
                 });
@@ -94,10 +96,41 @@ const ProductoEdit = () => {
 
     const handleChange = (e) => {
         const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: value }));
+        let updateData = { [name]: value };
 
         if (name === 'codigo_usuario') {
-            setFormData(prev => ({ ...prev, [name]: value.toUpperCase() }));
+            updateData[name] = value.toUpperCase();
+            if (value.includes('-L')) {
+                const parts = value.split('-L');
+                if (parts.length > 1) {
+                    updateData.lote = 'L' + parts[parts.length - 1].split('-')[0].toUpperCase();
+                }
+            }
+        }
+        
+        if (name === 'lote') {
+            updateData[name] = value.toUpperCase();
+        }
+
+        setFormData(prev => ({ ...prev, ...updateData }));
+    };
+
+    const generarCodigoUnico = async () => {
+        if (!formData.categoria || !formData.material) {
+            alert('Por favor selecciona Categoría y Material primero para calcular el lote correcto.');
+            return;
+        }
+        
+        try {
+            const data = await productosExternosDB.getNextLote(formData.categoria, formData.material);
+            setFormData(prev => ({
+                ...prev,
+                codigo_usuario: data.codigoUnico,
+                lote: data.nextLote
+            }));
+        } catch (error) {
+            console.error('Error obteniendo lote:', error);
+            alert('Error al generar el código.');
         }
     };
 
@@ -163,7 +196,8 @@ const ProductoEdit = () => {
                 stock_minimo: 0,
                 precio_adicional: formData.precio_adicional ? parseFloat(formData.precio_adicional) : null,
                 imagen_url: imageUrl,
-                material: formData.material
+                material: formData.material,
+                lote: formData.lote || null
             };
 
             await productosExternosDB.update(id, productData);
@@ -357,13 +391,34 @@ const ProductoEdit = () => {
 
                         <div>
                             <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Código SKU</label>
+                            <div className="flex gap-2">
+                                <input
+                                    type="text"
+                                    name="codigo_usuario"
+                                    value={formData.codigo_usuario}
+                                    onChange={handleChange}
+                                    className={`flex-1 px-3 py-2 border rounded-lg text-sm font-mono transition-all outline-none border-gray-300 focus:ring-1 focus:ring-blue-500 uppercase`}
+                                    placeholder="Ej: AN-ALP-L001"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={generarCodigoUnico}
+                                    className="px-3 py-2 bg-gray-900 hover:bg-gray-800 text-white rounded-lg text-xs font-bold transition-colors whitespace-nowrap"
+                                >
+                                    Auto Lote
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="col-span-2 pt-2 border-t border-gray-100/50 mt-2">
+                            <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Lote (ej: L001)</label>
                             <input
                                 type="text"
-                                name="codigo_usuario"
-                                value={formData.codigo_usuario}
+                                name="lote"
+                                value={formData.lote}
                                 onChange={handleChange}
-                                className={`w-full px-3 py-2 border rounded-lg text-sm font-mono transition-all outline-none border-gray-300 focus:ring-1 focus:ring-blue-500 uppercase`}
-                                placeholder="Escribe el código..."
+                                placeholder="Ej: L001"
+                                className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm font-mono focus:ring-2 focus:ring-blue-500 transition-colors outline-none uppercase"
                             />
                         </div>
                     </div>

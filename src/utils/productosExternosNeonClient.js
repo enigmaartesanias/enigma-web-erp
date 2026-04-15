@@ -41,6 +41,71 @@ export const productosExternosDB = {
     return Object.values(map);
   },
 
+  async getNextLote(tipoProducto, material) {
+    if (!tipoProducto || !material) return { prefix: '', nextLote: 'L001', codigoUnico: '' };
+
+    const getAbrev = (str) => {
+      if (!str) return 'XX';
+      const upper = str.toUpperCase();
+      if (upper.includes('ANILLO')) return 'AN';
+      if (upper.includes('ARETE')) return 'AR';
+      if (upper.includes('COLLAR')) return 'CO';
+      if (upper.includes('PULSERA')) return 'PU';
+      if (upper.includes('DIJE')) return 'DJ';
+      if (upper.includes('CADENA')) return 'CD';
+      if (upper.includes('JUEGO')) return 'JU';
+      if (upper.includes('TOBILLERA')) return 'TO';
+      if (upper.includes('PLATA')) return 'PLA';
+      if (upper.includes('ALPACA')) return 'ALP';
+      if (upper.includes('COBRE')) return 'COB';
+      if (upper.includes('BRONCE')) return 'BRO';
+      if (upper.includes('BISU')) return 'BIS';
+      return upper.substring(0, 3);
+    };
+
+    const typePrefix = getAbrev(tipoProducto);
+    const matPrefix = getAbrev(material);
+    const prefix = `${typePrefix}-${matPrefix}-`;
+
+    try {
+      const dbRes = await sql`
+        SELECT codigo_usuario, lote
+        FROM productos_externos
+        WHERE codigo_usuario LIKE ${prefix + '%'}
+        AND estado_activo = TRUE
+      `;
+
+      let maxLoteNum = 0;
+      if (dbRes && dbRes.length > 0) {
+        dbRes.forEach(row => {
+          let loteStr = row.lote;
+          if (!loteStr && row.codigo_usuario.includes('-L')) {
+            const parts = row.codigo_usuario.split('-L');
+            if (parts.length > 1) loteStr = 'L' + parts[parts.length - 1].split('-')[0];
+          }
+          
+          if (loteStr && loteStr.startsWith('L')) {
+            const num = parseInt(loteStr.substring(1), 10);
+            if (!isNaN(num) && num > maxLoteNum) {
+              maxLoteNum = num;
+            }
+          }
+        });
+      }
+
+      const nextNum = maxLoteNum + 1;
+      const nextLote = 'L' + String(nextNum).padStart(3, '0');
+      return { 
+        prefix, 
+        nextLote,
+        codigoUnico: prefix + nextLote
+      };
+    } catch (e) {
+      console.error("Error getNextLote", e);
+      return { prefix, nextLote: 'L001', codigoUnico: prefix + 'L001' };
+    }
+  },
+
   async getByCodigoConsolidated(codigo) {
     const productos = await sql`SELECT * FROM productos_externos WHERE codigo_usuario = ${codigo} AND estado_activo = TRUE`;
     if (!productos || productos.length === 0) return null;
@@ -87,7 +152,8 @@ export const productosExternosDB = {
           imagen_url,
           precio_adicional,
           origen,
-          produccion_id
+          produccion_id,
+          lote
         ) VALUES (
           ${data.codigo_usuario},
           ${data.nombre},
@@ -102,7 +168,8 @@ export const productosExternosDB = {
           ${data.imagen_url || null},
           ${data.precio_adicional || null},
           ${data.origen || 'COMPRA'},
-          ${data.produccion_id || null}
+          ${data.produccion_id || null},
+          ${data.lote || null}
         )
         RETURNING *
       `;
@@ -122,7 +189,8 @@ export const productosExternosDB = {
           stock_actual = ${data.stock_actual},
           stock_minimo = ${data.stock_minimo},
           unidad = ${data.unidad},
-          imagen_url = ${data.imagen_url}
+          imagen_url = ${data.imagen_url},
+          lote = COALESCE(${data.lote}, lote)
         WHERE id = ${id}
         RETURNING *
       `;
@@ -188,7 +256,7 @@ export const productosExternosDB = {
 
   // Proceso especial: Enviar desde Producción a Stock (Actualiza o Crea)
   async enviarAStock(data) {
-    const { codigo, cantidad, precio, precioReferencial, produccionId, tipo_producto, costo, material, imagen_url } = data;
+    const { codigo, cantidad, precio, precioReferencial, produccionId, tipo_producto, costo, material, imagen_url, lote } = data;
 
     // Buscar si ya existe el producto
     const [producto] = await sql`SELECT * FROM productos_externos WHERE codigo_usuario = ${codigo} AND estado_activo = TRUE`;
@@ -229,7 +297,8 @@ export const productosExternosDB = {
           codigo_produccion_origen,
           precio_adicional,
           fecha_registro,
-          estado_activo
+          estado_activo,
+          lote
         ) VALUES (
           ${codigo},
           ${data.nombre || `${tipo_producto} - ${codigo}`},
@@ -245,7 +314,8 @@ export const productosExternosDB = {
           ${data.codigo_produccion || null},
           ${precioReferencial || null},
           CURRENT_TIMESTAMP,
-          TRUE
+          TRUE,
+          ${lote || null}
         )
         RETURNING *
       `;

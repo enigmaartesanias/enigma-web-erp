@@ -43,6 +43,7 @@ const ProductoForm = () => {
         material: '',
         descripcion: '',
         precio_adicional: '',
+        lote: '',
         origen: 'INV_COMPRA' // 'INV_COMPRA' O 'INV_TALLER'
     });
 
@@ -61,20 +62,42 @@ const ProductoForm = () => {
 
     const handleChange = (e) => {
         const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: value }));
+        let updateData = { [name]: value };
 
         if (name === 'codigo_usuario') {
-            setFormData(prev => ({ ...prev, [name]: value.toUpperCase() }));
+            updateData[name] = value.toUpperCase();
+            if (value.includes('-L')) {
+                const parts = value.split('-L');
+                if (parts.length > 1) {
+                    updateData.lote = 'L' + parts[parts.length - 1].split('-')[0].toUpperCase();
+                }
+            }
         }
+        
+        if (name === 'lote') {
+            updateData[name] = value.toUpperCase();
+        }
+
+        setFormData(prev => ({ ...prev, ...updateData }));
     };
 
-    const generarCodigoUnico = () => {
-        const timestamp = Date.now().toString().slice(-4);
-        const prefix = formData.categoria ? formData.categoria.substring(0, 3).toUpperCase() : 'INV';
-        setFormData(prev => ({
-            ...prev,
-            codigo_usuario: `${prefix}-${timestamp}`
-        }));
+    const generarCodigoUnico = async () => {
+        if (!formData.categoria || !formData.material) {
+            alert('Por favor selecciona Categoría y Material primero para calcular el lote correcto.');
+            return;
+        }
+        
+        try {
+            const data = await productosExternosDB.getNextLote(formData.categoria, formData.material);
+            setFormData(prev => ({
+                ...prev,
+                codigo_usuario: data.codigoUnico,
+                lote: data.nextLote
+            }));
+        } catch (error) {
+            console.error('Error obteniendo lote:', error);
+            alert('Error al generar el código.');
+        }
     };
 
     const handleImageChange = async (e) => {
@@ -203,7 +226,8 @@ const ProductoForm = () => {
                 precio: parseFloat(formData.precio),
                 stock_actual: parseInt(formData.stock_actual) || 0,
                 stock_minimo: 0,
-                imagen_url: imageUrl
+                imagen_url: imageUrl,
+                lote: formData.lote || null
             };
 
             await productosExternosDB.create(productData);
@@ -378,16 +402,16 @@ const ProductoForm = () => {
                                             name="codigo_usuario"
                                             value={formData.codigo_usuario}
                                             onChange={handleChange}
-                                            placeholder="Ej: ARE-0045"
+                                            placeholder="Ej: AN-ALP-L001"
                                             className="flex-1 px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm font-mono font-bold uppercase focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors outline-none"
                                         />
                                         <button
                                             type="button"
                                             onClick={generarCodigoUnico}
-                                            className="px-4 py-2 bg-gray-900 hover:bg-gray-800 text-white rounded-lg text-xs font-bold flex items-center gap-2 transition-colors shadow-sm"
-                                            title="Autogenerar código aleatorio"
+                                            className="px-4 py-2 bg-gray-900 hover:bg-gray-800 text-white rounded-lg text-xs font-bold flex items-center gap-2 transition-colors shadow-sm whitespace-nowrap"
+                                            title="Autogenerar código de lote"
                                         >
-                                            <FaRandom /> Generar
+                                            <FaRandom /> Auto Lote
                                         </button>
                                     </div>
                                 </div>
@@ -432,6 +456,17 @@ const ProductoForm = () => {
                                                 <option key={metal} value={metal}>{metal}</option>
                                             ))}
                                         </select>
+                                    </div>
+                                    <div className="sm:col-span-2 pt-2 border-t border-gray-100/50">
+                                        <label className="block text-xs font-bold text-gray-700 mb-1.5">Lote (Opcional, manual si no autogeneras)</label>
+                                        <input
+                                            type="text"
+                                            name="lote"
+                                            value={formData.lote}
+                                            onChange={handleChange}
+                                            placeholder="Ej: L001"
+                                            className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm font-mono focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors outline-none uppercase"
+                                        />
                                     </div>
                                 </div>
                             </div>

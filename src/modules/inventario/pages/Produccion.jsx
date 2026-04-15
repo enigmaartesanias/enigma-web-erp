@@ -163,19 +163,19 @@ const Produccion = () => {
         // Solo verificamos si ha terminado de cargar pendientes y tenemos un pedido específico
         if (urlPedidoId && pedidosPendientes.length > 0) {
             const hasPendingItems = pedidosPendientes.some(p => String(p.id_pedido) === String(urlPedidoId));
-            
+
             if (!hasPendingItems) {
-                toast.success('🎉 Todos los productos de este pedido ya están en producción.', { 
+                toast.success('🎉 Todos los productos de este pedido ya están en producción.', {
                     duration: 5000,
                     icon: '✅'
                 });
-                
+
                 // Limpiar URL
                 const newSearchParams = new URLSearchParams(location.search);
                 newSearchParams.delete('pedido');
                 const newSearch = newSearchParams.toString();
                 navigate({ search: newSearch ? `?${newSearch}` : '' }, { replace: true });
-                
+
                 // Regresar a tipo STOCK
                 setFormData(prev => ({
                     ...prev,
@@ -362,9 +362,17 @@ const Produccion = () => {
 
     const handleMarkAsComplete = async (item) => {
         if (item.tipo_produccion === 'STOCK') {
-            // STOCK → abrir modal de ingreso a inventario
-            setFinishedStockItem(item);
-            setShowStockIngressModal(true);
+            // STOCK → marcar terminado y dejar pendiente en Inventario
+            try {
+                await produccionDB.updateEstado(item.id_produccion, 'terminado');
+                await produccionDB.marcarPendienteInventario(item.id_produccion);
+                fetchProduccion();
+                fetchStats();
+                toast.success('✅ Producción terminada. Quedó pendiente de ingreso en Inventario.', { duration: 4000 });
+            } catch (error) {
+                console.error('Error al terminar producción:', error);
+                toast.error('Error al terminar: ' + error.message);
+            }
         } else {
             // PEDIDO → marcar terminado directamente (el pedido se actualiza por su propio flujo)
             try {
@@ -372,7 +380,7 @@ const Produccion = () => {
                 fetchProduccion();
                 fetchStats();
                 toast.success('Producción marcada como terminada');
-                
+
                 // Disparar flujo de subida de fotos AUTOMÁTICAMENTE para pedidos si no tiene una
                 if (item.tipo_produccion === 'PEDIDO' && !item.imagen_url) {
                     setFinishedItemForPhoto(item);
@@ -757,21 +765,50 @@ const Produccion = () => {
         return false;
     };
 
-    const handleSendToInventory = (item) => {
-        // Generar una sugerencia de código si no existe uno previo
-        const datePart = new Date().toISOString().slice(2, 10).replace(/-/g, '');
-        const typePrefix = (item.tipo_producto || 'PROD').substring(0, 3).toUpperCase();
-        const suggestedCode = item.codigo_producto || `${typePrefix}${datePart}${item.id_produccion}`;
+    const handleSendToInventory = async (item) => {
+        let suggestedCode = item.codigo_producto;
+        let suggestedLote = '';
+
+        if (!suggestedCode) {
+            try {
+                const data = await productosExternosDB.getNextLote(item.tipo_producto, item.metal);
+                suggestedCode = data.codigoUnico;
+                suggestedLote = data.nextLote;
+            } catch (err) {
+                console.error("Error auto-lote:", err);
+                const typePrefix = (item.tipo_producto || 'PROD').substring(0, 3).toUpperCase();
+                suggestedCode = `${typePrefix}-ERR`;
+            }
+        }
 
         setSendingToStockItem(item);
         setStockFormData({
             codigo: suggestedCode,
+            lote: suggestedLote,
             cantidad: item.cantidad || '',
             precio: '',
             precioReferencial: '',
-            tipo_producto: item.tipo_producto || ''
+            tipo_producto: item.tipo_producto || '',
+            metal: item.metal || ''
         });
         setShowStockModal(true);
+    };
+
+    const handleAutoLoteStock = async () => {
+        if (!stockFormData.tipo_producto || !stockFormData.metal) {
+            toast.error("Falta Tipo de Producto o Metal para generar Lote");
+            return;
+        }
+        try {
+            const data = await productosExternosDB.getNextLote(stockFormData.tipo_producto, stockFormData.metal);
+            setStockFormData(prev => ({
+                ...prev,
+                codigo: data.codigoUnico,
+                lote: data.nextLote
+            }));
+        } catch (err) {
+            toast.error("Error generando Auto Lote");
+        }
     };
 
     const handleConfirmSendToStock = async (e) => {
@@ -794,6 +831,7 @@ const Produccion = () => {
                 costo: parseFloat(sendingToStockItem.costo_total_unitario) || 0, // Pasar el costo calculado
                 nombre: sendingToStockItem.nombre_producto || `${stockFormData.tipo_producto} - ${stockFormData.codigo}`,
                 material: sendingToStockItem.metal || '', // Nuevo campo
+                lote: stockFormData.lote || null,
                 imagen_url: sendingToStockItem.imagen_url || null // Pasar imagen si existe
             });
 
@@ -1294,17 +1332,39 @@ const Produccion = () => {
 
                             <form onSubmit={handleConfirmSendToStock} className="p-6 space-y-4">
                                 <div className="flex gap-4 items-start">
-                                    <div className="flex-1">
-                                        <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Código QR / Único *</label>
-                                        <div className="relative">
-                                            <FaQrcode className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                                    <div className="flex-1 space-y-3">
+                                        <div>
+                                            <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Código QR / Único *</label>
+                                            <div className="flex gap-2">
+                                                <div className="relative flex-1">
+                                                    <FaQrcode className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                                                    <input
+                                                        type="text"
+                                                        required
+                                                        className="w-full pl-10 p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none font-mono text-sm"
+                                                        placeholder="Ej: AN-ALP-L001"
+                                                        value={stockFormData.codigo}
+                                                        onChange={(e) => setStockFormData({ ...stockFormData, codigo: e.target.value.toUpperCase() })}
+                                                    />
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={handleAutoLoteStock}
+                                                    className="px-3 py-3 bg-gray-900 hover:bg-gray-800 text-white rounded-xl text-xs font-bold transition-colors shadow-sm whitespace-nowrap whitespace-nowrap flex items-center justify-center gap-1"
+                                                >
+                                                    Auto Lote
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Lote (Manual / Auto)</label>
                                             <input
                                                 type="text"
-                                                required
-                                                className="w-full pl-10 p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none font-mono"
-                                                placeholder="Ingresa o escanea el código"
-                                                value={stockFormData.codigo}
-                                                onChange={(e) => setStockFormData({ ...stockFormData, codigo: e.target.value.toUpperCase() })}
+                                                className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none font-mono text-sm"
+                                                placeholder="Ej: L001"
+                                                value={stockFormData.lote || ''}
+                                                onChange={(e) => setStockFormData({ ...stockFormData, lote: e.target.value.toUpperCase() })}
                                             />
                                         </div>
                                     </div>
@@ -1551,9 +1611,9 @@ const Produccion = () => {
                                 {/* Imagen si existe */}
                                 {selectedItem.imagen_url && (
                                     <div className="relative group rounded-xl overflow-hidden bg-gray-100 border border-gray-200">
-                                        <img 
-                                            src={selectedItem.imagen_url} 
-                                            alt="Producto" 
+                                        <img
+                                            src={selectedItem.imagen_url}
+                                            alt="Producto"
                                             className="w-full h-40 object-cover group-hover:scale-105 transition-transform duration-500"
                                         />
                                         <div className="absolute top-2 right-2 px-2 py-1 bg-black/50 text-white text-[8px] rounded-md font-bold uppercase tracking-wider backdrop-blur-sm">
@@ -1566,8 +1626,8 @@ const Produccion = () => {
                                 <div className="flex justify-between items-center">
                                     <span className="text-[8px] font-bold text-gray-400 uppercase tracking-wider">Estado</span>
                                     <span className={`px-2 py-0.5 rounded text-[8px] font-bold uppercase tracking-widest ${selectedItem.estado_produccion === 'terminado' ? 'bg-green-50 text-green-700 border border-green-100' :
-                                            selectedItem.estado_produccion === 'en_proceso' ? 'bg-amber-50 text-amber-700 border border-amber-100' :
-                                                'bg-gray-50 text-gray-600 border border-gray-200'
+                                        selectedItem.estado_produccion === 'en_proceso' ? 'bg-amber-50 text-amber-700 border border-amber-100' :
+                                            'bg-gray-50 text-gray-600 border border-gray-200'
                                         }`}>
                                         {selectedItem.estado_produccion.replace('_', ' ')}
                                     </span>
@@ -1674,8 +1734,8 @@ const Produccion = () => {
                 )
             }
 
-        {/* Modal de Ingreso a Stock desde Producción STOCK */}
-        {showStockIngressModal && finishedStockItem && (
+            {/* Modal de Ingreso a Stock — DESACTIVADO: ahora se gestiona desde el módulo Inventario */}
+            {/* {showStockIngressModal && finishedStockItem && (
             <StockIngressModal
                 item={finishedStockItem}
                 onSuccess={() => {
@@ -1688,8 +1748,7 @@ const Produccion = () => {
                     setShowStockIngressModal(false);
                     setFinishedStockItem(null);
                 }}
-            />
-        )}
+            /> */}
 
         </div >
     );

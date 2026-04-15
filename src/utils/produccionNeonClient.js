@@ -278,6 +278,51 @@ transferido_inventario = TRUE,
 RETURNING *
   `;
     return produccion;
+  },
+
+  // ========================================
+  // PENDIENTES DE INVENTARIO
+  // ========================================
+
+  async marcarPendienteInventario(id) {
+    const [produccion] = await sql`
+      UPDATE produccion_taller
+      SET pendiente_inventario = true
+      WHERE id_produccion = ${id}
+      RETURNING *
+    `;
+    return produccion;
+  },
+
+  async getPendientesInventario() {
+    const items = await sql`
+      SELECT 
+        pt.*,
+        p.nombre_cliente,
+        (pt.costo_materiales + pt.mano_de_obra + pt.costo_herramientas + pt.otros_gastos) as costo_total_unitario,
+        (pt.costo_materiales + pt.mano_de_obra + pt.costo_herramientas + pt.otros_gastos) * pt.cantidad as costo_total_produccion
+      FROM produccion_taller pt
+      LEFT JOIN pedidos p ON pt.pedido_id = p.id_pedido
+      WHERE pt.estado_produccion = 'terminado'
+        AND pt.pendiente_inventario = true
+      ORDER BY pt.fecha_fin_produccion DESC, pt.created_at DESC
+    `;
+    return items.map(p => ({
+      ...p,
+      cantidad: parseInt(p.cantidad) || 0,
+      costo_total_unitario: parseFloat(p.costo_total_unitario) || 0,
+      costo_total_produccion: parseFloat(p.costo_total_produccion) || 0
+    }));
+  },
+
+  async marcarIngresadoInventario(id) {
+    const [produccion] = await sql`
+      UPDATE produccion_taller
+      SET pendiente_inventario = false
+      WHERE id_produccion = ${id}
+      RETURNING *
+    `;
+    return produccion;
   }
 };
 

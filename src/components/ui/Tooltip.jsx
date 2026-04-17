@@ -56,6 +56,8 @@ const Tooltip = ({
             onMouseLeave={hideTooltip}
             onFocus={showTooltip}
             onBlur={hideTooltip}
+            onClick={hideTooltip}
+            onTouchStart={hideTooltip}
         >
             {children}
 

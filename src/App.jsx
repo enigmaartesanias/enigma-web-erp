@@ -56,6 +56,7 @@ import ReporteVentas from './modules/ventas/pages/ReporteVentas';
 import CuentasPorCobrar from './modules/ventas/pages/CuentasPorCobrar';
 import Clientes from './modules/clientes/pages/Clientes';
 import Proveedores from './modules/proveedores/pages/Proveedores';
+import CotizadorAutor from './modules/ventas/pages/CotizadorAutor';
 
 // Módulo de Compras
 import RegistroCompras from './modules/compras/pages/RegistroCompras';
@@ -88,7 +89,7 @@ const MainContent = () => {
         location.pathname.startsWith('/configuracion') ||
         location.pathname.startsWith('/config') ||
         location.pathname.startsWith('/producto-form') ||
-
+        location.pathname.startsWith('/cotizador') ||
         location.pathname.startsWith('/stock-inicial');
 
     const hideHeaderFooter = isAdmin || isInventarioModule;
@@ -142,6 +143,7 @@ const MainContent = () => {
                 <Route path="/producto-form" element={<PrivateRoute><ProductoForm /></PrivateRoute>} />
                 <Route path="/inventario/editar/:id" element={<PrivateRoute><ProductoEdit /></PrivateRoute>} />
                 <Route path="/ventas/nueva" element={<PrivateRoute><NuevaVenta /></PrivateRoute>} />
+                <Route path="/cotizador" element={<PrivateRoute><CotizadorAutor /></PrivateRoute>} />
                 <Route path="/ventas/reporte" element={<PrivateRoute><ReporteVentas /></PrivateRoute>} />
                 <Route path="/cuentas-por-cobrar" element={<PrivateRoute><CuentasPorCobrar /></PrivateRoute>} />
                 <Route path="/clientes" element={<PrivateRoute><Clientes /></PrivateRoute>} />

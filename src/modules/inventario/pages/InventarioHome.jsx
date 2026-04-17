@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import {
     Package, ShoppingCart, Hammer, BarChart3, FileText,
     ClipboardList, Users, Database, QrCode, LayoutDashboard,
-    Plus, Receipt, Tag, History, Layers, RefreshCw
+    Plus, Receipt, Tag, History, Layers, RefreshCw, PenTool
 } from 'lucide-react';
 import { pedidosDB } from '../../../utils/pedidosNeonClient';
 import { produccionDB } from '../../../utils/produccionNeonClient';
@@ -89,6 +89,15 @@ export default function InventarioHome() {
             items: [
                 { label: 'INVENTARIO', sub: 'Agregar productos', path: '/inventario/nuevo', icon: Package, color: 'text-slate-600' },
                 { label: 'REPORTE INVENTARIO', id: 'reporte_inventario', sub: 'Stock y detalles', path: '/inventario', icon: FileText, color: 'text-gray-400' }
+            ]
+        },
+        {
+            id: 'herramientas',
+            title: 'ATENCIÓN Y VENTAS VIP',
+            icon: PenTool,
+            order: 'order-last',
+            items: [
+                { label: 'COTIZADOR AUTOR', sub: 'Propuestas de Diseño', path: '/cotizador', icon: PenTool, color: 'text-indigo-600' }
             ]
         },
         {

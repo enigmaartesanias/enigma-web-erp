@@ -685,9 +685,9 @@ const Produccion = () => {
     }, [filterType, searchTerm]);
 
     const filteredProduccion = produccion.filter(p => {
-        // Solo mostrar registros activos (en proceso o pendientes)
-        // Los terminados y anulados van al Reporte de Producción
-        const isActive = p.estado_produccion !== 'terminado' && p.estado_produccion !== 'anulado';
+        // Solo mostrar registros activos (en proceso, o terminados pendientes de inventario)
+        // Los terminados ingresados al inventario y anulados van al Reporte de Producción (Historial)
+        const isActive = p.estado_produccion !== 'anulado' && (p.estado_produccion !== 'terminado' || p.pendiente_inventario);
         if (!isActive) return false;
 
         let matchesType = true;
@@ -1197,9 +1197,13 @@ const Produccion = () => {
                                     {/* 4. Estado - Icono solamente */}
                                     <td className="px-3 text-center align-middle">
                                         <div className="flex justify-center">
-                                            {item.estado_produccion === 'terminado' ? (
+                                            {item.estado_produccion === 'terminado' && !item.pendiente_inventario ? (
                                                 <div className="w-9 h-9 md:w-8 md:h-8 rounded-full bg-green-50 flex items-center justify-center text-green-500 border border-green-100" title="Terminado">
                                                     <FaCheck size={14} className="md:w-3.5" />
+                                                </div>
+                                            ) : item.estado_produccion === 'terminado' && item.pendiente_inventario ? (
+                                                <div className="w-9 h-9 md:w-8 md:h-8 rounded-full bg-orange-50 flex items-center justify-center text-orange-500 border border-orange-200 shadow-sm" title="Terminado - Pendiente de Stock">
+                                                    <FaBox size={12} className="md:w-3" />
                                                 </div>
                                             ) : item.estado_produccion === 'anulado' ? (
                                                 <div className="w-9 h-9 md:w-8 md:h-8 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 border border-gray-100" title="Anulado">
@@ -1625,11 +1629,12 @@ const Produccion = () => {
                                 {/* Estado con Badge Slim */}
                                 <div className="flex justify-between items-center">
                                     <span className="text-[8px] font-bold text-gray-400 uppercase tracking-wider">Estado</span>
-                                    <span className={`px-2 py-0.5 rounded text-[8px] font-bold uppercase tracking-widest ${selectedItem.estado_produccion === 'terminado' ? 'bg-green-50 text-green-700 border border-green-100' :
-                                        selectedItem.estado_produccion === 'en_proceso' ? 'bg-amber-50 text-amber-700 border border-amber-100' :
-                                            'bg-gray-50 text-gray-600 border border-gray-200'
+                                    <span className={`px-2 py-0.5 rounded text-[8px] font-bold uppercase tracking-widest ${selectedItem.estado_produccion === 'terminado' && !selectedItem.pendiente_inventario ? 'bg-green-50 text-green-700 border border-green-100' :
+                                            selectedItem.estado_produccion === 'terminado' && selectedItem.pendiente_inventario ? 'bg-orange-50 text-orange-700 border border-orange-200' :
+                                                selectedItem.estado_produccion === 'en_proceso' ? 'bg-amber-50 text-amber-700 border border-amber-100' :
+                                                    'bg-gray-50 text-gray-600 border border-gray-200'
                                         }`}>
-                                        {selectedItem.estado_produccion.replace('_', ' ')}
+                                        {selectedItem.estado_produccion === 'terminado' && selectedItem.pendiente_inventario ? 'TERMINADO - PEND. STOCK' : selectedItem.estado_produccion.replace('_', ' ')}
                                     </span>
                                 </div>
 

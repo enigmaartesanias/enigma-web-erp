@@ -1,15 +1,43 @@
-import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useEffect, useRef } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import logo from '../../assets/logo.png';
 import youtubeIcon from '../../assets/youtube.ico';
 
 const Header = () => {
     const [menuOpen, setMenuOpen] = useState(false);
     const [activeDropdown, setActiveDropdown] = useState(null);
+    const [isLongPress, setIsLongPress] = useState(false);
+    
+    const navigate = useNavigate();
+    const pressTimer = useRef(null);
 
     const toggleMenu = () => setMenuOpen(!menuOpen);
     const toggleDropdown = (material) => {
         setActiveDropdown(activeDropdown === material ? null : material);
+    };
+
+    const handlePressStart = () => {
+        setIsLongPress(false);
+        pressTimer.current = setTimeout(() => {
+            setIsLongPress(true);
+            navigate('/admin');
+        }, 2500); // 2.5 segundos de presión
+    };
+
+    const handlePressEnd = () => {
+        if (pressTimer.current) {
+            clearTimeout(pressTimer.current);
+        }
+    };
+
+    const handleLogoClick = (e) => {
+        if (isLongPress) {
+            e.preventDefault();
+            setIsLongPress(false);
+        } else {
+            setActiveDropdown(null);
+            if (window.innerWidth < 768) setMenuOpen(false);
+        }
     };
 
     // Cerrar menú al hacer clic fuera
@@ -81,15 +109,18 @@ const Header = () => {
                 <div className="flex items-center gap-2">
                     <Link
                         to="/"
-                        onClick={() => {
-                            setActiveDropdown(null);
-                            if (window.innerWidth < 768) setMenuOpen(false);
-                        }}
+                        onClick={handleLogoClick}
                     >
                         <img
                             src={logo}
                             alt="Logo de tu marca de joyería artesanal"
-                            className="h-10 cursor-pointer"
+                            className="h-10 cursor-pointer transition-transform active:scale-95 duration-200"
+                            onMouseDown={handlePressStart}
+                            onMouseUp={handlePressEnd}
+                            onMouseLeave={handlePressEnd}
+                            onTouchStart={handlePressStart}
+                            onTouchEnd={handlePressEnd}
+                            style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none', userSelect: 'none' }}
                         />
                     </Link>
                 </div>

@@ -132,7 +132,12 @@ const QRScanner = ({ isOpen, onClose, onScan }) => {
         canvas.width = video.videoWidth;
         context.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-        const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+        // Recortar solo el área central (Area of Interest) para mejorar velocidad y enfoque
+        const scanSize = Math.min(canvas.width, canvas.height) * 0.7; // Procesar el 70% central
+        const sx = (canvas.width - scanSize) / 2;
+        const sy = (canvas.height - scanSize) / 2;
+        
+        const imageData = context.getImageData(sx, sy, scanSize, scanSize);
         const code = jsQR(imageData.data, imageData.width, imageData.height, {
             inversionAttempts: 'dontInvert',
         });
@@ -220,7 +225,8 @@ const QRScanner = ({ isOpen, onClose, onScan }) => {
                         inset: 0,
                         width: '100%',
                         height: '100%',
-                        objectFit: 'cover'
+                        objectFit: 'cover',
+                        transform: 'scale(1.2)'
                     }}
                     playsInline
                     muted

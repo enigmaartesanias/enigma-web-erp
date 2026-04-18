@@ -4,7 +4,7 @@ import { getLocalDate } from '../../../utils/dateUtils';
 import { pedidosDB } from '../../../utils/pedidosNeonClient';
 import { productosExternosDB } from '../../../utils/productosExternosNeonClient';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { FaEdit, FaTrash, FaArrowLeft, FaSave, FaTimes, FaBox, FaMoneyBillWave, FaHammer, FaCheckCircle, FaCamera, FaCheck, FaQrcode, FaExclamationTriangle, FaBan, FaSpinner } from 'react-icons/fa';
+import { FaEdit, FaTrash, FaArrowLeft, FaSave, FaTimes, FaBox, FaMoneyBillWave, FaHammer, FaCheckCircle, FaCamera, FaCheck, FaQrcode, FaExclamationTriangle, FaBan, FaSpinner, FaCalendarAlt } from 'react-icons/fa';
 import QRCode from 'react-qr-code';
 import { storage } from '../../../firebaseConfig';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -102,10 +102,13 @@ const Produccion = () => {
         estado_produccion: 'en_proceso', // Valor por defecto automatico
         observaciones: '',
         imagen_url: '', // Nuevo campo imagen
-        codigo_producto: '' // Nuevo campo codigo
+        codigo_producto: '', // Nuevo campo codigo
+        fecha_produccion: getLocalDate(),
+        complejidad: 'Media'
     };
 
     const [formData, setFormData] = useState(initialFormState);
+    const [showDatePicker, setShowDatePicker] = useState(false);
 
     // Derivar parámetro de URL de forma reactiva
     const urlPedidoId = useMemo(() => {
@@ -260,8 +263,11 @@ const Produccion = () => {
             estado_produccion: item.estado_produccion || 'pendiente',
             observaciones: item.observaciones || '',
             imagen_url: item.imagen_url || '',
-            codigo_producto: item.codigo_producto || ''
+            codigo_producto: item.codigo_producto || '',
+            fecha_produccion: item.fecha_produccion || getLocalDate(),
+            complejidad: item.complejidad || 'Media'
         });
+        setShowDatePicker(!!item.fecha_produccion);
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
@@ -547,9 +553,12 @@ const Produccion = () => {
             estado_produccion: 'en_proceso',
             observaciones: '',
             imagen_url: '',
-            codigo_producto: ''
+            codigo_producto: '',
+            fecha_produccion: getLocalDate(),
+            complejidad: 'Media'
         });
         setEditingId(null);
+        setShowDatePicker(false);
     };
 
 
@@ -573,7 +582,10 @@ const Produccion = () => {
                     estado_produccion: formData.estado_produccion,
                     observaciones: formData.observaciones,
                     imagen_url: formData.imagen_url,
-                    codigo_producto: formData.codigo_producto
+                    codigo_producto: formData.codigo_producto,
+                    fecha_produccion: formData.fecha_produccion,
+                    complejidad: formData.complejidad,
+                    precio_sugerido: precioSugerido
                 });
 
                 setShowSuccessModal(true);
@@ -601,7 +613,10 @@ const Produccion = () => {
                     estado_produccion: formData.estado_produccion,
                     observaciones: formData.observaciones,
                     imagen_url: formData.imagen_url,
-                    codigo_producto: formData.codigo_producto
+                    codigo_producto: formData.codigo_producto,
+                    fecha_produccion: formData.fecha_produccion,
+                    complejidad: formData.complejidad,
+                    precio_sugerido: precioSugerido
                 });
 
                 setShowSuccessModal(true);
@@ -860,6 +875,7 @@ const Produccion = () => {
         (parseFloat(formData.otros_gastos) || 0);
 
     const costoTotalProduccion = costoTotalUnitario * (parseInt(formData.cantidad) || 1);
+    const precioSugerido = costoTotalUnitario * 2.5;
 
 
 
@@ -935,10 +951,33 @@ const Produccion = () => {
 
                     {/* Datos del Producto */}
                     <div className="bg-purple-50/50 p-4 rounded-xl border border-purple-100">
-                        <h3 className="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">
-                            <FaBox className="text-purple-600" />
-                            Producto a fabricar
+                        <h3 className="text-sm font-bold text-gray-800 mb-3 flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                <FaBox className="text-purple-600" />
+                                Producto a fabricar
+                            </div>
+                            <button 
+                                type="button"
+                                onClick={() => setShowDatePicker(!showDatePicker)}
+                                className={`p-1.5 rounded-full transition-colors ${showDatePicker ? 'bg-purple-600 text-white' : 'text-purple-600 hover:bg-purple-100'}`}
+                                title="Cambiar fecha de producción"
+                            >
+                                <FaCalendarAlt size={14} />
+                            </button>
                         </h3>
+
+                        {showDatePicker && (
+                            <div className="mb-4 bg-white p-3 rounded-lg border border-purple-200 animate-in fade-in slide-in-from-top-2">
+                                <label className="block text-xs font-semibold text-gray-700 mb-1">Fecha de Producción (Manual)</label>
+                                <input 
+                                    type="date"
+                                    name="fecha_produccion"
+                                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 border p-2 text-sm"
+                                    value={formData.fecha_produccion}
+                                    onChange={handleChange}
+                                />
+                            </div>
+                        )}
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
@@ -969,7 +1008,20 @@ const Produccion = () => {
                                     {METALES.map(m => <option key={m} value={m}>{m}</option>)}
                                 </select>
                             </div>
-                            <div className="md:col-span-2">
+                            <div>
+                                <label className="block text-xs font-semibold text-gray-700 mb-1">Complejidad *</label>
+                                <select
+                                    name="complejidad"
+                                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 border p-2 bg-white"
+                                    value={formData.complejidad}
+                                    onChange={handleChange}
+                                    required
+                                >
+                                    <option value="Media">Media (Estándar)</option>
+                                    <option value="Alta">Alta (+20% Tiempo)</option>
+                                </select>
+                            </div>
+                            <div className="md:col-span-1">
                                 <label className="block text-xs font-semibold text-gray-700 mb-1">
                                     {formData.tipo_produccion === 'PEDIDO' ? 'Detalle (Generado Automáticamente)' : 'Detalle para taller *'}
                                 </label>
@@ -1067,9 +1119,16 @@ const Produccion = () => {
                                 <span className="text-gray-600 font-medium">Costo unitario:</span>
                                 <span className="font-bold text-gray-800">S/ {costoTotalUnitario.toFixed(2)}</span>
                             </div>
-                            <div className="flex justify-between items-center col-span-2 pt-2">
-                                <span className="text-gray-800 font-bold text-base">Costo total de producción:</span>
-                                <span className="font-bold text-xl text-blue-700">S/ {costoTotalProduccion.toFixed(2)}</span>
+                            <div className="flex justify-between items-center col-span-2 pt-2 pb-2 border-b border-gray-100">
+                                <span className="text-gray-600 font-medium text-[11px] uppercase tracking-wider">Costo total producción:</span>
+                                <span className="font-medium text-xs text-blue-700">S/ {costoTotalProduccion.toFixed(2)}</span>
+                            </div>
+                            <div className="flex justify-between items-center col-span-2 pt-2 bg-amber-50/50 -mx-3 px-3 rounded-b-lg">
+                                <div className="flex flex-col">
+                                    <span className="text-amber-800 font-medium text-[11px] uppercase tracking-wider">Precio Sugerido Venta:</span>
+                                    <span className="text-[9px] text-amber-600 font-normal">(Margen x2.5)</span>
+                                </div>
+                                <span className="font-semibold text-sm text-amber-700">S/ {precioSugerido.toFixed(2)}</span>
                             </div>
                         </div>
                     </div>

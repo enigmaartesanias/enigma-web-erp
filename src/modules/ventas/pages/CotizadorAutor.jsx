@@ -206,7 +206,7 @@ const CotizadorAutor = () => {
                             <div ref={previewRef} className="bg-white w-full p-8 font-sans shadow-sm border border-stone-100" style={{ maxWidth: '340px' }}>
                                 <div className="text-center mb-10">
                                     <h2 className="text-[10px] font-bold uppercase tracking-[0.5em] text-stone-300 mb-2">Cotización de Autor</h2>
-                                    <p className="text-lg font-light tracking-widest text-stone-900 uppercase">Joyeria Vidarte</p>
+                                    <p className="text-lg font-light tracking-widest text-stone-900 uppercase">Enigma artesanias y accesorios</p>
                                     <div className="w-6 h-[1px] bg-indigo-600 mx-auto mt-4"></div>
                                 </div>
 

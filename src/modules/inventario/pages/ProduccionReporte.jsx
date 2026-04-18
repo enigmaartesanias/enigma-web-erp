@@ -132,9 +132,9 @@ const ProduccionReporte = () => {
 
     // Definir pestañas con stats calculados
     const pestanas = [
-        { id: 'en_proceso', label: 'En Proceso', icon: '🔨', count: statsCalculados.en_proceso, color: 'orange' },
-        { id: 'terminados', label: 'Terminados', icon: '✅', count: statsCalculados.terminados, color: 'green' },
-        { id: 'todos', label: 'Todos', icon: '📋', count: statsCalculados.total_registros, color: 'purple' }
+        { id: 'todos', label: 'Registros', icon: '📋', count: statsCalculados.total_registros, color: 'purple' },
+        { id: 'en_proceso', label: 'Producción', icon: '🔨', count: statsCalculados.en_proceso, color: 'orange' },
+        { id: 'terminados', label: 'Terminados', icon: '✅', count: statsCalculados.terminados, color: 'green' }
     ];
 
     // Resetear a página 1 cuando cambia cualquier filtro
@@ -327,15 +327,14 @@ const ProduccionReporte = () => {
                                     key={tab.id}
                                     onClick={() => setFiltroActivo(tab.id)}
                                     className={`
-                                        flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all
-                                        md:flex-row md:min-w-[140px]
-                                        flex-col min-w-[70px]
+                                        flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-normal transition-all
+                                        border border-transparent
                                         ${styles.button}
                                     `}
                                 >
-                                    <span className="text-xl md:text-base">{tab.icon}</span>
-                                    <span className="hidden md:inline">{tab.label}</span>
-                                    <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${styles.badge}`}>
+                                    <span className="text-base">{tab.icon}</span>
+                                    <span className="text-[11px] font-medium">{tab.label}</span>
+                                    <span className={`min-w-[20px] h-[20px] flex items-center justify-center rounded-full text-[10px] font-bold px-1 ${styles.badge}`}>
                                         {tab.count}
                                     </span>
                                 </button>

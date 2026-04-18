@@ -59,7 +59,9 @@ export const produccionDB = {
       costo_herramientas: parseFloat(p.costo_herramientas) || 0,
       otros_gastos: parseFloat(p.otros_gastos) || 0,
       costo_total_unitario: parseFloat(p.costo_total_unitario) || 0,
-      costo_total_produccion: parseFloat(p.costo_total_produccion) || 0
+      costo_total_produccion: parseFloat(p.costo_total_produccion) || 0,
+      precio_sugerido: parseFloat(p.precio_sugerido) || 0,
+      complejidad: p.complejidad || 'Media'
     }));
   },
 
@@ -139,21 +141,22 @@ export const produccionDB = {
 
     const [newProduccion] = await sql`
       INSERT INTO produccion_taller(
-      pedido_id, tipo_produccion, metal, tipo_producto,
-      nombre_producto, cantidad, costo_materiales,
-      mano_de_obra, costo_herramientas, otros_gastos,
-      estado_produccion, observaciones, imagen_url, codigo_producto,
-      fecha_inicio_produccion, fecha_fin_produccion,
-      fecha_produccion
-    ) VALUES(
-      ${pedido_id || null}, ${tipo_produccion}, ${metal}, ${tipo_producto},
-      ${nombre_producto}, ${cantidad}, ${costo_materiales || 0},
-      ${mano_de_obra || 0}, ${costo_herramientas || 0}, ${otros_gastos || 0},
-      ${estado_produccion}, ${observaciones}, ${imagen_url}, ${codigo_producto},
-      ${fechaInicio}, ${fechaFin}, ${localToday}
-    )
-    RETURNING *
-  `;
+        pedido_id, tipo_produccion, metal, tipo_producto,
+        nombre_producto, cantidad, costo_materiales,
+        mano_de_obra, costo_herramientas, otros_gastos,
+        estado_produccion, observaciones, imagen_url, codigo_producto,
+        fecha_inicio_produccion, fecha_fin_produccion,
+        fecha_produccion, complejidad, precio_sugerido
+      ) VALUES(
+        ${pedido_id || null}, ${tipo_produccion}, ${metal}, ${tipo_producto},
+        ${nombre_producto}, ${cantidad}, ${costo_materiales || 0},
+        ${mano_de_obra || 0}, ${costo_herramientas || 0}, ${otros_gastos || 0},
+        ${estado_produccion}, ${observaciones}, ${imagen_url}, ${codigo_producto},
+        ${fechaInicio}, ${fechaFin}, ${data.fecha_produccion || localToday},
+        ${data.complejidad || 'Media'}, ${data.precio_sugerido || 0}
+      )
+      RETURNING *
+    `;
     return newProduccion;
   },
 
@@ -173,7 +176,10 @@ estado_produccion = ${produccionData.estado_produccion},
 observaciones = ${produccionData.observaciones || ''},
 imagen_url = ${produccionData.imagen_url || ''},
 codigo_producto = COALESCE(${produccionData.codigo_producto}, codigo_producto),
-  tiene_codigo_qr = COALESCE(${produccionData.tiene_codigo_qr}, tiene_codigo_qr)
+tiene_codigo_qr = COALESCE(${produccionData.tiene_codigo_qr}, tiene_codigo_qr),
+fecha_produccion = ${produccionData.fecha_produccion || null},
+complejidad = ${produccionData.complejidad || 'Media'},
+precio_sugerido = ${produccionData.precio_sugerido || 0}
       WHERE id_produccion = ${id}
 RETURNING *
   `;

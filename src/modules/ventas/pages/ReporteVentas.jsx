@@ -234,15 +234,20 @@ export default function ReporteVentas() {
         return true;
     });
 
-    // Calcular estadísticas
+    // Calcular estadísticas + distribución de fondos
+    const ventasActivas = ventasFiltradas.filter(v => v.estado !== 'ANULADA');
     const stats = {
-        totalVentas: ventasFiltradas.reduce((sum, v) => sum + Number(v.total), 0),
-        totalIGV: ventasFiltradas.reduce((sum, v) => sum + Number(v.impuesto_monto), 0),
-        cantidadVentas: ventasFiltradas.length,
-        promedioVenta: ventasFiltradas.length > 0
-            ? ventasFiltradas.reduce((sum, v) => sum + Number(v.total), 0) / ventasFiltradas.length
-            : 0
+        totalVentas: ventasActivas.reduce((sum, v) => sum + Number(v.total), 0),
+        totalIGV: ventasActivas.reduce((sum, v) => sum + Number(v.impuesto_monto), 0),
+        cantidadVentas: ventasActivas.length,
+        // Fondos financieros
+        fondoAlquiler: ventasActivas.reduce((sum, v) => sum + Number(v.monto_alquiler_retencion || v.total * 0.10), 0),
+        fondoMateriales: ventasActivas.reduce((sum, v) => sum + Number(v.costo_material_reposicion || 0), 0),
+        // Por origen
+        totalStock: ventasActivas.filter(v => !v.origen_venta || v.origen_venta === 'stock').reduce((sum, v) => sum + Number(v.total), 0),
+        totalPedidos: ventasActivas.filter(v => v.origen_venta === 'pedido').reduce((sum, v) => sum + Number(v.total), 0),
     };
+    stats.utilidadNeta = stats.totalVentas - stats.fondoAlquiler - stats.fondoMateriales;
 
     return (
         <div className="min-h-screen bg-gray-50">
@@ -264,20 +269,45 @@ export default function ReporteVentas() {
 
             {/* Stats Cards */}
             <div className="max-w-7xl mx-auto px-4 py-6">
-                <div className="max-w-sm mx-auto mb-6">
-                    <div className="bg-white p-4 rounded-lg shadow-sm border-l-4 border-slate-700">
-                        <div className="flex justify-between items-start">
-                            <div className="flex-1">
-                                <p className="text-xs text-gray-500 font-medium">
-                                    {(fechaInicio || fechaFin || activeTab === 'ANULADAS') ? 'Total (Filtrado)' : 'Total Ventas'}
-                                </p>
-                                <p className="text-base font-bold text-gray-900">S/ {stats.totalVentas.toFixed(2)}</p>
-                                {(fechaInicio || fechaFin) && (
-                                    <p className="text-[10px] text-gray-400 mt-0.5">
-                                        {fechaInicio && fechaFin ? `${fechaInicio} - ${fechaFin}` : fechaInicio || fechaFin}
-                                    </p>
-                                )}
-                            </div>
+                {/* Panel principal de distribución de fondos */}
+                <div className="bg-white rounded-lg shadow-sm border border-gray-100 mb-6 overflow-hidden">
+                    {/* Fila 1: Ingreso Total + desglose por origen */}
+                    <div className="p-4 border-b border-gray-100">
+                        <div className="flex items-baseline justify-between">
+                            <p className="text-xs text-gray-500 font-medium">
+                                {(fechaInicio || fechaFin) ? 'Ingreso Total (Filtrado)' : 'Ingreso Total'}
+                            </p>
+                            <p className="text-lg font-bold text-gray-900">S/ {stats.totalVentas.toFixed(2)}</p>
+                        </div>
+                        {(fechaInicio || fechaFin) && (
+                            <p className="text-[10px] text-gray-400 mt-0.5">{fechaInicio} - {fechaFin}</p>
+                        )}
+                        {/* Desglose por origen */}
+                        <div className="flex gap-4 mt-2">
+                            <span className="text-[11px] text-gray-400">
+                                Stock <span className="font-semibold text-slate-600">S/ {stats.totalStock.toFixed(2)}</span>
+                            </span>
+                            <span className="text-[11px] text-gray-400">
+                                Pedidos <span className="font-semibold text-indigo-600">S/ {stats.totalPedidos.toFixed(2)}</span>
+                            </span>
+                        </div>
+                    </div>
+                    {/* Fila 2: Distribución de fondos (3 columnas) */}
+                    <div className="grid grid-cols-3 divide-x divide-gray-100">
+                        <div className="p-3 text-center">
+                            <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-1">Fondo Alquiler</p>
+                            <p className="text-sm font-bold text-amber-600">S/ {stats.fondoAlquiler.toFixed(2)}</p>
+                            <p className="text-[9px] text-gray-300 mt-0.5">10% del ingreso</p>
+                        </div>
+                        <div className="p-3 text-center">
+                            <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-1">Rep. Materiales</p>
+                            <p className="text-sm font-bold text-blue-600">S/ {stats.fondoMateriales.toFixed(2)}</p>
+                            <p className="text-[9px] text-gray-300 mt-0.5">costo de insumos</p>
+                        </div>
+                        <div className="p-3 text-center">
+                            <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-1">Utilidad Neta</p>
+                            <p className={`text-sm font-bold ${stats.utilidadNeta >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>S/ {stats.utilidadNeta.toFixed(2)}</p>
+                            <p className="text-[9px] text-gray-300 mt-0.5">ganancia taller</p>
                         </div>
                     </div>
                 </div>
@@ -386,11 +416,6 @@ export default function ReporteVentas() {
                                         <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase">Fecha</th>
                                         <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase">Producto</th>
                                         <th className="hidden md:table-cell px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase">Cliente</th>
-                                        <th className="hidden md:table-cell px-4 py-3 text-right text-xs font-bold text-gray-600 uppercase">Subtotal</th>
-                                        <th className="hidden md:table-cell px-4 py-3 text-right text-xs font-bold text-gray-600 uppercase">IGV</th>
-                                        <th className="hidden md:table-cell px-4 py-3 text-right text-xs font-bold text-gray-600 uppercase">
-                                            {activeTab === 'CREDITOS' ? 'A Cta' : 'Descuento'}
-                                        </th>
                                         <th className="px-4 py-3 text-right text-xs font-bold text-gray-600 uppercase">Total</th>
                                         {activeTab === 'CREDITOS' && (
                                             <th className="px-4 py-3 text-right text-xs font-bold text-yellow-700 uppercase bg-yellow-50">Saldo Pendiente</th>
@@ -413,22 +438,20 @@ export default function ReporteVentas() {
                                                 })}
                                             </td>
                                             <td className="px-2 md:px-4 py-2 md:py-3 text-xs text-gray-900">
-                                                {venta.detalles && venta.detalles.length > 0
-                                                    ? venta.detalles.map(d => d.producto_codigo).filter(Boolean).join(', ') || '-'
-                                                    : '-'
-                                                }
+                                                <div className="flex items-center gap-1.5">
+                                                    {venta.origen_venta === 'pedido'
+                                                        ? <span className="text-[9px] font-semibold text-indigo-400 bg-indigo-50 px-1 py-0.5 rounded shrink-0">PED</span>
+                                                        : <span className="text-[9px] font-semibold text-slate-400 bg-slate-50 px-1 py-0.5 rounded shrink-0">STK</span>
+                                                    }
+                                                    <span>
+                                                        {venta.detalles && venta.detalles.length > 0
+                                                            ? venta.detalles.map(d => d.producto_codigo).filter(Boolean).join(', ') || '-'
+                                                            : '-'
+                                                        }
+                                                    </span>
+                                                </div>
                                             </td>
                                             <td className="hidden md:table-cell px-4 py-3 text-xs text-gray-900">{venta.cliente_nombre}</td>
-                                            <td className="hidden md:table-cell px-4 py-3 text-right text-xs text-gray-900">S/ {Number(venta.subtotal).toFixed(2)}</td>
-                                            <td className="hidden md:table-cell px-4 py-3 text-right text-xs text-blue-600">
-                                                {Number(venta.impuesto_monto) > 0 ? `S/ ${Number(venta.impuesto_monto).toFixed(2)}` : '-'}
-                                            </td>
-                                            <td className="hidden md:table-cell px-4 py-3 text-right text-xs text-red-500">
-                                                {activeTab === 'CREDITOS'
-                                                    ? <span className="text-green-700">S/ {(Number(venta.total) - Number(venta.saldo_pendiente || 0)).toFixed(2)}</span>
-                                                    : (Number(venta.descuento_monto) > 0 ? `- S/ ${Number(venta.descuento_monto).toFixed(2)}` : '-')
-                                                }
-                                            </td>
                                             <td className="px-2 md:px-4 py-2 md:py-3 text-right text-xs text-gray-900 min-w-24">
                                                 {Number(venta.total).toFixed(2)}
                                             </td>

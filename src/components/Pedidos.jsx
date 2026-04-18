@@ -4,6 +4,7 @@ import { clientesDB } from '../utils/clientesNeonClient';
 import { produccionDB, METALES, TIPOS_PRODUCTO } from '../utils/produccionNeonClient';
 import { tiposProductoDB } from '../utils/tiposProductoDB';
 import { getLocalDate } from '../utils/dateUtils';
+import { ventasDB } from '../utils/ventasClient';
 import { Link, useNavigate } from 'react-router-dom';
 import { FaEdit, FaTrash, FaCheckCircle, FaTimesCircle, FaPlus, FaWhatsapp, FaPrint, FaSearch, FaMoneyBillWave, FaShareAlt, FaImage, FaPhone, FaArrowLeft, FaHammer, FaCar, FaExclamationTriangle, FaCheck, FaEye, FaUser, FaBox, FaTruck, FaMapMarkerAlt, FaChevronRight } from 'react-icons/fa';
 import html2canvas from 'html2canvas';
@@ -298,7 +299,10 @@ const Pedidos = () => {
             icon: <FaTrash />, confirmText: 'Sí, eliminar', confirmColor: 'red',
             onConfirm: async () => {
                 try {
-                    await pedidosDB.delete(id); toast.success('Pedido eliminado'); fetchPedidos();
+                    await ventasDB.deleteByPedidoId(id);
+                    await pedidosDB.delete(id);
+                    toast.success('Pedido y venta asociada eliminados');
+                    fetchPedidos();
                 } catch (error) { toast.error('Error al eliminar: ' + error.message); }
             }
         });
@@ -388,6 +392,29 @@ const Pedidos = () => {
                 setShowSuccessModal(true);
                 setTimeout(() => setShowSuccessModal(false), 3000);
             }
+
+            // ── Sincronización con Reporte de Ventas ──
+            if (calculos.cancelado) {
+                const codigoPed = `PED-${String(pedidoId).padStart(4, '0')}`;
+                const ventasExistentes = await ventasDB.getAll();
+                const yaExistente = ventasExistentes.some(v => 
+                    v.detalles && v.detalles.some(d => d.producto_codigo === codigoPed)
+                );
+
+                if (!yaExistente) {
+                    await ventasDB.createVentaPedido({
+                        pedidoId: pedidoId,
+                        clienteNombre: formData.nombre_cliente,
+                        total: calculos.precio_total,
+                        formaPago: formData.forma_pago,
+                        costo_materiales: 0,
+                        observaciones: `Cobro pedido #${pedidoId}`,
+                        fecha_venta: new Date().toISOString()
+                    });
+                    if (editingId) toast.success('Venta registrada/actualizada');
+                }
+            }
+
             await fetchPedidos();
             resetForm();
         } catch (error) { toast.error(`Error: ${error.message}`); }
@@ -410,8 +437,31 @@ const Pedidos = () => {
             const montoPago = parseFloat(payData.monto);
             const nuevoAcuenta = (payPedido.monto_a_cuenta || 0) + montoPago;
             const nuevoSaldo = payPedido.precio_total - nuevoAcuenta;
-            await pedidosDB.update(payPedido.id_pedido, { ...payPedido, monto_a_cuenta: nuevoAcuenta, monto_saldo: Math.max(0, nuevoSaldo), cancelado: nuevoSaldo <= 0.05 });
+            const pedidoActualizado = { ...payPedido, monto_a_cuenta: nuevoAcuenta, monto_saldo: Math.max(0, nuevoSaldo), cancelado: nuevoSaldo <= 0.05 };
+            await pedidosDB.update(payPedido.id_pedido, pedidoActualizado);
             await pedidosDB.createPago({ id_pedido: payPedido.id_pedido, monto: montoPago, fecha_pago: payData.fecha, metodo_pago: payData.metodo, referencia: '' });
+
+            // ── Si el saldo queda en cero → registrar ingreso en Ventas ──
+            if (nuevoSaldo <= 0.05) {
+                const codigoPed = `PED-${String(payPedido.id_pedido).padStart(4, '0')}`;
+                const ventasExistentes = await ventasDB.getAll();
+                const yaRegistrado = ventasExistentes.some(v =>
+                    v.detalles && v.detalles.some(d => d.producto_codigo === codigoPed)
+                );
+                if (!yaRegistrado) {
+                    await ventasDB.createVentaPedido({
+                        pedidoId: payPedido.id_pedido,
+                        clienteNombre: payPedido.nombre_cliente,
+                        total: payPedido.precio_total,
+                        formaPago: payData.metodo || payPedido.forma_pago,
+                        costo_materiales: 0,
+                        observaciones: `Cobro pedido #${payPedido.id_pedido}`,
+                        fecha_venta: new Date().toISOString()
+                    });
+                    toast.success('Ingreso registrado en Reporte de Ventas ✅');
+                }
+            }
+
             toast.success('Pago registrado');
             handleClosePayModal(); fetchPedidos();
         } catch (error) { toast.error('Error al registrar pago'); }

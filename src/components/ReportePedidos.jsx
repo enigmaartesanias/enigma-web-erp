@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { pedidosDB } from '../utils/pedidosNeonClient';
+import { ventasDB } from '../utils/ventasClient';
 import { Link } from 'react-router-dom';
 import { FaArrowLeft, FaFilter, FaChartLine, FaMoneyBillWave, FaExclamationCircle, FaClipboardList, FaClock, FaTools, FaCheckCircle, FaTruck, FaTrash, FaTimesCircle, FaPhone, FaImage, FaEye } from 'react-icons/fa';
 import jsPDF from 'jspdf';
@@ -345,12 +346,9 @@ const ReportePedidos = () => {
             const montoPago = parseFloat(payData.monto);
             const nuevoAcuenta = (Number(payPedido.monto_a_cuenta) || 0) + montoPago;
             const nuevoSaldo = Number(payPedido.precio_total) - nuevoAcuenta;
-            // logic de Pedidos.jsx: const cancelado = nuevoSaldo <= 0.05;
-            // Pero aqui "cancelado" (paid) field meaning might be different?
-            // "cancelado" in this system means FULLY PAID.
             const cancelado = nuevoSaldo <= 0.05;
 
-            // Update pedido
+            // Actualizar pedido
             await pedidosDB.update(payPedido.id_pedido, {
                 ...payPedido,
                 monto_a_cuenta: nuevoAcuenta,
@@ -358,7 +356,7 @@ const ReportePedidos = () => {
                 cancelado: cancelado
             });
 
-            // Insert payment record
+            // Registrar pago
             await pedidosDB.createPago({
                 id_pedido: payPedido.id_pedido,
                 monto: montoPago,
@@ -367,10 +365,29 @@ const ReportePedidos = () => {
                 referencia: 'Pago desde Reporte'
             });
 
+            // ── Si se canceló el saldo → registrar en Ventas (con anti-duplicado) ──
+            if (cancelado) {
+                const codigoPed = `PED-${String(payPedido.id_pedido).padStart(4, '0')}`;
+                const ventasExistentes = await ventasDB.getAll();
+                const yaRegistrado = ventasExistentes.some(v =>
+                    v.detalles && v.detalles.some(d => d.producto_codigo === codigoPed)
+                );
+                if (!yaRegistrado) {
+                    await ventasDB.createVentaPedido({
+                        pedidoId: payPedido.id_pedido,
+                        clienteNombre: payPedido.nombre_cliente,
+                        total: payPedido.precio_total,
+                        formaPago: payData.metodo || payPedido.forma_pago,
+                        costo_materiales: 0,
+                        observaciones: `Cobro pedido #${payPedido.id_pedido}`,
+                        fecha_venta: new Date().toISOString()
+                    });
+                    toast.success('Ingreso registrado en Reporte de Ventas ✅');
+                }
+            }
+
             toast.success('Pago registrado correctamente');
             handleClosePayModal();
-
-            // Refresh Data
             fetchReportData();
 
         } catch (error) {

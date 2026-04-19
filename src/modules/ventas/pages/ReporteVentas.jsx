@@ -229,25 +229,43 @@ export default function ReporteVentas() {
 
         // Comparar strings de fecha (YYYY-MM-DD)
         if (fechaInicio && fechaVentaPeru < fechaInicio) return false;
-        if (fechaFin && fechaVentaPeru > fechaFin) return false;
-
         return true;
     });
 
     // Calcular estadísticas + distribución de fondos
     const ventasActivas = ventasFiltradas.filter(v => v.estado !== 'ANULADA');
+
+    // Función para obtener costo de materiales de una venta
+    const getCostoMateriales = (v) => {
+        const principal = Number(v.costo_material_reposicion || 0);
+        if (principal > 0) return principal;
+        if (v.detalles && v.detalles.length > 0) {
+            return v.detalles.reduce((sum, d) => sum + (Number(d.costo_actual || d.precio_unitario * 0.4 || 0) * Number(d.cantidad || 0)), 0);
+        }
+        return 0;
+    };
+
+    // Función para obtener mano de obra de una venta
+    const getManoDeObra = (v) => {
+        if (v.detalles && v.detalles.length > 0) {
+            return v.detalles.reduce((sum, d) => sum + (Number(d.mano_de_obra_actual || 0) * Number(d.cantidad || 0)), 0);
+        }
+        return 0;
+    };
+
     const stats = {
         totalVentas: ventasActivas.reduce((sum, v) => sum + Number(v.total), 0),
         totalIGV: ventasActivas.reduce((sum, v) => sum + Number(v.impuesto_monto), 0),
         cantidadVentas: ventasActivas.length,
         // Fondos financieros
         fondoAlquiler: ventasActivas.reduce((sum, v) => sum + Number(v.monto_alquiler_retencion || v.total * 0.10), 0),
-        fondoMateriales: ventasActivas.reduce((sum, v) => sum + Number(v.costo_material_reposicion || 0), 0),
+        fondoMateriales: ventasActivas.reduce((sum, v) => sum + getCostoMateriales(v), 0),
+        fondoManoObra: ventasActivas.reduce((sum, v) => sum + getManoDeObra(v), 0),
         // Por origen
         totalStock: ventasActivas.filter(v => !v.origen_venta || v.origen_venta === 'stock').reduce((sum, v) => sum + Number(v.total), 0),
         totalPedidos: ventasActivas.filter(v => v.origen_venta === 'pedido').reduce((sum, v) => sum + Number(v.total), 0),
     };
-    stats.utilidadNeta = stats.totalVentas - stats.fondoAlquiler - stats.fondoMateriales;
+    stats.utilidadNeta = stats.totalVentas - stats.fondoAlquiler - stats.fondoMateriales - stats.fondoManoObra;
 
     return (
         <div className="min-h-screen bg-gray-50">
@@ -292,17 +310,22 @@ export default function ReporteVentas() {
                             </span>
                         </div>
                     </div>
-                    {/* Fila 2: Distribución de fondos (3 columnas) */}
-                    <div className="grid grid-cols-3 divide-x divide-gray-100">
-                        <div className="p-3 text-center">
+                    {/* Fila 2: Distribución de fondos (4 columnas) */}
+                    <div className="grid grid-cols-2 md:grid-cols-4 divide-x divide-gray-100">
+                        <div className="p-3 text-center border-b md:border-b-0">
                             <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-1">Fondo Alquiler</p>
                             <p className="text-sm font-bold text-amber-600">S/ {stats.fondoAlquiler.toFixed(2)}</p>
                             <p className="text-[9px] text-gray-300 mt-0.5">10% del ingreso</p>
                         </div>
-                        <div className="p-3 text-center">
+                        <div className="p-3 text-center border-b md:border-b-0">
                             <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-1">Rep. Materiales</p>
                             <p className="text-sm font-bold text-blue-600">S/ {stats.fondoMateriales.toFixed(2)}</p>
                             <p className="text-[9px] text-gray-300 mt-0.5">costo de insumos</p>
+                        </div>
+                        <div className="p-3 text-center">
+                            <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-1">Mano de Obra</p>
+                            <p className="text-sm font-bold text-slate-500">S/ {stats.fondoManoObra.toFixed(2)}</p>
+                            <p className="text-[9px] text-gray-300 mt-0.5">pagos orfebre</p>
                         </div>
                         <div className="p-3 text-center">
                             <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-1">Utilidad Neta</p>
@@ -415,8 +438,12 @@ export default function ReporteVentas() {
                                         <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase">Código</th>
                                         <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase">Fecha</th>
                                         <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase">Producto</th>
-                                        <th className="hidden md:table-cell px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase">Cliente</th>
-                                        <th className="px-4 py-3 text-right text-xs font-bold text-gray-600 uppercase">Total</th>
+                                        <th className="hidden lg:table-cell px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase">Cliente</th>
+                                        <th className="px-4 py-3 text-right text-xs font-bold text-gray-600 uppercase">Total (S/)</th>
+                                        <th className="hidden md:table-cell px-4 py-3 text-right text-xs font-bold text-gray-600 uppercase">Reposición</th>
+                                        <th className="hidden md:table-cell px-4 py-3 text-right text-xs font-bold text-gray-600 uppercase">Alquiler (10%)</th>
+                                        <th className="hidden lg:table-cell px-4 py-3 text-right text-xs font-bold text-gray-600 uppercase">Mano de Obra</th>
+                                        <th className="px-4 py-3 text-right text-xs font-bold text-gray-600 uppercase">Utilidad Neta</th>
                                         {activeTab === 'CREDITOS' && (
                                             <th className="px-4 py-3 text-right text-xs font-bold text-yellow-700 uppercase bg-yellow-50">Saldo Pendiente</th>
                                         )}
@@ -451,9 +478,21 @@ export default function ReporteVentas() {
                                                     </span>
                                                 </div>
                                             </td>
-                                            <td className="hidden md:table-cell px-4 py-3 text-xs text-gray-900">{venta.cliente_nombre}</td>
-                                            <td className="px-2 md:px-4 py-2 md:py-3 text-right text-xs text-gray-900 min-w-24">
+                                            <td className="hidden lg:table-cell px-4 py-3 text-xs text-gray-900">{venta.cliente_nombre}</td>
+                                            <td className="px-2 md:px-4 py-2 md:py-3 text-right text-xs font-semibold text-gray-900 min-w-24">
                                                 {Number(venta.total).toFixed(2)}
+                                            </td>
+                                            <td className="hidden md:table-cell px-2 md:px-4 py-2 md:py-3 text-right text-xs text-blue-700 font-medium font-mono">
+                                                {getCostoMateriales(venta).toFixed(2)}
+                                            </td>
+                                            <td className="hidden md:table-cell px-2 md:px-4 py-2 md:py-3 text-right text-xs text-amber-700 font-medium font-mono">
+                                                {Number(venta.monto_alquiler_retencion || venta.total * 0.10).toFixed(2)}
+                                            </td>
+                                            <td className="hidden lg:table-cell px-2 md:px-4 py-2 md:py-3 text-right text-xs text-gray-600 font-medium font-mono">
+                                                {getManoDeObra(venta).toFixed(2)}
+                                            </td>
+                                            <td className="px-2 md:px-4 py-2 md:py-3 text-right text-xs font-bold text-emerald-600 min-w-24 font-mono">
+                                                {(Number(venta.total) - Number(venta.monto_alquiler_retencion || venta.total * 0.10) - getCostoMateriales(venta) - getManoDeObra(venta)).toFixed(2)}
                                             </td>
                                             {activeTab === 'CREDITOS' && (
                                                 <td className="px-2 md:px-4 py-2 md:py-3 text-right text-xs font-semibold text-yellow-800 bg-yellow-50 min-w-24">

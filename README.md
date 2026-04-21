@@ -49,7 +49,9 @@ Recharts (Visualización de datos de ventas)
 
 React Hot Toast (Notificaciones de sistema)
 
+
 Backend & Cloud
+
 🌐 Web: Supabase (PostgreSQL + Auth)
 
 🖥️ ERP: Neon PostgreSQL (Serverless DB) / Firebase Storage
@@ -59,12 +61,14 @@ Hosting: Firebase Hosting & Netlify
 Analytics: Google Analytics 4
 
 📦 Instalación y Configuración
+
 Prerrequisitos
 Node.js 18+
 
 Cuentas activas en Firebase, Supabase y Neon DB.
 
 Configuración del Repositorio
+
 Bash
 # Clonar el proyecto
 git clone https://github.com/enigmaartesanias/enigma-web-erp.git
@@ -75,9 +79,11 @@ cd enigma-web-erp
 # Instalar dependencias
 npm install
 Variables de Entorno (.env)
+
 Es fundamental configurar las API Keys de Firebase, Supabase y el DATABASE_URL de Neon para el funcionamiento de los módulos.
 
 🛠️ Comandos de Desarrollo
+
 Desarrollo: npm run dev
 
 Producción: npm run build
@@ -85,7 +91,9 @@ Producción: npm run build
 Despliegue: firebase deploy
 
 📄 Licencia y Propiedad
+
 © 2005-2026 Aldo Magallanes - Artesanías Enigma. Software privado y confidencial. Prohibida su reproducción total o parcial sin autorización expresa del autor.
 
 💡 Nota del Desarrollador
+
 Este sistema es una solución real nacida de la necesidad de digitalizar un negocio artesanal. Está diseñado bajo una filosofía modular, permitiendo que cada componente pueda ser adaptado a otros emprendimientos que busquen profesionalizar su inventario y presencia online.

@@ -5,6 +5,7 @@ Sistema integral de gestión y tienda en línea para Artesanías Enigma, que fus
 
 
 🌟 Componentes Principales
+
 1️⃣ Web Pública - www.artesaniasenigma.com
 
 ✅ Arquitectura: Desarrollada desde cero con React + Vite + Supabase.

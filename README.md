@@ -23,7 +23,9 @@ Sistema integral de gestión y tienda en línea para Artesanías Enigma, que fus
 
 ✅ Escalabilidad: Sistema modular diseñado para la transición de talleres físicos a entornos digitales.
 
-Módulos principales: - 
+
+Módulos principales: 
+
 💰 Ventas: Registro transaccional, anulación con reversión de stock automática y estadísticas.
 
 📦 Pedidos: Flujo completo de estados y control de entregas personalizadas.
@@ -34,8 +36,11 @@ Módulos principales: -
 
 🛒 Compras e Insumos: Gestión de proveedores y costos de metales (plata, cobre, alpaca).
 
+
 🚀 Tecnologías
+
 Frontend & Visualización
+
 React 18 & Vite 5 (Fast Refresh & Performance)
 
 Tailwind CSS (Diseño moderno y ligero)

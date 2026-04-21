@@ -3,6 +3,7 @@ Creado por Aldo Magallanes – Artesano Goldsmith & Desarrollador Web Fullstack
 
 Sistema integral de gestión y tienda en línea para Artesanías Enigma, que fusiona el arte de la orfebrería con la eficiencia del desarrollo web moderno. Este proyecto combina una web pública, un ERP interno de alta precisión y un entorno de despliegue profesional.
 
+
 🌟 Componentes Principales
 1️⃣ Web Pública - www.artesaniasenigma.com
 ✅ Arquitectura: Desarrollada desde cero con React + Vite + Supabase.

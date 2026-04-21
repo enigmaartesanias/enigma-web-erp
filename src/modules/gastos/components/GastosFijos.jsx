@@ -16,6 +16,22 @@ const GastosFijos = ({ gastos, periodo, onRefresh }) => {
 
     const categories = ['Alquiler', 'Préstamo', 'Servicio', 'Suscripción', 'Personal', 'Otro'];
 
+    // HELPER NUEVO: Extrae el día de forma segura sin importar el tipo de dato
+    const extraerDia = (fecha) => {
+        if (!fecha) return 31; // fallback
+        try {
+            if (typeof fecha === 'string' && fecha.includes('-')) {
+                return parseInt(fecha.split('-')[2], 10);
+            }
+            if (fecha instanceof Date) {
+                return fecha.getDate();
+            }
+            return new Date(fecha).getDate();
+        } catch (error) {
+            return 31;
+        }
+    };
+
     // Helper: Calcular estado visual
     const getEstadoInfo = (gasto) => {
         if (gasto.estado === 'PAGADO') return { color: 'green', text: 'PAGADO', icon: FaCheck };
@@ -23,6 +39,8 @@ const GastosFijos = ({ gastos, periodo, onRefresh }) => {
         const today = new Date();
         const currentYear = today.getFullYear();
         const currentMonth = today.getMonth() + 1;
+
+        // El periodo sí es siempre string (ej: "2026-01")
         const [gastoYear, gastoMonth] = gasto.periodo.split('-').map(Number);
 
         // Si es mes pasado y no pagado -> DANGER
@@ -30,10 +48,8 @@ const GastosFijos = ({ gastos, periodo, onRefresh }) => {
             return { color: 'red', text: 'VENCIDO', icon: FaExclamationTriangle };
         }
 
-        // Si es mes actual, chequear día
-        const day = parseInt(gasto.fecha_vencimiento ? new Date(gasto.fecha_vencimiento).getDate() + 1 : 32); // +1 por timezone fix simple visual
-        // Ajuste mejor: fecha_vencimiento viene como string YYYY-MM-DD
-        const vencimientoDay = parseInt(gasto.fecha_vencimiento.split('-')[2]);
+        // Usamos el helper seguro aquí
+        const vencimientoDay = extraerDia(gasto.fecha_vencimiento);
         const currentDay = today.getDate();
 
         if (currentDay > vencimientoDay) return { color: 'red', text: 'VENCIDO', icon: FaExclamationTriangle };
@@ -47,8 +63,6 @@ const GastosFijos = ({ gastos, periodo, onRefresh }) => {
         e.preventDefault();
         setLoading(true);
         try {
-            // Construir fecha vencimiento real basada en el periodo
-            // periodo = "2026-01"
             const fechaVencimiento = `${periodo}-${String(formData.dia_vencimiento).padStart(2, '0')}`;
 
             await gastosDB.create({
@@ -155,7 +169,9 @@ const GastosFijos = ({ gastos, periodo, onRefresh }) => {
                     {gastos.map(gasto => {
                         const status = getEstadoInfo(gasto);
                         const StatusIcon = status.icon;
-                        const vencimientoDia = gasto.fecha_vencimiento ? parseInt(gasto.fecha_vencimiento.split('-')[2]) : '?';
+
+                        // Usamos el helper seguro aquí también
+                        const vencimientoDia = gasto.fecha_vencimiento ? extraerDia(gasto.fecha_vencimiento) : '?';
 
                         return (
                             <div key={gasto.id_gasto} className={`bg-white rounded-xl shadow-sm border-l-4 p-4 relative overflow-hidden transition-all hover:shadow-md

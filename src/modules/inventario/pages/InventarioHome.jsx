@@ -1,212 +1,128 @@
-import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import {
-    Package, ShoppingCart, Hammer, BarChart3, FileText,
-    ClipboardList, Users, Database, QrCode, LayoutDashboard,
-    Plus, Receipt, Tag, History, Layers, RefreshCw, PenTool
-} from 'lucide-react';
-import { pedidosDB } from '../../../utils/pedidosNeonClient';
-import { produccionDB } from '../../../utils/produccionNeonClient';
+// src/components/AdminPanel.jsx
+import React from 'react';
+import { useAuth } from '../contexts/AuthContext';
+import { Link, useNavigate } from 'react-router-dom';
+import { supabase } from '../supabaseClient';
 
-export default function InventarioHome() {
-    const [counts, setCounts] = useState({ pending: 0, production: 0, porIngresar: 0 });
-    const [isRefreshing, setIsRefreshing] = useState(false);
+import logo from '../assets/logo.png';
 
-    useEffect(() => {
-        fetchStatus();
-        const interval = setInterval(fetchStatus, 30000);
-        return () => clearInterval(interval);
-    }, []);
+const AdminPanel = () => {
+    const { user, loading } = useAuth();
+    const navigate = useNavigate();
 
-    const fetchStatus = async () => {
-        setIsRefreshing(true);
-        try {
-            const [pedidos, pendientesInv] = await Promise.all([
-                pedidosDB.getAll(),
-                produccionDB.getPendientesInventario()
-            ]);
-
-            const pendingCount = pedidos.filter(p =>
-                p.estado_pedido !== 'entregado' &&
-                p.estado_produccion !== 'terminado' &&
-                p.estado_produccion !== 'en_proceso' &&
-                p.estado_pedido !== 'cancelado'
-            ).length;
-
-            const productionCount = pedidos.filter(p =>
-                p.estado_produccion === 'en_proceso' &&
-                p.estado_pedido !== 'entregado'
-            ).length;
-
-            setCounts({
-                pending: pendingCount,
-                production: productionCount,
-                porIngresar: pendientesInv.length
-            });
-        } catch (error) {
-            console.error('Error fetching status:', error);
-        } finally {
-            setIsRefreshing(false);
-        }
-    };
-
-    const groups = [
-        {
-            id: 'comercial',
-            title: 'COMERCIAL',
-            icon: ShoppingCart,
-            order: 'order-1',
-            items: [
-                { label: 'VENDER', sub: 'Registrar ventas', path: '/ventas/nueva', icon: ShoppingCart, color: 'text-blue-600' },
-                { label: 'VER VENTAS', sub: 'Estadísticas ventas', path: '/ventas/reporte', icon: BarChart3, color: 'text-gray-400' }
-            ]
-        },
-        {
-            id: 'logistica',
-            title: 'LOGÍSTICA',
-            icon: ClipboardList,
-            order: 'order-2',
-            items: [
-                { label: 'PEDIDOS', id: 'pedidos', sub: 'Control de pedidos', path: '/admin/pedidos', icon: ClipboardList, color: 'text-amber-600' },
-                { label: 'HISTORIAL PEDIDOS', sub: 'Análisis y histórico', path: '/admin/reportes', icon: FileText, color: 'text-gray-400' }
-            ]
-        },
-        {
-            id: 'operaciones',
-            title: 'PRODUCCIÓN',
-            icon: Hammer,
-            order: 'order-3',
-            items: [
-                { label: 'PRODUCCIÓN', id: 'produccion', sub: 'Gestión del taller', path: '/produccion', icon: Hammer, color: 'text-emerald-600' },
-                { label: 'HISTORIAL PRODUCCIÓN', sub: 'Métricas y costos', path: '/produccion-reporte', icon: BarChart3, color: 'text-gray-400' }
-            ]
-        },
-        {
-            id: 'almacen',
-            title: 'ALMACÉN',
-            icon: Package,
-            order: 'order-last',
-            items: [
-                { label: 'INVENTARIO', sub: 'Agregar productos', path: '/inventario/nuevo', icon: Package, color: 'text-slate-600' },
-                { label: 'REPORTE INVENTARIO', id: 'reporte_inventario', sub: 'Stock y detalles', path: '/inventario', icon: FileText, color: 'text-gray-400' }
-            ]
-        },
-        {
-            id: 'herramientas',
-            title: 'ATENCIÓN Y VENTAS VIP',
-            icon: PenTool,
-            order: 'order-last',
-            items: [
-                { label: 'COTIZADOR AUTOR', sub: 'Propuestas de Diseño', path: '/cotizador', icon: PenTool, color: 'text-indigo-600' }
-            ]
-        },
-        {
-            id: 'insumos',
-            title: 'MATERIALES',
-            icon: Database,
-            order: 'order-last',
-            items: [
-                { label: 'MATERIALES', sub: 'Registro de materias', path: '/materiales', icon: Database, color: 'text-orange-600' },
-                { label: 'REPORTE MATERIALES', sub: 'Consumos y saldos', path: '/materiales/reporte', icon: BarChart3, color: 'text-gray-400' }
-            ]
-        },
-        {
-            id: 'finanzas',
-            title: 'FINANZAS',
-            icon: Receipt,
-            order: 'order-last',
-            items: [
-                { label: 'GASTOS', sub: 'Fijos y variables', path: '/gastos', icon: Receipt, color: 'text-purple-600' },
-                { label: 'CUENTAS POR COBRAR', sub: 'Gestión de créditos', path: '/cuentas-por-cobrar', icon: FileText, color: 'text-gray-400' }
-            ]
-        }
-    ];
-
-    const maestros = [
-        { title: 'Clientes', icon: Users, path: '/clientes', color: 'text-blue-500' },
-        { title: 'Proveedores', icon: Users, path: '/proveedores', color: 'text-amber-500' },
-        { title: 'Tipos Prod', icon: Tag, path: '/configuracion/tipos-producto', color: 'text-emerald-500' },
-        { title: 'Tipos Mat', icon: Tag, path: '/config/tipos-materiales', color: 'text-orange-500' },
-        { title: 'QR Etiquetas', icon: QrCode, path: '/admin/codigos-qr', color: 'text-slate-500' },
-        { title: 'Carga Inicial', icon: History, path: '/stock-inicial', color: 'text-gray-500' },
-    ];
-
-    const IndividualCard = ({ item }) => {
-        let statusText = null;
-        const statusColor = "text-amber-600 bg-amber-50 border-amber-100";
-
-        if (item.id === 'pedidos' && counts.pending > 0) {
-            statusText = `${counts.pending} PENDIENTES`;
-        } else if (item.id === 'reporte_inventario' && counts.porIngresar > 0) {
-            statusText = `${counts.porIngresar} POR INGRESAR`;
-        }
-
+    if (loading) {
         return (
-            <Link
-                to={item.path}
-                className="bg-white border border-gray-100 rounded-2xl p-2.5 sm:p-4 flex flex-col sm:flex-row items-center sm:items-center gap-2 sm:gap-4 shadow-[0_2px_12px_rgba(0,0,0,0.01)] transition-all hover:shadow-[0_8px_30px_rgba(0,0,0,0.04)] active:scale-[0.98] group relative"
-            >
-                <div className={`p-2 sm:p-3 rounded-xl ${item.color.replace('text-', 'bg-').split(' ')[0]} bg-opacity-10 transition-transform group-hover:scale-110 shrink-0`}>
-                    <item.icon className={`w-4 h-4 sm:w-6 sm:h-6 ${item.color}`} strokeWidth={1.5} />
-                </div>
-                <div className="flex flex-col items-center sm:items-start text-center sm:text-left overflow-hidden w-full space-y-1">
-                    <h4 className="text-[9px] sm:text-[13px] font-medium text-gray-800 leading-none group-hover:text-blue-600 uppercase tracking-wider">
-                        {item.label}
-                    </h4>
-                    {statusText && (
-                        <div className={`px-1 py-0.5 rounded-md text-[6px] sm:text-[8px] font-medium uppercase tracking-tighter ${statusColor} border animate-pulse`}>
-                            {statusText}
-                        </div>
-                    )}
-                </div>
-            </Link>
+            <div className="flex justify-center items-center min-h-screen">
+                <div className="w-10 h-10 border-4 border-t-blue-500 border-gray-200 rounded-full animate-spin"></div>
+            </div>
         );
+    }
+
+    // ✅ Redirigir si no hay usuario
+    if (!user) {
+        navigate('/login', { replace: true });
+        return null;
+    }
+
+    const handleLogout = async () => {
+        await supabase.auth.signOut();
+        navigate('/login', { replace: true });
     };
 
     return (
-        <div className="min-h-screen bg-neutral-50/30 pb-20">
-            <header className="bg-white/80 backdrop-blur-md sticky top-0 z-50 border-b border-gray-100">
-                <div className="max-w-6xl mx-auto px-6 py-8 flex flex-col items-center text-center">
-                    <div className="flex items-center gap-4 mb-2">
-                        <Link to="/admin" className="text-[11px] font-medium text-gray-400 hover:text-black">
-                            ← Volver al Panel Admin
-                        </Link>
-                        <button onClick={fetchStatus} className={isRefreshing ? 'animate-spin text-blue-500' : 'text-gray-300'}><RefreshCw size={12} /></button>
-                    </div>
-                    <h1 className="text-2xl sm:text-3xl font-normal text-gray-900 tracking-tight">Enigma Sistema ERP</h1>
-                </div>
+        <div className="bg-gray-50 min-h-screen">
+            {/* Logo Header */}
+            <div className="flex justify-center pt-8 bg-gray-50">
+                <Link to="/">
+                    <img src={logo} alt="Logo" className="h-10 object-contain hover:opacity-80 transition-opacity" />
+                </Link>
+            </div>
+
+            {/* Header Text */}
+            <header className="px-4 mb-4 mt-8">
+                <h1 className="text-xl font-medium tracking-wide text-center text-gray-800 uppercase">Panel de Administración</h1>
+                {user && (
+                    <p className="text-center text-xs text-gray-500 mt-2">
+                        Sesión iniciada como: <span className="font-medium text-gray-700">{user.email}</span>
+                    </p>
+                )}
             </header>
 
-            <main className="max-w-6xl mx-auto px-6 mt-12">
-                <div className="space-y-12">
-                    {groups.map((group) => (
-                        <div key={group.id} className="space-y-4">
-                            <h2 className="text-[11px] font-semibold text-gray-400 tracking-[0.2em] uppercase flex items-center gap-2 px-1">
-                                <group.icon size={14} /> {group.title}
-                            </h2>
-                            <div className="grid grid-cols-2 gap-3 sm:gap-4">
-                                {group.items.map((item, idx) => (
-                                    <IndividualCard key={idx} item={item} />
-                                ))}
+            {/* Main */}
+            <main className="container mx-auto px-4 pb-12">
+                {/* Grupo 1: Carrusel y Productos */}
+                <div className="mb-8">
+                    <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-4 text-center">Gestión de Contenido</h3>
+                    <div className="grid grid-cols-2 lg:grid-cols-2 gap-4 md:gap-8 max-w-4xl mx-auto">
+                        {/* Carrusel */}
+                        <Link
+                            to="/admin/carrusel"
+                            className="block p-6 bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 text-center border border-gray-100"
+                        >
+                            <div className="w-12 h-12 md:w-16 md:h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-3 md:mb-4">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 md:h-8 md:w-8 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                </svg>
                             </div>
-                        </div>
-                    ))}
-                </div>
-
-                <div className="mt-28 mb-12 flex flex-col items-center text-gray-400">
-                    <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-gray-200 to-transparent mb-8"></div>
-                    <span className="text-[11px] font-black uppercase tracking-[0.5em]">Datos Maestros</span>
-                </div>
-
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-5">
-                    {maestros.map((item, idx) => (
-                        <Link key={idx} to={item.path} className="group flex flex-col items-center p-6 bg-white border border-gray-100/60 rounded-xl hover:shadow-md transition-all">
-                            <item.icon className={`w-6 h-6 mb-3 ${item.color} opacity-60 group-hover:opacity-100 transition-opacity`} />
-                            <span className="text-[10px] font-bold text-gray-400 group-hover:text-gray-800 uppercase tracking-widest text-center">{item.title}</span>
+                            <h2 className="text-base md:text-xl font-medium text-gray-800 mb-1">Carrusel</h2>
+                            <p className="text-xs md:text-sm text-gray-500 hidden md:block">Administra las imágenes del carrusel principal.</p>
                         </Link>
-                    ))}
+
+                        {/* Productos */}
+                        <Link
+                            to="/admin/productos"
+                            className="block p-6 bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 text-center border border-gray-100"
+                        >
+                            <div className="w-12 h-12 md:w-16 md:h-16 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-3 md:mb-4">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 md:h-8 md:w-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l-1 7H6l-1-7z" />
+                                </svg>
+                            </div>
+                            <h2 className="text-base md:text-xl font-medium text-gray-800 mb-1">Productos</h2>
+                            <p className="text-xs md:text-sm text-gray-500 hidden md:block">Administra tus productos: imágenes, precios, materiales y más.</p>
+                        </Link>
+                    </div>
                 </div>
-            </main>
-        </div>
+
+
+                {/* Grupo 4: Sistema de Inventario Integrado */}
+                <div className="mb-8">
+                    <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-4 text-center">Sistema de Inventario</h3>
+                    <div className="grid grid-cols-1 lg:grid-cols-1 gap-4 md:gap-8 max-w-md mx-auto">
+                        {/* Sistema de Inventario Integrado */}
+                        <Link
+                            to="/inventario-home"
+                            className="block p-6 bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl shadow-md hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 text-center border-2 border-indigo-200"
+                        >
+                            <div className="w-12 h-12 md:w-16 md:h-16 bg-indigo-600 rounded-full flex items-center justify-center mx-auto mb-3 md:mb-4">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 md:h-8 md:w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                                </svg>
+                            </div>
+                            <h2 className="text-base md:text-xl font-medium text-gray-900 mb-1">Sistema ERP Completo</h2>
+                            <p className="text-xs md:text-sm text-gray-600 hidden md:block mb-2">Producción, Compras, Ventas, Inventario y más.</p>
+                            <div className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-indigo-700 bg-indigo-100 px-3 py-1 rounded-full">
+                                <span>✨ Integrado</span>
+                            </div>
+                        </Link>
+                    </div>
+                </div>
+
+                {/* Botón de cierre de sesión */}
+                <div className="flex justify-center mt-12">
+                    <button
+                        onClick={handleLogout}
+                        className="bg-red-500 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg shadow transition-colors duration-200 flex items-center gap-2"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                        </svg>
+                        Cerrar sesión
+                    </button>
+                </div>
+            </main >
+        </div >
     );
-}
+};
+
+export default AdminPanel;

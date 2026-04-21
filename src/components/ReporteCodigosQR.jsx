@@ -593,4 +593,5 @@ const ReporteCodigosQR = () => {
     );
 };
 
+
 export default ReporteCodigosQR;

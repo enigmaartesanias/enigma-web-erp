@@ -233,14 +233,15 @@ const ProductoEdit = () => {
         if (!svgElement) return;
 
         const canvas = document.createElement('canvas');
-        const size = 354; // Equivalente aprox a 3x3 cm a 300 DPI
-        canvas.width = size;
-        canvas.height = size;
+        // Usamos un lienzo cuadrado de 500x500px para forzar márgenes blancos
+        const canvasSize = 500; 
+        canvas.width = canvasSize;
+        canvas.height = canvasSize;
         const ctx = canvas.getContext('2d');
 
-        // Fondo blanco
+        // Fondo blanco sólido (el margen)
         ctx.fillStyle = '#FFFFFF';
-        ctx.fillRect(0, 0, size, size);
+        ctx.fillRect(0, 0, canvasSize, canvasSize);
 
         // Convertir el SVG generado
         const xml = new XMLSerializer().serializeToString(svgElement);
@@ -249,17 +250,19 @@ const ProductoEdit = () => {
 
         const img = new Image();
         img.onload = () => {
-            const qrSize = 250;
-            const x = (size - qrSize) / 2;
-            const y = 30;
+            // El QR ocupa ahora el 40% del ancho (200px) para dar 2.5cm en papel de 5.7cm
+            const qrSize = 200;
+            const x = (canvasSize - qrSize) / 2;
+            const y = (canvasSize - qrSize) / 2 - 30; // Un poco más arriba del centro
 
             ctx.drawImage(img, x, y, qrSize, qrSize);
 
-            // Añadir texto SKU en la zona inferior
+            // Añadir texto SKU en el margen inferior
             ctx.fillStyle = '#000000';
-            ctx.font = 'bold 36px monospace';
+            ctx.font = 'bold 28px monospace'; // Ajustado para el nuevo tamaño
             ctx.textAlign = 'center';
-            ctx.fillText(formData.codigo_usuario, size / 2, size - 40);
+            // Dibujar el código SKU estrechamente debajo del QR
+            ctx.fillText(formData.codigo_usuario, canvasSize / 2, y + qrSize + 40);
 
             // Ejecutar la descarga
             const pngUrl = canvas.toDataURL('image/png');

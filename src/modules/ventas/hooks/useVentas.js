@@ -104,7 +104,8 @@ export const useVentas = () => {
                     precio_venta: precioBase,
                     cantidad: 1,
                     stockMax: stockActual,
-                    categoria: producto.categoria
+                    categoria: producto.categoria,
+                    costo: parseFloat(producto.costo) || 0
                 }];
             }
         });

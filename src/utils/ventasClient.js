@@ -195,8 +195,20 @@ export const ventasDB = {
                 SELECT 
                     v.*,
                     COALESCE(
-                        (SELECT json_agg(d.*) 
+                        (SELECT json_agg(json_build_object(
+                            'id', d.id,
+                            'producto_id', d.producto_id,
+                            'cantidad', d.cantidad,
+                            'precio_unitario', d.precio_unitario,
+                            'subtotal', d.subtotal,
+                            'producto_nombre', d.producto_nombre,
+                            'producto_codigo', d.producto_codigo,
+                            'costo_actual', p.costo,
+                            'mano_de_obra_actual', CASE WHEN pr.cantidad > 0 THEN (pr.mano_de_obra / pr.cantidad) ELSE 0 END
+                        )) 
                          FROM detalles_venta d 
+                         LEFT JOIN productos_externos p ON d.producto_id = p.id
+                         LEFT JOIN produccion_taller pr ON p.produccion_id = pr.id
                          WHERE d.venta_id = v.id), 
                         '[]'
                     ) as detalles

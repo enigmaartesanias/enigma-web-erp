@@ -81,6 +81,9 @@ const NuevaVenta = () => {
 
         setProcessing(true);
         try {
+            // Calcular costo de reposición de materiales sumando (costo × cantidad) de cada item
+            const costoReposicion = cart.reduce((sum, item) => sum + ((item.costo || 0) * item.cantidad), 0);
+
             const ventaData = {
                 cliente_nombre: config.cliente ? config.cliente.nombre : null,
                 cliente_documento: config.cliente ? config.cliente.documento : null,
@@ -91,6 +94,7 @@ const NuevaVenta = () => {
                 forma_pago: formaPago, // Usar forma de pago del estado
                 fecha_venta: fechaVenta,
                 observaciones: '',
+                costo_material_reposicion: costoReposicion,
                 detalles: cart.map(item => ({
                     producto_id: item.id,
                     cantidad: item.cantidad,
@@ -152,6 +156,9 @@ const NuevaVenta = () => {
             const adelanto = datosCredito.a_cuenta || 0;
             const saldoPendiente = totals.total - adelanto;
 
+            // Calcular costo de reposición de materiales
+            const costoReposicion = cart.reduce((sum, item) => sum + ((item.costo || 0) * item.cantidad), 0);
+
             // 1. Crear venta con campos de crédito
             const ventaData = {
                 cliente_nombre: config.cliente?.nombre || 'Cliente General',
@@ -163,6 +170,7 @@ const NuevaVenta = () => {
                 forma_pago: 'Crédito',
                 fecha_venta: fechaVenta,
                 observaciones: datosCredito.observaciones || '',
+                costo_material_reposicion: costoReposicion,
                 // Campos de crédito
                 es_credito: true,
                 saldo_pendiente: saldoPendiente,

@@ -139,15 +139,29 @@ const ProductoForm = () => {
         const svg = qrRef.current.querySelector("svg");
         const svgData = new XMLSerializer().serializeToString(svg);
         const canvas = document.createElement("canvas");
+        const canvasSize = 500; // Lienzo cuadrado de 500x500px
+        canvas.width = canvasSize;
+        canvas.height = canvasSize;
         const ctx = canvas.getContext("2d");
         const img = new Image();
         
         img.onload = () => {
-            canvas.width = img.width + 40;
-            canvas.height = img.height + 40;
+            // Fondo blanco sólido para forzar margen
             ctx.fillStyle = "white";
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.drawImage(img, 20, 20);
+            ctx.fillRect(0, 0, canvasSize, canvasSize);
+            
+            // El QR ocupa ahora el 40% del ancho (200px) para dar 2.5cm en papel de 5.7cm
+            const qrSize = 200;
+            const x = (canvasSize - qrSize) / 2;
+            const y = (canvasSize - qrSize) / 2 - 30; // Un poco más arriba del centro
+
+            ctx.drawImage(img, x, y, qrSize, qrSize);
+
+            // Añadir texto SKU en la zona inferior
+            ctx.fillStyle = '#000000';
+            ctx.font = 'bold 28px monospace';
+            ctx.textAlign = 'center';
+            ctx.fillText(formData.codigo_usuario || 'S/N', canvasSize / 2, y + qrSize + 40);
             
             const pngFile = canvas.toDataURL("image/png");
             const a = document.createElement("a");
@@ -157,7 +171,7 @@ const ProductoForm = () => {
             a.click();
             document.body.removeChild(a);
         };
-        img.src = "data:image/svg+xml;base64," + btoa(svgData);
+        img.src = "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(svgData)));
     };
 
     const printQR = () => {

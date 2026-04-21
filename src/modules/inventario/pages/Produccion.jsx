@@ -875,7 +875,7 @@ const Produccion = () => {
         (parseFloat(formData.otros_gastos) || 0);
 
     const costoTotalProduccion = costoTotalUnitario * (parseInt(formData.cantidad) || 1);
-    const precioSugerido = costoTotalUnitario * 2.5;
+    const precioSugerido = costoTotalUnitario * 1.5;
 
 
 
@@ -956,7 +956,7 @@ const Produccion = () => {
                                 <FaBox className="text-purple-600" />
                                 Producto a fabricar
                             </div>
-                            <button 
+                            <button
                                 type="button"
                                 onClick={() => setShowDatePicker(!showDatePicker)}
                                 className={`p-1.5 rounded-full transition-colors ${showDatePicker ? 'bg-purple-600 text-white' : 'text-purple-600 hover:bg-purple-100'}`}
@@ -969,7 +969,7 @@ const Produccion = () => {
                         {showDatePicker && (
                             <div className="mb-4 bg-white p-3 rounded-lg border border-purple-200 animate-in fade-in slide-in-from-top-2">
                                 <label className="block text-xs font-semibold text-gray-700 mb-1">Fecha de Producción (Manual)</label>
-                                <input 
+                                <input
                                     type="date"
                                     name="fecha_produccion"
                                     className="w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 border p-2 text-sm"
@@ -1126,7 +1126,7 @@ const Produccion = () => {
                             <div className="flex justify-between items-center col-span-2 pt-2 bg-amber-50/50 -mx-3 px-3 rounded-b-lg">
                                 <div className="flex flex-col">
                                     <span className="text-amber-800 font-medium text-[11px] uppercase tracking-wider">Precio Sugerido Venta:</span>
-                                    <span className="text-[9px] text-amber-600 font-normal">(Margen x2.5)</span>
+                                    <span className="text-[9px] text-amber-600 font-normal">(Margen x1.5)</span>
                                 </div>
                                 <span className="font-semibold text-sm text-amber-700">S/ {precioSugerido.toFixed(2)}</span>
                             </div>
@@ -1689,9 +1689,9 @@ const Produccion = () => {
                                 <div className="flex justify-between items-center">
                                     <span className="text-[8px] font-bold text-gray-400 uppercase tracking-wider">Estado</span>
                                     <span className={`px-2 py-0.5 rounded text-[8px] font-bold uppercase tracking-widest ${selectedItem.estado_produccion === 'terminado' && !selectedItem.pendiente_inventario ? 'bg-green-50 text-green-700 border border-green-100' :
-                                            selectedItem.estado_produccion === 'terminado' && selectedItem.pendiente_inventario ? 'bg-orange-50 text-orange-700 border border-orange-200' :
-                                                selectedItem.estado_produccion === 'en_proceso' ? 'bg-amber-50 text-amber-700 border border-amber-100' :
-                                                    'bg-gray-50 text-gray-600 border border-gray-200'
+                                        selectedItem.estado_produccion === 'terminado' && selectedItem.pendiente_inventario ? 'bg-orange-50 text-orange-700 border border-orange-200' :
+                                            selectedItem.estado_produccion === 'en_proceso' ? 'bg-amber-50 text-amber-700 border border-amber-100' :
+                                                'bg-gray-50 text-gray-600 border border-gray-200'
                                         }`}>
                                         {selectedItem.estado_produccion === 'terminado' && selectedItem.pendiente_inventario ? 'TERMINADO - PEND. STOCK' : selectedItem.estado_produccion.replace('_', ' ')}
                                     </span>

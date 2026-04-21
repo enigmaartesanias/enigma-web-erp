@@ -23,7 +23,8 @@ Sistema integral de gestión y tienda en línea para Artesanías Enigma, que fus
 
 ✅ Escalabilidad: Sistema modular diseñado para la transición de talleres físicos a entornos digitales.
 
-Módulos principales: - 💰 Ventas: Registro transaccional, anulación con reversión de stock automática y estadísticas.
+Módulos principales: - 
+💰 Ventas: Registro transaccional, anulación con reversión de stock automática y estadísticas.
 
 📦 Pedidos: Flujo completo de estados y control de entregas personalizadas.
 

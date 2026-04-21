@@ -229,6 +229,7 @@ export default function ReporteVentas() {
 
         // Comparar strings de fecha (YYYY-MM-DD)
         if (fechaInicio && fechaVentaPeru < fechaInicio) return false;
+        if (fechaFin && fechaVentaPeru > fechaFin) return false;
         return true;
     });
 
@@ -439,11 +440,11 @@ export default function ReporteVentas() {
                                         <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase">Fecha</th>
                                         <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase">Producto</th>
                                         <th className="hidden lg:table-cell px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase">Cliente</th>
-                                        <th className="px-4 py-3 text-right text-xs font-bold text-gray-600 uppercase">Total (S/)</th>
-                                        <th className="hidden md:table-cell px-4 py-3 text-right text-xs font-bold text-gray-600 uppercase">Reposición</th>
-                                        <th className="hidden md:table-cell px-4 py-3 text-right text-xs font-bold text-gray-600 uppercase">Alquiler (10%)</th>
-                                        <th className="hidden lg:table-cell px-4 py-3 text-right text-xs font-bold text-gray-600 uppercase">Mano de Obra</th>
-                                        <th className="px-4 py-3 text-right text-xs font-bold text-gray-600 uppercase">Utilidad Neta</th>
+                                        <th className="px-2 py-3 text-right text-xs font-bold text-gray-600 uppercase">Total (S/)</th>
+                                        <th className="px-2 py-3 text-right text-xs font-bold text-gray-600 uppercase">Rep.</th>
+                                        <th className="px-2 py-3 text-right text-xs font-bold text-gray-600 uppercase">Alq.</th>
+                                        <th className="hidden md:table-cell px-2 py-3 text-right text-xs font-bold text-gray-600 uppercase">Mano Obra</th>
+                                        <th className="px-2 py-3 text-right text-xs font-bold text-gray-600 uppercase">Utilidad</th>
                                         {activeTab === 'CREDITOS' && (
                                             <th className="px-4 py-3 text-right text-xs font-bold text-yellow-700 uppercase bg-yellow-50">Saldo Pendiente</th>
                                         )}
@@ -479,20 +480,20 @@ export default function ReporteVentas() {
                                                 </div>
                                             </td>
                                             <td className="hidden lg:table-cell px-4 py-3 text-xs text-gray-900">{venta.cliente_nombre}</td>
-                                            <td className="px-2 md:px-4 py-2 md:py-3 text-right text-xs font-semibold text-gray-900 min-w-24">
-                                                {Number(venta.total).toFixed(2)}
+                                            <td className="px-1 md:px-2 py-2 md:py-3 text-right text-xs font-semibold text-gray-900">
+                                                {Number(venta.total).toFixed(1)}
                                             </td>
-                                            <td className="hidden md:table-cell px-2 md:px-4 py-2 md:py-3 text-right text-xs text-blue-700 font-medium font-mono">
-                                                {getCostoMateriales(venta).toFixed(2)}
+                                            <td className="px-1 md:px-2 py-2 md:py-3 text-right text-xs text-blue-700 font-medium font-mono">
+                                                {getCostoMateriales(venta).toFixed(1)}
                                             </td>
-                                            <td className="hidden md:table-cell px-2 md:px-4 py-2 md:py-3 text-right text-xs text-amber-700 font-medium font-mono">
-                                                {Number(venta.monto_alquiler_retencion || venta.total * 0.10).toFixed(2)}
+                                            <td className="px-1 md:px-2 py-2 md:py-3 text-right text-xs text-amber-700 font-medium font-mono">
+                                                {Number(venta.monto_alquiler_retencion || venta.total * 0.10).toFixed(1)}
                                             </td>
-                                            <td className="hidden lg:table-cell px-2 md:px-4 py-2 md:py-3 text-right text-xs text-gray-600 font-medium font-mono">
-                                                {getManoDeObra(venta).toFixed(2)}
+                                            <td className="hidden md:table-cell px-1 md:px-2 py-2 md:py-3 text-right text-xs text-gray-600 font-medium font-mono">
+                                                {getManoDeObra(venta).toFixed(1)}
                                             </td>
-                                            <td className="px-2 md:px-4 py-2 md:py-3 text-right text-xs font-bold text-emerald-600 min-w-24 font-mono">
-                                                {(Number(venta.total) - Number(venta.monto_alquiler_retencion || venta.total * 0.10) - getCostoMateriales(venta) - getManoDeObra(venta)).toFixed(2)}
+                                            <td className="px-1 md:px-2 py-2 md:py-3 text-right text-xs font-bold text-emerald-600 font-mono">
+                                                {(Number(venta.total) - Number(venta.monto_alquiler_retencion || venta.total * 0.10) - getCostoMateriales(venta) - getManoDeObra(venta)).toFixed(1)}
                                             </td>
                                             {activeTab === 'CREDITOS' && (
                                                 <td className="px-2 md:px-4 py-2 md:py-3 text-right text-xs font-semibold text-yellow-800 bg-yellow-50 min-w-24">

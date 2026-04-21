@@ -208,7 +208,7 @@ export const ventasDB = {
                         )) 
                          FROM detalles_venta d 
                          LEFT JOIN productos_externos p ON d.producto_id = p.id
-                         LEFT JOIN produccion_taller pr ON p.produccion_id = pr.id
+                         LEFT JOIN produccion_taller pr ON CAST(NULLIF(p.produccion_id, '') AS INTEGER) = pr.id_produccion
                          WHERE d.venta_id = v.id), 
                         '[]'
                     ) as detalles

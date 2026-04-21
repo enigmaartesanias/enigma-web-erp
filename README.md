@@ -1,142 +1,82 @@
-# 🏺 Web & ERP 
+🏺 Enigma Web & ERP
+Creado por Aldo Magallanes – Artesano Goldsmith & Desarrollador Web Fullstack
 
-Creado por Aldo Magallanes – Desarrollador Web & Especialista en ERP
+Sistema integral de gestión y tienda en línea para Artesanías Enigma, que fusiona el arte de la orfebrería con la eficiencia del desarrollo web moderno. Este proyecto combina una web pública, un ERP interno de alta precisión y un entorno de despliegue profesional.
 
-Sistema integral de gestión y tienda en línea para **Artesanías Enigma**, combinando **web pública**, **ERP interno** y un **entorno de pruebas**.
+🌟 Componentes Principales
+1️⃣ Web Pública - www.artesaniasenigma.com
+✅ Arquitectura: Desarrollada desde cero con React + Vite + Supabase.
 
----
+✅ Gestión de Catálogo: Carga dinámica de productos con galerías, categorías y sistema de novedades.
 
-## 🌟 Componentes Principales
+✅ Conversión: Botones de WhatsApp personalizados que mantienen el contexto del producto consultado.
 
-### 1️⃣ Web Pública - www.artesaniasenigma.com
-✅ Desarrollada y programada desde cero con **React + Vite + Supabase**  
-✅ **Carga de productos** con imágenes, descripciones, categorías y novedades  
-✅ **Carrusel** de productos destacados  
-✅ **WhatsApp** personalizado por página/producto  
-✅ **Google Maps** integrado en contacto  
-✅ Diseño **responsive** para escritorio y móviles  
-✅ Panel de control seguro para **administrar productos y contenido**  
-✅ Clon de la web en **Netlify** para pruebas o demostraciones  
-✅ Ideal para emprendedores que quieren mostrar y vender sus productos  
+✅ UX/UI: Diseño responsive optimizado para móviles y escritorio con panel de administración seguro.
 
----
+✅ Staging: Entorno de pruebas espejo desplegado en Netlify.
 
-### 2️⃣ ERP Interno - Gestión de Negocio
-✅ Desarrollado para uso personal con **Firebase Storage** y **Neon DB**  
-✅ Modular y escalable, adaptable a otros emprendedores  
-**Módulos principales:**  
-- 💰 **Ventas:** registro, anulación profesional, estadísticas  
-- 📦 **Pedidos:** flujo completo, control de entregas  
-- 🛠️ **Producción:** orden, seguimiento, envío a inventario  
-- 📊 **Inventario:** stock en tiempo real, código QR, historial de movimientos  
-- 🛒 **Compras y Materiales:** gestión de proveedores, insumos y costos  
-- ⚙️ **Configuración y Usuarios:** CRUD de tipos de productos, clientes y proveedores  
+2️⃣ ERP Interno - Gestión de Negocio
+✅ Infraestructura: Potenciado por Neon PostgreSQL y Firebase Storage.
 
----
+✅ Escalabilidad: Sistema modular diseñado para la transición de talleres físicos a entornos digitales.
 
-## 🚀 Tecnologías
+Módulos principales: - 💰 Ventas: Registro transaccional, anulación con reversión de stock automática y estadísticas.
 
-### Frontend
-- React 18, Vite 5  
-- Tailwind CSS  
-- React Router 6  
-- React Hot Toast  
-- Recharts (gráficos)  
+📦 Pedidos: Flujo completo de estados y control de entregas personalizadas.
 
-### Backend & Base de Datos
-- 🌐 **Web:** Supabase (BD + autenticación)  
-- 🖥️ **ERP:** Neon PostgreSQL / Firebase Storage  
-- Firebase Authentication  
-- Firebase Hosting  
-- Google Analytics 4  
+🛠️ Producción: Seguimiento de órdenes de taller, trazabilidad de materiales y envío a stock.
 
-### Herramientas de Desarrollo
-- VSCode, ESLint, Git / GitHub  
-- Google Antigravity (editor para pruebas)  
-- Netlify (entorno de pruebas web)  
+📊 Inventario: Control en tiempo real mediante Códigos QR e historial de movimientos.
 
----
+🛒 Compras e Insumos: Gestión de proveedores y costos de metales (plata, cobre, alpaca).
 
-## 📦 Instalación / Desarrollo
+🚀 Tecnologías
+Frontend & Visualización
+React 18 & Vite 5 (Fast Refresh & Performance)
 
-### Prerrequisitos
-- Node.js 18+ y npm  
-- Cuenta de Firebase  
-- Cuenta de Supabase  
-- (Opcional) Neon DB para ERP  
+Tailwind CSS (Diseño moderno y ligero)
 
-### Pasos
-```bash
-git clone https://github.com/enigmaartesanias/noviembre2025.git
-cd noviembre2025
+Recharts (Visualización de datos de ventas)
+
+React Hot Toast (Notificaciones de sistema)
+
+Backend & Cloud
+🌐 Web: Supabase (PostgreSQL + Auth)
+
+🖥️ ERP: Neon PostgreSQL (Serverless DB) / Firebase Storage
+
+Hosting: Firebase Hosting & Netlify
+
+Analytics: Google Analytics 4
+
+📦 Instalación y Configuración
+Prerrequisitos
+Node.js 18+
+
+Cuentas activas en Firebase, Supabase y Neon DB.
+
+Configuración del Repositorio
+Bash
+# Clonar el proyecto
+git clone https://github.com/enigmaartesanias/enigma-web-erp.git
+
+# Entrar al directorio
+cd enigma-web-erp
+
+# Instalar dependencias
 npm install
+Variables de Entorno (.env)
+Es fundamental configurar las API Keys de Firebase, Supabase y el DATABASE_URL de Neon para el funcionamiento de los módulos.
 
-Variables de Entorno
-# Firebase
-VITE_FIREBASE_API_KEY=tu_api_key
-VITE_FIREBASE_AUTH_DOMAIN=tu_auth_domain
-VITE_FIREBASE_PROJECT_ID=tu_project_id
-VITE_FIREBASE_STORAGE_BUCKET=tu_storage_bucket
-VITE_FIREBASE_MESSAGING_SENDER_ID=tu_messaging_sender_id
-VITE_FIREBASE_APP_ID=tu_app_id
-VITE_FIREBASE_MEASUREMENT_ID=tu_measurement_id
+🛠️ Comandos de Desarrollo
+Desarrollo: npm run dev
 
-# Supabase (Web)
-VITE_SUPABASE_URL=tu_url_supabase
-VITE_SUPABASE_ANON_KEY=tu_anon_key
+Producción: npm run build
 
-# Neon DB (ERP)
-VITE_DATABASE_URL=tu_neon_url
+Despliegue: firebase deploy
 
-Ejecutar en desarrollo
-npm run dev
+📄 Licencia y Propiedad
+© 2005-2026 Aldo Magallanes - Artesanías Enigma. Software privado y confidencial. Prohibida su reproducción total o parcial sin autorización expresa del autor.
 
-Construir para producción
-npm run build
-
-Desplegar en Firebase Hosting
-firebase deploy
-
-📝 Funcionalidades Destacadas
-🌐 Web Pública
-
-Productos con imágenes y carrusel
-
-WhatsApp personalizado por producto
-
-Panel de control para ingreso y edición rápida
-
-Google Maps integrado
-
-Responsive desktop / móvil
-
-Clon en Netlify para pruebas
-
-🖥️ ERP Interno
-
-Ventas, pedidos, producción e inventario
-
-Reversión automática de stock al anular ventas
-
-Control de entregas y pagos
-
-Historial de movimientos y trazabilidad
-
-Modular y escalable
-
-🔒 Seguridad
-
-Autenticación con Firebase Auth / Supabase Auth
-
-Variables de entorno para credenciales sensibles
-
-Rutas privadas protegidas
-
-HTTPS en producción
-
-📄 Licencia
-
-Privado y confidencial. Todos los derechos reservados © 2005-2026 Aldo Artesanías.
-
-Nota: Estas soluciones son sistemas reales que uso en mi negocio, pensados para organizar, mostrar y vender productos.
-Pueden adaptarse a otros emprendedores de manera modular según sus necesidades.
+💡 Nota del Desarrollador
+Este sistema es una solución real nacida de la necesidad de digitalizar un negocio artesanal. Está diseñado bajo una filosofía modular, permitiendo que cada componente pueda ser adaptado a otros emprendimientos que busquen profesionalizar su inventario y presencia online.

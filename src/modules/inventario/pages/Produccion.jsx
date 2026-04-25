@@ -1083,7 +1083,7 @@ const Produccion = () => {
                     {/* Costos */}
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                         {/* CAMPOS NUEVOS DE COSTO Y TIEMPO REAL */}
-                        <div className="md:col-span-3 grid grid-cols-2 md:grid-cols-4 gap-4 p-4 mt-2 bg-blue-50/50 rounded-xl border border-blue-100">
+                        <div className="col-span-2 md:col-span-3 grid grid-cols-2 md:grid-cols-4 gap-4 p-4 mt-2 bg-blue-50/50 rounded-xl border border-blue-100">
                             <div className="col-span-2 md:col-span-4 pb-2 border-b border-blue-100 flex justify-between items-center">
                                 <h4 className="text-sm font-bold text-blue-800 flex items-center gap-2">
                                     <FaMoneyBillWave className="text-blue-500" /> Costos Reales

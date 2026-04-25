@@ -61,7 +61,7 @@ const Dashboard = () => {
                     + 64.58;
   const fijos       = parseFloat(r.gastos_fijos || 0);
   const variables   = parseFloat(r.gastos_variables || 0);
-  const neto        = ingresos - costos - variables;
+  const neto        = ingresos - costos - fijos - variables;
   const netoPoz     = neto >= 0;
   const pulseras80  = parseInt(r.pulseras_equilibrio_80 || 0);
   const periodoLabel = (p) => {
@@ -77,12 +77,13 @@ const Dashboard = () => {
       {/* Header */}
       <div className="bg-white shadow-sm px-4 py-3 flex items-center justify-between sticky top-0 z-10">
         <div className="flex items-center gap-3">
-          <Link to="/" className="text-gray-500"><FaArrowLeft /></Link>
+          <Link to="/inventario-home" className="text-gray-600 bg-gray-100 p-2 rounded-full hover:bg-gray-200">
+            <FaArrowLeft size={16} />
+          </Link>
           <div>
             <h1 className="text-lg font-bold text-gray-800 flex items-center gap-2">
               <FaChartLine className="text-indigo-600" /> Reporte Financiero
             </h1>
-            <p className="text-xs text-gray-400">Enigma Artesanías</p>
           </div>
         </div>
         <input type="month" value={periodo}

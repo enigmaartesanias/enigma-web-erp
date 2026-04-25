@@ -70,39 +70,45 @@ const Gastos = () => {
                 </div>
 
                 {/* Tabs de Navegación Estilo iOS Segmented Control */}
-                <div className="flex p-1 bg-gray-200 rounded-xl mb-6 max-w-md mx-auto md:mx-0">
+                <div className="flex p-1 bg-gray-200 rounded-xl mb-6 w-full max-w-full overflow-x-auto gap-1 md:gap-0 scrollbar-hide">
                     <button
                         onClick={() => setActiveTab('FIJO')}
-                        className={`flex-1 flex items-center justify-center gap-2 py-2 px-4 rounded-lg text-sm font-bold transition-all
+                        className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-1 md:px-4 text-center rounded-lg text-xs md:text-sm font-bold transition-all whitespace-nowrap
                             ${activeTab === 'FIJO'
                                 ? 'bg-white text-blue-600 shadow-sm'
                                 : 'text-gray-500 hover:text-gray-700'}
                         `}
                     >
-                        <FaClipboardList /> Compromisos Mensuales
+                        <FaClipboardList className="hidden md:block" />
+                        <span className="md:hidden">Compromisos</span>
+                        <span className="hidden md:inline">Compromisos Mensuales</span>
                         <span className="ml-1 bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full text-[10px]">
                             {gastosFijos.length}
                         </span>
                     </button>
                     <button
                         onClick={() => setActiveTab('VARIABLE')}
-                        className={`flex-1 flex items-center justify-center gap-2 py-2 px-4 rounded-lg text-sm font-bold transition-all
+                        className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-1 md:px-4 text-center rounded-lg text-xs md:text-sm font-bold transition-all whitespace-nowrap
                             ${activeTab === 'VARIABLE'
                                 ? 'bg-white text-purple-600 shadow-sm'
                                 : 'text-gray-500 hover:text-gray-700'}
                         `}
                     >
-                        <FaWallet /> Gastos Variables
+                        <FaWallet className="hidden md:block" />
+                        <span className="md:hidden">Variables</span>
+                        <span className="hidden md:inline">Gastos Variables</span>
                     </button>
                     <button
                         onClick={() => setActiveTab('DEUDAS')}
-                        className={`flex-1 flex items-center justify-center gap-2 py-2 px-4 rounded-lg text-sm font-bold transition-all
+                        className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-1 md:px-4 text-center rounded-lg text-xs md:text-sm font-bold transition-all whitespace-nowrap
                             ${activeTab === 'DEUDAS'
                                 ? 'bg-white text-red-600 shadow-sm'
                                 : 'text-gray-500 hover:text-gray-700'}
                         `}
                     >
-                        <FaClipboardList /> Deudas y Préstamos
+                        <FaClipboardList className="hidden md:block" />
+                        <span className="md:hidden">Deudas/Prést.</span>
+                        <span className="hidden md:inline">Deudas y Préstamos</span>
                     </button>
                 </div>
 

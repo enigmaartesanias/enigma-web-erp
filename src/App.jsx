@@ -93,7 +93,8 @@ const MainContent = () => {
         location.pathname.startsWith('/config') ||
         location.pathname.startsWith('/producto-form') ||
         location.pathname.startsWith('/cotizador') ||
-        location.pathname.startsWith('/stock-inicial');
+        location.pathname.startsWith('/stock-inicial') ||
+        location.pathname.startsWith('/dashboard');
 
     const hideHeaderFooter = isAdmin || isInventarioModule;
 

@@ -1,4 +1,4 @@
-﻿const { neon } = require('@neondatabase/serverless');
+const { neon } = require('@neondatabase/serverless');
 require('dotenv').config();
 
 const sql = neon(process.env.VITE_DATABASE_URL);
@@ -96,7 +96,8 @@ ingresos AS (
     SUM(CASE WHEN origen_pedido = 'TIENDA'
         THEN precio_total_sin_igv ELSE 0 END) AS ventas_tienda
   FROM pedidos
-  WHERE estado_pedido = 'entregado'
+  WHERE estado_pedido IN ('entregado', 'aceptado')
+    AND monto_a_cuenta > 0       -- solo pedidos que tienen al menos un pago
   GROUP BY 1
 ),
 costos AS (

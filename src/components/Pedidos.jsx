@@ -121,6 +121,7 @@ const Pedidos = () => {
         incluye_igv: false,
         estado_pedido: 'aceptado',
         estado_produccion: 'no_iniciado',
+        origen_pedido: 'INTERNET',
     });
 
     const [productoActual, setProductoActual] = useState({ nombre_producto: '', cantidad: '', precio_unitario: '' });
@@ -283,6 +284,7 @@ const Pedidos = () => {
             incluye_igv: pedido.incluye_igv,
             estado_pedido: pedido.estado_pedido || 'aceptado',
             estado_produccion: pedido.estado_produccion || 'no_iniciado',
+            origen_pedido: pedido.origen_pedido || 'INTERNET',
         });
 
         if (pedido.detalles_pedido?.length > 0) {
@@ -326,7 +328,7 @@ const Pedidos = () => {
         setFormData({
             nombre_cliente: '', telefono: '', dni_ruc: '', direccion_entrega: '', metal: '', tipo_producto: '',
             forma_pago: 'Efectivo', requiere_envio: false, tipo_envio: 'destino', costo_envio: '', monto_a_cuenta: '',
-            incluye_igv: false, estado_pedido: 'aceptado', estado_produccion: 'no_iniciado', direccion_cliente_db: ''
+            incluye_igv: false, estado_pedido: 'aceptado', estado_produccion: 'no_iniciado', direccion_cliente_db: '', origen_pedido: 'INTERNET'
         });
         setProductoActual({ nombre_producto: '', cantidad: '', precio_unitario: '', metal: '', tipo_producto: '' });
         setListaProductos([]); setEditingId(null);
@@ -374,7 +376,8 @@ const Pedidos = () => {
                 monto_igv: calculos.monto_igv,
                 monto_saldo: calculos.monto_saldo,
                 cancelado: calculos.cancelado,
-                entregado: false
+                entregado: false,
+                origen_pedido: formData.origen_pedido || 'INTERNET'
             };
 
             let pedidoId = editingId;
@@ -754,6 +757,20 @@ const Pedidos = () => {
                             </div>
                         </div>
 
+                        {/* CAMPO NUEVO: Origen del pedido */}
+                        <div className="bg-gray-50 rounded-xl p-3 flex gap-3 items-center border border-gray-200 mt-3 shadow-inner relative">
+                            <label className="text-gray-500 text-[10px] sm:text-xs font-bold whitespace-nowrap absolute -top-2 left-3 bg-white px-1 border border-gray-200 rounded">Origen</label>
+                            <select
+                                name="origen_pedido"
+                                value={formData.origen_pedido || 'INTERNET'}
+                                onChange={handleChange}
+                                className="w-full bg-transparent text-sm font-bold text-gray-700 border-none focus:ring-0 p-0 pt-2 cursor-pointer"
+                            >
+                                <option value="INTERNET">🌐 Internet / TikTok / WhatsApp</option>
+                                <option value="TIENDA">🏪 Tienda Física</option>
+                            </select>
+                        </div>
+
                         {/* Saldo Final */}
                         {!calculos.cancelado ? (
                             <div className="flex justify-between items-center bg-red-50 rounded-lg p-3 border border-red-100">
@@ -914,7 +931,14 @@ const Pedidos = () => {
                                         {activeTab === 'terminados' ? (
                                             <>
                                                 <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">{formatLocalDate(pedido.fecha_pedido)}</td>
-                                                <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{pedido.nombre_cliente}</td>
+                                                <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                                    <div className="flex flex-col gap-1 items-start">
+                                                        <span>{pedido.nombre_cliente}</span>
+                                                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${pedido.origen_pedido === 'TIENDA' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>
+                                                            {pedido.origen_pedido === 'TIENDA' ? '🏪 Tienda' : '🌐 Internet'}
+                                                        </span>
+                                                    </div>
+                                                </td>
                                                 <td className="px-4 py-4 text-sm text-gray-600">
                                                     <div className="space-y-1">
                                                         {pedido.detalles_pedido?.map((d, idx) => (
@@ -954,7 +978,14 @@ const Pedidos = () => {
                                         ) : activeTab === 'produccion' ? (
                                             <>
                                                 <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">{formatLocalDate(pedido.fecha_pedido)}</td>
-                                                <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{pedido.nombre_cliente}</td>
+                                                <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                                    <div className="flex flex-col gap-1 items-start">
+                                                        <span>{pedido.nombre_cliente}</span>
+                                                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${pedido.origen_pedido === 'TIENDA' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>
+                                                            {pedido.origen_pedido === 'TIENDA' ? '🏪 Tienda' : '🌐 Internet'}
+                                                        </span>
+                                                    </div>
+                                                </td>
                                                 <td className="px-4 py-4 text-sm text-gray-600">
                                                     <div className="space-y-1">
                                                         {pedido.detalles_pedido?.map((d, idx) => (
@@ -989,7 +1020,14 @@ const Pedidos = () => {
                                         ) : (
                                             <>
                                                 <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">{formatLocalDate(pedido.fecha_pedido)}</td>
-                                                <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{pedido.nombre_cliente}</td>
+                                                <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                                    <div className="flex flex-col gap-1 items-start">
+                                                        <span>{pedido.nombre_cliente}</span>
+                                                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${pedido.origen_pedido === 'TIENDA' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>
+                                                            {pedido.origen_pedido === 'TIENDA' ? '🏪 Tienda' : '🌐 Internet'}
+                                                        </span>
+                                                    </div>
+                                                </td>
                                                 <td className="px-4 py-4 text-sm text-gray-600">
                                                     <div className="space-y-1">
                                                         {pedido.detalles_pedido?.map((d, idx) => (

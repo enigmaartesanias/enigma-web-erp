@@ -146,14 +146,19 @@ export const produccionDB = {
         mano_de_obra, costo_herramientas, otros_gastos,
         estado_produccion, observaciones, imagen_url, codigo_producto,
         fecha_inicio_produccion, fecha_fin_produccion,
-        fecha_produccion, complejidad, precio_sugerido
+        fecha_produccion, complejidad, precio_sugerido,
+        peso_material_gramos, horas_trabajo_real, es_bisuteria,
+        costo_empaque, costo_envio_asumido, sueldo_hora_objetivo
       ) VALUES(
         ${pedido_id || null}, ${tipo_produccion}, ${metal}, ${tipo_producto},
         ${nombre_producto}, ${cantidad}, ${costo_materiales || 0},
         ${mano_de_obra || 0}, ${costo_herramientas || 0}, ${otros_gastos || 0},
         ${estado_produccion}, ${observaciones}, ${imagen_url}, ${codigo_producto},
         ${fechaInicio}, ${fechaFin}, ${data.fecha_produccion || localToday},
-        ${data.complejidad || 'Media'}, ${data.precio_sugerido || 0}
+        ${data.complejidad || 'Media'}, ${data.precio_sugerido || 0},
+        ${data.peso_material_gramos || 0}, ${data.horas_trabajo_real || 0},
+        ${data.es_bisuteria || false}, ${data.costo_empaque || 0},
+        ${data.costo_envio_asumido || 0}, ${data.sueldo_hora_objetivo || 15.00}
       )
       RETURNING *
     `;
@@ -179,7 +184,13 @@ codigo_producto = COALESCE(${produccionData.codigo_producto}, codigo_producto),
 tiene_codigo_qr = COALESCE(${produccionData.tiene_codigo_qr}, tiene_codigo_qr),
 fecha_produccion = ${produccionData.fecha_produccion || null},
 complejidad = ${produccionData.complejidad || 'Media'},
-precio_sugerido = ${produccionData.precio_sugerido || 0}
+precio_sugerido = ${produccionData.precio_sugerido || 0},
+peso_material_gramos = ${produccionData.peso_material_gramos || 0},
+horas_trabajo_real = ${produccionData.horas_trabajo_real || 0},
+es_bisuteria = ${produccionData.es_bisuteria || false},
+costo_empaque = ${produccionData.costo_empaque || 0},
+costo_envio_asumido = ${produccionData.costo_envio_asumido || 0},
+sueldo_hora_objetivo = ${produccionData.sueldo_hora_objetivo || 15.00}
       WHERE id_produccion = ${id}
 RETURNING *
   `;

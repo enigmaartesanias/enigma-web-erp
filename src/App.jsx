@@ -73,6 +73,9 @@ import Gastos from './modules/gastos/pages/Gastos';
 // Módulo de Configuración
 import TiposProducto from './modules/configuracion/pages/TiposProducto';
 
+// Módulo Financiero
+import Dashboard from './pages/Dashboard';
+
 const MainContent = () => {
     const location = useLocation();
     const isAdmin = location.pathname.startsWith('/admin');
@@ -153,6 +156,7 @@ const MainContent = () => {
                 <Route path="/config/tipos-materiales" element={<PrivateRoute><TiposMateriales /></PrivateRoute>} />
                 <Route path="/gastos" element={<PrivateRoute><Gastos /></PrivateRoute>} />
                 <Route path="/configuracion/tipos-producto" element={<PrivateRoute><TiposProducto /></PrivateRoute>} />
+                <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
 
             </Routes>
             {!hideHeaderFooter && (

@@ -3,6 +3,7 @@ import { produccionDB, METALES } from '../../../utils/produccionNeonClient';
 import { getLocalDate } from '../../../utils/dateUtils';
 import { pedidosDB } from '../../../utils/pedidosNeonClient';
 import { productosExternosDB } from '../../../utils/productosExternosNeonClient';
+import { dashboardDB } from '../../../utils/dashboardNeonClient';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { FaEdit, FaTrash, FaArrowLeft, FaSave, FaTimes, FaBox, FaMoneyBillWave, FaHammer, FaCheckCircle, FaCamera, FaCheck, FaQrcode, FaExclamationTriangle, FaBan, FaSpinner, FaCalendarAlt } from 'react-icons/fa';
 import QRCode from 'react-qr-code';
@@ -61,6 +62,7 @@ const Produccion = () => {
     // Modal de ingreso a stock desde producción STOCK
     const [showStockIngressModal, setShowStockIngressModal] = useState(false);
     const [finishedStockItem, setFinishedStockItem] = useState(null);
+    const [piezasMes, setPiezasMes] = useState(1);
 
     // Bloquear scroll cuando el modal está abierto
     useEffect(() => {
@@ -104,7 +106,13 @@ const Produccion = () => {
         imagen_url: '', // Nuevo campo imagen
         codigo_producto: '', // Nuevo campo codigo
         fecha_produccion: getLocalDate(),
-        complejidad: 'Media'
+        complejidad: 'Media',
+        peso_material_gramos: '',
+        horas_trabajo_real: '',
+        sueldo_hora_objetivo: '15.00',
+        es_bisuteria: false,
+        costo_empaque: '',
+        costo_envio_asumido: ''
     };
 
     const [formData, setFormData] = useState(initialFormState);
@@ -265,7 +273,13 @@ const Produccion = () => {
             imagen_url: item.imagen_url || '',
             codigo_producto: item.codigo_producto || '',
             fecha_produccion: item.fecha_produccion || getLocalDate(),
-            complejidad: item.complejidad || 'Media'
+            complejidad: item.complejidad || 'Media',
+            peso_material_gramos: item.peso_material_gramos || '',
+            horas_trabajo_real: item.horas_trabajo_real || '',
+            sueldo_hora_objetivo: item.sueldo_hora_objetivo || '15.00',
+            es_bisuteria: item.es_bisuteria || false,
+            costo_empaque: item.costo_empaque || '',
+            costo_envio_asumido: item.costo_envio_asumido || ''
         });
         setShowDatePicker(!!item.fecha_produccion);
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -555,7 +569,13 @@ const Produccion = () => {
             imagen_url: '',
             codigo_producto: '',
             fecha_produccion: getLocalDate(),
-            complejidad: 'Media'
+            complejidad: 'Media',
+            peso_material_gramos: '',
+            horas_trabajo_real: '',
+            sueldo_hora_objetivo: '15.00',
+            es_bisuteria: false,
+            costo_empaque: '',
+            costo_envio_asumido: ''
         });
         setEditingId(null);
         setShowDatePicker(false);
@@ -585,7 +605,13 @@ const Produccion = () => {
                     codigo_producto: formData.codigo_producto,
                     fecha_produccion: formData.fecha_produccion,
                     complejidad: formData.complejidad,
-                    precio_sugerido: precioSugerido
+                    precio_sugerido: precioSugerido,
+                    peso_material_gramos: parseFloat(formData.peso_material_gramos) || 0,
+                    horas_trabajo_real: parseFloat(formData.horas_trabajo_real) || 0,
+                    sueldo_hora_objetivo: parseFloat(formData.sueldo_hora_objetivo) || 15.00,
+                    es_bisuteria: formData.es_bisuteria,
+                    costo_empaque: parseFloat(formData.costo_empaque) || 0,
+                    costo_envio_asumido: parseFloat(formData.costo_envio_asumido) || 0
                 });
 
                 setShowSuccessModal(true);
@@ -645,6 +671,7 @@ const Produccion = () => {
         fetchStats();
         fetchProductosInventario();
         fetchTiposYMateriales();
+        dashboardDB.getPiezasMes().then(setPiezasMes).catch(console.error);
     }, []);
 
     const fetchTiposYMateriales = async () => {
@@ -1055,6 +1082,56 @@ const Produccion = () => {
 
                     {/* Costos */}
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                        {/* CAMPOS NUEVOS DE COSTO Y TIEMPO REAL */}
+                        <div className="md:col-span-3 grid grid-cols-2 md:grid-cols-4 gap-4 p-4 mt-2 bg-blue-50/50 rounded-xl border border-blue-100">
+                            <div className="col-span-2 md:col-span-4 pb-2 border-b border-blue-100 flex justify-between items-center">
+                                <h4 className="text-sm font-bold text-blue-800 flex items-center gap-2">
+                                    <FaMoneyBillWave className="text-blue-500" /> Costos Reales
+                                </h4>
+                                <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                                    <input type="checkbox" name="es_bisuteria"
+                                        checked={formData.es_bisuteria} onChange={e => setFormData({...formData, es_bisuteria: e.target.checked})}
+                                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"/>
+                                    Bisutería
+                                </label>
+                            </div>
+                            
+                            {!formData.es_bisuteria && (
+                                <>
+                                    <div>
+                                        <label className="block text-xs font-semibold text-gray-700 mb-1">Peso (g)</label>
+                                        <input type="number" step="0.1" name="peso_material_gramos" placeholder="0.0"
+                                            value={formData.peso_material_gramos} onChange={handleChange}
+                                            className="w-full rounded-md border p-2 text-sm focus:ring-blue-500" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-semibold text-gray-700 mb-1">Tiempo (hrs)</label>
+                                        <input type="number" step="0.1" name="horas_trabajo_real" placeholder="0.0"
+                                            value={formData.horas_trabajo_real} onChange={handleChange}
+                                            className="w-full rounded-md border p-2 text-sm focus:ring-blue-500" />
+                                        <p className="text-[9px] text-gray-400 mt-1">S/ {formData.sueldo_hora_objetivo}/hr</p>
+                                    </div>
+                                </>
+                            )}
+                            
+                            <div>
+                                <label className="block text-xs font-semibold text-gray-700 mb-1">Empaque (S/)</label>
+                                <input type="number" step="0.1" name="costo_empaque" placeholder="0.0"
+                                    value={formData.costo_empaque} onChange={handleChange}
+                                    className="w-full rounded-md border p-2 text-sm focus:ring-blue-500" />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-semibold text-gray-700 mb-1">Envío Asum (S/)</label>
+                                <input type="number" step="0.1" name="costo_envio_asumido" placeholder="0.0"
+                                    value={formData.costo_envio_asumido} onChange={handleChange}
+                                    className="w-full rounded-md border p-2 text-sm focus:ring-blue-500" />
+                            </div>
+                            
+                            <div className="col-span-2 md:col-span-4 bg-white p-3 rounded-lg border border-blue-100 flex justify-between items-center shadow-sm">
+                                <span className="text-xs text-gray-500">Prorrateo de gastos operativos mensuales</span>
+                                <span className="text-xs font-mono font-bold text-gray-700">CF Fijo: S/ {(64.58 / piezasMes).toFixed(2)} /pz</span>
+                            </div>
+                        </div>
                         <div>
                             <label className="block text-xs font-semibold text-gray-700 mb-1">Materiales</label>
                             <input

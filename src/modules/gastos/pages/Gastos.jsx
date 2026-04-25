@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { FaArrowLeft, FaCalendarAlt, FaClipboardList, FaWallet } from 'react-icons/fa';
 import GastosFijos from '../components/GastosFijos';
 import GastosVariables from '../components/GastosVariables';
+import DeudasPanel from '../components/DeudasPanel';
 import { gastosDB } from '../../../utils/gastosNeonClient';
 import { getLocalDate } from '../../../utils/dateUtils';
 import toast, { Toaster } from 'react-hot-toast';
@@ -29,6 +30,11 @@ const Gastos = () => {
 
     useEffect(() => {
         fetchGastos();
+        // Check window search URL for tab param
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('tab') === 'deudas') {
+            setActiveTab('DEUDAS');
+        }
     }, [periodo]);
 
     const gastosFijos = gastos.filter(g => g.tipo_gasto === 'FIJO');
@@ -88,6 +94,16 @@ const Gastos = () => {
                     >
                         <FaWallet /> Gastos Variables
                     </button>
+                    <button
+                        onClick={() => setActiveTab('DEUDAS')}
+                        className={`flex-1 flex items-center justify-center gap-2 py-2 px-4 rounded-lg text-sm font-bold transition-all
+                            ${activeTab === 'DEUDAS'
+                                ? 'bg-white text-red-600 shadow-sm'
+                                : 'text-gray-500 hover:text-gray-700'}
+                        `}
+                    >
+                        <FaClipboardList /> Deudas y Préstamos
+                    </button>
                 </div>
 
                 {/* Contenido Principal */}
@@ -104,12 +120,14 @@ const Gastos = () => {
                                     periodo={periodo}
                                     onRefresh={fetchGastos}
                                 />
-                            ) : (
+                            ) : activeTab === 'VARIABLE' ? (
                                 <GastosVariables
                                     gastos={gastosVariables}
                                     periodo={periodo}
                                     onRefresh={fetchGastos}
                                 />
+                            ) : (
+                                <DeudasPanel />
                             )}
                         </>
                     )}

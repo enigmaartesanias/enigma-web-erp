@@ -36,6 +36,8 @@ Módulos principales:
 
 🛒 Compras e Insumos: Gestión de proveedores y costos de metales (plata, cobre, alpaca).
 
+📈 Finanzas y Reportes: Análisis de rentabilidad real (Dashboard), gestión de deuda, gastos fijos, variables y prorrateo de costos estructurales cruzado con el volumen de producción mensual en tiempo real.
+
 
 🚀 Tecnologías
 

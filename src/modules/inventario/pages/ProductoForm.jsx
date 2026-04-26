@@ -44,7 +44,7 @@ const ProductoForm = () => {
         descripcion: '',
         precio_adicional: '',
         lote: '',
-        origen: 'INV_COMPRA' // 'INV_COMPRA' O 'INV_TALLER'
+        origen: 'INV_TALLER' // 'INV_COMPRA' O 'INV_TALLER'
     });
 
     useEffect(() => {

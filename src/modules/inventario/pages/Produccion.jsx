@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { produccionDB, METALES } from '../../../utils/produccionNeonClient';
+import { produccionDB } from '../../../utils/produccionNeonClient';
 import { getLocalDate } from '../../../utils/dateUtils';
 import { pedidosDB } from '../../../utils/pedidosNeonClient';
 import { productosExternosDB } from '../../../utils/productosExternosNeonClient';
 import { dashboardDB } from '../../../utils/dashboardNeonClient';
+import { materialesDB } from '../../../utils/materialesNeonClient';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { FaEdit, FaTrash, FaArrowLeft, FaSave, FaTimes, FaBox, FaMoneyBillWave, FaHammer, FaCheckCircle, FaCamera, FaCheck, FaQrcode, FaExclamationTriangle, FaBan, FaSpinner, FaCalendarAlt } from 'react-icons/fa';
 import QRCode from 'react-qr-code';
@@ -59,6 +60,7 @@ const Produccion = () => {
     const [sendingToStockItem, setSendingToStockItem] = useState(null);
     const [currentPage, setCurrentPage] = useState(1); // Estado para paginación
     const [tiposProducto, setTiposProducto] = useState([]);
+    const [metalesDisponibles, setMetalesDisponibles] = useState([]);
     // Modal de ingreso a stock desde producción STOCK
     const [showStockIngressModal, setShowStockIngressModal] = useState(false);
     const [finishedStockItem, setFinishedStockItem] = useState(null);
@@ -671,8 +673,18 @@ const Produccion = () => {
         fetchStats();
         fetchProductosInventario();
         fetchTiposYMateriales();
+        fetchMetales();
         dashboardDB.getPiezasMes().then(setPiezasMes).catch(console.error);
     }, []);
+
+    const fetchMetales = async () => {
+        try {
+            const data = await materialesDB.getMetales();
+            setMetalesDisponibles(data || []);
+        } catch (error) {
+            console.error('Error al cargar metales:', error);
+        }
+    };
 
     const fetchTiposYMateriales = async () => {
         try {
@@ -1032,7 +1044,7 @@ const Produccion = () => {
                                     required
                                 >
                                     <option value="">-- Selecciona metal --</option>
-                                    {METALES.map(m => <option key={m} value={m}>{m}</option>)}
+                                    {metalesDisponibles.map(m => <option key={m.id} value={m.nombre}>{m.nombre}</option>)}
                                 </select>
                             </div>
                             <div>
@@ -1088,15 +1100,11 @@ const Produccion = () => {
                                 <h4 className="text-sm font-bold text-blue-800 flex items-center gap-2">
                                     <FaMoneyBillWave className="text-blue-500" /> Costos Reales
                                 </h4>
-                                <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
-                                    <input type="checkbox" name="es_bisuteria"
-                                        checked={formData.es_bisuteria} onChange={e => setFormData({...formData, es_bisuteria: e.target.checked})}
-                                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"/>
-                                    Bisutería
-                                </label>
+                                {/* Checkbox Bisutería eliminado – la opción BISUTERIA existe en el selector Metal */}
                             </div>
-                            
-                            {!formData.es_bisuteria && (
+
+                            {/* Peso y Tiempo: ocultos si el metal es BISUTERIA */}
+                            {formData.metal !== 'BISUTERIA' && (
                                 <>
                                     <div>
                                         <label className="block text-xs font-semibold text-gray-700 mb-1">Peso (g)</label>
@@ -1113,20 +1121,15 @@ const Produccion = () => {
                                     </div>
                                 </>
                             )}
-                            
-                            <div>
-                                <label className="block text-xs font-semibold text-gray-700 mb-1">Empaque (S/)</label>
-                                <input type="number" step="0.1" name="costo_empaque" placeholder="0.0"
-                                    value={formData.costo_empaque} onChange={handleChange}
-                                    className="w-full rounded-md border p-2 text-sm focus:ring-blue-500" />
+
+                            {/* Empaque y Envío: ocultos visualmente, persisten en estado como 0 */}
+                            <div style={{ display: 'none' }}>
+                                <input type="number" name="costo_empaque"
+                                    value={formData.costo_empaque} onChange={handleChange} />
+                                <input type="number" name="costo_envio_asumido"
+                                    value={formData.costo_envio_asumido} onChange={handleChange} />
                             </div>
-                            <div>
-                                <label className="block text-xs font-semibold text-gray-700 mb-1">Envío Asum (S/)</label>
-                                <input type="number" step="0.1" name="costo_envio_asumido" placeholder="0.0"
-                                    value={formData.costo_envio_asumido} onChange={handleChange}
-                                    className="w-full rounded-md border p-2 text-sm focus:ring-blue-500" />
-                            </div>
-                            
+
                             <div className="col-span-2 md:col-span-4 bg-white p-3 rounded-lg border border-blue-100 flex justify-between items-center shadow-sm">
                                 <span className="text-xs text-gray-500">Prorrateo de gastos operativos mensuales</span>
                                 <span className="text-xs font-mono font-bold text-gray-700">CF Fijo: S/ {(64.58 / piezasMes).toFixed(2)} /pz</span>

@@ -16,7 +16,7 @@ const ProduccionReporte = () => {
         terminados: 0
     });
     const [loading, setLoading] = useState(true);
-    const [filtroActivo, setFiltroActivo] = useState('en_proceso');
+    const [filtroActivo, setFiltroActivo] = useState('todos');
     const [filtros, setFiltros] = useState({
         productos: [],
         metales: [],

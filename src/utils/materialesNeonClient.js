@@ -113,11 +113,56 @@ export const materialesDB = {
             console.error('Error eliminando compra de materiales:', error);
             throw error;
         }
+    },
+
+    // ==========================================
+    // NUEVO: Obtener lista de metales para Pedidos y Producción
+    // ==========================================
+    async getMetales() {
+        try {
+            const metales = await sql`
+                SELECT id, nombre, precio_gramo, unidad, orden 
+                FROM materiales
+                WHERE activo = true
+                ORDER BY orden ASC
+            `;
+            return metales;
+        } catch (error) {
+            console.error('Error obteniendo lista de metales:', error);
+            throw error;
+        }
+    },
+
+    // Crear nuevo metal/material en el catálogo
+    async createMetal({ nombre, unidad, precio_gramo, orden }) {
+        try {
+            const [metal] = await sql`
+                INSERT INTO materiales (nombre, unidad, precio_gramo, orden, activo)
+                VALUES (${nombre}, ${unidad}, ${precio_gramo || 0}, ${orden || 99}, true)
+                RETURNING *
+            `;
+            return metal;
+        } catch (error) {
+            console.error('Error creando metal:', error);
+            throw error;
+        }
+    },
+
+    // Soft-delete (marcar inactivo) un metal del catálogo
+    async deleteMetal(id) {
+        try {
+            await sql`
+                UPDATE materiales SET activo = false WHERE id = ${id}
+            `;
+        } catch (error) {
+            console.error('Error eliminando metal:', error);
+            throw error;
+        }
     }
 };
 
 export const materialesItemsDB = {
-    // Crear items en batch
+    // Crear items en batch Y ACTUALIZAR PRECIOS AUTOMÁTICAMENTE
     async createBatch(compraId, items) {
         try {
             const values = items.map(item => ({
@@ -130,6 +175,7 @@ export const materialesItemsDB = {
             }));
 
             for (const item of values) {
+                // 1. Insertar el historial de compra
                 await sql`
                     INSERT INTO materiales_items (
                         compra_id, nombre_material, cantidad, unidad, costo_unitario, subtotal
@@ -142,9 +188,19 @@ export const materialesItemsDB = {
                         ${item.subtotal}
                     )
                 `;
+
+                // 2. ACTUALIZAR PRECIO DE REFERENCIA
+                // Si el metal se compró a un precio mayor a 0, actualizamos su precio por gramo oficial
+                if (item.costo_unitario > 0) {
+                    await sql`
+                        UPDATE materiales 
+                        SET precio_gramo = ${item.costo_unitario}
+                        WHERE UPPER(nombre) = UPPER(${item.nombre_material})
+                    `;
+                }
             }
         } catch (error) {
-            console.error('Error creando items de materiales:', error);
+            console.error('Error creando items de materiales y actualizando precios:', error);
             throw error;
         }
     },

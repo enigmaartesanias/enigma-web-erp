@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+﻿import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { pedidosDB } from '../utils/pedidosNeonClient';
 import { clientesDB } from '../utils/clientesNeonClient';
 import { produccionDB, METALES, TIPOS_PRODUCTO } from '../utils/produccionNeonClient';
 import { tiposProductoDB } from '../utils/tiposProductoDB';
+import { materialesDB } from '../utils/materialesNeonClient'; // <-- IMPORT NUEVO
 import { getLocalDate } from '../utils/dateUtils';
 import { ventasDB } from '../utils/ventasClient';
 import { Link, useNavigate } from 'react-router-dom';
@@ -133,6 +134,10 @@ const Pedidos = () => {
     const [voiceState, setVoiceState] = useState({ isListening: false, transcriptActual: '' });
     const [activeTab, setActiveTab] = useState('pendientes');
     const [tiposDisponibles, setTiposDisponibles] = useState([]);
+
+    // <-- ESTADO NUEVO PARA METALES DESDE BD
+    const [metalesList, setMetalesList] = useState([]);
+
     const [clientesSugeridos, setClientesSugeridos] = useState([]);
     const [showSugerencias, setShowSugerencias] = useState(false);
     const [nombreBusqueda, setNombreBusqueda] = useState('');
@@ -152,7 +157,15 @@ const Pedidos = () => {
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, [formData.telefono, formData.nombre_cliente]);
 
-    useEffect(() => { fetchPedidos(); loadTipos(); }, []);
+    useEffect(() => {
+        fetchPedidos();
+        loadTipos();
+
+        // <-- CARGA DE METALES DESDE BD AL INICIAR
+        materialesDB.getMetales()
+            .then(rows => setMetalesList(rows.map(r => r.nombre)))
+            .catch(err => console.error("Error al cargar metales:", err));
+    }, []);
 
     const loadTipos = async () => {
         try {
@@ -400,7 +413,7 @@ const Pedidos = () => {
             if (calculos.cancelado) {
                 const codigoPed = `PED-${String(pedidoId).padStart(4, '0')}`;
                 const ventasExistentes = await ventasDB.getAll();
-                const yaExistente = ventasExistentes.some(v => 
+                const yaExistente = ventasExistentes.some(v =>
                     v.detalles && v.detalles.some(d => d.producto_codigo === codigoPed)
                 );
 
@@ -583,9 +596,10 @@ const Pedidos = () => {
                         <label className="text-sm font-bold text-gray-700 uppercase tracking-widest text-[10px]">Añadir Producto</label>
                         <div className="bg-gray-50 rounded-2xl p-3 ring-1 ring-gray-200">
                             <div className="grid grid-cols-2 gap-2 mb-2">
+                                {/* <-- REEMPLAZADO PARA USAR METALES DESDE LA BD --> */}
                                 <select name="metal" value={productoActual.metal} onChange={handleProductoChange} className="w-full h-11 bg-white rounded-lg text-xs font-medium border-none ring-1 ring-gray-200 text-gray-600 focus:ring-2 focus:ring-blue-500">
                                     <option value="">Metal...</option>
-                                    {MATERIALES_PEDIDO.map(m => <option key={m} value={m}>{m}</option>)}
+                                    {metalesList.map(m => <option key={m} value={m}>{m}</option>)}
                                 </select>
                                 <select name="tipo_producto" value={productoActual.tipo_producto} onChange={handleProductoChange} className="w-full h-11 bg-white rounded-lg text-xs font-medium border-none ring-1 ring-gray-200 text-gray-600 focus:ring-2 focus:ring-blue-500">
                                     <option value="">Tipo...</option>
@@ -766,8 +780,8 @@ const Pedidos = () => {
                                 onChange={handleChange}
                                 className="w-full bg-transparent text-sm font-bold text-gray-700 border-none focus:ring-0 p-0 pt-2 cursor-pointer"
                             >
-                                <option value="INTERNET">🌐 Internet / TikTok / WhatsApp</option>
-                                <option value="TIENDA">🏪 Tienda Física</option>
+                                <option value="INTERNET">🌐 Redes</option>
+                                <option value="TIENDA">🏪 Tienda</option>
                             </select>
                         </div>
 
@@ -1351,8 +1365,8 @@ const Pedidos = () => {
                             </div>
                         )}
                         <div className="flex justify-end space-x-3">
-                            <button onClick={handleCloseEstadoModal} className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300">Cancelar</button>
-                            <button onClick={handleUpdateEstado} className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Actualizar Estado</button>
+                            <button onClick={() => setShowEstadoModal(false)} className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300">Cancelar</button>
+                            <button className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Actualizar Estado</button>
                         </div>
                     </div>
                 </div>

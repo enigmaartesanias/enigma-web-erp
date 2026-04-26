@@ -53,6 +53,7 @@ import ProductoForm from './modules/inventario/pages/ProductoForm';
 import ProductoEdit from './modules/inventario/pages/ProductoEdit';
 import NuevaVenta from './modules/ventas/pages/NuevaVenta';
 import ReporteVentas from './modules/ventas/pages/ReporteVentas';
+import ReportePopularidad from './modules/ventas/pages/ReportePopularidad';
 import CuentasPorCobrar from './modules/ventas/pages/CuentasPorCobrar';
 import Clientes from './modules/clientes/pages/Clientes';
 import Proveedores from './modules/proveedores/pages/Proveedores';
@@ -149,6 +150,7 @@ const MainContent = () => {
                 <Route path="/ventas/nueva" element={<PrivateRoute><NuevaVenta /></PrivateRoute>} />
                 <Route path="/cotizador" element={<PrivateRoute><CotizadorAutor /></PrivateRoute>} />
                 <Route path="/ventas/reporte" element={<PrivateRoute><ReporteVentas /></PrivateRoute>} />
+                <Route path="/ventas/popularidad" element={<PrivateRoute><ReportePopularidad /></PrivateRoute>} />
                 <Route path="/cuentas-por-cobrar" element={<PrivateRoute><CuentasPorCobrar /></PrivateRoute>} />
                 <Route path="/clientes" element={<PrivateRoute><Clientes /></PrivateRoute>} />
                 <Route path="/proveedores" element={<PrivateRoute><Proveedores /></PrivateRoute>} />

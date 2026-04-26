@@ -199,7 +199,7 @@ export default function InventarioHome() {
                   <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-2">
                     <FaChartLine className="text-indigo-500" /> Finanzas Avanzadas
                   </p>
-                  <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
 
                     {/* Reporte Financiero */}
                     <Link to="/dashboard"
@@ -220,6 +220,17 @@ export default function InventarioHome() {
                       <span className="text-[10px] sm:text-xs font-bold text-gray-700 uppercase tracking-wider text-center">Deudas</span>
                       <span className="text-[9px] sm:text-[10px] text-gray-500 uppercase">Gestión Créditos</span>
                     </Link>
+
+                    {/* Popularidad de Productos */}
+                    <Link to="/ventas/popularidad"
+                      className="bg-white rounded-2xl p-4 shadow-sm flex flex-col items-center
+                                 justify-center gap-2 hover:shadow-md transition-all active:scale-[0.98]
+                                 border-t-4 border-amber-400">
+                      <span className="text-2xl">⭐</span>
+                      <span className="text-[10px] sm:text-xs font-bold text-gray-700 uppercase tracking-wider text-center">Popularidad</span>
+                      <span className="text-[9px] sm:text-[10px] text-gray-500 uppercase">Producto Estrella</span>
+                    </Link>
+
                   </div>
                 </div>
 

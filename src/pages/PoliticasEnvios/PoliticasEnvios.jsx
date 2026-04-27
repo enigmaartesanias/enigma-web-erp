@@ -1,10 +1,28 @@
 import React, { useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import html2canvas from 'html2canvas';
 import { FaImage } from 'react-icons/fa';
 
 const PoliticasEnvios = () => {
   const contentRef = useRef(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const navigate = useNavigate();
+  const pressTimer = useRef(null);
+  const [isPressing, setIsPressing] = useState(false);
+
+  const handleSecretPressStart = () => {
+    setIsPressing(false);
+    pressTimer.current = setTimeout(() => {
+      setIsPressing(true);
+      navigate('/admin');
+    }, 2500);
+  };
+
+  const handleSecretPressEnd = () => {
+    if (pressTimer.current) {
+      clearTimeout(pressTimer.current);
+    }
+  };
 
   const handleShareImage = async () => {
     if (contentRef.current && !isGenerating) {
@@ -164,7 +182,15 @@ const PoliticasEnvios = () => {
                 <strong>Pago:</strong> Western Union o transferencia móvil.
               </li>
               <li>
-                <strong>Tarifa:</strong> Se cotiza según peso y país tras confirmar pedido.
+                <strong>Tarifa:</strong> Se cotiza según peso y país tras confirmar{' '}
+                <span
+                  onMouseDown={handleSecretPressStart}
+                  onMouseUp={handleSecretPressEnd}
+                  onMouseLeave={handleSecretPressEnd}
+                  onTouchStart={handleSecretPressStart}
+                  onTouchEnd={handleSecretPressEnd}
+                  style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none', userSelect: 'none', cursor: 'default' }}
+                >pedido</span>.
               </li>
             </ul>
           </div>

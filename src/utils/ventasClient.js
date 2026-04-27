@@ -330,5 +330,78 @@ export const ventasDB = {
             console.error('Error obteniendo historial de pagos:', error);
             throw error;
         }
+    },
+
+    // ─────────────────────────────────────────────────────────────
+    // REPORTE DE POPULARIDAD (ranking calculado en la DB)
+    // Recibe fechaInicio y fechaFin en formato 'YYYY-MM-DD'
+    // Devuelve: [{ nombre, tipo, metal, und_stock, und_pedido, total_unidades, total_dinero }]
+    // ─────────────────────────────────────────────────────────────
+    async getPopularidadRanking(fechaInicio, fechaFin) {
+        try {
+            const rows = await sql`
+                WITH pedidos_lineas AS (
+                    SELECT
+                        COALESCE(NULLIF(TRIM(dp.tipo_producto), ''), 'Varios') AS tipo,
+                        COALESCE(NULLIF(TRIM(dp.metal), ''), 'Sin metal')       AS metal,
+                        COALESCE(dp.cantidad, 1)                                AS cantidad,
+                        -- Valor total de esta línea
+                        COALESCE(dp.precio_unitario::DECIMAL * dp.cantidad::DECIMAL, 0) AS monto_total,
+                        -- Recaudado: Proporción del pago a cuenta según el peso de esta línea en el total del pedido
+                        CASE 
+                            WHEN COALESCE(p.precio_total, 0) > 0 
+                            THEN ( (COALESCE(dp.precio_unitario, 0) * COALESCE(dp.cantidad, 0)) / p.precio_total::DECIMAL ) * COALESCE(p.monto_a_cuenta, 0)
+                            ELSE 0 
+                        END AS monto_recaudado,
+                        'pedido' AS origen
+                    FROM detalles_pedido dp
+                    JOIN pedidos p ON p.id_pedido = dp.id_pedido
+                    WHERE DATE(p.fecha_pedido) >= ${fechaInicio}::date
+                      AND DATE(p.fecha_pedido) <= ${fechaFin}::date
+                ),
+                ventas_lineas AS (
+                    SELECT
+                        COALESCE(NULLIF(TRIM(dv.producto_nombre), ''), 'Producto') AS tipo,
+                        '—'                                                         AS metal,
+                        COALESCE(dv.cantidad, 1)                                   AS cantidad,
+                        COALESCE(dv.subtotal::DECIMAL, 0)                          AS monto_total,
+                        COALESCE(dv.subtotal::DECIMAL, 0)                          AS monto_recaudado, -- En stock se recauda el 100%
+                        'stock' AS origen
+                    FROM detalles_venta dv
+                    JOIN ventas v ON v.id = dv.venta_id
+                    WHERE (v.estado IS NULL OR v.estado != 'ANULADA')
+                      AND v.origen_venta = 'stock'
+                      AND DATE(v.fecha_venta) >= ${fechaInicio}::date
+                      AND DATE(v.fecha_venta) <= ${fechaFin}::date
+                )
+                SELECT
+                    tipo AS nombre,
+                    tipo,
+                    metal,
+                    SUM(CASE WHEN origen = 'stock'  THEN cantidad ELSE 0 END)::INTEGER      AS und_stock,
+                    SUM(CASE WHEN origen = 'pedido' THEN cantidad ELSE 0 END)::INTEGER      AS und_pedido,
+                    SUM(cantidad)::INTEGER                                                  AS total_unidades,
+                    SUM(monto_total)::DECIMAL(10,2)                                         AS total_dinero,
+                    SUM(monto_recaudado)::DECIMAL(10,2)                                     AS total_recaudado
+                FROM (
+                    SELECT * FROM pedidos_lineas
+                    UNION ALL
+                    SELECT * FROM ventas_lineas
+                ) unificado
+                GROUP BY tipo, metal
+                ORDER BY total_unidades DESC, total_dinero DESC
+            `;
+            return rows.map(r => ({
+                ...r,
+                und_stock:      Number(r.und_stock),
+                und_pedido:     Number(r.und_pedido),
+                total_unidades: Number(r.total_unidades),
+                total_dinero:   parseFloat(r.total_dinero) || 0,
+                total_recaudado: parseFloat(r.total_recaudado) || 0
+            }));
+        } catch (error) {
+            console.error('Error en getPopularidadRanking:', error);
+            throw error;
+        }
     }
 };

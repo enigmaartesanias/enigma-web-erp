@@ -196,42 +196,42 @@ export default function InventarioHome() {
 
                 {/* ── SECCIÓN NUEVA: FINANZAS (DASHBOARD Y DEUDAS) ──────────────────────────── */}
                 <div className="mt-6">
-                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-2">
-                    <FaChartLine className="text-indigo-500" /> Finanzas Avanzadas
-                  </p>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
+                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+                        <FaChartLine className="text-indigo-500" /> Finanzas Avanzadas
+                    </p>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
 
-                    {/* Reporte Financiero */}
-                    <Link to="/dashboard"
-                      className="bg-white rounded-2xl p-4 shadow-sm flex flex-col items-center
+                        {/* Reporte Financiero */}
+                        <Link to="/dashboard"
+                            className="bg-white rounded-2xl p-4 shadow-sm flex flex-col items-center
                                  justify-center gap-2 hover:shadow-md transition-all active:scale-[0.98]
                                  border-t-4 border-indigo-500">
-                      <FaChartLine className="text-indigo-500 text-2xl" />
-                      <span className="text-[10px] sm:text-xs font-bold text-gray-700 uppercase tracking-wider text-center">Dashboard</span>
-                      <span className="text-[9px] sm:text-[10px] text-gray-500 uppercase">Rentabilidad Real</span>
-                    </Link>
+                            <FaChartLine className="text-indigo-500 text-2xl" />
+                            <span className="text-[10px] sm:text-xs font-bold text-gray-700 uppercase tracking-wider text-center">Dashboard</span>
+                            <span className="text-[9px] sm:text-[10px] text-gray-500 uppercase">Rentabilidad Real</span>
+                        </Link>
 
-                    {/* Deudas y Préstamos */}
-                    <Link to="/gastos?tab=deudas"
-                      className="bg-white rounded-2xl p-4 shadow-sm flex flex-col items-center
+                        {/* Deudas y Préstamos */}
+                        <Link to="/deudas"
+                            className="bg-white rounded-2xl p-4 shadow-sm flex flex-col items-center
                                  justify-center gap-2 hover:shadow-md transition-all active:scale-[0.98]
                                  border-t-4 border-red-500">
-                      <FaMoneyBillWave className="text-red-500 text-2xl" />
-                      <span className="text-[10px] sm:text-xs font-bold text-gray-700 uppercase tracking-wider text-center">Deudas</span>
-                      <span className="text-[9px] sm:text-[10px] text-gray-500 uppercase">Gestión Créditos</span>
-                    </Link>
+                            <FaMoneyBillWave className="text-red-500 text-2xl" />
+                            <span className="text-[10px] sm:text-xs font-bold text-gray-700 uppercase tracking-wider text-center">Deudas</span>
+                            <span className="text-[9px] sm:text-[10px] text-gray-500 uppercase">Gestión Créditos</span>
+                        </Link>
 
-                    {/* Popularidad de Productos */}
-                    <Link to="/ventas/popularidad"
-                      className="bg-white rounded-2xl p-4 shadow-sm flex flex-col items-center
+                        {/* Popularidad de Productos */}
+                        <Link to="/ventas/popularidad"
+                            className="bg-white rounded-2xl p-4 shadow-sm flex flex-col items-center
                                  justify-center gap-2 hover:shadow-md transition-all active:scale-[0.98]
                                  border-t-4 border-amber-400">
-                      <span className="text-2xl">⭐</span>
-                      <span className="text-[10px] sm:text-xs font-bold text-gray-700 uppercase tracking-wider text-center">Popularidad</span>
-                      <span className="text-[9px] sm:text-[10px] text-gray-500 uppercase">Producto Estrella</span>
-                    </Link>
+                            <span className="text-2xl">⭐</span>
+                            <span className="text-[10px] sm:text-xs font-bold text-gray-700 uppercase tracking-wider text-center">Popularidad</span>
+                            <span className="text-[9px] sm:text-[10px] text-gray-500 uppercase">Producto Estrella</span>
+                        </Link>
 
-                  </div>
+                    </div>
                 </div>
 
                 <div className="mt-28 mb-12 flex flex-col items-center text-gray-400">

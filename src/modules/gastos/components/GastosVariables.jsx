@@ -1,41 +1,82 @@
 import React, { useState } from 'react';
-import { FaPlus, FaTrash, FaShoppingBag, FaCar, FaUtensils, FaTools, FaQuestionCircle } from 'react-icons/fa';
+import { FaPlus, FaCheck, FaExclamationTriangle, FaCalendarAlt, FaMoneyBillWave } from 'react-icons/fa';
 import { gastosDB } from '../../../utils/gastosNeonClient';
 import toast from 'react-hot-toast';
 import { getLocalDate } from '../../../utils/dateUtils';
 
-const GastosVariables = ({ gastos, periodo, onRefresh }) => {
+const GastosFijos = ({ gastos, periodo, onRefresh }) => {
     const [loading, setLoading] = useState(false);
+    const [showForm, setShowForm] = useState(false);
     const [formData, setFormData] = useState({
-        categoria: 'Movilidad',
+        categoria: 'Alquiler',
         monto: '',
+        dia_vencimiento: '17', // Default
         descripcion: ''
     });
 
-    const commonCategories = [
-        { name: 'Movilidad', icon: FaCar },
-        { name: 'Bolsas/Empaques', icon: FaShoppingBag },
-        { name: 'Refrigerio', icon: FaUtensils },
-        { name: 'Insumos', icon: FaTools },
-        { name: 'Otros', icon: FaQuestionCircle }
-    ];
+    const categories = ['Alquiler', 'Préstamo', 'Servicio', 'Suscripción', 'Personal', 'Otro'];
+
+    // HELPER NUEVO: Extrae el día de forma segura sin importar el tipo de dato
+    const extraerDia = (fecha) => {
+        if (!fecha) return 31; // fallback
+        try {
+            if (typeof fecha === 'string' && fecha.includes('-')) {
+                return parseInt(fecha.split('-')[2], 10);
+            }
+            if (fecha instanceof Date) {
+                return fecha.getDate();
+            }
+            return new Date(fecha).getDate();
+        } catch (error) {
+            return 31;
+        }
+    };
+
+    // Helper: Calcular estado visual
+    const getEstadoInfo = (gasto) => {
+        if (gasto.estado === 'PAGADO') return { color: 'green', text: 'PAGADO', icon: FaCheck };
+
+        const today = new Date();
+        const currentYear = today.getFullYear();
+        const currentMonth = today.getMonth() + 1;
+
+        // El periodo sí es siempre string (ej: "2026-01")
+        const [gastoYear, gastoMonth] = gasto.periodo.split('-').map(Number);
+
+        // Si es mes pasado y no pagado -> DANGER
+        if (gastoYear < currentYear || (gastoYear === currentYear && gastoMonth < currentMonth)) {
+            return { color: 'red', text: 'VENCIDO', icon: FaExclamationTriangle };
+        }
+
+        // Usamos el helper seguro aquí
+        const vencimientoDay = extraerDia(gasto.fecha_vencimiento);
+        const currentDay = today.getDate();
+
+        if (currentDay > vencimientoDay) return { color: 'red', text: 'VENCIDO', icon: FaExclamationTriangle };
+        if (currentDay === vencimientoDay) return { color: 'yellow', text: 'VENCE HOY', icon: FaExclamationTriangle };
+        if (currentDay + 2 >= vencimientoDay) return { color: 'yellow', text: 'PRÓXIMO', icon: FaCalendarAlt };
+
+        return { color: 'gray', text: 'PENDIENTE', icon: FaCalendarAlt };
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
         try {
+            const fechaVencimiento = `${periodo}-${String(formData.dia_vencimiento).padStart(2, '0')}`;
+
             await gastosDB.create({
-                tipo_gasto: 'VARIABLE',
+                tipo_gasto: 'FIJO',
                 categoria: formData.categoria,
                 monto: parseFloat(formData.monto),
-                descripcion: formData.descripcion || 'Gasto operativo',
+                descripcion: formData.descripcion,
+                fecha_vencimiento: fechaVencimiento,
                 periodo: periodo,
-                fecha_pago: getLocalDate(), // Variables se pagan al momento
-                estado: 'PAGADO',
-                fecha_vencimiento: getLocalDate() // Referencial para orden
+                estado: 'PENDIENTE'
             });
-            toast.success('Gasto registrado');
+            toast.success('Compromiso registrado');
             setFormData({ ...formData, monto: '', descripcion: '' });
+            setShowForm(false);
             onRefresh();
         } catch (error) {
             console.error(error);
@@ -45,150 +86,142 @@ const GastosVariables = ({ gastos, periodo, onRefresh }) => {
         }
     };
 
-    const handleDelete = async (id) => {
-        if (!window.confirm('¿Eliminar este registro?')) return;
+    const handlePagar = async (gasto) => {
+        if (!window.confirm(`¿Confirmar pago de ${gasto.categoria} por S/ ${gasto.monto}?`)) return;
         try {
-            await gastosDB.delete(id);
-            toast.success('Eliminado');
+            await gastosDB.markAsPaid(gasto.id_gasto, getLocalDate());
+            toast.success('Pago registrado');
             onRefresh();
         } catch (error) {
-            toast.error('Error al eliminar');
+            toast.error('Error al registrar pago');
         }
     };
 
-    const totalVariables = gastos.reduce((acc, g) => acc + Number(g.monto), 0);
-
     return (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Columna Izquierda: Formulario Rápido */}
-            <div className="lg:col-span-1">
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 sticky top-4">
-                    <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-                        <span className="p-1 bg-purple-100 rounded text-purple-600"><FaPlus size={14} /></span>
-                        Registrar Salida
-                    </h3>
+        <div className="space-y-6">
+            {/* Header / Actions */}
+            <div className="flex justify-between items-center">
+                <h3 className="text-lg font-bold text-gray-700">Compromisos Mensuales</h3>
+                <button
+                    onClick={() => setShowForm(!showForm)}
+                    className="bg-blue-600 text-white px-3 py-2 rounded-lg text-sm flex items-center gap-2 hover:bg-blue-700 transition-colors"
+                >
+                    <FaPlus /> Nuevo Compromiso
+                </button>
+            </div>
 
-                    <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Formulario Inline */}
+            {showForm && (
+                <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 animate-fadeIn">
+                    <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
                         <div>
-                            <label className="block text-xs font-semibold text-gray-600 mb-2">Categoría</label>
-                            <div className="grid grid-cols-3 gap-2">
-                                {commonCategories.map(cat => {
-                                    const Icon = cat.icon;
-                                    const isSelected = formData.categoria === cat.name;
-                                    return (
-                                        <button
-                                            key={cat.name}
-                                            type="button"
-                                            onClick={() => setFormData({ ...formData, categoria: cat.name })}
-                                            className={`flex flex-col items-center justify-center p-2 rounded-lg border text-xs transition-all
-                                                ${isSelected
-                                                    ? 'bg-purple-50 border-purple-500 text-purple-700 font-bold'
-                                                    : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50'}
-                                            `}
-                                        >
-                                            <Icon className="mb-1" size={14} />
-                                            {cat.name.split('/')[0]}
-                                        </button>
-                                    );
-                                })}
-                            </div>
+                            <label className="block text-xs font-semibold text-gray-600 mb-1">Categoría</label>
+                            <select
+                                className="w-full p-2 rounded border border-gray-300 text-sm"
+                                value={formData.categoria}
+                                onChange={e => setFormData({ ...formData, categoria: e.target.value })}
+                            >
+                                {categories.map(c => <option key={c} value={c}>{c}</option>)}
+                            </select>
                         </div>
-
                         <div>
                             <label className="block text-xs font-semibold text-gray-600 mb-1">Monto (S/)</label>
                             <input
                                 type="number"
                                 step="0.01"
-                                className="w-full p-2.5 rounded-lg border border-gray-300 text-lg font-mono placeholder:text-gray-300"
+                                className="w-full p-2 rounded border border-gray-300 text-sm"
                                 placeholder="0.00"
                                 value={formData.monto}
                                 onChange={e => setFormData({ ...formData, monto: e.target.value })}
                                 required
-                                autoFocus
                             />
                         </div>
-
                         <div>
-                            <label className="block text-xs font-semibold text-gray-600 mb-1">Nota (Opcional)</label>
-                            <input
-                                type="text"
-                                className="w-full p-2.5 rounded-lg border border-gray-300 text-sm"
-                                placeholder="Ej: Pasaje centro, bolsas 100u..."
-                                value={formData.descripcion}
-                                onChange={e => setFormData({ ...formData, descripcion: e.target.value })}
-                            />
+                            <label className="block text-xs font-semibold text-gray-600 mb-1">Día Vencimiento</label>
+                            <select
+                                className="w-full p-2 rounded border border-gray-300 text-sm"
+                                value={formData.dia_vencimiento}
+                                onChange={e => setFormData({ ...formData, dia_vencimiento: e.target.value })}
+                            >
+                                {[...Array(31)].map((_, i) => (
+                                    <option key={i + 1} value={i + 1}>{i + 1}</option>
+                                ))}
+                            </select>
                         </div>
-
                         <button
                             type="submit"
                             disabled={loading}
-                            className="w-full bg-purple-600 text-white py-3 rounded-lg font-bold hover:bg-purple-700 transition-colors shadow-sm"
+                            className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-700 h-10"
                         >
-                            {loading ? 'Registrando...' : 'Registrar Gasto'}
+                            {loading ? 'Guardando...' : 'Agendar'}
                         </button>
                     </form>
                 </div>
-            </div>
+            )}
 
-            {/* Columna Derecha: Historial */}
-            <div className="lg:col-span-2 space-y-4">
-                {/* Resumen */}
-                <div className="bg-purple-50 border-l-4 border-purple-500 p-4 rounded-r-lg flex justify-between items-center">
-                    <div>
-                        <p className="text-xs text-purple-700 font-bold uppercase tracking-wider">Total Gastado este Mes</p>
-                        <p className="text-sm text-purple-600">Gastos operativos y variables</p>
-                    </div>
-                    <span className="text-2xl font-bold text-purple-800">S/ {totalVariables.toFixed(2)}</span>
+            {/* Lista de Tarjetas */}
+            {gastos.length === 0 ? (
+                <div className="text-center py-10 text-gray-400 bg-gray-50 rounded-xl border border-dashed border-gray-300">
+                    No hay compromisos registrados par este mes.
                 </div>
+            ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {gastos.map(gasto => {
+                        const status = getEstadoInfo(gasto);
+                        const StatusIcon = status.icon;
 
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                    <table className="w-full text-sm">
-                        <thead>
-                            <tr className="bg-gray-50 border-b border-gray-200">
-                                <th className="px-4 py-3 text-left font-semibold text-gray-600 w-24">Fecha</th>
-                                <th className="px-4 py-3 text-left font-semibold text-gray-600">Detalle</th>
-                                <th className="px-4 py-3 text-right font-semibold text-gray-600">Monto</th>
-                                <th className="px-4 py-3 text-center font-semibold text-gray-600 w-16">Acción</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-100">
-                            {gastos.length === 0 ? (
-                                <tr>
-                                    <td colSpan="4" className="px-4 py-8 text-center text-gray-400">
-                                        No hay gastos variables registrados.
-                                    </td>
-                                </tr>
-                            ) : (
-                                gastos.map(g => (
-                                    <tr key={g.id_gasto} className="hover:bg-gray-50">
-                                        <td className="px-4 py-3 text-gray-500 whitespace-nowrap">
-                                            {g.fecha_pago ? new Date(g.fecha_pago).toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit' }) : '-'}
-                                        </td>
-                                        <td className="px-4 py-3">
-                                            <div className="font-medium text-gray-800">{g.categoria}</div>
-                                            {g.descripcion && <div className="text-xs text-gray-500">{g.descripcion}</div>}
-                                        </td>
-                                        <td className="px-4 py-3 text-right font-bold text-gray-800">
-                                            S/ {Number(g.monto).toFixed(2)}
-                                        </td>
-                                        <td className="px-4 py-3 text-center">
-                                            <button
-                                                onClick={() => handleDelete(g.id_gasto)}
-                                                className="text-gray-300 hover:text-red-500 transition-colors p-1"
-                                                title="Eliminar"
-                                            >
-                                                <FaTrash size={14} />
-                                            </button>
-                                        </td>
-                                    </tr>
-                                ))
-                            )}
-                        </tbody>
-                    </table>
+                        // Usamos el helper seguro aquí también
+                        const vencimientoDia = gasto.fecha_vencimiento ? extraerDia(gasto.fecha_vencimiento) : '?';
+
+                        return (
+                            <div key={gasto.id_gasto} className={`bg-white rounded-xl shadow-sm border-l-4 p-4 relative overflow-hidden transition-all hover:shadow-md
+                                ${status.color === 'green' ? 'border-green-500' :
+                                    status.color === 'red' ? 'border-red-500' :
+                                        status.color === 'yellow' ? 'border-yellow-500' : 'border-gray-400'}
+                            `}>
+                                <div className="flex justify-between items-start mb-2">
+                                    <div>
+                                        <h4 className="font-bold text-gray-800">{gasto.categoria}</h4>
+                                        <p className="text-xs text-gray-500">{gasto.descripcion}</p>
+                                    </div>
+                                    <span className={`text-xs font-bold px-2 py-1 rounded-full flex items-center gap-1
+                                        ${status.color === 'green' ? 'bg-green-100 text-green-700' :
+                                            status.color === 'red' ? 'bg-red-100 text-red-700' :
+                                                status.color === 'yellow' ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-600'}
+                                    `}>
+                                        <StatusIcon size={10} /> {status.text}
+                                    </span>
+                                </div>
+
+                                <div className="flex justify-between items-end mt-4">
+                                    <div>
+                                        <p className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold">Vencimiento</p>
+                                        <div className="flex items-center text-gray-700 font-medium">
+                                            <FaCalendarAlt className="mr-1.5 text-gray-400" size={12} />
+                                            Día {vencimientoDia}
+                                        </div>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold">Monto</p>
+                                        <p className="text-xl font-bold text-gray-900">S/ {Number(gasto.monto).toFixed(2)}</p>
+                                    </div>
+                                </div>
+
+                                {gasto.estado !== 'PAGADO' && (
+                                    <button
+                                        onClick={() => handlePagar(gasto)}
+                                        className="mt-4 w-full py-2 bg-gray-900 text-white rounded-lg text-xs font-semibold hover:bg-gray-800 flex justify-center items-center gap-2 transition-colors"
+                                    >
+                                        <FaMoneyBillWave /> Registrar Pago
+                                    </button>
+                                )}
+                            </div>
+                        );
+                    })}
                 </div>
-            </div>
+            )}
         </div>
     );
 };
 
-export default GastosVariables;
+export default GastosFijos;

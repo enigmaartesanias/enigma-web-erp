@@ -33,6 +33,23 @@ export const deudasDB = {
     return row;
   },
 
+  // -----------------------------------------------------
+  // NUEVA FUNCIÓN AÑADIDA: Para poder editar deudas
+  // -----------------------------------------------------
+  update: async (id, data) => {
+    const [row] = await sql`
+      UPDATE deudas
+      SET acreedor = ${data.acreedor},
+          tipo = ${data.tipo},
+          monto_total = ${data.monto_total},
+          fecha_vencimiento = ${data.fecha_vencimiento || null},
+          notas = ${data.notas || null}
+      WHERE id = ${id}
+      RETURNING *
+    `;
+    return row;
+  },
+
   registrarPago: async (deudaId, { monto, fecha_pago, metodo_pago, nota }) => {
     await sql`
       INSERT INTO deuda_pagos (deuda_id, monto, fecha_pago, metodo_pago, nota)

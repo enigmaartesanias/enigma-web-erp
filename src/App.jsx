@@ -70,6 +70,7 @@ import TiposMateriales from './modules/materiales/pages/TiposMateriales';
 
 // Módulo de Gastos
 import Gastos from './modules/gastos/pages/Gastos';
+import Deudas from './modules/gastos/pages/Deudas'; // NUEVO IMPORT
 
 // Módulo de Configuración
 import TiposProducto from './modules/configuracion/pages/TiposProducto';
@@ -90,6 +91,7 @@ const MainContent = () => {
         location.pathname.startsWith('/proveedores') ||
         location.pathname.startsWith('/materiales') ||
         location.pathname.startsWith('/gastos') ||
+        location.pathname.startsWith('/deudas') || // NUEVA CONDICIÓN
         location.pathname.startsWith('/configuracion') ||
         location.pathname.startsWith('/config') ||
         location.pathname.startsWith('/producto-form') ||
@@ -158,6 +160,7 @@ const MainContent = () => {
                 <Route path="/materiales/reporte" element={<PrivateRoute><ReporteMateriales /></PrivateRoute>} />
                 <Route path="/config/tipos-materiales" element={<PrivateRoute><TiposMateriales /></PrivateRoute>} />
                 <Route path="/gastos" element={<PrivateRoute><Gastos /></PrivateRoute>} />
+                <Route path="/deudas" element={<PrivateRoute><Deudas /></PrivateRoute>} /> {/* NUEVA RUTA */}
                 <Route path="/configuracion/tipos-producto" element={<PrivateRoute><TiposProducto /></PrivateRoute>} />
                 <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
 

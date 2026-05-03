@@ -356,8 +356,11 @@ const ReporteCodigosQR = () => {
                                         />
                                     </div>
                                     <div className="label-info">
-                                        <span className="label-url">www.artesaniasenigma.com</span>
-                                        <span className="label-phone">960 282 376</span>
+                                        <img
+                                            src="/logo.png"
+                                            alt="Enigma"
+                                            className="label-logo"
+                                        />
                                     </div>
                                 </div>
                             ))}
@@ -542,11 +545,12 @@ const ReporteCodigosQR = () => {
 
                 /* Caja de la Etiqueta (Para Recorte) */
                 .label-box {
-                    width: 40mm;
+                    width: 38mm;
                     height: 15mm;
-                    border: 0.5px solid #d1d5db; 
+                    border: 0.5px solid #d1d5db;
                     box-sizing: border-box;
                     display: flex;
+                    flex-direction: row;
                     align-items: center;
                     padding: 1mm;
                     gap: 1.5mm;
@@ -564,30 +568,20 @@ const ReporteCodigosQR = () => {
 
                 .label-info {
                     display: flex;
-                    flex-direction: column;
-                    justify-content: center;
                     align-items: center;
+                    justify-content: center;
                     flex-grow: 1;
                     overflow: hidden;
                 }
 
-                .label-url {
-                    font-family: Arial, Helvetica, sans-serif;
-                    font-size: 5.5pt;
-                    font-weight: normal; 
-                    color: black;
-                    white-space: nowrap;
-                    letter-spacing: 0;
+                .label-logo {
+                    height: 7mm;
+                    width: auto;
+                    max-width: 100%;
+                    object-fit: contain;
+                    opacity: 0.88;
                 }
 
-                .label-phone {
-                    font-family: Arial, Helvetica, sans-serif;
-                    font-size: 6.5pt;
-                    font-weight: normal; 
-                    color: black;
-                    white-space: nowrap;
-                    margin-top: 1.5px;
-                }
             `}</style>
         </div>
     );

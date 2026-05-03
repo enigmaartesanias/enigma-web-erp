@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { ventasDB } from '../../../utils/ventasClient';
 import { productosExternosDB } from '../../../utils/productosExternosNeonClient';
-import { FaArrowLeft, FaCalendar, FaChartLine, FaDollarSign, FaFileInvoice, FaFilter, FaBan, FaEye, FaExclamationTriangle, FaImage, FaMoneyBillWave } from 'react-icons/fa';
+import { FaArrowLeft, FaCalendar, FaChartLine, FaDollarSign, FaFileInvoice, FaFilter, FaBan, FaEye, FaExclamationTriangle, FaImage, FaMoneyBillWave, FaSlidersH, FaTimes } from 'react-icons/fa';
 import toast, { Toaster } from 'react-hot-toast';
 import ConfirmModal from '../../../components/ui/ConfirmModal';
 import Tooltip from '../../../components/ui/Tooltip';
@@ -44,10 +44,16 @@ export default function ReporteVentas() {
     // Estado para pestañas
     const [activeTab, setActiveTab] = useState('VENTAS'); // 'VENTAS', 'CREDITOS', o 'ANULADAS'
 
-    // Estado para modal de pago
     const [pagoModal, setPagoModal] = useState({
         isOpen: false,
         venta: null
+    });
+
+    // Filtros avanzados (Fase 3)
+    const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+    const [filtrosAvanzados, setFiltrosAvanzados] = useState({
+        tipos: [],    // Arete, Pulsera, Collar, Anillo, Tobillera
+        metales: []   // Cobre, Plata, Alpaca, Bronce
     });
 
     useEffect(() => {
@@ -215,26 +221,50 @@ export default function ReporteVentas() {
         }
     };
 
-    // Filtrar por fechas y pestaña activa
-    const ventasFiltradas = ventas.filter(venta => {
+    // 1. Filtro base por fechas y pestaña activa (usado para KPIs)
+    const ventasPorFecha = ventas.filter(venta => {
         // Filtro por pestaña
         if (activeTab === 'VENTAS' && venta.estado === 'ANULADA') return false;
         if (activeTab === 'CREDITOS' && (!venta.es_credito || venta.saldo_pendiente <= 0)) return false;
         if (activeTab === 'ANULADAS' && venta.estado !== 'ANULADA') return false;
 
-        // Filtro por fechas (Usando zona horaria Perú)
-        // Convertir la fecha de venta a String YYYY-MM-DD en Perú
+        // Filtro por fechas
         const fechaVentaDate = new Date(venta.fecha_venta);
         const fechaVentaPeru = fechaVentaDate.toLocaleDateString('en-CA', { timeZone: 'America/Lima' });
 
-        // Comparar strings de fecha (YYYY-MM-DD)
         if (fechaInicio && fechaVentaPeru < fechaInicio) return false;
         if (fechaFin && fechaVentaPeru > fechaFin) return false;
         return true;
     });
 
-    // Calcular estadísticas + distribución de fondos
-    const ventasActivas = ventasFiltradas.filter(v => v.estado !== 'ANULADA');
+    // 2. Filtro avanzado (usado para el Grid)
+    const ventasFiltradas = ventasPorFecha.filter(venta => {
+        const hasTipoFilter = filtrosAvanzados.tipos.length > 0;
+        const hasMetalFilter = filtrosAvanzados.metales.length > 0;
+
+        if (!hasTipoFilter && !hasMetalFilter) return true;
+
+        const detalles = venta.detalles || [];
+        
+        // Función para verificar si un texto contiene algún valor de un array
+        const matchAny = (text, values) => {
+            if (!text) return false;
+            const normalizedText = text.toLowerCase();
+            return values.some(val => normalizedText.includes(val.toLowerCase()));
+        };
+
+        // Verificamos en los detalles si alguno coincide
+        const matches = detalles.some(d => {
+            const matchTipo = !hasTipoFilter || matchAny(d.producto_nombre, filtrosAvanzados.tipos);
+            const matchMetal = !hasMetalFilter || matchAny(d.producto_nombre, filtrosAvanzados.metales);
+            return matchTipo && matchMetal;
+        });
+
+        return matches;
+    });
+
+    // Calcular estadísticas + distribución de fondos (Solo responden a fechas)
+    const ventasActivas = ventasPorFecha.filter(v => v.estado !== 'ANULADA');
 
     // Función para obtener costo de materiales de una venta
     const getCostoMateriales = (v) => {
@@ -361,13 +391,30 @@ export default function ReporteVentas() {
                             </div>
                         </div>
 
-                        {/* Columna 2: Botón de limpiar */}
-                        <div className="flex items-center">
+                        {/* Columna 2: Botones de filtro */}
+                        <div className="flex gap-2">
                             <button
-                                onClick={() => { setFechaInicio(''); setFechaFin(''); }}
-                                className="w-full px-3 py-2 bg-gray-100 text-gray-700 rounded text-xs font-medium hover:bg-gray-200 transition"
+                                onClick={() => setShowAdvancedFilters(true)}
+                                className={`flex-1 px-3 py-2 border rounded-md flex items-center justify-center gap-2 transition-colors relative ${filtrosAvanzados.tipos.length > 0 || filtrosAvanzados.metales.length > 0
+                                    ? 'bg-blue-50 border-blue-200 text-blue-600'
+                                    : 'bg-white border-gray-300 text-gray-600 hover:bg-gray-50'
+                                    }`}
                             >
-                                Limpiar Filtros
+                                <FaSlidersH size={14} />
+                                <span className="text-xs font-medium">Filtros</span>
+                                {(filtrosAvanzados.tipos.length > 0 || filtrosAvanzados.metales.length > 0) && (
+                                    <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-blue-500 rounded-full border-2 border-white shadow-sm"></span>
+                                )}
+                            </button>
+                            <button
+                                onClick={() => { 
+                                    setFechaInicio(''); 
+                                    setFechaFin(''); 
+                                    setFiltrosAvanzados({ tipos: [], metales: [] });
+                                }}
+                                className="flex-1 px-3 py-2 bg-gray-100 text-gray-700 rounded text-xs font-medium hover:bg-gray-200 transition"
+                            >
+                                Limpiar
                             </button>
                         </div>
                     </div>
@@ -436,106 +483,138 @@ export default function ReporteVentas() {
                             <table className="w-full min-w-[800px]">
                                 <thead className="bg-gray-50 border-b">
                                     <tr>
-                                        <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase">Código</th>
                                         <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase">Fecha</th>
-                                        <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase">Producto</th>
+                                        <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase">Origen</th>
+                                        <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase">Producto(s)</th>
                                         <th className="hidden lg:table-cell px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase">Cliente</th>
-                                        <th className="px-2 py-3 text-right text-xs font-bold text-gray-600 uppercase">Total (S/)</th>
-                                        <th className="px-2 py-3 text-right text-xs font-bold text-gray-600 uppercase">Rep.</th>
-                                        <th className="px-2 py-3 text-right text-xs font-bold text-gray-600 uppercase">Alq.</th>
-                                        <th className="hidden md:table-cell px-2 py-3 text-right text-xs font-bold text-gray-600 uppercase">Mano Obra</th>
+                                        <th className="px-2 py-3 text-right text-xs font-bold text-gray-600 uppercase">Total</th>
                                         <th className="px-2 py-3 text-right text-xs font-bold text-gray-600 uppercase">Utilidad</th>
                                         {activeTab === 'CREDITOS' && (
-                                            <th className="px-4 py-3 text-right text-xs font-bold text-yellow-700 uppercase bg-yellow-50">Saldo Pendiente</th>
+                                            <th className="px-4 py-3 text-right text-xs font-bold text-yellow-700 uppercase bg-yellow-50">Saldo</th>
                                         )}
                                         <th className="px-4 py-3 text-center text-xs font-bold text-gray-600 uppercase">Acciones</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-200">
-                                    {ventasFiltradas.map((venta) => (
-                                        <tr key={venta.id} className="hover:bg-gray-50 transition-colors">
-                                            <td className="px-2 md:px-4 py-2 md:py-3">
-                                                <span className="font-mono text-xs text-gray-900">{venta.codigo_venta}</span>
-                                            </td>
-                                            <td className="px-2 md:px-4 py-2 md:py-3 text-xs text-gray-900">
-                                                {new Date(venta.fecha_venta).toLocaleDateString('es-PE', {
-                                                    day: '2-digit',
-                                                    month: '2-digit',
-                                                    year: '2-digit',
-                                                    timeZone: 'America/Lima'
-                                                })}
-                                            </td>
-                                            <td className="px-2 md:px-4 py-2 md:py-3 text-xs text-gray-900">
-                                                <div className="flex items-center gap-1.5">
-                                                    {venta.origen_venta === 'pedido'
-                                                        ? <span className="text-[9px] font-semibold text-indigo-400 bg-indigo-50 px-1 py-0.5 rounded shrink-0">PED</span>
-                                                        : <span className="text-[9px] font-semibold text-slate-400 bg-slate-50 px-1 py-0.5 rounded shrink-0">STK</span>
-                                                    }
+                                    {ventasFiltradas.flatMap((venta) => {
+                                        const isPedido = venta.origen_venta === 'pedido';
+                                        
+                                        if (isPedido && venta.detalles && venta.detalles.length > 0) {
+                                            return venta.detalles.map((detalle, idx) => ({
+                                                ...venta,
+                                                _detalleItem: detalle,
+                                                isFirst: idx === 0,
+                                                isSubRow: idx > 0,
+                                                uniqueKey: `${venta.id}-${idx}`
+                                            }));
+                                        }
+
+                                        return [{
+                                            ...venta,
+                                            _detalleItem: null,
+                                            isFirst: true,
+                                            isSubRow: false,
+                                            uniqueKey: `${venta.id}-main`
+                                        }];
+                                    }).map((row) => {
+                                        const utilidad = Number(row.total) - Number(row.monto_alquiler_retencion || row.total * 0.10) - getCostoMateriales(row) - getManoDeObra(row);
+
+                                        return (
+                                            <tr key={row.uniqueKey} className={`transition-colors ${row.isSubRow ? 'bg-gray-50/50 hover:bg-gray-100/50' : 'hover:bg-gray-50'}`}>
+                                                {/* Fecha */}
+                                                <td className={`px-2 md:px-4 py-2 md:py-3 text-gray-900 ${row.isSubRow ? 'text-[11px]' : 'text-sm'}`}>
+                                                    {row.isFirst && new Date(row.fecha_venta).toLocaleDateString('es-PE', {
+                                                        day: '2-digit',
+                                                        month: '2-digit',
+                                                        year: '2-digit',
+                                                        timeZone: 'America/Lima'
+                                                    })}
+                                                </td>
+
+                                                {/* Origen */}
+                                                <td className="px-1 md:px-2 py-2 md:py-3 w-12 text-center">
+                                                    {row.isFirst && (
+                                                        row.origen_venta === 'pedido'
+                                                            ? <span className="text-[9px] font-bold bg-blue-100 text-blue-700 px-1 py-0.5 rounded shadow-sm">PED</span>
+                                                            : <span className="text-[9px] font-bold bg-amber-100 text-amber-700 px-1 py-0.5 rounded shadow-sm">STK</span>
+                                                    )}
+                                                </td>
+
+                                                {/* Producto(s) */}
+                                                <td className={`px-2 md:px-4 py-2 md:py-3 text-gray-900 ${row.isSubRow ? 'text-[11px]' : 'text-sm'}`}>
                                                     <span>
-                                                        {venta.detalles && venta.detalles.length > 0
-                                                            ? venta.detalles.map(d => d.producto_codigo).filter(Boolean).join(', ') || '-'
-                                                            : '-'
+                                                        {row.isSubRow || (row.origen_venta === 'pedido' && row._detalleItem)
+                                                            ? row._detalleItem?.producto_codigo || '-'
+                                                            : (row.detalles && row.detalles.length > 0
+                                                                ? row.detalles.map(d => d.producto_codigo).filter(Boolean).join(', ') || '-'
+                                                                : '-'
+                                                            )
                                                         }
                                                     </span>
-                                                </div>
-                                            </td>
-                                            <td className="hidden lg:table-cell px-4 py-3 text-xs text-gray-900">{venta.cliente_nombre}</td>
-                                            <td className="px-1 md:px-2 py-2 md:py-3 text-right text-xs font-semibold text-gray-900">
-                                                {Number(venta.total).toFixed(1)}
-                                            </td>
-                                            <td className="px-1 md:px-2 py-2 md:py-3 text-right text-xs text-blue-700 font-medium font-mono">
-                                                {getCostoMateriales(venta).toFixed(1)}
-                                            </td>
-                                            <td className="px-1 md:px-2 py-2 md:py-3 text-right text-xs text-amber-700 font-medium font-mono">
-                                                {Number(venta.monto_alquiler_retencion || venta.total * 0.10).toFixed(1)}
-                                            </td>
-                                            <td className="hidden md:table-cell px-1 md:px-2 py-2 md:py-3 text-right text-xs text-gray-600 font-medium font-mono">
-                                                {getManoDeObra(venta).toFixed(1)}
-                                            </td>
-                                            <td className="px-1 md:px-2 py-2 md:py-3 text-right text-xs font-bold text-emerald-600 font-mono">
-                                                {(Number(venta.total) - Number(venta.monto_alquiler_retencion || venta.total * 0.10) - getCostoMateriales(venta) - getManoDeObra(venta)).toFixed(1)}
-                                            </td>
-                                            {activeTab === 'CREDITOS' && (
-                                                <td className="px-2 md:px-4 py-2 md:py-3 text-right text-xs font-semibold text-yellow-800 bg-yellow-50 min-w-24">
-                                                    S/ {Number(venta.saldo_pendiente || 0).toFixed(2)}
                                                 </td>
-                                            )}
-                                            <td className="px-2 md:px-4 py-2 md:py-3">
-                                                <div className="flex justify-center gap-1 md:gap-2">
-                                                    <Tooltip text="Ver detalle">
-                                                        <button
-                                                            onClick={() => handleVer(venta)}
-                                                            className="p-1.5 md:p-2 text-blue-600 hover:bg-blue-50 rounded transition-colors"
-                                                        >
-                                                            <FaEye size={14} />
-                                                        </button>
-                                                    </Tooltip>
 
-                                                    {activeTab === 'VENTAS' && venta.estado !== 'ANULADA' && (
-                                                        <Tooltip text="Anular venta">
-                                                            <button
-                                                                onClick={() => handleAnular(venta)}
-                                                                className="p-1.5 md:p-2 text-yellow-600 hover:bg-yellow-50 rounded transition-colors"
-                                                            >
-                                                                <FaBan size={14} />
-                                                            </button>
-                                                        </Tooltip>
-                                                    )}
+                                                {/* Cliente */}
+                                                <td className={`hidden lg:table-cell px-4 py-3 text-gray-900 ${row.isSubRow ? 'text-[11px]' : 'text-sm'}`}>
+                                                    {row.isFirst && row.cliente_nombre}
+                                                </td>
 
-                                                    {activeTab === 'CREDITOS' && venta.saldo_pendiente > 0 && (
-                                                        <Tooltip text="Registrar pago">
-                                                            <button
-                                                                onClick={() => handleRegistrarPago(venta)}
-                                                                className="p-1.5 md:p-2 text-green-600 hover:bg-green-50 rounded transition-colors flex items-center gap-1"
-                                                            >
-                                                                <FaMoneyBillWave size={14} />
-                                                            </button>
-                                                        </Tooltip>
+                                                {/* Total */}
+                                                <td className={`px-1 md:px-2 py-2 md:py-3 text-right font-semibold text-gray-900 ${row.isSubRow ? 'text-[11px]' : 'text-sm'}`}>
+                                                    {row.isFirst && Number(row.total).toFixed(1)}
+                                                </td>
+
+                                                {/* Utilidad */}
+                                                <td className={`px-1 md:px-2 py-2 md:py-3 text-right font-bold font-mono ${row.isFirst ? (utilidad >= 0 ? 'text-emerald-600' : 'text-red-600') : ''} ${row.isSubRow ? 'text-[11px]' : 'text-sm'}`}>
+                                                    {row.isFirst && utilidad.toFixed(1)}
+                                                </td>
+
+                                                {/* Saldo (Créditos) */}
+                                                {activeTab === 'CREDITOS' && (
+                                                    <td className={`px-2 md:px-4 py-2 md:py-3 text-right font-semibold text-yellow-800 min-w-24 ${row.isFirst ? 'bg-yellow-50 ' + (row.isSubRow ? 'text-[11px]' : 'text-sm') : ''}`}>
+                                                        {row.isFirst && `S/ ${Number(row.saldo_pendiente || 0).toFixed(2)}`}
+                                                    </td>
+                                                )}
+
+                                                {/* Acciones */}
+                                                <td className="px-2 md:px-4 py-2 md:py-3">
+                                                    {row.isFirst && (
+                                                        <div className="flex justify-center gap-1 md:gap-2">
+                                                            <Tooltip text="Ver detalle">
+                                                                <button
+                                                                    onClick={() => handleVer(row)}
+                                                                    className="p-1.5 md:p-2 text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                                                                >
+                                                                    <FaEye size={14} />
+                                                                </button>
+                                                            </Tooltip>
+
+                                                            {activeTab === 'VENTAS' && row.estado !== 'ANULADA' && (
+                                                                <Tooltip text="Anular venta">
+                                                                    <button
+                                                                        onClick={() => handleAnular(row)}
+                                                                        className="p-1.5 md:p-2 text-yellow-600 hover:bg-yellow-50 rounded transition-colors"
+                                                                    >
+                                                                        <FaBan size={14} />
+                                                                    </button>
+                                                                </Tooltip>
+                                                            )}
+
+                                                            {activeTab === 'CREDITOS' && row.saldo_pendiente > 0 && (
+                                                                <Tooltip text="Registrar pago">
+                                                                    <button
+                                                                        onClick={() => handleRegistrarPago(row)}
+                                                                        className="p-1.5 md:p-2 text-green-600 hover:bg-green-50 rounded transition-colors flex items-center gap-1"
+                                                                    >
+                                                                        <FaMoneyBillWave size={14} />
+                                                                    </button>
+                                                                </Tooltip>
+                                                            )}
+                                                        </div>
                                                     )}
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))}
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
                                 </tbody>
                             </table>
                         </div>
@@ -642,9 +721,22 @@ export default function ReporteVentas() {
                                     )}
 
                                     <div className="border-t pt-2 space-y-1 text-xs">
+                                        <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">Distribución Financiera</p>
+                                        <div className="flex justify-between">
+                                            <span>Reposición Materiales:</span>
+                                            <span className="font-medium text-blue-700">S/ {getCostoMateriales(detalleModal.venta).toFixed(2)}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span>Fondo Alquiler (10%):</span>
+                                            <span className="font-medium text-amber-700">S/ {Number(detalleModal.venta.monto_alquiler_retencion || detalleModal.venta.total * 0.10).toFixed(2)}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span>Mano de Obra:</span>
+                                            <span className="font-medium text-gray-600">S/ {getManoDeObra(detalleModal.venta).toFixed(2)}</span>
+                                        </div>
 
                                         {Number(detalleModal.venta.impuesto_monto) > 0 && (
-                                            <div className="flex justify-between text-blue-600">
+                                            <div className="flex justify-between text-blue-600 border-t pt-1">
                                                 <span>IGV:</span>
                                                 <span>S/ {Number(detalleModal.venta.impuesto_monto).toFixed(2)}</span>
                                             </div>
@@ -655,8 +747,12 @@ export default function ReporteVentas() {
                                                 <span>- S/ {Number(detalleModal.venta.descuento_monto).toFixed(2)}</span>
                                             </div>
                                         )}
-                                        <div className="flex justify-between font-semibold border-t pt-1 mt-1">
-                                            <span>Total:</span>
+                                        <div className="flex justify-between font-bold text-emerald-700 border-t pt-1 mt-1">
+                                            <span>Utilidad Neta:</span>
+                                            <span>S/ {(Number(detalleModal.venta.total) - Number(detalleModal.venta.monto_alquiler_retencion || detalleModal.venta.total * 0.10) - getCostoMateriales(detalleModal.venta) - getManoDeObra(detalleModal.venta)).toFixed(2)}</span>
+                                        </div>
+                                        <div className="flex justify-between text-[10px] text-gray-400 mt-2">
+                                            <span>Total Bruto:</span>
                                             <span>S/ {Number(detalleModal.venta.total).toFixed(2)}</span>
                                         </div>
                                     </div>
@@ -760,6 +856,90 @@ export default function ReporteVentas() {
                     venta={pagoModal.venta}
                     onConfirmar={confirmarPago}
                 />
+
+                {/* Modal Filtros Avanzados */}
+                {showAdvancedFilters && (
+                    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
+                        <div className="bg-white rounded-xl shadow-2xl max-w-sm w-full overflow-hidden animate-in fade-in zoom-in duration-200">
+                            <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+                                <h3 className="font-bold text-gray-800 flex items-center gap-2">
+                                    <FaFilter className="text-blue-500" size={14} />
+                                    Filtros Avanzados
+                                </h3>
+                                <button onClick={() => setShowAdvancedFilters(false)} className="text-gray-400 hover:text-gray-600 transition-colors">
+                                    <FaTimes size={16} />
+                                </button>
+                            </div>
+                            
+                            <div className="p-6 space-y-6">
+                                {/* Tipos */}
+                                <div>
+                                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-3">Categoría de Producto</p>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        {['Arete', 'Pulsera', 'Collar', 'Anillo', 'Tobillera'].map(tipo => (
+                                            <label key={tipo} className="flex items-center group cursor-pointer">
+                                                <div className="relative flex items-center">
+                                                    <input 
+                                                        type="checkbox" 
+                                                        className="peer h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 transition-all cursor-pointer"
+                                                        checked={filtrosAvanzados.tipos.includes(tipo)}
+                                                        onChange={(e) => {
+                                                            const newTipos = e.target.checked 
+                                                                ? [...filtrosAvanzados.tipos, tipo]
+                                                                : filtrosAvanzados.tipos.filter(t => t !== tipo);
+                                                            setFiltrosAvanzados({...filtrosAvanzados, tipos: newTipos});
+                                                        }}
+                                                    />
+                                                </div>
+                                                <span className="ml-2 text-sm text-gray-600 group-hover:text-gray-900 transition-colors">{tipo}</span>
+                                            </label>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Metales */}
+                                <div>
+                                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-3">Material / Metal</p>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        {['Cobre', 'Plata', 'Alpaca', 'Bronce'].map(metal => (
+                                            <label key={metal} className="flex items-center group cursor-pointer">
+                                                <input 
+                                                    type="checkbox" 
+                                                    className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 transition-all cursor-pointer"
+                                                    checked={filtrosAvanzados.metales.includes(metal)}
+                                                    onChange={(e) => {
+                                                        const newMetales = e.target.checked 
+                                                            ? [...filtrosAvanzados.metales, metal]
+                                                            : filtrosAvanzados.metales.filter(m => m !== metal);
+                                                        setFiltrosAvanzados({...filtrosAvanzados, metales: newMetales});
+                                                    }}
+                                                />
+                                                <span className="ml-2 text-sm text-gray-600 group-hover:text-gray-900 transition-colors">{metal}</span>
+                                            </label>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="p-4 bg-gray-50 border-t border-gray-100 flex gap-3">
+                                <button 
+                                    onClick={() => {
+                                        setFiltrosAvanzados({ tipos: [], metales: [] });
+                                    }}
+                                    className="flex-1 px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-800 transition-colors"
+                                >
+                                    Reiniciar
+                                </button>
+                                <button 
+                                    onClick={() => setShowAdvancedFilters(false)}
+                                    className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold shadow-lg shadow-blue-200 hover:bg-blue-700 active:scale-95 transition-all"
+                                >
+                                    Aplicar Filtros
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 {/* Toaster */}
                 <Toaster

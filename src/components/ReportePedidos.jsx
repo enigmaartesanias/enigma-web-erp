@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { pedidosDB } from '../utils/pedidosNeonClient';
 import { ventasDB } from '../utils/ventasClient';
 import { Link } from 'react-router-dom';
-import { FaArrowLeft, FaFilter, FaChartLine, FaMoneyBillWave, FaExclamationCircle, FaClipboardList, FaClock, FaTools, FaCheckCircle, FaTruck, FaTrash, FaTimesCircle, FaPhone, FaImage, FaEye } from 'react-icons/fa';
+import { FaArrowLeft, FaFilter, FaChartLine, FaMoneyBillWave, FaExclamationCircle, FaClipboardList, FaClock, FaTools, FaCheckCircle, FaTruck, FaTrash, FaTimesCircle, FaPhone, FaImage, FaEye, FaSearch, FaSlidersH, FaTimes } from 'react-icons/fa';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import html2canvas from 'html2canvas';
@@ -14,7 +14,6 @@ const getLocalDate = () => {
     return d.toISOString().split('T')[0];
 };
 
-// Helper date formatter
 const formatLocalDate = (dateString) => {
     if (!dateString) return '';
     try {
@@ -48,12 +47,24 @@ const ReportePedidos = () => {
     });
     const [topProductos, setTopProductos] = useState([]);
     const [topClientes, setTopClientes] = useState([]);
-    const [allOrders, setAllOrders] = useState([]); // Store all fetched orders
-    const [filteredOrders, setFilteredOrders] = useState([]); // Store currently filtered orders for table
+    const [allOrders, setAllOrders] = useState([]);
+    const [filteredOrders, setFilteredOrders] = useState([]);
 
-    // Filtros - Por defecto mostrar Año 2026
+    // Filtros Básicos
     const [fechaInicio, setFechaInicio] = useState('2026-01-01');
     const [fechaFin, setFechaFin] = useState('2026-12-31');
+    const [busqueda, setBusqueda] = useState('');
+
+    // Filtros Avanzados (Nuevo)
+    const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+    const [filtrosAvanzados, setFiltrosAvanzados] = useState({
+        tipos: [],
+        metales: []
+    });
+
+    // Opciones para los filtros avanzados
+    const OPCIONES_TIPO = ['Arete', 'Pulsera', 'Collar', 'Anillo'];
+    const OPCIONES_METAL = ['Cobre', 'Plata', 'Alpaca', 'Bronce'];
 
     // Estado para tabs
     const [activeTab, setActiveTab] = useState('Todos');
@@ -72,47 +83,26 @@ const ReportePedidos = () => {
     });
 
     useEffect(() => {
-        if (stats.ventasBrutas === 0 && loading === false) {
-            // Initial load triggers fetch via other useEffect, but filteredData might need sync
-        }
-    }, [stats]);
-
-    useEffect(() => {
         fetchReportData();
-    }, []); // Removed date dependencies for manual filtering
+    }, []);
 
     const fetchReportData = async (start = fechaInicio, end = fechaFin) => {
         setLoading(true);
         try {
-            // Obtener todos los pedidos con detalles desde Neon DB
             const allPedidos = await pedidosDB.getAll();
-            console.log('📊 Total pedidos en Neon:', allPedidos.length);
-
-            // Filtrar por rango de fechas solo si hay fechas válidas
             let data = allPedidos;
 
             if (start && end) {
-                console.log('📅 Filtrando por rango:', { start, end });
                 data = allPedidos.filter(p => {
                     if (!p.fecha_pedido) return false;
-
-                    // Usar fecha local Y UTC para comparación, cubriendo cualquier desviación horaria
                     const d = new Date(p.fecha_pedido);
-
-                    // Local
                     const year = d.getFullYear();
                     const month = String(d.getMonth() + 1).padStart(2, '0');
                     const day = String(d.getDate()).padStart(2, '0');
                     const fechaLocal = `${year}-${month}-${day}`;
-
-                    // UTC
                     const fechaUTC = d.toISOString().split('T')[0];
-
-                    // Si CUALQUIERA de las dos fechas cae en el rango, lo incluimos
                     const enRango = (fechaLocal >= start && fechaLocal <= end) || (fechaUTC >= start && fechaUTC <= end);
 
-                    // Lógica Híbrida 2026: Incluir pedidos antiguos si están "activos"
-                    // Activo = Con saldo pendiente O en producción (no terminado/entregado)
                     const esAntiguoActivo = !enRango &&
                         fechaLocal < start &&
                         (
@@ -124,12 +114,8 @@ const ReportePedidos = () => {
                 });
             }
 
-            console.log('✅ Pedidos filtrados:', data.length);
-
-            // En este sistema 'cancelado' (true) significa PAGADO, no ANULADO.
-            // Por lo tanto, debemos incluir TODOS los pedidos.
             const pedidosActivos = data;
-            setAllOrders(pedidosActivos); // Guardar para filtrado local
+            setAllOrders(pedidosActivos);
             procesarDatos(pedidosActivos);
 
         } catch (error) {
@@ -142,17 +128,16 @@ const ReportePedidos = () => {
     const resetFilters = () => {
         setFechaInicio('');
         setFechaFin('');
-        fetchReportData('', ''); // Pass empty strings to force fetch all
+        setBusqueda('');
+        setFiltrosAvanzados({ tipos: [], metales: [] });
+        fetchReportData('', '');
     };
 
     const procesarDatos = (pedidos) => {
         try {
             if (!Array.isArray(pedidos)) return;
 
-            // 1. Métricas Financieras
             const ventasBrutas = pedidos.reduce((acc, p) => acc + (Number(p.precio_total) || 0), 0);
-
-            // Ventas Netas = Pedidos cancelados (pagados 100%) SIN INCLUIR envío
             const ventasNetas = pedidos
                 .filter(p => (p.monto_saldo || 0) <= 0.1)
                 .reduce((acc, p) => {
@@ -162,7 +147,6 @@ const ReportePedidos = () => {
                 }, 0);
 
             const cuentasPorCobrar = pedidos.reduce((acc, p) => acc + ((p.monto_saldo > 0) ? Number(p.monto_saldo) : 0), 0);
-
             const cantidad = pedidos.length;
             const promedio = cantidad > 0 ? ventasBrutas / cantidad : 0;
 
@@ -173,74 +157,68 @@ const ReportePedidos = () => {
                 cantidadPedidos: cantidad,
                 ticketPromedio: promedio || 0
             });
-
-            // 2. Ranking Productos
-            const productoMap = {};
-            pedidos.forEach(p => {
-                if (Array.isArray(p.detalles_pedido)) {
-                    p.detalles_pedido.forEach(d => {
-                        const nombre = d.nombre_producto || 'Desconocido';
-                        if (!productoMap[nombre]) {
-                            productoMap[nombre] = { nombre: nombre, cantidad: 0, ventas: 0 };
-                        }
-                        productoMap[nombre].cantidad += (Number(d.cantidad) || 0);
-                        productoMap[nombre].ventas += (Number(d.subtotal) || (Number(d.cantidad) * Number(d.precio_unitario)) || 0);
-                    });
-                }
-            });
-            const rankingProductos = Object.values(productoMap)
-                .sort((a, b) => b.cantidad - a.cantidad)
-                .slice(0, 5);
-            setTopProductos(rankingProductos);
-
-            // 3. Ranking Clientes
-            const clienteMap = {};
-            pedidos.forEach(p => {
-                const nombreCliente = p.nombre_cliente || 'Cliente Anónimo';
-                if (!clienteMap[nombreCliente]) {
-                    clienteMap[nombreCliente] = { nombre: nombreCliente, pedidos: 0, total: 0 };
-                }
-                clienteMap[nombreCliente].pedidos += 1;
-                clienteMap[nombreCliente].total += (Number(p.precio_total) || 0);
-            });
-            const rankingClientes = Object.values(clienteMap)
-                .sort((a, b) => b.total - a.total)
-                .slice(0, 5);
-            setTopClientes(rankingClientes);
         } catch (error) {
             console.error("Error procesando datos:", error);
         }
     };
 
-    // Actualizar datos filtrados cuando cambie activeTab o allOrders
+    // --- ACTUALIZACIÓN DE FILTROS BÁSICOS Y AVANZADOS ---
     useEffect(() => {
         if (!allOrders) return;
 
         let filtered = [...allOrders];
 
+        // 1. Filtrar por búsqueda de texto (Cliente o Producto)
+        if (busqueda.trim() !== '') {
+            const term = busqueda.toLowerCase();
+            filtered = filtered.filter(p => {
+                const matchCliente = p.nombre_cliente?.toLowerCase().includes(term);
+                const matchProducto = p.detalles_pedido && p.detalles_pedido.some(d =>
+                    (d.nombre_producto && d.nombre_producto.toLowerCase().includes(term)) ||
+                    (d.tipo_producto && d.tipo_producto.toLowerCase().includes(term)) ||
+                    (d.metal && d.metal.toLowerCase().includes(term))
+                );
+                return matchCliente || matchProducto;
+            });
+        }
+
+        // 2. Filtros Avanzados (Tipos y Metales)
+        if (filtrosAvanzados.tipos.length > 0 || filtrosAvanzados.metales.length > 0) {
+            filtered = filtered.filter(p => {
+                if (!p.detalles_pedido) return false;
+
+                // El pedido se muestra si AL MENOS UN producto coincide con los filtros elegidos
+                return p.detalles_pedido.some(d => {
+                    const matchTipo = filtrosAvanzados.tipos.length === 0 ||
+                        filtrosAvanzados.tipos.some(t => d.tipo_producto?.toLowerCase() === t.toLowerCase());
+                    const matchMetal = filtrosAvanzados.metales.length === 0 ||
+                        filtrosAvanzados.metales.some(m => d.metal?.toLowerCase() === m.toLowerCase());
+                    return matchTipo && matchMetal;
+                });
+            });
+        }
+
+        // 3. Filtrar por Tabs
         switch (activeTab) {
             case 'Pedidos':
-                // Pedidos nuevos: no entregados, y produccion en status inicial o no iniciado
-                filtered = allOrders.filter(p =>
+                filtered = filtered.filter(p =>
                     p.estado_pedido !== 'entregado' &&
                     (!p.estado_produccion || p.estado_produccion === 'no_iniciado' || p.estado_produccion === 'pendiente')
                 );
                 break;
             case 'Producción':
-                filtered = allOrders.filter(p => p.estado_produccion === 'en_proceso');
+                filtered = filtered.filter(p => p.estado_produccion === 'en_proceso');
                 break;
             case 'Terminados':
-                filtered = allOrders.filter(p => p.estado_produccion === 'terminado' && p.estado_pedido !== 'entregado');
+                filtered = filtered.filter(p => p.estado_produccion === 'terminado' && p.estado_pedido !== 'entregado');
                 break;
             case 'Entregados':
-                filtered = allOrders.filter(p => p.estado_pedido === 'entregado');
+                filtered = filtered.filter(p => p.estado_pedido === 'entregado');
                 break;
             default: // Todos
-                filtered = allOrders;
                 break;
         }
 
-        // Sorting: Recientes primero
         filtered.sort((a, b) => {
             const dateA = activeTab === 'Entregados' ? new Date(a.fecha_entrega || a.fecha_pedido) : new Date(a.fecha_pedido);
             const dateB = activeTab === 'Entregados' ? new Date(b.fecha_entrega || b.fecha_pedido) : new Date(b.fecha_pedido);
@@ -249,67 +227,9 @@ const ReportePedidos = () => {
 
         setFilteredOrders(filtered);
 
-    }, [activeTab, allOrders]);
+    }, [activeTab, allOrders, busqueda, filtrosAvanzados]);
 
     const getFilteredData = () => filteredOrders;
-
-    const generarPDF = () => {
-        const doc = new jsPDF();
-        const azul = [41, 128, 185];
-        const gris = [100, 100, 100];
-
-        // Header
-        doc.setFontSize(22);
-        doc.setTextColor(...azul);
-        doc.text('Reporte Gerencial de Ventas', 105, 20, { align: 'center' });
-
-        doc.setFontSize(10);
-        doc.setTextColor(...gris);
-        doc.text(`Período: ${fechaInicio} al ${fechaFin}`, 105, 28, { align: 'center' });
-
-        // 1. Resumen Ejecutivo
-        doc.setFontSize(14);
-        doc.setTextColor(0);
-        // 1. Resumen Ejecutivo
-        doc.setFontSize(14);
-        doc.setTextColor(0);
-        doc.text('1. Resumen Ejecutivo', 14, 40);
-        autoTable(doc, {
-            startY: 45,
-            head: [['Ventas Brutas', 'Cobrado (Neto)', 'Por Cobrar', 'Tickets']],
-            body: [[
-                `S/ ${stats.ventasBrutas.toFixed(2)}`,
-                `S/ ${stats.ventasNetas.toFixed(2)}`,
-                `S/ ${stats.cuentasPorCobrar.toFixed(2)}`,
-                stats.cantidadPedidos
-            ]],
-            theme: 'striped',
-            headStyles: { fillColor: azul }
-        });
-
-        // 2. Top Productos
-        doc.text('2. Productos Más Vendidos', 14, doc.lastAutoTable.finalY + 15);
-        autoTable(doc, {
-            startY: doc.lastAutoTable.finalY + 20,
-            head: [['Producto', 'Unidades Vendidas', 'Ingresos Generados']],
-            body: topProductos.map(p => [p.nombre, p.cantidad, `S/ ${p.ventas.toFixed(2)}`]),
-            theme: 'grid',
-            headStyles: { fillColor: [39, 174, 96] } // Verde
-        });
-
-        // 3. Top Clientes
-        doc.text('3. Mejores Clientes', 14, doc.lastAutoTable.finalY + 15);
-        autoTable(doc, {
-            startY: doc.lastAutoTable.finalY + 20,
-            head: [['Cliente', 'Pedidos', 'Total Comprado']],
-            body: topClientes.map(c => [c.nombre, c.pedidos, `S/ ${c.total.toFixed(2)}`]),
-            theme: 'grid',
-            headStyles: { fillColor: [142, 68, 173] } // Morado
-        });
-
-        doc.save(`Reporte_Gerencial_${fechaInicio}.pdf`);
-        doc.save(`Reporte_Gerencial_${fechaInicio}.pdf`);
-    };
 
     const handleVerDetalles = (pedido) => {
         setSelectedPedido(pedido);
@@ -321,9 +241,6 @@ const ReportePedidos = () => {
         setSelectedPedido(null);
     };
 
-    // ========================================
-    // PAYMENT HANDLERS (Duplicados de Pedidos.jsx)
-    // ========================================
     const handleOpenPayModal = (pedido) => {
         setPayPedido(pedido);
         setPayData({
@@ -348,7 +265,6 @@ const ReportePedidos = () => {
             const nuevoSaldo = Number(payPedido.precio_total) - nuevoAcuenta;
             const cancelado = nuevoSaldo <= 0.05;
 
-            // Actualizar pedido
             await pedidosDB.update(payPedido.id_pedido, {
                 ...payPedido,
                 monto_a_cuenta: nuevoAcuenta,
@@ -356,7 +272,6 @@ const ReportePedidos = () => {
                 cancelado: cancelado
             });
 
-            // Registrar pago
             await pedidosDB.createPago({
                 id_pedido: payPedido.id_pedido,
                 monto: montoPago,
@@ -365,7 +280,6 @@ const ReportePedidos = () => {
                 referencia: 'Pago desde Reporte'
             });
 
-            // ── Si se canceló el saldo → registrar en Ventas (con anti-duplicado) ──
             if (cancelado) {
                 const codigoPed = `PED-${String(payPedido.id_pedido).padStart(4, '0')}`;
                 const ventasExistentes = await ventasDB.getAll();
@@ -379,6 +293,7 @@ const ReportePedidos = () => {
                         total: payPedido.precio_total,
                         formaPago: payData.metodo || payPedido.forma_pago,
                         costo_materiales: 0,
+                        detalles: payPedido.detalles_pedido,
                         observaciones: `Cobro pedido #${payPedido.id_pedido}`,
                         fecha_venta: new Date().toISOString()
                     });
@@ -399,8 +314,6 @@ const ReportePedidos = () => {
     return (
         <div className="bg-gray-100 min-h-screen p-6">
             <div className="max-w-7xl mx-auto">
-                {/* Header Nav */}
-                {/* Header Nav */}
                 <div className="flex items-center mb-6 pt-2 md:pt-6">
                     <Link to="/inventario-home" className="text-gray-500 hover:text-gray-900 transition-colors">
                         <FaArrowLeft size={18} />
@@ -410,8 +323,8 @@ const ReportePedidos = () => {
                     </div>
                 </div>
 
-                {/* 1. KPIs Financieros */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6"> {/* Reduced gap */}
+                {/* KPIs Financieros */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                     <div className="bg-white px-3 py-2 md:px-4 md:py-3 rounded-xl shadow-sm border-b-4 border-blue-500">
                         <div className="flex justify-between items-start">
                             <div>
@@ -449,49 +362,78 @@ const ReportePedidos = () => {
                     </div>
                 </div>
 
-                {/* Filtros de Fecha */}
-                <div className="w-full flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-2 bg-white p-3 rounded-lg shadow-sm mb-6">
-                    <div className="flex items-center space-x-1 w-full sm:w-auto">
+                {/* Filtros de Fecha, Búsqueda y Avanzados */}
+                <div className="w-full flex flex-col md:flex-row items-start md:items-center space-y-3 md:space-y-0 md:space-x-4 bg-white p-4 rounded-lg shadow-sm mb-6">
+                    <div className="flex items-center space-x-2">
                         <span className="text-xs text-gray-500 font-medium">Del</span>
                         <input
                             type="date"
                             value={fechaInicio}
                             onChange={e => setFechaInicio(e.target.value)}
-                            className="flex-1 sm:flex-none border-gray-300 rounded-md text-xs py-1 px-2 focus:ring-blue-500 focus:border-blue-500"
+                            className="border-gray-300 rounded-md text-xs py-1.5 px-2 focus:ring-blue-500 focus:border-blue-500 border"
                         />
                     </div>
-                    <div className="flex items-center space-x-1 w-full sm:w-auto">
+                    <div className="flex items-center space-x-2">
                         <span className="text-xs text-gray-500 font-medium">Al</span>
                         <input
                             type="date"
                             value={fechaFin}
                             onChange={e => setFechaFin(e.target.value)}
-                            className="flex-1 sm:flex-none border-gray-300 rounded-md text-xs py-1 px-2 focus:ring-blue-500 focus:border-blue-500"
+                            className="border-gray-300 rounded-md text-xs py-1.5 px-2 focus:ring-blue-500 focus:border-blue-500 border"
                         />
                     </div>
-                    <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+
+                    <div className="w-px h-6 bg-gray-200 hidden md:block"></div>
+
+                    {/* BARRA DE BÚSQUEDA Y BOTÓN FILTROS AVANZADOS */}
+                    <div className="flex-1 w-full relative flex gap-2">
+                        <div className="relative flex-1">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <FaSearch className="text-gray-400" />
+                            </div>
+                            <input
+                                type="text"
+                                placeholder="Buscar por cliente o producto (Ej: Tobillera)..."
+                                value={busqueda}
+                                onChange={e => setBusqueda(e.target.value)}
+                                className="block w-full pl-9 pr-3 py-1.5 border border-gray-300 rounded-md text-xs focus:ring-blue-500 focus:border-blue-500"
+                            />
+                        </div>
+                        <button
+                            onClick={() => setShowAdvancedFilters(true)}
+                            className={`px-3 py-1.5 border rounded-md flex items-center transition-colors relative ${filtrosAvanzados.tipos.length > 0 || filtrosAvanzados.metales.length > 0
+                                ? 'bg-blue-50 border-blue-200 text-blue-600'
+                                : 'bg-white border-gray-300 text-gray-600 hover:bg-gray-50'
+                                }`}
+                            title="Filtros Avanzados"
+                        >
+                            <FaSlidersH />
+                            {(filtrosAvanzados.tipos.length > 0 || filtrosAvanzados.metales.length > 0) && (
+                                <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-blue-600 rounded-full border border-white"></span>
+                            )}
+                        </button>
+                    </div>
+
+                    <div className="flex gap-2 w-full sm:w-auto">
                         <button
                             onClick={() => fetchReportData()}
-                            className="w-full sm:w-auto bg-gray-900 hover:bg-gray-800 text-white px-3 py-1.5 rounded-md text-xs font-medium flex justify-center items-center transition-all"
+                            className="w-full sm:w-auto bg-gray-900 hover:bg-gray-800 text-white px-4 py-1.5 rounded-md text-xs font-medium flex justify-center items-center transition-all shadow-sm"
                         >
-                            <FaFilter className="mr-1.5" /> Filtrar
+                            <FaFilter className="mr-1.5" /> Filtrar Fechas
                         </button>
                         <button
                             onClick={resetFilters}
-                            className="w-full sm:w-auto bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 px-3 py-1.5 rounded-md text-xs font-medium flex justify-center items-center transition-all"
+                            className="w-full sm:w-auto bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 px-4 py-1.5 rounded-md text-xs font-medium flex justify-center items-center transition-all"
                         >
-                            <FaTrash className="mr-1.5" /> Borrar
+                            <FaTrash className="mr-1.5" /> Limpiar
                         </button>
                     </div>
                 </div>
 
-                {/* Title Section */}
                 <div className="mt-8 mb-4 px-2 md:px-0">
                     <h2 className="text-lg font-bold text-gray-800">Consulta de Pedidos</h2>
                 </div>
 
-                {/* Tabs de Navegación */}
-                {/* Tabs de Navegación */}
                 <div className="flex justify-between items-center mb-6 px-2 md:px-0">
                     {[
                         { id: 'Todos', label: 'Todos', icon: FaClipboardList, color: 'text-gray-600' },
@@ -514,7 +456,6 @@ const ReportePedidos = () => {
                             <span className={`text-sm font-medium hidden md:block ${activeTab === tab.id ? tab.color : 'text-gray-500 group-hover:text-gray-700'}`}>
                                 {tab.label}
                             </span>
-                            {/* Active Indicator */}
                             {activeTab === tab.id && (
                                 <div className="absolute -bottom-2 w-full h-1 bg-blue-600 rounded-full transition-all"></div>
                             )}
@@ -522,115 +463,160 @@ const ReportePedidos = () => {
                     ))}
                 </div>
 
-                {/* Dynamic List Header */}
                 <div className="mb-4 bg-white rounded-lg p-4 shadow-sm border border-gray-100 flex justify-start">
                     <h3 className="text-sm font-normal text-gray-800 uppercase tracking-wide">
                         PEDIDOS {activeTab === 'Todos' ? 'TOTALES' : activeTab === 'Pedidos' ? 'PENDIENTES' : activeTab.toUpperCase()} <span className="ml-2 text-base font-medium">{getFilteredData().length}</span>
                     </h3>
                 </div>
 
-                {/* Tabla de Reporte */}
                 <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
                     <div className="overflow-x-auto">
                         <table className="w-full">
                             <thead>
                                 <tr className="bg-gray-50 border-b border-gray-100">
-                                    <th className="px-4 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">No. Pedido</th>
-                                    <th className="px-4 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Cliente</th>
-                                    <th className="px-4 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Producto(s)</th>
-                                    <th className="px-4 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">No. Pedido</th>
+                                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Cliente</th>
+                                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Producto(s)</th>
+                                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
                                         {activeTab === 'Entregados' ? 'Fecha Entrega' :
                                             activeTab === 'Producción' ? 'Fecha Inicio' :
                                                 activeTab === 'Terminados' ? 'Fecha Término' : 'Fecha Pedido'}
                                     </th>
-                                    <th className="px-4 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Total</th>
+                                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Subtotal / Total</th>
                                     {activeTab !== 'Entregados' && (
                                         <>
-                                            <th className="px-4 py-2 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Pago</th>
-                                            <th className="px-4 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Saldo</th>
+                                            <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Pago</th>
+                                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Saldo</th>
                                         </>
                                     )}
-                                    <th className="px-4 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Acción</th>
+                                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Acción</th>
                                 </tr>
                             </thead>
+
                             <tbody className="divide-y divide-gray-200">
                                 {getFilteredData().length > 0 ? (
-                                    getFilteredData().map((pedido) => (
-                                        <tr key={pedido.id_pedido} className="hover:bg-gray-50/50 transition-colors">
-                                            <td className="px-4 py-2 whitespace-nowrap text-left">
-                                                <span className="text-sm text-gray-900">
-                                                    #{pedido.id_pedido.toString().padStart(3, '0')}
-                                                </span>
-                                            </td>
-                                            <td className="px-4 py-2 whitespace-nowrap text-left">
-                                                <div className="text-sm text-gray-900">{pedido.nombre_cliente}</div>
-                                            </td>
-                                            <td className="px-4 py-2 text-left">
-                                                <div className="text-sm text-gray-600 max-w-xs truncate">
-                                                    {pedido.detalles_pedido && pedido.detalles_pedido.length > 0
-                                                        ? pedido.detalles_pedido.map(d => `${d.cantidad} ${d.nombre_producto}`).join(', ')
-                                                        : 'Sin productos'}
-                                                </div>
-                                            </td>
-                                            <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-500 text-left">
-                                                {/* Fecha Clave Logic */}
-                                                {activeTab === 'Entregados' && pedido.fecha_entrega ? new Date(pedido.fecha_entrega).toLocaleDateString('es-PE') :
-                                                    activeTab === 'Entregados' ? '-' :
-                                                        activeTab === 'Terminados' ? (pedido.updated_at ? new Date(pedido.updated_at).toLocaleDateString('es-PE') : '-') : // Approx for Terminado
-                                                            new Date(pedido.fecha_pedido).toLocaleDateString('es-PE')}
-                                            </td>
-                                            <td className="px-4 py-2 whitespace-nowrap text-sm text-left text-gray-900">
-                                                S/ {Number(pedido.precio_total).toFixed(2)}
-                                            </td>
-                                            {activeTab !== 'Entregados' && (
-                                                <>
-                                                    {/* PAGO */}
-                                                    <td className="px-4 py-2 whitespace-nowrap text-center">
-                                                        {Number(pedido.monto_saldo) <= 0.05 ? (
-                                                            <span className="px-2 py-1 rounded-full text-[10px] font-semibold bg-green-100 text-green-800">Pagado</span>
-                                                        ) : (
-                                                            <span className="px-2 py-1 rounded-full text-[10px] font-semibold bg-red-100 text-red-800">Pendiente</span>
+                                    getFilteredData().flatMap((pedido) => {
+                                        let detalles = pedido.detalles_pedido && pedido.detalles_pedido.length > 0
+                                            ? pedido.detalles_pedido
+                                            : [{ nombre_producto: 'Sin productos', cantidad: 0, subtotal: pedido.precio_total }];
+
+                                        // APLICAR FILTROS AVANZADOS A NIVEL DE DETALLE PARA OCULTAR FILAS QUE NO COINCIDEN
+                                        if (filtrosAvanzados.tipos.length > 0 || filtrosAvanzados.metales.length > 0) {
+                                            detalles = detalles.filter(d => {
+                                                const matchTipo = filtrosAvanzados.tipos.length === 0 || filtrosAvanzados.tipos.some(t => d.tipo_producto?.toLowerCase() === t.toLowerCase());
+                                                const matchMetal = filtrosAvanzados.metales.length === 0 || filtrosAvanzados.metales.some(m => d.metal?.toLowerCase() === m.toLowerCase());
+                                                return matchTipo && matchMetal;
+                                            });
+                                        }
+
+                                        // Seguridad: Si el pedido pasó el filtro de búsqueda general, pero no tiene items visuales activos
+                                        if (detalles.length === 0) return [];
+
+                                        return detalles.map((d, idx) => {
+                                            const isFirst = idx === 0;
+                                            const subtotalItem = Number(d.subtotal) || (Number(d.cantidad || 1) * Number(d.precio_unitario || 0));
+
+                                            return (
+                                                <tr key={`${pedido.id_pedido}-${idx}`} className={`transition-colors ${isFirst ? 'bg-white hover:bg-gray-50 border-t-4 border-gray-100' : 'bg-gray-50/50 hover:bg-gray-100 border-t-0'}`}>
+
+                                                    {/* ID Pedido */}
+                                                    <td className="px-4 py-3 whitespace-nowrap text-left">
+                                                        {isFirst && (
+                                                            <span className="text-sm text-gray-900 font-medium">
+                                                                #{pedido.id_pedido.toString().padStart(3, '0')}
+                                                            </span>
                                                         )}
                                                     </td>
-                                                    {/* SALDO */}
-                                                    <td className="px-4 py-2 whitespace-nowrap text-sm text-left">
-                                                        {Number(pedido.monto_saldo) > 0 ? (
-                                                            <span className="text-red-500">S/ {Number(pedido.monto_saldo).toFixed(2)}</span>
-                                                        ) : (
-                                                            <span className="text-green-500">S/ 0.00</span>
+
+                                                    {/* Cliente */}
+                                                    <td className="px-4 py-3 whitespace-nowrap text-left">
+                                                        {isFirst && <div className="text-sm font-medium text-gray-900">{pedido.nombre_cliente}</div>}
+                                                    </td>
+
+                                                    {/* Producto */}
+                                                    <td className="px-4 py-3 text-left">
+                                                        <div className="text-sm text-gray-700 flex items-start gap-1">
+                                                            {d.cantidad > 0 && <span className="font-bold text-gray-900 bg-gray-200 px-1.5 py-0.5 rounded text-xs">{d.cantidad}x</span>}
+                                                            <span className="truncate max-w-xs">{d.nombre_producto} <span className="text-[10px] text-gray-400 ml-1">({d.metal || d.tipo_producto})</span></span>
+                                                        </div>
+                                                    </td>
+
+                                                    {/* Fecha */}
+                                                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 text-left">
+                                                        {isFirst && (
+                                                            activeTab === 'Entregados' && pedido.fecha_entrega ? new Date(pedido.fecha_entrega).toLocaleDateString('es-PE') :
+                                                                activeTab === 'Entregados' ? '-' :
+                                                                    activeTab === 'Terminados' ? (pedido.updated_at ? new Date(pedido.updated_at).toLocaleDateString('es-PE') : '-') :
+                                                                        new Date(pedido.fecha_pedido).toLocaleDateString('es-PE')
                                                         )}
                                                     </td>
-                                                </>
-                                            )}
-                                            <td className="px-4 py-2 whitespace-nowrap text-left">
-                                                <div className="flex items-center space-x-2">
-                                                    {Number(pedido.monto_saldo) > 0.1 && activeTab !== 'Producción' && (
-                                                        <button
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                handleOpenPayModal(pedido);
-                                                            }}
-                                                            className="text-green-600 hover:text-green-800 transition-colors"
-                                                            title="Registrar Pago"
-                                                        >
-                                                            <FaMoneyBillWave className="h-5 w-5" />
-                                                        </button>
+
+                                                    {/* Subtotal del Producto / Total del Pedido */}
+                                                    <td className="px-4 py-3 whitespace-nowrap text-sm text-left">
+                                                        <div className="text-gray-800">S/ {subtotalItem.toFixed(2)}</div>
+                                                        {isFirst && <div className="text-[10px] text-blue-600 mt-0.5 pt-0.5 inline-block font-bold">Total: S/ {Number(pedido.precio_total).toFixed(2)}</div>}
+                                                    </td>
+
+                                                    {activeTab !== 'Entregados' && (
+                                                        <>
+                                                            {/* Pago */}
+                                                            <td className="px-4 py-3 whitespace-nowrap text-center">
+                                                                {isFirst && (
+                                                                    Number(pedido.monto_saldo) <= 0.05 ? (
+                                                                        <span className="px-2 py-1 rounded-full text-[10px] font-semibold bg-green-100 text-green-800">Pagado</span>
+                                                                    ) : (
+                                                                        <span className="px-2 py-1 rounded-full text-[10px] font-semibold bg-red-100 text-red-800">Pendiente</span>
+                                                                    )
+                                                                )}
+                                                            </td>
+
+                                                            {/* Saldo */}
+                                                            <td className="px-4 py-3 whitespace-nowrap text-sm text-left">
+                                                                {isFirst && (
+                                                                    Number(pedido.monto_saldo) > 0 ? (
+                                                                        <span className="text-red-500 font-medium">S/ {Number(pedido.monto_saldo).toFixed(2)}</span>
+                                                                    ) : (
+                                                                        <span className="text-green-500 font-medium">S/ 0.00</span>
+                                                                    )
+                                                                )}
+                                                            </td>
+                                                        </>
                                                     )}
-                                                    <button
-                                                        onClick={() => handleVerDetalles(pedido)}
-                                                        className="text-blue-600 hover:text-blue-800 transition-colors"
-                                                        title="Ver Detalle"
-                                                    >
-                                                        <FaEye className="h-5 w-5" />
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))
+
+                                                    {/* Acciones */}
+                                                    <td className="px-4 py-3 whitespace-nowrap text-left">
+                                                        {isFirst && (
+                                                            <div className="flex items-center space-x-2">
+                                                                {Number(pedido.monto_saldo) > 0.1 && activeTab !== 'Producción' && (
+                                                                    <button
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            handleOpenPayModal(pedido);
+                                                                        }}
+                                                                        className="text-green-600 hover:text-green-800 transition-colors bg-green-50 p-1.5 rounded"
+                                                                        title="Registrar Pago"
+                                                                    >
+                                                                        <FaMoneyBillWave className="h-4 w-4" />
+                                                                    </button>
+                                                                )}
+                                                                <button
+                                                                    onClick={() => handleVerDetalles(pedido)}
+                                                                    className="text-blue-600 hover:text-blue-800 transition-colors bg-blue-50 p-1.5 rounded"
+                                                                    title="Ver Detalle"
+                                                                >
+                                                                    <FaEye className="h-4 w-4" />
+                                                                </button>
+                                                            </div>
+                                                        )}
+                                                    </td>
+                                                </tr>
+                                            );
+                                        });
+                                    })
                                 ) : (
                                     <tr>
                                         <td colSpan={activeTab === 'Entregados' ? "6" : "8"} className="px-6 py-12 text-center text-gray-400 text-sm">
-                                            No se encontraron pedidos en esta categoría.
+                                            No se encontraron pedidos.
                                         </td>
                                     </tr>
                                 )}
@@ -638,20 +624,85 @@ const ReportePedidos = () => {
                         </table>
                     </div>
 
-                    {/* Pagination (Simple Placeholder) */}
                     <div className="bg-gray-50 px-6 py-6 mt-4 border-t border-gray-100 flex items-center justify-between">
-                        <span className="text-xs text-gray-500">Mostrando {getFilteredData().length} registros</span>
-                        <div className="flex space-x-1">
-                            <button className="px-3 py-1 text-xs border border-gray-200 rounded bg-white text-gray-600 disabled:opacity-50">Anterior</button>
-                            <button className="px-3 py-1 text-xs border border-gray-200 rounded bg-white text-gray-600">Siguiente</button>
-                        </div>
+                        <span className="text-xs text-gray-500">Mostrando {getFilteredData().length} pedidos</span>
                     </div>
                 </div>
             </div>
 
-            {/* Modal de Detalle de Pedido (Replicado de Pedidos.jsx) */}
+            {/* MODAL FILTROS AVANZADOS */}
+            {showAdvancedFilters && (
+                <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 transition-opacity">
+                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-200">
+                        {/* Header Modal */}
+                        <div className="px-5 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+                            <h3 className="font-semibold text-gray-700 text-sm">Filtros Avanzados</h3>
+                            <button onClick={() => setShowAdvancedFilters(false)} className="text-gray-400 hover:text-gray-600 transition-colors">
+                                <FaTimes />
+                            </button>
+                        </div>
+
+                        {/* Opciones */}
+                        <div className="px-6 py-6 space-y-8">
+                            {/* TIPO DE PRODUCTO */}
+                            <div>
+                                <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-4 text-center">Tipo de Producto</h4>
+                                <div className="grid grid-cols-2 gap-y-3 pl-4">
+                                    {OPCIONES_TIPO.map(tipo => (
+                                        <label key={tipo} className="flex items-center space-x-2 text-sm text-gray-600 cursor-pointer group">
+                                            <input
+                                                type="checkbox"
+                                                className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 transition-colors"
+                                                checked={filtrosAvanzados.tipos.includes(tipo)}
+                                                onChange={(e) => {
+                                                    if (e.target.checked) setFiltrosAvanzados(prev => ({ ...prev, tipos: [...prev.tipos, tipo] }));
+                                                    else setFiltrosAvanzados(prev => ({ ...prev, tipos: prev.tipos.filter(t => t !== tipo) }));
+                                                }}
+                                            />
+                                            <span className="group-hover:text-gray-900 transition-colors">{tipo}</span>
+                                        </label>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* TIPO DE METAL */}
+                            <div>
+                                <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-4 text-center">Tipo de Metal</h4>
+                                <div className="grid grid-cols-2 gap-y-3 pl-4">
+                                    {OPCIONES_METAL.map(metal => (
+                                        <label key={metal} className="flex items-center space-x-2 text-sm text-gray-600 cursor-pointer group">
+                                            <input
+                                                type="checkbox"
+                                                className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 transition-colors"
+                                                checked={filtrosAvanzados.metales.includes(metal)}
+                                                onChange={(e) => {
+                                                    if (e.target.checked) setFiltrosAvanzados(prev => ({ ...prev, metales: [...prev.metales, metal] }));
+                                                    else setFiltrosAvanzados(prev => ({ ...prev, metales: prev.metales.filter(m => m !== metal) }));
+                                                }}
+                                            />
+                                            <span className="group-hover:text-gray-900 transition-colors">{metal}</span>
+                                        </label>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Footer Modal */}
+                        <div className="px-5 py-4 bg-gray-50 border-t border-gray-100 flex justify-end">
+                            <button
+                                onClick={() => setShowAdvancedFilters(false)}
+                                className="px-6 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 shadow-sm active:scale-[0.98] transition-all"
+                            >
+                                Aplicar Filtros
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Modal de Detalle de Pedido */}
             {showDetailModal && selectedPedido && (
-                <div className="fixed inset-0 bg-gray-600 bg-opacity-75 overflow-y-auto h-full w-full z-50 flex items-start md:items-center justify-center p-4 pt-24 md:pt-4">
+                <div className="fixed inset-0 bg-gray-600 bg-opacity-75 overflow-y-auto h-full w-full z-[80] flex items-start md:items-center justify-center p-4 pt-24 md:pt-4">
                     <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl flex flex-col max-h-[90vh]">
                         {/* Header Modal */}
                         <div className="px-6 py-4 border-b flex justify-between items-center bg-gray-50 rounded-t-lg">
@@ -708,7 +759,6 @@ const ReportePedidos = () => {
 
                             <div className="border-t border-gray-200 mt-4 pt-2">
                                 <div className="w-full max-w-[200px] ml-auto text-[10px]">
-                                    {/* Totals Section */}
                                     {selectedPedido.incluye_igv && (
                                         <>
                                             <div className="flex justify-between text-gray-600 mb-1">
@@ -722,7 +772,6 @@ const ReportePedidos = () => {
                                         </>
                                     )}
 
-                                    {/* Costo de Envío (Azul) */}
                                     {selectedPedido.envio_cobrado_al_cliente > 0 && (
                                         <div className="flex justify-between text-blue-600 font-medium mt-1">
                                             <span>Costo de Envío:</span>
@@ -741,13 +790,10 @@ const ReportePedidos = () => {
                                 </div>
                             </div>
 
-                            {/* Espaciador Vertical */}
                             <div className="py-2"></div>
 
-                            {/* Sección 2: Estado de Cuenta */}
                             <h4 className="font-bold text-gray-800 border-b pb-1 mb-2">Estado de Cuenta</h4>
 
-                            {/* Tabla de Adelantos */}
                             <div className="mb-2">
                                 <div className="flex justify-between font-bold text-xs text-gray-600 border-b pb-1 mb-1">
                                     <span>Adelantos (Pagos a Cuenta)</span>
@@ -772,7 +818,6 @@ const ReportePedidos = () => {
                                 <span>S/ {Number(selectedPedido.monto_saldo) > 0.1 ? Number(selectedPedido.monto_saldo).toFixed(2) : '0.00'}</span>
                             </div>
 
-
                             <div className="mt-8 pt-4 border-t text-center">
                                 <p className="text-xs text-gray-500 uppercase tracking-wide">Aclaración Importante</p>
                                 <p className="text-xs text-gray-500 leading-snug">Esta Nota de Pedido no tiene validez como comprobante de pago.</p>
@@ -780,9 +825,7 @@ const ReportePedidos = () => {
                             </div>
                         </div>
 
-                        {/* Footer Modal */}
                         <div className="px-6 py-4 border-t bg-gray-50 rounded-b-lg flex justify-end items-center">
-                            {/* Botones de Acción (Derecha) */}
                             <div className="flex space-x-3">
                                 <button
                                     onClick={async () => {
@@ -800,14 +843,12 @@ const ReportePedidos = () => {
                                                         text: `Nota de Pedido para ${selectedPedido.nombre_cliente}`
                                                     });
                                                 } catch (_) {
-                                                    // Fallback: descargar directamente
                                                     const link = document.createElement('a');
                                                     link.download = `pedido_${selectedPedido.id_pedido}.jpg`;
                                                     link.href = canvas.toDataURL('image/jpeg', 0.9);
                                                     link.click();
                                                 }
                                             } else {
-                                                // Dispositivo no soporta share con archivos, descargar
                                                 const link = document.createElement('a');
                                                 link.download = `pedido_${selectedPedido.id_pedido}.jpg`;
                                                 link.href = canvas.toDataURL('image/jpeg', 0.9);
@@ -829,10 +870,10 @@ const ReportePedidos = () => {
                 </div >
             )}
 
-            {/* Modal de Pago Rápido (Duplicado) */}
+            {/* Modal de Pago Rápido */}
             {
                 showPayModal && payPedido && (
-                    <div className="fixed inset-0 bg-gray-600 bg-opacity-75 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
+                    <div className="fixed inset-0 bg-gray-600 bg-opacity-75 overflow-y-auto h-full w-full z-[80] flex items-center justify-center p-4">
                         <div className="bg-white rounded-lg shadow-xl w-full max-w-md flex flex-col">
                             <div className="px-6 py-4 border-b flex justify-between items-center bg-gray-50 rounded-t-lg">
                                 <h3 className="text-lg font-bold text-gray-800">Registrar Pago / Adelanto</h3>

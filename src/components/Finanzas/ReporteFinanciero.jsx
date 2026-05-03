@@ -1,10 +1,10 @@
-// src/pages/Dashboard.jsx
+// src/components/Finanzas/ReporteFinanciero.jsx
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { FaArrowLeft, FaChartLine, FaExclamationTriangle, FaChevronDown, FaChevronUp, FaMoneyBillWave } from 'react-icons/fa';
-import { dashboardDB } from '../utils/dashboardNeonClient';
-import { deudasDB } from '../utils/deudasNeonClient';
-import { gastosDB } from '../utils/gastosNeonClient';
+import { dashboardDB } from '../../utils/dashboardNeonClient';
+import { deudasDB } from '../../utils/deudasNeonClient';
+import { gastosDB } from '../../utils/gastosNeonClient';
 import toast, { Toaster } from 'react-hot-toast';
 
 // REGLA CRÍTICA DE PARSEO (Helper functions)
@@ -48,7 +48,7 @@ const KPICard = ({ label, value, sub, color, border, subColor = "text-gray-400" 
   </div>
 );
 
-const Dashboard = () => {
+const ReporteFinanciero = () => {
   const navigate = useNavigate();
   const hoy = new Date().toISOString().slice(0, 7);
   const [periodo, setPeriodo]   = useState(hoy);
@@ -313,7 +313,7 @@ const Dashboard = () => {
               )}
             </div>
 
-            {/* SECCIÓN 5 — Histórico 6 Meses (tabla) */}
+            {/* SECCIÓN 5 — Historial 6 Meses (tabla) */}
             <div className="space-y-3">
               <p className="text-xs font-bold text-gray-400 uppercase tracking-widest px-1">Historial Operativo</p>
               
@@ -369,4 +369,4 @@ const Dashboard = () => {
   );
 };
 
-export default Dashboard;
+export default ReporteFinanciero;

@@ -121,7 +121,8 @@ export const ventasDB = {
     // VENTA DESDE PEDIDO (cobro a medida — NO descuenta inventario)
     // Se llama desde el módulo de Pedidos al marcar un pedido como cobrado/entregado.
     // ─────────────────────────────────────────────────────────────
-    async createVentaPedido({ pedidoId, clienteNombre, total, formaPago, costo_materiales, observaciones, fecha_venta }) {
+    async createVentaPedido(ventaData) {
+        const { pedidoId, clienteNombre, total, formaPago, costo_materiales, observaciones, fecha_venta } = ventaData;
         try {
             // 1. Código correlativo
             const [ultimaVenta] = await sql`
@@ -168,8 +169,23 @@ export const ventasDB = {
                 RETURNING *
             `;
 
-            // 4. Insertar detalle de trazabilidad (referencia al pedido)
-            if (venta && venta.id) {
+            // 4. Insertar detalles del pedido para trazabilidad completa
+            if (venta && venta.id && ventaData.detalles && ventaData.detalles.length > 0) {
+                for (const d of ventaData.detalles) {
+                    await sql`
+                        INSERT INTO detalles_venta (
+                            venta_id, producto_id, cantidad, precio_unitario,
+                            subtotal, producto_nombre, producto_codigo
+                        ) VALUES (
+                            ${venta.id}, null, ${d.cantidad || 1}, ${d.precio_unitario || d.subtotal || 0}, 
+                            ${d.subtotal || 0},
+                            ${d.nombre_producto || 'Producto Pedido'}, 
+                            ${d.producto_codigo || `PED-${String(pedidoId).padStart(4, '0')}`}
+                        )
+                    `;
+                }
+            } else if (venta && venta.id) {
+                // Fallback: un solo detalle si no hay lista
                 await sql`
                     INSERT INTO detalles_venta (
                         venta_id, producto_id, cantidad, precio_unitario,
@@ -195,21 +211,48 @@ export const ventasDB = {
                 SELECT 
                     v.*,
                     COALESCE(
-                        (SELECT json_agg(json_build_object(
-                            'id', d.id,
-                            'producto_id', d.producto_id,
-                            'cantidad', d.cantidad,
-                            'precio_unitario', d.precio_unitario,
-                            'subtotal', d.subtotal,
-                            'producto_nombre', d.producto_nombre,
-                            'producto_codigo', d.producto_codigo,
-                            'costo_actual', p.costo,
-                            'mano_de_obra_actual', CASE WHEN pr.cantidad > 0 THEN (pr.mano_de_obra / pr.cantidad) ELSE 0 END
-                        )) 
-                         FROM detalles_venta d 
-                         LEFT JOIN productos_externos p ON d.producto_id = p.id
-                         LEFT JOIN produccion_taller pr ON CAST(NULLIF(p.produccion_id, '') AS INTEGER) = pr.id_produccion
-                         WHERE d.venta_id = v.id), 
+                        (
+                            -- Lógica inteligente: Si solo hay un detalle y es un placeholder de pedido (PED-XXXX),
+                            -- traemos los detalles reales del pedido. Si no, usamos detalles_venta.
+                            SELECT json_agg(json_build_object(
+                                'id', d.id,
+                                'producto_id', d.producto_id,
+                                'cantidad', d.cantidad,
+                                'precio_unitario', d.precio_unitario,
+                                'subtotal', d.subtotal,
+                                'producto_nombre', d.producto_nombre,
+                                'producto_codigo', d.producto_codigo,
+                                'costo_actual', p.costo,
+                                'mano_de_obra_actual', CASE WHEN pr.cantidad > 0 THEN (pr.mano_de_obra / pr.cantidad) ELSE 0 END
+                            )) 
+                            FROM (
+                                SELECT 
+                                    dv.id, dv.producto_id, dv.cantidad, dv.precio_unitario, dv.subtotal, 
+                                    dv.producto_nombre, dv.producto_codigo
+                                FROM detalles_venta dv 
+                                WHERE dv.venta_id = v.id 
+                                AND NOT (
+                                    v.origen_venta = 'pedido' 
+                                    AND dv.producto_codigo LIKE 'PED-%'
+                                    AND (SELECT COUNT(*) FROM detalles_venta WHERE venta_id = v.id) = 1
+                                    AND EXISTS (SELECT 1 FROM detalles_pedido WHERE id_pedido = CAST(SUBSTRING(dv.producto_codigo FROM '[0-9]+') AS INTEGER))
+                                )
+                                UNION ALL
+                                SELECT 
+                                    dp.id_detalle as id, NULL as producto_id, dp.cantidad, dp.precio_unitario, 
+                                    (dp.cantidad * dp.precio_unitario) as subtotal, 
+                                    dp.nombre_producto as producto_nombre, 
+                                    ('PED-' || LPAD(dp.id_pedido::text, 4, '0')) as producto_codigo
+                                FROM detalles_pedido dp
+                                JOIN detalles_venta dv ON dv.venta_id = v.id
+                                WHERE v.origen_venta = 'pedido'
+                                  AND dv.producto_codigo LIKE 'PED-%'
+                                  AND (SELECT COUNT(*) FROM detalles_venta WHERE venta_id = v.id) = 1
+                                  AND dp.id_pedido = CAST(SUBSTRING(dv.producto_codigo FROM '[0-9]+') AS INTEGER)
+                            ) d
+                            LEFT JOIN productos_externos p ON d.producto_id = p.id
+                            LEFT JOIN produccion_taller pr ON d.producto_id IS NOT NULL AND CAST(NULLIF(p.produccion_id, '') AS INTEGER) = pr.id_produccion
+                        ),
                         '[]'
                     ) as detalles
                 FROM ventas v

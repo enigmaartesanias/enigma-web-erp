@@ -8,11 +8,41 @@ import { getLocalDate } from '../../../utils/dateUtils';
 // ─── Corrector de mojibake (latin1 mal interpretado como UTF-8) ───────────────
 const fixText = (str) => {
     if (!str || typeof str !== 'string') return str;
+    
+    // Si no contiene caracteres de mojibake comunes, retornamos directo
+    if (!str.includes('Ã') && !str.includes('â') && !str.includes('©') && !str.includes('€')) {
+        return str;
+    }
+
+    // Mapeo de caracteres CP1252 comunes en mojibake que están fuera de ISO-8859-1
+    const map = {
+        0x20AC: 0x80, 0x201A: 0x82, 0x0192: 0x83, 0x201E: 0x84, 0x2026: 0x85, 
+        0x2020: 0x86, 0x2021: 0x87, 0x02C6: 0x88, 0x2030: 0x89, 0x0160: 0x8A, 
+        0x2039: 0x8B, 0x0152: 0x8C, 0x017D: 0x8E, 0x2018: 0x91, 0x2019: 0x92, 
+        0x201C: 0x93, 0x201D: 0x94, 0x2022: 0x95, 0x2013: 0x96, 0x2014: 0x97, 
+        0x02DC: 0x98, 0x2122: 0x99, 0x0161: 0x9A, 0x203A: 0x9B, 0x0153: 0x9C, 
+        0x017E: 0x9E, 0x0178: 0x9F
+    };
+
     try {
-        // Intenta decodificar: convierte cada char a byte y reinterpreta como UTF-8
-        return decodeURIComponent(escape(str));
-    } catch {
-        return str; // Si falla, devuelve el original sin romper nada
+        const bytes = new Uint8Array(str.split('').map(c => {
+            const code = c.charCodeAt(0);
+            return map[code] || (code < 256 ? code : 63);
+        }));
+        const decoded = new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+        return decoded;
+    } catch (e) {
+        // Fallback manual ultra-específico si falla el decodificador
+        return str
+            .replace(/â€“/g, '–')
+            .replace(/â€”/g, '—')
+            .replace(/â€/g, '"')
+            .replace(/Ã¡/g, 'á')
+            .replace(/Ã©/g, 'é')
+            .replace(/Ã/g, 'í')
+            .replace(/Ã³/g, 'ó')
+            .replace(/Ãº/g, 'ú')
+            .replace(/Ã±/g, 'ñ');
     }
 };
 // ─────────────────────────────────────────────────────────────────────────────
@@ -39,7 +69,32 @@ const Deudas = () => {
         setLoading(true);
         try {
             const data = await deudasDB.getAll();
-            setDeudas(data);
+            // Corregimos la codificación de toda la data al entrar
+            const fixedData = (data || []).map(d => {
+                // Limpieza agresiva de patrones comunes
+                const clean = (txt) => {
+                    if (!txt || typeof txt !== 'string') return txt;
+                    let t = fixText(txt);
+                    // Refuerzo manual por si fixText falló en alguna secuencia
+                    return t.replace(/â€“/g, '–')
+                            .replace(/â€”/g, '—')
+                            .replace(/â€/g, '"')
+                            .replace(/Ã¡/g, 'á')
+                            .replace(/Ã©/g, 'é')
+                            .replace(/Ã/g, 'í')
+                            .replace(/Ã³/g, 'ó')
+                            .replace(/Ãº/g, 'ú')
+                            .replace(/Ã±/g, 'ñ');
+                };
+
+                return {
+                    ...d,
+                    acreedor: clean(d.acreedor),
+                    tipo: clean(d.tipo),
+                    notas: clean(d.notas)
+                };
+            });
+            setDeudas(fixedData);
         } catch (error) {
             console.error(error);
             toast.error('Error al cargar deudas');
@@ -89,7 +144,7 @@ const Deudas = () => {
 
     const handleEditClick = (deuda) => {
         setFormData({
-            acreedor: deuda.acreedor,
+            acreedor: deuda.acreedor, // Ya vienen fijos de fetchDeudas
             tipo: deuda.tipo,
             monto_total: deuda.monto_total,
             fecha_vencimiento: deuda.fecha_vencimiento ? String(deuda.fecha_vencimiento).substring(0, 10) : '',
@@ -312,14 +367,13 @@ const Deudas = () => {
                                             </span>
                                             {/* fixText aplicado al acreedor */}
                                             <h4 className="font-black text-gray-800 text-sm md:text-lg leading-tight uppercase truncate w-full">
-                                                {fixText(deuda.acreedor)}
+                                                {deuda.acreedor}
                                             </h4>
-                                            <p className="text-[10px] font-semibold text-gray-500 tracking-wider uppercase">{fixText(deuda.tipo)}</p>
+                                            <p className="text-[10px] font-semibold text-gray-500 tracking-wider uppercase">{deuda.tipo}</p>
                                         </div>
-                                        {/* fixText aplicado a las notas */}
                                         {deuda.notas && (
                                             <p className="text-[10px] md:text-[11px] text-gray-500 italic bg-gray-50 p-1.5 md:p-2 rounded-md border border-gray-100 line-clamp-2">
-                                                "{fixText(deuda.notas)}"
+                                                "{deuda.notas}"
                                             </p>
                                         )}
                                     </div>

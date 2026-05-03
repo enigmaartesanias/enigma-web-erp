@@ -380,68 +380,95 @@ export const ventasDB = {
     // Recibe fechaInicio y fechaFin en formato 'YYYY-MM-DD'
     // Devuelve: [{ nombre, tipo, metal, und_stock, und_pedido, total_unidades, total_dinero }]
     // ─────────────────────────────────────────────────────────────
+    // ─────────────────────────────────────────────────────────────
+    // REPORTE DE POPULARIDAD (ranking calculado unificando Pedidos y Stock)
+    // ─────────────────────────────────────────────────────────────
+    // ─────────────────────────────────────────────────────────────
+    // REPORTE DE POPULARIDAD v2 (Jerárquico y Limpio)
+    // ─────────────────────────────────────────────────────────────
     async getPopularidadRanking(fechaInicio, fechaFin) {
         try {
             const rows = await sql`
-                WITH pedidos_lineas AS (
-                    SELECT
-                        COALESCE(NULLIF(TRIM(dp.tipo_producto), ''), 'Varios') AS tipo,
-                        COALESCE(NULLIF(TRIM(dp.metal), ''), 'Sin metal')       AS metal,
-                        COALESCE(dp.cantidad, 1)                                AS cantidad,
-                        -- Valor total de esta línea
-                        COALESCE(dp.precio_unitario::DECIMAL * dp.cantidad::DECIMAL, 0) AS monto_total,
-                        -- Recaudado: Proporción del pago a cuenta según el peso de esta línea en el total del pedido
-                        CASE 
-                            WHEN COALESCE(p.precio_total, 0) > 0 
-                            THEN ( (COALESCE(dp.precio_unitario, 0) * COALESCE(dp.cantidad, 0)) / p.precio_total::DECIMAL ) * COALESCE(p.monto_a_cuenta, 0)
-                            ELSE 0 
-                        END AS monto_recaudado,
-                        'pedido' AS origen
-                    FROM detalles_pedido dp
-                    JOIN pedidos p ON p.id_pedido = dp.id_pedido
-                    WHERE DATE(p.fecha_pedido) >= ${fechaInicio}::date
-                      AND DATE(p.fecha_pedido) <= ${fechaFin}::date
-                ),
-                ventas_lineas AS (
-                    SELECT
-                        COALESCE(NULLIF(TRIM(dv.producto_nombre), ''), 'Producto') AS tipo,
-                        '—'                                                         AS metal,
-                        COALESCE(dv.cantidad, 1)                                   AS cantidad,
-                        COALESCE(dv.subtotal::DECIMAL, 0)                          AS monto_total,
-                        COALESCE(dv.subtotal::DECIMAL, 0)                          AS monto_recaudado, -- En stock se recauda el 100%
-                        'stock' AS origen
-                    FROM detalles_venta dv
-                    JOIN ventas v ON v.id = dv.venta_id
-                    WHERE (v.estado IS NULL OR v.estado != 'ANULADA')
-                      AND v.origen_venta = 'stock'
-                      AND DATE(v.fecha_venta) >= ${fechaInicio}::date
-                      AND DATE(v.fecha_venta) <= ${fechaFin}::date
-                )
+                -- FUENTE 1: Pedidos (Producción Terminada)
                 SELECT
-                    tipo AS nombre,
-                    tipo,
-                    metal,
-                    SUM(CASE WHEN origen = 'stock'  THEN cantidad ELSE 0 END)::INTEGER      AS und_stock,
-                    SUM(CASE WHEN origen = 'pedido' THEN cantidad ELSE 0 END)::INTEGER      AS und_pedido,
-                    SUM(cantidad)::INTEGER                                                  AS total_unidades,
-                    SUM(monto_total)::DECIMAL(10,2)                                         AS total_dinero,
-                    SUM(monto_recaudado)::DECIMAL(10,2)                                     AS total_recaudado
-                FROM (
-                    SELECT * FROM pedidos_lineas
-                    UNION ALL
-                    SELECT * FROM ventas_lineas
-                ) unificado
-                GROUP BY tipo, metal
-                ORDER BY total_unidades DESC, total_dinero DESC
+                    COALESCE(NULLIF(TRIM(UPPER(pt.tipo_producto)), ''), 'SIN CLASIFICAR') AS tipo,
+                    COALESCE(NULLIF(TRIM(UPPER(pt.metal)), ''), 'OTROS') AS metal,
+                    SUM(pt.cantidad) AS unidades,
+                    SUM(COALESCE(p.precio_total, 0)) AS ingreso,
+                    SUM((COALESCE(pt.costo_materiales, 0) + COALESCE(pt.mano_de_obra, 0) + COALESCE(pt.costo_herramientas, 0) + COALESCE(pt.otros_gastos, 0)) * pt.cantidad) AS costo,
+                    'pedido' AS origen
+                FROM produccion_taller pt
+                LEFT JOIN pedidos p ON pt.pedido_id = p.id_pedido
+                WHERE pt.tipo_produccion = 'PEDIDO'
+                  AND pt.estado_produccion = 'terminado'
+                  AND pt.fecha_produccion::date BETWEEN ${fechaInicio}::date AND ${fechaFin}::date
+                GROUP BY 1, 2
+
+                UNION ALL
+
+                -- FUENTE 2: Stock (Ventas Completadas)
+                SELECT
+                    COALESCE(NULLIF(TRIM(UPPER(pe.categoria)), ''), 'SIN CLASIFICAR') AS tipo,
+                    COALESCE(NULLIF(TRIM(UPPER(pe.material)), ''), 'OTROS') AS metal,
+                    SUM(dv.cantidad) AS unidades,
+                    SUM(dv.subtotal::numeric) AS ingreso,
+                    0 AS costo,
+                    'stock' AS origen
+                FROM detalles_venta dv
+                JOIN ventas v ON v.id = dv.venta_id
+                JOIN productos_externos pe ON pe.id = dv.producto_id
+                WHERE v.estado = 'COMPLETADO'
+                  AND v.origen_venta = 'stock'
+                  AND v.fecha_venta::date BETWEEN ${fechaInicio}::date AND ${fechaFin}::date
+                GROUP BY 1, 2
             `;
-            return rows.map(r => ({
-                ...r,
-                und_stock:      Number(r.und_stock),
-                und_pedido:     Number(r.und_pedido),
-                total_unidades: Number(r.total_unidades),
-                total_dinero:   parseFloat(r.total_dinero) || 0,
-                total_recaudado: parseFloat(r.total_recaudado) || 0
-            }));
+
+            const cleanMetal = (m) => {
+                const val = m.toUpperCase();
+                if (val === 'SIN METAL' || val === 'BISUTERÍA' || val === 'BISUTERIA' || val === 'OTROS') return 'OTROS';
+                return m;
+            };
+
+            // Agrupación Jerárquica por TIPO
+            const mapaTipos = {};
+            for (const row of rows) {
+                const tipo = row.tipo;
+                const metal = cleanMetal(row.metal);
+                
+                if (!mapaTipos[tipo]) {
+                    mapaTipos[tipo] = {
+                        tipo_producto: tipo,
+                        unidades: 0,
+                        ingreso: 0,
+                        costo: 0,
+                        detalles: {} // Agrupado por metal
+                    };
+                }
+
+                const t = mapaTipos[tipo];
+                t.unidades += Number(row.unidades) || 0;
+                t.ingreso  += Number(row.ingreso)  || 0;
+                t.costo    += Number(row.costo)    || 0;
+
+                if (!t.detalles[metal]) {
+                    t.detalles[metal] = { metal: metal, unidades: 0, ingreso: 0, und_pedido: 0, und_stock: 0 };
+                }
+                const d = t.detalles[metal];
+                d.unidades += Number(row.unidades) || 0;
+                d.ingreso  += Number(row.ingreso)  || 0;
+                if (row.origen === 'pedido') d.und_pedido += Number(row.unidades) || 0;
+                if (row.origen === 'stock')  d.und_stock  += Number(row.unidades) || 0;
+            }
+
+            // Convertir a array y ordenar
+            return Object.values(mapaTipos)
+                .map(t => ({
+                    ...t,
+                    detalles: Object.values(t.detalles).sort((a, b) => b.unidades - a.unidades),
+                    ganancia: t.ingreso - t.costo
+                }))
+                .sort((a, b) => b.unidades - a.unidades);
+
         } catch (error) {
             console.error('Error en getPopularidadRanking:', error);
             throw error;

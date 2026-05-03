@@ -87,9 +87,9 @@ const ReporteFinanciero = () => {
   const r = reporte || {};
   
   // Agrupación de INGRESOS
-  const vInternet = parseNum(r.ventas_internet);
-  const vTienda   = parseNum(r.ventas_tienda);
-  const totalIngresos = vInternet + vTienda;
+  const vPedidos = parseNum(r.ingresos_pedidos);
+  const vStock   = parseNum(r.ingresos_stock);
+  const totalIngresos = parseNum(r.ingresos_total);
 
   // Agrupación de COSTOS DE PRODUCCIÓN
   const cMateriales   = parseNum(r.costo_materiales);
@@ -99,15 +99,21 @@ const ReporteFinanciero = () => {
   const cEnvio        = parseNum(r.costo_envio);
   const totalProduccion = cMateriales + cManoObra + cHerramientas + cEmpaque + cEnvio;
 
+  // MARGEN BRUTO
+  const margenBruto = totalIngresos - totalProduccion;
+
   // Agrupación de GASTOS OPERATIVOS
   const gFijos     = parseNum(r.gastos_fijos);
-  const gVariables = parseNum(r.gastos_variables); // Ya no se calcula derivado (Gas+Luz), se usa el de la BD
+  const gVariables = parseNum(r.gastos_variables); 
+  const totalGastosOp = gFijos + gVariables;
 
-  // RESULTADO NETO (Usar el de la BD directamente)
+  // RESULTADO NETO
   const neto = parseNum(r.resultado_neto);
   const esGanancia = neto >= 0;
 
   const piezasProducidas = parseInt2(r.piezas_producidas);
+  const numPedidos = parseInt2(r.num_pedidos);
+  const numVentas  = parseInt2(r.num_ventas);
 
   const periodoLabel = (p) => {
     if (!p) return '';
@@ -172,24 +178,24 @@ const ReporteFinanciero = () => {
             {/* SECCIÓN 2 — KPIs del Mes (4 cards) */}
             <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
               <KPICard 
-                label="INGRESOS" 
+                label="INGRESOS TOTALES" 
                 value={fmt(totalIngresos)}
-                sub={`${parseInt2(r.num_pedidos)} pedido${parseInt2(r.num_pedidos) !== 1 ? 's' : ''}`}
-                color="text-gray-900" 
-                border="border-emerald-500" 
+                sub={`${numVentas} ventas / ${numPedidos} ped.`}
+                color="text-indigo-600" 
+                border="border-indigo-500" 
               />
               <KPICard 
-                label="COSTOS PRODUCCIÓN" 
-                value={fmt(totalProduccion)}
-                sub="mat+obra"
-                color="text-gray-900" 
-                border="border-amber-400" 
+                label="MARGEN BRUTO" 
+                value={fmt(margenBruto)}
+                sub="ingreso - prod"
+                color="text-emerald-600" 
+                border="border-emerald-400" 
               />
               <KPICard 
-                label="GASTOS FIJOS" 
-                value={fmt(gFijos)}
-                sub="alq+servic."
-                color="text-gray-900" 
+                label="GASTOS OPERATIVOS" 
+                value={fmt(totalGastosOp)}
+                sub="fijos + variables"
+                color="text-rose-600" 
                 border="border-rose-400" 
               />
               <KPICard 
@@ -198,7 +204,7 @@ const ReporteFinanciero = () => {
                 sub={esGanancia ? 'ganancia del mes' : '⚠ pérdida del mes'}
                 subColor={esGanancia ? 'text-emerald-500' : 'text-rose-500'}
                 color={esGanancia ? 'text-emerald-600' : 'text-rose-600'}
-                border={esGanancia ? 'border-emerald-500' : 'border-rose-500'} 
+                border={esGanancia ? 'border-emerald-600' : 'border-rose-600'} 
               />
             </div>
 
@@ -217,12 +223,22 @@ const ReporteFinanciero = () => {
                   {/* INGRESOS */}
                   <div className="text-xs uppercase tracking-widest text-gray-400 mb-2">── INGRESOS ──────────────────────────────────</div>
                   <div className="flex justify-between items-center py-1.5">
-                    <span className="text-sm text-gray-600">🌐 Ventas Internet</span>
-                    <span className={`font-medium text-sm ${vInternet > 0 ? 'text-gray-900' : 'text-gray-300'}`}>{fmt(vInternet)}</span>
+                    <span className="text-sm text-gray-600">🛍 Ventas Directas (Stock)</span>
+                    <span className={`font-medium text-sm ${vStock > 0 ? 'text-gray-900' : 'text-gray-300'}`}>{fmt(vStock)}</span>
                   </div>
                   <div className="flex justify-between items-center py-1.5">
-                    <span className="text-sm text-gray-600">🏪 Ventas Tienda / WA</span>
-                    <span className={`font-medium text-sm ${vTienda > 0 ? 'text-gray-900' : 'text-gray-300'}`}>{fmt(vTienda)}</span>
+                    <span className="text-sm text-gray-600">📝 Pedidos (Personalizados)</span>
+                    <span className={`font-medium text-sm ${vPedidos > 0 ? 'text-gray-900' : 'text-gray-300'}`}>{fmt(vPedidos)}</span>
+                  </div>
+
+                  {/* DESGLOSE POR MÉTODO (Sub-detalle) */}
+                  <div className="flex gap-4 mt-1 px-4 border-l-2 border-gray-100">
+                    <span className="text-[11px] text-gray-400">
+                      💵 Efectivo: <span className="font-semibold text-gray-500">{fmt(parseNum(r.ingresos_efectivo))}</span>
+                    </span>
+                    <span className="text-[11px] text-gray-400">
+                      💳 Tarjeta/Digital: <span className="font-semibold text-gray-500">{fmt(parseNum(r.ingresos_digital))}</span>
+                    </span>
                   </div>
 
                   {/* COSTOS DE PRODUCCIÓN */}

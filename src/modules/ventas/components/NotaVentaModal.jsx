@@ -48,16 +48,19 @@ const NotaVentaModal = ({ isOpen, onClose, ventaData }) => {
             canvas.toBlob((blob) => {
                 const file = new File([blob], `nota-venta-${ventaData.numeroVenta}.jpg`, { type: 'image/jpeg' });
 
+                // Asegurarnos de que el total sea un número antes de usar toFixed
+                const totalFormateado = Number(ventaData.total || 0).toFixed(2);
+
                 // Intentar usar Web Share API si está disponible
                 if (navigator.canShare && navigator.canShare({ files: [file] })) {
                     navigator.share({
                         files: [file],
                         title: 'Nota de Venta',
-                        text: `Nota de Venta #${ventaData.numeroVenta} - Total: S/ ${ventaData.total.toFixed(2)}`
+                        text: `Nota de Venta #${ventaData.numeroVenta} - Total: S/ ${totalFormateado}`
                     }).catch(err => console.log('Error al compartir:', err));
                 } else {
                     // Fallback: abrir WhatsApp Web
-                    const texto = encodeURIComponent(`Nota de Venta #${ventaData.numeroVenta}\nTotal: S/ ${ventaData.total.toFixed(2)}`);
+                    const texto = encodeURIComponent(`Nota de Venta #${ventaData.numeroVenta}\nTotal: S/ ${totalFormateado}`);
                     window.open(`https://wa.me/?text=${texto}`, '_blank');
                     alert('La imagen se ha descargado. Compártela manualmente en WhatsApp.');
                     handleDescargar();

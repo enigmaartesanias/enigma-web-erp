@@ -92,14 +92,24 @@ export default function Inventario() {
         });
     };
 
+    // --- AQUÍ ESTÁ LA CORRECCIÓN DEL FILTRO ---
     const filteredProductos = productos.filter(p => {
-        const matchesSearch = p.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            p.codigo_usuario.toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesCategory = !selectedCategory || p.categoria === selectedCategory;
+        const matchesSearch =
+            (p.nombre && p.nombre.toLowerCase().includes(searchTerm.toLowerCase())) ||
+            (p.codigo_usuario && p.codigo_usuario.toLowerCase().includes(searchTerm.toLowerCase()));
+
+        const matchesCategory = !selectedCategory ||
+            (p.categoria && p.categoria.toUpperCase() === selectedCategory.toUpperCase());
+
         return matchesSearch && matchesCategory;
     });
 
-    const categorias = [...new Set(productos.map(p => p.categoria).filter(Boolean))];
+    // --- AQUÍ ESTÁ LA CORRECCIÓN DE LA LISTA DE CATEGORÍAS (SIN DUPLICADOS) ---
+    const categorias = [...new Set(
+        productos
+            .map(p => p.categoria ? p.categoria.toUpperCase() : '')
+            .filter(Boolean)
+    )].sort();
 
     const stats = {
         total: filteredProductos.length,
@@ -248,7 +258,7 @@ export default function Inventario() {
                     </div>
                 </div>
 
-                {/* Table (Manteniendo tu estructura funcional) */}
+                {/* Table */}
                 <div className="bg-white rounded-lg shadow-sm overflow-hidden overflow-x-auto">
                     {loading ? (
                         <div className="p-8 text-center text-gray-500">Cargando productos...</div>

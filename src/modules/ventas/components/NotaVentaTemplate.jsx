@@ -49,7 +49,8 @@ const NotaVentaTemplate = ({ ventaData }) => {
                             </div>
                             <div className="text-right flex-shrink-0 ml-2">
                                 <span className="text-[12px] text-gray-500 font-semibold tracking-tighter">
-                                    S/ {((p.cantidad || 0) * (p.precioUnitario || 0)).toFixed(2)}
+                                    {/* CORRECCIÓN AQUÍ: Asegurar que el cálculo sea un número */}
+                                    S/ {Number((p.cantidad || 0) * (p.precioUnitario || 0)).toFixed(2)}
                                 </span>
                             </div>
                         </div>
@@ -61,7 +62,8 @@ const NotaVentaTemplate = ({ ventaData }) => {
             <div className="border-t border-gray-100 pt-3 mt-6 px-1">
                 <div className="flex justify-between items-center">
                     <span className="text-[12px] font-bold text-gray-800 uppercase">Total a Pagar:</span>
-                    <span className="text-[14px] font-bold text-gray-900">S/ {(total || 0).toFixed(2)}</span>
+                    {/* CORRECCIÓN PRINCIPAL AQUÍ: Envolver el total en Number() */}
+                    <span className="text-[14px] font-bold text-gray-900">S/ {Number(total || 0).toFixed(2)}</span>
                 </div>
                 {formaPago && (
                     <div className="flex justify-between items-center mt-1">

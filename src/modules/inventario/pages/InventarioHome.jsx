@@ -8,9 +8,10 @@ import {
 import { FaChartLine, FaMoneyBillWave } from 'react-icons/fa';
 import { pedidosDB } from '../../../utils/pedidosNeonClient';
 import { produccionDB } from '../../../utils/produccionNeonClient';
+import { cuentasPorCobrarDB } from '../../../utils/cuentasPorCobrarClient';
 
 export default function InventarioHome() {
-    const [counts, setCounts] = useState({ pending: 0, production: 0, porIngresar: 0 });
+    const [counts, setCounts] = useState({ pending: 0, production: 0, porIngresar: 0, deudasPendientes: 0, deudasVencidas: 0 });
     const [isRefreshing, setIsRefreshing] = useState(false);
 
     useEffect(() => {
@@ -22,9 +23,10 @@ export default function InventarioHome() {
     const fetchStatus = async () => {
         setIsRefreshing(true);
         try {
-            const [pedidos, pendientesInv] = await Promise.all([
+            const [pedidos, pendientesInv, resumenDeudas] = await Promise.all([
                 pedidosDB.getAll(),
-                produccionDB.getPendientesInventario()
+                produccionDB.getPendientesInventario(),
+                cuentasPorCobrarDB.getResumen()
             ]);
 
             const pendingCount = pedidos.filter(p =>
@@ -42,7 +44,9 @@ export default function InventarioHome() {
             setCounts({
                 pending: pendingCount,
                 production: productionCount,
-                porIngresar: pendientesInv.length
+                porIngresar: pendientesInv.length,
+                deudasPendientes: resumenDeudas.totalCuentas,
+                deudasVencidas: resumenDeudas.cuentasVencidas
             });
         } catch (error) {
             console.error('Error fetching status:', error);
@@ -118,7 +122,7 @@ export default function InventarioHome() {
             order: 'order-last',
             items: [
                 { label: 'GASTOS', sub: 'Fijos y variables', path: '/gastos', icon: Receipt, color: 'text-purple-600' },
-                { label: 'CUENTAS POR COBRAR', sub: 'Gestión de créditos', path: '/cuentas-por-cobrar', icon: FileText, color: 'text-gray-400' }
+                { label: 'CUENTAS POR COBRAR', id: 'deudas', sub: 'Gestión de créditos', path: '/cuentas-por-cobrar', icon: FileText, color: 'text-gray-400' }
             ]
         }
     ];
@@ -134,12 +138,20 @@ export default function InventarioHome() {
 
     const IndividualCard = ({ item }) => {
         let statusText = null;
-        const statusColor = "text-amber-600 bg-amber-50 border-amber-100";
+        let statusColor = "text-amber-600 bg-amber-50 border-amber-100";
 
         if (item.id === 'pedidos' && counts.pending > 0) {
             statusText = `${counts.pending} PENDIENTES`;
         } else if (item.id === 'reporte_inventario' && counts.porIngresar > 0) {
             statusText = `${counts.porIngresar} POR INGRESAR`;
+        } else if (item.id === 'deudas') {
+            if (counts.deudasVencidas > 0) {
+                statusText = `${counts.deudasVencidas} VENCIDAS`;
+                statusColor = "text-red-600 bg-red-50 border-red-100";
+            } else if (counts.deudasPendientes > 0) {
+                statusText = `${counts.deudasPendientes} PENDIENTES`;
+                statusColor = "text-blue-600 bg-blue-50 border-blue-100";
+            }
         }
 
         return (
@@ -167,14 +179,22 @@ export default function InventarioHome() {
     return (
         <div className="min-h-screen bg-neutral-50/30 pb-20">
             <header className="bg-white/80 backdrop-blur-md sticky top-0 z-50 border-b border-gray-100">
-                <div className="max-w-6xl mx-auto px-6 py-8 flex flex-col items-center text-center">
-                    <div className="flex items-center gap-4 mb-2">
-                        <Link to="/admin" className="text-[11px] font-medium text-gray-400 hover:text-black">
+                <div className="max-w-6xl mx-auto px-6 py-4 sm:py-8 flex flex-col items-center text-center">
+                    <div className="flex items-center gap-4 mb-1">
+                        <Link to="/admin" className="text-[10px] sm:text-[11px] font-medium text-gray-400 hover:text-black">
                             ← Volver al Panel Admin
                         </Link>
-                        <button onClick={fetchStatus} className={isRefreshing ? 'animate-spin text-blue-500' : 'text-gray-300'}><RefreshCw size={12} /></button>
+                        <button onClick={fetchStatus} className={isRefreshing ? 'animate-spin text-blue-500' : 'text-gray-300'}><RefreshCw size={10} /></button>
                     </div>
-                    <h1 className="text-2xl sm:text-3xl font-normal text-gray-900 tracking-tight">Enigma Sistema ERP</h1>
+                    <h1 className="text-xl sm:text-3xl font-normal text-gray-900 tracking-tight leading-none mb-1">Enigma Sistema ERP</h1>
+                    <a
+                        href="https://artesaniasenigma.com/"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[9px] sm:text-[10px] text-blue-500 hover:underline opacity-80"
+                    >
+                        artesaniasenigma.com
+                    </a>
                 </div>
             </header>
 

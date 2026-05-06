@@ -103,6 +103,7 @@ const Produccion = () => {
         mano_de_obra: '',
         costo_herramientas: '',
         otros_gastos: '',
+        costo_insumos_extra: '',
         estado_produccion: 'en_proceso', // Valor por defecto automatico
         observaciones: '',
         imagen_url: '', // Nuevo campo imagen
@@ -270,6 +271,7 @@ const Produccion = () => {
             mano_de_obra: item.mano_de_obra || '',
             costo_herramientas: item.costo_herramientas || '',
             otros_gastos: item.otros_gastos || '',
+            costo_insumos_extra: item.costo_insumos_extra || '',
             estado_produccion: item.estado_produccion || 'pendiente',
             observaciones: item.observaciones || '',
             imagen_url: item.imagen_url || '',
@@ -566,6 +568,7 @@ const Produccion = () => {
             mano_de_obra: '',
             costo_herramientas: '',
             otros_gastos: '',
+            costo_insumos_extra: '',
             estado_produccion: 'en_proceso',
             observaciones: '',
             imagen_url: '',
@@ -591,16 +594,16 @@ const Produccion = () => {
 
         try {
             if (editingId) {
-                await produccionDB.update(editingId, {
+                const payload = {
                     metal: formData.metal,
                     tipo_producto: formData.tipo_producto,
                     nombre_producto: formData.nombre_producto,
                     cantidad: parseInt(formData.cantidad),
-                    costo_materiales: parseFloat(formData.costo_materiales) || 0,
-                    mano_de_obra: parseFloat(formData.mano_de_obra) || 0,
-                    porcentaje_alquiler: parseFloat(formData.porcentaje_alquiler) || 0,
-                    costo_herramientas: parseFloat(formData.costo_herramientas) || 0,
-                    otros_gastos: parseFloat(formData.otros_gastos) || 0,
+                    costo_materiales: calculosProduccion.costoMetalTotal + calculosProduccion.costoInsumosExtraTotal,
+                    mano_de_obra: calculosProduccion.costoManoObraTotal,
+                    costo_herramientas: calculosProduccion.costoDesgasteTotal,
+                    otros_gastos: 0,
+                    costo_insumos_extra: calculosProduccion.costoInsumosExtraTotal,
                     estado_produccion: formData.estado_produccion,
                     observaciones: formData.observaciones,
                     imagen_url: formData.imagen_url,
@@ -614,7 +617,9 @@ const Produccion = () => {
                     es_bisuteria: formData.es_bisuteria,
                     costo_empaque: parseFloat(formData.costo_empaque) || 0,
                     costo_envio_asumido: parseFloat(formData.costo_envio_asumido) || 0
-                });
+                };
+
+                await produccionDB.update(editingId, payload);
 
                 setShowSuccessModal(true);
                 setTimeout(() => setShowSuccessModal(false), 3000);
@@ -626,26 +631,31 @@ const Produccion = () => {
                     pedidoIdToSave = parseInt(parts[0]) || null;
                 }
 
-                await produccionDB.create({
+                const payload = {
                     pedido_id: pedidoIdToSave,
                     tipo_produccion: formData.tipo_produccion,
                     metal: formData.metal,
                     tipo_producto: formData.tipo_producto,
                     nombre_producto: formData.nombre_producto,
                     cantidad: parseInt(formData.cantidad),
-                    costo_materiales: parseFloat(formData.costo_materiales) || 0,
-                    mano_de_obra: parseFloat(formData.mano_de_obra) || 0,
-                    porcentaje_alquiler: parseFloat(formData.porcentaje_alquiler) || 0,
-                    costo_herramientas: parseFloat(formData.costo_herramientas) || 0,
-                    otros_gastos: parseFloat(formData.otros_gastos) || 0,
+                    costo_materiales: calculosProduccion.costoMetalTotal + calculosProduccion.costoInsumosExtraTotal,
+                    mano_de_obra: calculosProduccion.costoManoObraTotal,
+                    costo_herramientas: calculosProduccion.costoDesgasteTotal,
+                    otros_gastos: 0,
+                    costo_insumos_extra: calculosProduccion.costoInsumosExtraTotal,
                     estado_produccion: formData.estado_produccion,
                     observaciones: formData.observaciones,
                     imagen_url: formData.imagen_url,
                     codigo_producto: formData.codigo_producto,
                     fecha_produccion: formData.fecha_produccion,
                     complejidad: formData.complejidad,
-                    precio_sugerido: precioSugerido
-                });
+                    precio_sugerido: precioSugerido,
+                    peso_material_gramos: parseFloat(formData.peso_material_gramos) || 0,
+                    horas_trabajo_real: parseFloat(formData.horas_trabajo_real) || 0,
+                    sueldo_hora_objetivo: parseFloat(formData.sueldo_hora_objetivo) || 15.00
+                };
+
+                await produccionDB.create(payload);
 
                 setShowSuccessModal(true);
                 setTimeout(() => setShowSuccessModal(false), 3000);
@@ -906,15 +916,41 @@ const Produccion = () => {
         }
     };
 
-    // Calcular costo total en tiempo real (Modelo Artesanal: Suma Directa)
-    const costoTotalUnitario =
-        (parseFloat(formData.costo_materiales) || 0) +
-        (parseFloat(formData.mano_de_obra) || 0) +
-        (parseFloat(formData.costo_herramientas) || 0) +
-        (parseFloat(formData.otros_gastos) || 0);
+    // Lógica de Cálculo Parametrizado (useMemo)
+    const calculosProduccion = useMemo(() => {
+        const cantidad = parseInt(formData.cantidad) || 1;
+        const metalSeleccionado = metalesDisponibles.find(m => m.nombre === formData.metal);
+        const precioGramoMetal = metalSeleccionado ? parseFloat(metalSeleccionado.precio_gramo) : 0;
 
-    const costoTotalProduccion = costoTotalUnitario * (parseInt(formData.cantidad) || 1);
-    const precioSugerido = costoTotalUnitario * 1.5;
+        // 1. CÁLCULOS TOTALES DEL LOTE (Basado en los inputs)
+        const costoMetalTotal = (parseFloat(formData.peso_material_gramos) || 0) * precioGramoMetal;
+        
+        const factores = { 'Baja': 1.0, 'Media': 1.2, 'Alta': 1.5 };
+        const factorComplejidad = factores[formData.complejidad] || 1.2;
+        const costoManoObraTotal = (parseFloat(formData.horas_trabajo_real) || 0) * (parseFloat(formData.sueldo_hora_objetivo) || 15) * factorComplejidad;
+        
+        const costoDesgasteTotal = (costoMetalTotal + costoManoObraTotal) * 0.15;
+        const costoInsumosExtraTotal = parseFloat(formData.costo_insumos_extra) || 0;
+
+        const costoTotalProduccion = costoMetalTotal + costoManoObraTotal + costoDesgasteTotal + costoInsumosExtraTotal;
+
+        // 2. CÁLCULOS UNITARIOS (Para 1 sola pieza)
+        const costoMetal = costoMetalTotal / cantidad;
+        const costoManoObra = costoManoObraTotal / cantidad;
+        const costoDesgaste = costoDesgasteTotal / cantidad;
+        const costoInsumosExtra = costoInsumosExtraTotal / cantidad;
+        const costoTotalUnitario = costoTotalProduccion / cantidad;
+
+        // Estrategia doble margen aplicada a 1 sola pieza
+        const precioSugerido = ((costoMetal + costoManoObra + costoDesgaste) * 2.0) + (costoInsumosExtra * 1.5);
+
+        return {
+            costoMetal, costoManoObra, costoDesgaste, costoInsumosExtra, costoTotalUnitario, precioSugerido,
+            costoMetalTotal, costoManoObraTotal, costoDesgasteTotal, costoInsumosExtraTotal, costoTotalProduccion, cantidad
+        };
+    }, [formData, metalesDisponibles]);
+
+    const { costoTotalUnitario, precioSugerido, costoTotalProduccion } = calculosProduccion;
 
 
 
@@ -1107,13 +1143,17 @@ const Produccion = () => {
                             {formData.metal !== 'BISUTERIA' && (
                                 <>
                                     <div>
-                                        <label className="block text-xs font-semibold text-gray-700 mb-1">Peso (g)</label>
+                                        <label className="block text-xs font-semibold text-gray-700 mb-1">
+                                            {parseInt(formData.cantidad) > 1 ? 'Peso total del lote (g)' : 'Peso (g)'}
+                                        </label>
                                         <input type="number" step="0.1" name="peso_material_gramos" placeholder="0.0"
                                             value={formData.peso_material_gramos} onChange={handleChange}
                                             className="w-full rounded-md border p-2 text-sm focus:ring-blue-500" />
                                     </div>
                                     <div>
-                                        <label className="block text-xs font-semibold text-gray-700 mb-1">Tiempo (hrs)</label>
+                                        <label className="block text-xs font-semibold text-gray-700 mb-1">
+                                            {parseInt(formData.cantidad) > 1 ? 'Tiempo total del lote (hrs)' : 'Tiempo (hrs)'}
+                                        </label>
                                         <input type="number" step="0.1" name="horas_trabajo_real" placeholder="0.0"
                                             value={formData.horas_trabajo_real} onChange={handleChange}
                                             className="w-full rounded-md border p-2 text-sm focus:ring-blue-500" />
@@ -1135,81 +1175,72 @@ const Produccion = () => {
                                 <span className="text-xs font-mono font-bold text-gray-700">CF Fijo: S/ {(64.58 / piezasMes).toFixed(2)} /pz</span>
                             </div>
                         </div>
+                        {/* Insumos Extra (Piedras) */}
                         <div>
-                            <label className="block text-xs font-semibold text-gray-700 mb-1">Materiales</label>
+                            <label className="block text-xs font-semibold text-gray-700 mb-1">
+                                {parseInt(formData.cantidad) > 1 ? 'Insumos Extra totales (S/)' : 'Insumos Extra (S/)'}
+                            </label>
                             <input
                                 type="number"
                                 step="0.01"
-                                name="costo_materiales"
-                                className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2 bg-white"
+                                name="costo_insumos_extra"
                                 placeholder="0.00"
-                                value={formData.costo_materiales}
+                                value={formData.costo_insumos_extra}
                                 onChange={handleChange}
+                                className="w-full rounded-md border p-2 text-sm focus:ring-blue-500 border-blue-200 bg-blue-50/30"
                             />
                         </div>
 
-                        <div>
-                            <label className="block text-xs font-semibold text-gray-700 mb-1">Mano de obra</label>
-                            <input
-                                type="number"
-                                step="0.01"
-                                name="mano_de_obra"
-                                className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2 bg-white"
-                                placeholder="0.00"
-                                value={formData.mano_de_obra}
-                                onChange={handleChange}
-                            />
+                        {/* Inputs antiguos ocultos para compatibilidad */}
+                        <div style={{ display: 'none' }}>
+                            <input type="number" name="costo_materiales" value={formData.costo_materiales} readOnly />
+                            <input type="number" name="mano_de_obra" value={formData.mano_de_obra} readOnly />
+                            <input type="number" name="costo_herramientas" value={formData.costo_herramientas} readOnly />
+                            <input type="number" name="otros_gastos" value={formData.otros_gastos} readOnly />
                         </div>
-
-                        <div>
-                            <label className="block text-xs font-semibold text-gray-700 mb-1">Herramientas</label>
-                            <input
-                                type="number"
-                                step="0.01"
-                                name="costo_herramientas"
-                                className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2 bg-white"
-                                placeholder="0.00"
-                                value={formData.costo_herramientas}
-                                onChange={handleChange}
-                            />
-                        </div>
-
-                        <div>
-                            <label className="block text-xs font-semibold text-gray-700 mb-1">Otros gastos</label>
-                            <input
-                                type="number"
-                                step="0.01"
-                                name="otros_gastos"
-                                className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2 bg-white"
-                                placeholder="0.00"
-                                value={formData.otros_gastos}
-                                onChange={handleChange}
-                            />
-                        </div>
-
-
-
-                        {/* Info de Costos en Mobile ocupa 2 col, desktop 1 */}
                     </div>
 
-                    {/* Cálculos */}
-                    <div className="mt-4 bg-white rounded-lg p-3 border-2 border-blue-200 shadow-sm">
-                        <div className="grid grid-cols-2 gap-2 text-sm">
-                            <div className="flex justify-between items-center pb-2 border-b border-gray-100 col-span-2">
-                                <span className="text-gray-600 font-medium">Costo unitario:</span>
-                                <span className="font-bold text-gray-800">S/ {costoTotalUnitario.toFixed(2)}</span>
-                            </div>
-                            <div className="flex justify-between items-center col-span-2 pt-2 pb-2 border-b border-gray-100">
-                                <span className="text-gray-600 font-medium text-[11px] uppercase tracking-wider">Costo total producción:</span>
-                                <span className="font-medium text-xs text-blue-700">S/ {costoTotalProduccion.toFixed(2)}</span>
-                            </div>
-                            <div className="flex justify-between items-center col-span-2 pt-2 bg-amber-50/50 -mx-3 px-3 rounded-b-lg">
+                    {/* Cálculos Adaptativos Ultra-Minimalistas */}
+                    <div className="mt-4 grid grid-cols-2 gap-2 border-t pt-4">
+                        
+                        {calculosProduccion.cantidad > 1 ? (
+                            <>
+                                {/* VISTA MULTIPRECIOS (LOTE > 1) */}
                                 <div className="flex flex-col">
-                                    <span className="text-amber-800 font-medium text-[11px] uppercase tracking-wider">Precio Sugerido Venta:</span>
-                                    <span className="text-[9px] text-amber-600 font-normal">(Margen x1.5)</span>
+                                    <span className="text-[9px] font-bold text-gray-400 uppercase">Costo Total Lote ({calculosProduccion.cantidad} pz)</span>
+                                    <span className="text-sm font-black text-gray-800">S/ {calculosProduccion.costoTotalProduccion.toFixed(2)}</span>
+                                    <div className="text-[8px] text-gray-400 leading-tight mt-0.5">
+                                        Detalle: M: {calculosProduccion.costoMetalTotal.toFixed(1)} | MO: {calculosProduccion.costoManoObraTotal.toFixed(1)}
+                                    </div>
                                 </div>
-                                <span className="font-semibold text-sm text-amber-700">S/ {precioSugerido.toFixed(2)}</span>
+
+                                <div className="flex flex-col items-end border-l pl-2 border-gray-100">
+                                    <span className="text-[9px] font-bold text-blue-400 uppercase text-right">Costo Unitario</span>
+                                    <span className="text-sm font-black text-blue-900">S/ {calculosProduccion.costoTotalUnitario.toFixed(2)}</span>
+                                    <span className="text-[8px] text-blue-300">Costo base por pieza</span>
+                                </div>
+                            </>
+                        ) : (
+                            /* VISTA UNITARIA (CANTIDAD = 1) */
+                            <div className="col-span-2 flex justify-between items-center bg-gray-50/50 p-2 rounded-lg">
+                                <div className="flex flex-col">
+                                    <span className="text-[9px] font-bold text-gray-400 uppercase">Costo de Fabricación</span>
+                                    <span className="text-sm font-black text-gray-800">S/ {calculosProduccion.costoTotalUnitario.toFixed(2)}</span>
+                                </div>
+                                <div className="text-right flex flex-col">
+                                    <span className="text-[8px] text-gray-400">Metal: S/ {calculosProduccion.costoMetal.toFixed(2)}</span>
+                                    <span className="text-[8px] text-gray-400">Mano Obra: S/ {calculosProduccion.costoManoObra.toFixed(2)}</span>
+                                </div>
                             </div>
+                        )}
+
+                        {/* PRECIO VENTA (Ancho completo) */}
+                        <div className="col-span-2 bg-amber-500 text-white px-3 py-1.5 rounded-lg flex justify-between items-center mt-1 shadow-sm">
+                            <div className="flex flex-col">
+                                <span className="text-[10px] font-bold uppercase tracking-tight">Venta Sugerida</span>
+                                {calculosProduccion.cantidad > 1 && <span className="text-[8px] opacity-80">(Precio por unidad)</span>}
+                            </div>
+                            <span className="font-black text-lg">S/ {calculosProduccion.precioSugerido.toFixed(2)}</span>
                         </div>
                     </div>
 

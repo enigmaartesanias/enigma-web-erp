@@ -176,16 +176,12 @@ const CuentasPorCobrar = () => {
                         <table className="w-full text-sm">
                             <thead className="bg-gray-50 border-b border-gray-200">
                                 <tr>
-                                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700">Código</th>
-                                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700">Fecha</th>
-                                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700">Cliente</th>
-                                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700">Detalle</th>
-                                    <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700">Total</th>
-                                    <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700">A Cuenta</th>
-                                    <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700">Saldo</th>
-                                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700">Vencimiento</th>
-                                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700">Estado</th>
-                                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700">Acciones</th>
+                                    <th className="px-3 py-3 text-left text-[10px] font-bold text-gray-500 uppercase tracking-wider">Cliente / Ref</th>
+                                    <th className="px-3 py-3 text-left text-[10px] font-bold text-gray-500 uppercase tracking-wider">Vencimiento</th>
+                                    <th className="px-3 py-3 text-right text-[10px] font-bold text-gray-500 uppercase tracking-wider">Total</th>
+                                    <th className="px-3 py-3 text-center text-[10px] font-bold text-gray-500 uppercase tracking-wider w-32">Progreso de Pago</th>
+                                    <th className="px-3 py-3 text-right text-[10px] font-bold text-gray-500 uppercase tracking-wider">Saldo Pendiente</th>
+                                    <th className="px-3 py-3 text-center text-[10px] font-bold text-gray-500 uppercase tracking-wider">Acciones</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-200">
@@ -199,69 +195,65 @@ const CuentasPorCobrar = () => {
                                     cuentasFiltradas.map(cuenta => {
                                         const vencida = esVencida(cuenta);
                                         const dias = diasParaVencer(cuenta);
+                                        const porcentajePago = Math.min(100, (cuenta.a_cuenta / cuenta.total) * 100);
 
                                         return (
                                             <tr
                                                 key={cuenta.id}
-                                                className={`hover:bg-gray-50 ${vencida ? 'bg-red-50' : ''}`}
+                                                className={`hover:bg-gray-50 transition-colors ${vencida ? 'bg-red-50/30' : ''}`}
                                             >
-                                                <td className="px-4 py-3 text-xs font-mono text-gray-800">
-                                                    {cuenta.codigo_cuenta}
+                                                <td className="px-3 py-3">
+                                                    <div className="flex flex-col">
+                                                        <span className="text-[11px] font-bold text-gray-900 truncate max-w-[150px]">{cuenta.cliente_nombre}</span>
+                                                        <span className="text-[9px] font-mono text-gray-400">{cuenta.codigo_cuenta}</span>
+                                                    </div>
                                                 </td>
-                                                <td className="px-4 py-3 text-xs text-gray-600">
-                                                    {format(new Date(cuenta.fecha_registro), 'dd/MM/yyyy', { locale: es })}
-                                                </td>
-                                                <td className="px-4 py-3">
-                                                    <div className="text-xs font-medium text-gray-800">{cuenta.cliente_nombre}</div>
-                                                    {cuenta.cliente_documento && (
-                                                        <div className="text-xs text-gray-500">{cuenta.cliente_documento}</div>
-                                                    )}
-                                                </td>
-                                                <td className="px-4 py-3 text-xs text-gray-600 max-w-xs truncate">
-                                                    {cuenta.detalle_productos && cuenta.detalle_productos.length > 0 ? (
-                                                        cuenta.detalle_productos.map(p => p.nombre).join(', ')
-                                                    ) : (
-                                                        '-'
-                                                    )}
-                                                </td>
-                                                <td className="px-4 py-3 text-xs text-right font-mono text-gray-800">
-                                                    S/ {cuenta.total.toFixed(2)}
-                                                </td>
-                                                <td className="px-4 py-3 text-xs text-right font-mono text-green-700">
-                                                    S/ {cuenta.a_cuenta.toFixed(2)}
-                                                </td>
-                                                <td className="px-4 py-3 text-xs text-right font-mono font-semibold text-yellow-800">
-                                                    S/ {cuenta.saldo_deudor.toFixed(2)}
-                                                </td>
-                                                <td className="px-4 py-3 text-xs text-gray-600">
-                                                    <div>{format(new Date(cuenta.fecha_vencimiento), 'dd/MM/yyyy', { locale: es })}</div>
-                                                    {dias !== null && cuenta.estado === 'PENDIENTE' && (
-                                                        <div className={`text-xs ${dias < 0 ? 'text-red-600' : dias <= 3 ? 'text-yellow-600' : 'text-gray-500'}`}>
-                                                            {dias < 0 ? `Vencido (${Math.abs(dias)}d)` : `Faltan ${dias}d`}
+                                                <td className="px-3 py-3">
+                                                    <div className={`text-[10px] font-medium ${vencida ? 'text-red-600' : 'text-gray-700'}`}>
+                                                        {format(new Date(cuenta.fecha_vencimiento), 'dd MMM yyyy', { locale: es })}
+                                                    </div>
+                                                    {cuenta.estado === 'PENDIENTE' && (
+                                                        <div className={`text-[9px] ${dias < 0 ? 'font-bold text-red-500' : 'text-gray-400'}`}>
+                                                            {dias < 0 ? `Atrasado ${Math.abs(dias)}d` : `En ${dias} días`}
                                                         </div>
                                                     )}
                                                 </td>
-                                                <td className="px-4 py-3 text-center">
-                                                    {cuenta.estado === 'PENDIENTE' ? (
-                                                        <span className="inline-flex items-center gap-1 px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs font-medium">
-                                                            {vencida && <FaExclamationTriangle size={10} />}
-                                                            Pendiente
-                                                        </span>
-                                                    ) : (
-                                                        <span className="inline-flex items-center px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium">
-                                                            ✓ Cancelado
-                                                        </span>
+                                                <td className="px-3 py-3 text-right font-mono text-[11px] text-gray-600">
+                                                    S/ {cuenta.total.toFixed(2)}
+                                                </td>
+                                                <td className="px-3 py-3">
+                                                    <div className="flex flex-col items-center gap-1">
+                                                        <div className="w-full bg-gray-200 rounded-full h-1.5 max-w-[100px]">
+                                                            <div 
+                                                                className={`h-1.5 rounded-full ${porcentajePago === 100 ? 'bg-green-500' : 'bg-blue-500'}`}
+                                                                style={{ width: `${porcentajePago}%` }}
+                                                            ></div>
+                                                        </div>
+                                                        <span className="text-[9px] font-bold text-gray-500">{porcentajePago.toFixed(0)}% pagado</span>
+                                                    </div>
+                                                </td>
+                                                <td className="px-3 py-3 text-right">
+                                                    <div className={`text-[12px] font-black ${cuenta.saldo_deudor > 0 ? 'text-amber-700' : 'text-green-600'}`}>
+                                                        S/ {cuenta.saldo_deudor.toFixed(2)}
+                                                    </div>
+                                                    {cuenta.a_cuenta > 0 && cuenta.saldo_deudor > 0 && (
+                                                        <div className="text-[9px] text-gray-400">Abonado: S/ {cuenta.a_cuenta.toFixed(2)}</div>
                                                     )}
                                                 </td>
-                                                <td className="px-4 py-3 text-center">
-                                                    {cuenta.estado === 'PENDIENTE' && (
+                                                <td className="px-3 py-3 text-center">
+                                                    {cuenta.estado === 'PENDIENTE' ? (
                                                         <button
                                                             onClick={() => handleRegistrarPago(cuenta)}
-                                                            className="inline-flex items-center gap-1 px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-xs font-medium"
+                                                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-all shadow-sm text-[10px] font-bold uppercase tracking-wider"
                                                         >
                                                             <FaMoneyBillWave size={12} />
-                                                            Pagar
+                                                            Cobrar
                                                         </button>
+                                                    ) : (
+                                                        <span className="text-[10px] font-bold text-green-600 uppercase tracking-widest flex items-center justify-center gap-1">
+                                                            <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span>
+                                                            Liquidado
+                                                        </span>
                                                     )}
                                                 </td>
                                             </tr>

@@ -25,8 +25,8 @@ const ReporteCodigosQR = () => {
     const [categoryFilter, setCategoryFilter] = useState('TODOS');
     const [dateFilter, setDateFilter] = useState(''); // Nuevo estado para fecha
     const [selectedIds, setSelectedIds] = useState([]);
+    const [printQuantities, setPrintQuantities] = useState({});
     const [showBatchModal, setShowBatchModal] = useState(false);
-    const [batchQuantity, setBatchQuantity] = useState(10);
     const [isPrintReady, setIsPrintReady] = useState(false);
     const [isDownloading, setIsDownloading] = useState(false);
     const printRef = useRef(null);
@@ -63,9 +63,23 @@ const ReporteCodigosQR = () => {
     )];
 
     const toggleSelect = (id) => {
-        setSelectedIds(prev =>
-            prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
-        );
+        setSelectedIds(prev => {
+            if (prev.includes(id)) {
+                // Si se deselecciona, podemos quitarlo de printQuantities si queremos, o dejarlo
+                return prev.filter(i => i !== id);
+            } else {
+                // Inicializar cantidad a 1 por defecto al seleccionar
+                setPrintQuantities(prevQ => ({ ...prevQ, [id]: 10 }));
+                return [...prev, id];
+            }
+        });
+    };
+
+    const updateQuantity = (id, change) => {
+        setPrintQuantities(prev => ({
+            ...prev,
+            [id]: Math.max(1, (prev[id] || 1) + change)
+        }));
     };
 
     // Función para el botón "Nuevos de Hoy"
@@ -165,7 +179,7 @@ const ReporteCodigosQR = () => {
     const generateRows = () => {
         let rows = [];
         selectedProductsData.forEach(prod => {
-            let labelsLeft = batchQuantity;
+            let labelsLeft = printQuantities[prod.id] || 10;
             while (labelsLeft > 0) {
                 const labelsInThisRow = Math.min(labelsLeft, 4); // Máximo 4 etiquetas por fila + 1 Referencia
                 rows.push({
@@ -296,22 +310,32 @@ const ReporteCodigosQR = () => {
                                     className={`relative border-2 rounded-2xl p-4 flex flex-col items-center text-center transition-all cursor-pointer bg-white group ${isSelected ? 'border-indigo-500 shadow-indigo-100 shadow-lg' : 'border-gray-100 hover:border-gray-200'}`}
                                 >
                                     {isSelected && (
-                                        <div className="absolute top-2 right-2 text-indigo-500 animate-in zoom-in">
+                                        <div className="absolute top-2 right-2 text-indigo-500 animate-in zoom-in z-10">
                                             <FaCheckCircle size={20} />
                                         </div>
                                     )}
 
-                                    <div className="w-full aspect-square mb-3 bg-gray-50 rounded-xl overflow-hidden flex items-center justify-center border border-gray-50 group-hover:scale-105 transition-transform">
-                                        {producto.imagen_url ? (
-                                            <img src={producto.imagen_url} alt={producto.nombre} className="w-full h-full object-contain" />
-                                        ) : (
-                                            <span className="text-gray-300 text-[10px] uppercase font-bold tracking-widest">Sin imagen</span>
-                                        )}
-                                    </div>
-
-                                    <h3 className="font-bold text-gray-800 text-[11px] uppercase tracking-tight mb-2 line-clamp-2 h-10 w-full">
-                                        {producto.nombre}
-                                    </h3>
+                                    {producto.tipo_inventario === 'Grupal' || !producto.imagen_url ? (
+                                        <div className="w-full h-full flex flex-col items-center justify-center min-h-[160px] p-2">
+                                            <FaBarcode className="text-gray-300 text-4xl mb-3" />
+                                            <span className="text-gray-400 text-[10px] uppercase font-bold tracking-widest mb-1">Stock Grupal</span>
+                                            <span className="font-bold text-gray-700 text-xs text-center line-clamp-2">
+                                                {producto.nombre}
+                                            </span>
+                                            <span className="text-indigo-600 font-bold mt-2">
+                                                S/ {producto.precio}
+                                            </span>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <div className="w-full aspect-square mb-3 bg-gray-50 rounded-xl overflow-hidden flex items-center justify-center border border-gray-50 group-hover:scale-105 transition-transform">
+                                                <img src={producto.imagen_url} alt={producto.nombre} className="w-full h-full object-contain" />
+                                            </div>
+                                            <h3 className="font-bold text-gray-800 text-[11px] uppercase tracking-tight mb-2 line-clamp-2 h-10 w-full">
+                                                {producto.nombre}
+                                            </h3>
+                                        </>
+                                    )}
 
                                     <div className={`px-3 py-1 rounded-full border transition-colors ${isSelected ? 'bg-indigo-50 border-indigo-100 text-indigo-700' : 'bg-gray-50 border-gray-200 text-gray-500'}`}>
                                         <span className="font-mono text-[10px] font-bold ring-0">
@@ -332,15 +356,23 @@ const ReporteCodigosQR = () => {
                         <div key={idx} className="label-row">
                             {/* CAJA DE REFERENCIA (Inicio de fila) */}
                             <div className="reference-box">
-                                <div className="ref-image-container">
-                                    {row.data.imagen_url ? (
-                                        <img src={row.data.imagen_url} alt="ref" className="w-full h-full object-contain" />
-                                    ) : <FaImage className="text-gray-300 w-full h-full" />}
-                                </div>
-                                <div className="ref-text-container">
-                                    <span className="ref-text-name">{row.data.nombre}</span>
-                                    <span className="ref-text-code">{row.data.codigo_usuario}</span>
-                                </div>
+                                {row.data.tipo_inventario === 'Grupal' || !row.data.imagen_url ? (
+                                    <div className="ref-text-container-full">
+                                        <span className="ref-text-name text-center w-full">{row.data.nombre}</span>
+                                        <span className="ref-text-code text-center w-full font-bold">{row.data.codigo_usuario}</span>
+                                        <span className="ref-text-price text-center w-full">S/ {row.data.precio}</span>
+                                    </div>
+                                ) : (
+                                    <>
+                                        <div className="ref-image-container">
+                                            <img src={row.data.imagen_url} alt="ref" className="w-full h-full object-contain" />
+                                        </div>
+                                        <div className="ref-text-container">
+                                            <span className="ref-text-name">{row.data.nombre}</span>
+                                            <span className="ref-text-code">{row.data.codigo_usuario}</span>
+                                        </div>
+                                    </>
+                                )}
                             </div>
 
                             {/* ETIQUETAS DE RECORTE (40x15mm) */}
@@ -385,31 +417,45 @@ const ReporteCodigosQR = () => {
                             </p>
                         </div>
 
-                        <div className="p-8 space-y-6">
+                        <div className="p-4 sm:p-6 space-y-6">
                             <div className="text-center">
                                 <label className="block text-xs font-black text-gray-400 uppercase tracking-[0.2em] mb-4">
-                                    Etiquetas por Producto
+                                    Cantidades a Imprimir
                                 </label>
-                                <div className="flex items-center justify-center gap-6">
-                                    <button
-                                        onClick={() => setBatchQuantity(Math.max(1, batchQuantity - 1))}
-                                        className="w-12 h-12 rounded-2xl bg-gray-100 flex items-center justify-center text-gray-600 hover:bg-gray-200 transition-colors"
-                                    >
-                                        <FaMinus />
-                                    </button>
-                                    <span className="text-4xl font-black text-gray-800 w-16">{batchQuantity}</span>
-                                    <button
-                                        onClick={() => setBatchQuantity(batchQuantity + 1)}
-                                        className="w-12 h-12 rounded-2xl bg-gray-100 flex items-center justify-center text-gray-600 hover:bg-gray-200 transition-colors"
-                                    >
-                                        <FaPlus />
-                                    </button>
+                                <div className="max-h-[30vh] overflow-y-auto space-y-3 mb-4 pr-2 scrollbar-thin">
+                                    {selectedProductsData.map(prod => (
+                                        <div key={prod.id} className="flex items-center justify-between bg-gray-50 p-2.5 rounded-xl border border-gray-100">
+                                            <div className="flex flex-col items-start min-w-0 pr-2">
+                                                <span className="font-mono text-[10px] text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded font-bold">
+                                                    {prod.codigo_usuario}
+                                                </span>
+                                                <span className="text-xs text-gray-600 font-medium truncate w-32 sm:w-40 text-left">
+                                                    {prod.nombre}
+                                                </span>
+                                            </div>
+                                            <div className="flex items-center gap-3 shrink-0">
+                                                <button
+                                                    onClick={() => updateQuantity(prod.id, -1)}
+                                                    className="w-8 h-8 rounded-lg bg-white border border-gray-200 flex items-center justify-center text-gray-600 hover:bg-gray-100 transition-colors"
+                                                >
+                                                    <FaMinus size={10} />
+                                                </button>
+                                                <span className="text-lg font-black text-gray-800 w-8 text-center">{printQuantities[prod.id] || 10}</span>
+                                                <button
+                                                    onClick={() => updateQuantity(prod.id, 1)}
+                                                    className="w-8 h-8 rounded-lg bg-white border border-gray-200 flex items-center justify-center text-gray-600 hover:bg-gray-100 transition-colors"
+                                                >
+                                                    <FaPlus size={10} />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
                                 </div>
-                                <p className="mt-4 text-sm text-gray-500">
-                                    Total a recortar: <strong>{selectedIds.length * batchQuantity}</strong> etiquetas.
+                                <p className="mt-4 text-sm text-gray-500 border-t pt-4">
+                                    Total a recortar: <strong>{selectedProductsData.reduce((acc, p) => acc + (printQuantities[p.id] || 10), 0)}</strong> etiquetas.
                                     <br />
                                     <span className="text-[10px] text-gray-400 italic">
-                                        (Las imágenes de referencia se incluyen automáticamente)
+                                        (Las imágenes de referencia se incluyen automáticamente para Únicos)
                                     </span>
                                 </p>
                             </div>
@@ -513,6 +559,23 @@ const ReporteCodigosQR = () => {
                     justify-content: center;
                     background-color: #f9fafb;
                     border: 0.5px dotted #e5e7eb;
+                }
+
+                .ref-text-container-full {
+                    display: flex;
+                    flex-direction: column;
+                    justify-content: center;
+                    align-items: center;
+                    flex-grow: 1;
+                    width: 100%;
+                    padding: 0 1mm;
+                }
+
+                .ref-text-price {
+                    font-size: 5pt;
+                    font-weight: bold;
+                    color: #4f46e5;
+                    margin-top: 1px;
                 }
 
                 .ref-text-container {

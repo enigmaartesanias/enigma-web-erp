@@ -3,8 +3,6 @@ import { FaTimes, FaSave, FaCamera } from 'react-icons/fa';
 import { productosExternosDB } from '../utils/productosExternosNeonClient';
 import { tiposProductoDB } from '../utils/tiposProductoDB';
 import { comprasItemsDB } from '../utils/comprasItemsClient';
-import { storage } from '../firebaseConfig';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import toast from 'react-hot-toast';
 
 /**
@@ -16,6 +14,8 @@ export default function ModalInventariar({ isOpen, onClose, item, onInventariado
         nombre: '',
         codigo_usuario: '',
         tipo_producto_id: '',
+        tipo_inventario: 'Único',
+        origen: 'COMPRA',
         stock_inicial: '',
         stock_minimo: '',
         costo: '',
@@ -23,10 +23,7 @@ export default function ModalInventariar({ isOpen, onClose, item, onInventariado
         precio_oferta: '',
         descripcion: ''
     });
-    const [imageFile, setImageFile] = useState(null);
-    const [imagePreview, setImagePreview] = useState(null);
     const [saving, setSaving] = useState(false);
-    const [uploading, setUploading] = useState(false);
 
     // Cargar tipos de producto y prellenar datos al abrir
     React.useEffect(() => {
@@ -36,6 +33,8 @@ export default function ModalInventariar({ isOpen, onClose, item, onInventariado
                 nombre: item.nombre_item || '',
                 codigo_usuario: '',
                 tipo_producto_id: '',
+                tipo_inventario: 'Único',
+                origen: 'COMPRA',
                 stock_inicial: item.cantidad || '',
                 stock_minimo: '',
                 costo: item.costo_unitario || '',
@@ -58,53 +57,22 @@ export default function ModalInventariar({ isOpen, onClose, item, onInventariado
     const handleChange = (e) => {
         const { name, value } = e.target;
 
-        // Auto-convertir código a mayúsculas
-        if (name === 'codigo_usuario') {
-            setFormData(prev => ({
-                ...prev,
-                [name]: value.toUpperCase()
-            }));
-        } else {
-            setFormData(prev => ({
-                ...prev,
-                [name]: value
-            }));
-        }
-    };
-
-    const handleImageChange = (e) => {
-        const file = e.target.files[0];
-        if (file) {
-            setImageFile(file);
-            // Crear preview
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                setImagePreview(reader.result);
-            };
-            reader.readAsDataURL(file);
-        }
-    };
-
-    const uploadImage = async () => {
-        if (!imageFile) return null;
-
-        setUploading(true);
-        try {
-            const timestamp = Date.now();
-            const filename = `productos/${timestamp}_${imageFile.name}`;
-            const storageRef = ref(storage, filename);
-
-            await uploadBytes(storageRef, imageFile);
-            const url = await getDownloadURL(storageRef);
-
-            return url;
-        } catch (error) {
-            console.error('Error subiendo imagen:', error);
-            toast.error('Error al subir imagen');
-            return null;
-        } finally {
-            setUploading(false);
-        }
+        setFormData(prev => {
+            const nextState = { ...prev, [name]: (name === 'codigo_usuario' ? value.toUpperCase() : value) };
+            if (['tipo_inventario', 'origen', 'precio', 'tipo_producto_id'].includes(name)) {
+                if (nextState.tipo_inventario === 'Grupal') {
+                    const catObj = tiposProducto.find(t => String(t.id) === String(nextState.tipo_producto_id));
+                    const catName = catObj ? catObj.nombre.substring(0,3).toUpperCase() : 'VAR';
+                    const prefix = nextState.origen === 'COMPRA' ? 'COMP' : 'PROD';
+                    const mat = 'GEN'; 
+                    const precioStr = nextState.precio || '0';
+                    nextState.codigo_usuario = `${prefix}-${catName}-${mat}-${precioStr}`;
+                } else if (name === 'tipo_inventario') {
+                    nextState.codigo_usuario = '';
+                }
+            }
+            return nextState;
+        });
     };
 
     const handleSubmit = async (e) => {
@@ -138,18 +106,7 @@ export default function ModalInventariar({ isOpen, onClose, item, onInventariado
 
         setSaving(true);
         try {
-            // 1. Subir imagen si existe
-            let imagenUrl = null;
-            if (imageFile) {
-                imagenUrl = await uploadImage();
-                if (!imagenUrl) {
-                    setSaving(false);
-                    return;
-                }
-            }
-
-            // 2. Crear producto en inventario
-            const nuevoProducto = await productosExternosDB.create({
+            const dataToSave = {
                 codigo_usuario: formData.codigo_usuario.trim(),
                 nombre: formData.nombre.trim(),
                 categoria: formData.tipo_producto_id, // Guardar el ID del tipo
@@ -159,10 +116,18 @@ export default function ModalInventariar({ isOpen, onClose, item, onInventariado
                 stock_actual: parseFloat(formData.stock_inicial),
                 stock_minimo: formData.stock_minimo ? parseFloat(formData.stock_minimo) : 5,
                 unidad: 'UND',
-                imagen_url: imagenUrl,
+                imagen_url: null, // NUNCA foto en inventario
                 precio_adicional: formData.precio_oferta ? parseFloat(formData.precio_oferta) : null,
-                origen: 'COMPRA'
-            });
+                origen: formData.origen,
+                tipo_inventario: formData.tipo_inventario
+            };
+
+            let nuevoProducto;
+            if (formData.tipo_inventario === 'Grupal') {
+                nuevoProducto = await productosExternosDB.upsertGrupal(dataToSave);
+            } else {
+                nuevoProducto = await productosExternosDB.create(dataToSave);
+            }
 
             // 3. Marcar item como inventariado
             await comprasItemsDB.marcarInventariado(item.id, nuevoProducto.id);
@@ -190,6 +155,8 @@ export default function ModalInventariar({ isOpen, onClose, item, onInventariado
             nombre: '',
             codigo_usuario: '',
             tipo_producto_id: '',
+            tipo_inventario: 'Único',
+            origen: 'COMPRA',
             stock_inicial: '',
             stock_minimo: '',
             costo: '',
@@ -197,8 +164,6 @@ export default function ModalInventariar({ isOpen, onClose, item, onInventariado
             precio_oferta: '',
             descripcion: ''
         });
-        setImageFile(null);
-        setImagePreview(null);
     };
 
     const handleCancel = () => {
@@ -242,6 +207,34 @@ export default function ModalInventariar({ isOpen, onClose, item, onInventariado
                         />
                     </div>
 
+                    {/* Selectores Múltiples (Tipo de Registro, Origen) */}
+                    <div className="grid grid-cols-2 gap-3">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1 text-center">Tipo de Registro</label>
+                            <select
+                                name="tipo_inventario"
+                                value={formData.tipo_inventario}
+                                onChange={handleChange}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            >
+                                <option value="Único">Único (Individual)</option>
+                                <option value="Grupal">Grupal (Lote)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1 text-center">Origen</label>
+                            <select
+                                name="origen"
+                                value={formData.origen}
+                                onChange={handleChange}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            >
+                                <option value="COMPRA">Compra</option>
+                                <option value="PRODUCCION">Producción</option>
+                            </select>
+                        </div>
+                    </div>
+
                     {/* Código */}
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1 text-center">
@@ -253,21 +246,24 @@ export default function ModalInventariar({ isOpen, onClose, item, onInventariado
                                 name="codigo_usuario"
                                 value={formData.codigo_usuario}
                                 onChange={handleChange}
-                                className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                readOnly={formData.tipo_inventario === 'Grupal'}
+                                className={`flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${formData.tipo_inventario === 'Grupal' ? 'bg-gray-100 cursor-not-allowed' : ''}`}
                                 required
                             />
-                            <button
-                                type="button"
-                                className="p-2 border border-gray-300 rounded-md hover:bg-gray-50"
-                                title="Generar código QR"
-                            >
-                                <div className="grid grid-cols-2 gap-0.5 w-5 h-5">
-                                    <div className="bg-gray-400 rounded-sm"></div>
-                                    <div className="bg-gray-400 rounded-sm"></div>
-                                    <div className="bg-gray-400 rounded-sm"></div>
-                                    <div className="bg-gray-400 rounded-sm"></div>
-                                </div>
-                            </button>
+                            {formData.tipo_inventario !== 'Grupal' && (
+                                <button
+                                    type="button"
+                                    className="p-2 border border-gray-300 rounded-md hover:bg-gray-50"
+                                    title="Generar código QR"
+                                >
+                                    <div className="grid grid-cols-2 gap-0.5 w-5 h-5">
+                                        <div className="bg-gray-400 rounded-sm"></div>
+                                        <div className="bg-gray-400 rounded-sm"></div>
+                                        <div className="bg-gray-400 rounded-sm"></div>
+                                        <div className="bg-gray-400 rounded-sm"></div>
+                                    </div>
+                                </button>
+                            )}
                         </div>
                     </div>
 
@@ -290,31 +286,6 @@ export default function ModalInventariar({ isOpen, onClose, item, onInventariado
                                 </option>
                             ))}
                         </select>
-                    </div>
-
-                    {/* Imagen */}
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2 text-center">
-                            Foto
-                        </label>
-                        <div className="flex justify-center">
-                            <label className="w-32 h-32 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-blue-500 transition-colors">
-                                {imagePreview ? (
-                                    <img src={imagePreview} alt="Preview" className="w-full h-full object-cover rounded-lg" />
-                                ) : (
-                                    <>
-                                        <FaCamera className="text-gray-400 text-2xl mb-2" />
-                                        <span className="text-xs text-gray-500">Foto</span>
-                                    </>
-                                )}
-                                <input
-                                    type="file"
-                                    accept="image/*"
-                                    onChange={handleImageChange}
-                                    className="hidden"
-                                />
-                            </label>
-                        </div>
                     </div>
 
                     {/* Stock Inicial y Mínimo */}
@@ -420,10 +391,10 @@ export default function ModalInventariar({ isOpen, onClose, item, onInventariado
                     <button
                         type="submit"
                         className="w-full px-4 py-3 bg-gray-700 text-white rounded-md hover:bg-gray-800 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                        disabled={saving || uploading}
+                        disabled={saving}
                     >
                         <FaSave />
-                        {uploading ? 'Subiendo imagen...' : saving ? 'Guardando...' : 'Agregar Producto'}
+                        {saving ? 'Guardando...' : 'Agregar Producto'}
                     </button>
                 </form>
             </div>

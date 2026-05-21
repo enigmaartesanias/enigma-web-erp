@@ -153,7 +153,8 @@ export const productosExternosDB = {
           precio_adicional,
           origen,
           produccion_id,
-          lote
+          lote,
+          tipo_inventario
         ) VALUES (
           ${data.codigo_usuario},
           ${data.nombre},
@@ -169,11 +170,33 @@ export const productosExternosDB = {
           ${data.precio_adicional || null},
           ${data.origen || 'COMPRA'},
           ${data.produccion_id || null},
-          ${data.lote || null}
+          ${data.lote || null},
+          ${data.tipo_inventario || 'Único'}
         )
         RETURNING *
       `;
     return producto;
+  },
+
+  async upsertGrupal(data) {
+    const [existente] = await sql`SELECT * FROM productos_externos WHERE codigo_usuario = ${data.codigo_usuario} AND estado_activo = TRUE LIMIT 1`;
+    if (existente) {
+      const [producto] = await sql`
+        UPDATE productos_externos SET
+          stock_actual = stock_actual + ${data.stock_actual || 0},
+          precio = COALESCE(${data.precio}, precio),
+          costo = COALESCE(${data.costo}, costo),
+          fecha_registro = CURRENT_TIMESTAMP
+        WHERE id = ${existente.id}
+        RETURNING *
+      `;
+      return producto;
+    } else {
+      return await this.create({
+        ...data,
+        tipo_inventario: 'Grupal'
+      });
+    }
   },
 
   async update(id, data) {

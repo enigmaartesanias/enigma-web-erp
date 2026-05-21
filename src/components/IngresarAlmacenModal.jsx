@@ -9,6 +9,7 @@ const IngresarAlmacenModal = ({ isOpen, onClose, produccionData, onSuccess }) =>
     const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState({
         codigo: '',
+        tipoInventario: 'Único',
         stockMinimo: '1',
         precioVenta: '',
         precioOferta: '',
@@ -25,6 +26,7 @@ const IngresarAlmacenModal = ({ isOpen, onClose, produccionData, onSuccess }) =>
 
             setFormData({
                 codigo: '',
+                tipoInventario: 'Único',
                 stockMinimo: '1',
                 precioVenta: precioSugerido,
                 precioOferta: '',
@@ -54,8 +56,29 @@ const IngresarAlmacenModal = ({ isOpen, onClose, produccionData, onSuccess }) =>
     const handleChange = (e) => {
         const { name, value } = e.target;
 
-        // Convertir código a MAYÚSCULAS automáticamente
-        if (name === 'codigo') {
+        if (name === 'tipoInventario') {
+            if (value === 'Grupal') {
+                const cat = mapTipoToCategoria(produccionData.tipo_producto) || 'VAR';
+                const mat = (produccionData.metal || 'GEN').substring(0, 3).toUpperCase();
+                const precio = formData.precioVenta ? formData.precioVenta : '0';
+                const codigoGrupal = `PROD-${cat.substring(0,3).toUpperCase()}-${mat}-${precio}`;
+                setFormData(prev => ({ ...prev, tipoInventario: value, codigo: codigoGrupal }));
+            } else {
+                setFormData(prev => ({ ...prev, tipoInventario: value, codigo: '' }));
+            }
+        }
+        else if (name === 'precioVenta') {
+            setFormData(prev => {
+                const newFormData = { ...prev, [name]: value };
+                if (prev.tipoInventario === 'Grupal') {
+                    const cat = mapTipoToCategoria(produccionData.tipo_producto) || 'VAR';
+                    const mat = (produccionData.metal || 'GEN').substring(0, 3).toUpperCase();
+                    newFormData.codigo = `PROD-${cat.substring(0,3).toUpperCase()}-${mat}-${value || '0'}`;
+                }
+                return newFormData;
+            });
+        }
+        else if (name === 'codigo') {
             setFormData(prev => ({ ...prev, [name]: value.toUpperCase() }));
         } else {
             setFormData(prev => ({ ...prev, [name]: value }));
@@ -105,6 +128,7 @@ const IngresarAlmacenModal = ({ isOpen, onClose, produccionData, onSuccess }) =>
                 codigo_usuario: formData.codigo,
                 nombre: produccionData.nombre_producto,
                 categoria: mapTipoToCategoria(produccionData.tipo_producto),
+                material: produccionData.metal,
                 descripcion: formData.notas || `Producto fabricado en taller. Metal: ${produccionData.metal}. Tipo: ${produccionData.tipo_producto}.`,
                 costo: costoProduccion,
                 precio: parseFloat(formData.precioVenta),
@@ -112,15 +136,21 @@ const IngresarAlmacenModal = ({ isOpen, onClose, produccionData, onSuccess }) =>
                 stock_actual: parseInt(formData.stockInicial) || 1,
                 stock_minimo: parseInt(formData.stockMinimo) || 1,
                 unidad: 'UND',
-                imagen_url: produccionData.imagen_url || null,
+                imagen_url: null, // NUNCA guardar foto en inventario
                 origen: 'PRODUCCION',
-                produccion_id: produccionData.id_produccion
+                produccion_id: produccionData.id_produccion,
+                tipo_inventario: formData.tipoInventario
             };
 
             console.log('📦 Datos a enviar:', productoData);
 
-            const nuevoProducto = await productosExternosDB.create(productoData);
-            console.log('✅ Producto creado:', nuevoProducto);
+            let nuevoProducto;
+            if (formData.tipoInventario === 'Grupal') {
+                nuevoProducto = await productosExternosDB.upsertGrupal(productoData);
+            } else {
+                nuevoProducto = await productosExternosDB.create(productoData);
+            }
+            console.log('✅ Producto guardado:', nuevoProducto);
 
             // 3. Actualizar producción como transferida
             await produccionDB.markAsTransferred(produccionData.id_produccion, nuevoProducto.id);
@@ -186,6 +216,29 @@ const IngresarAlmacenModal = ({ isOpen, onClose, produccionData, onSuccess }) =>
                     {/* Información Comercial y Logística */}
                     <h3 className="text-sm font-semibold text-gray-700">Información Comercial y Logística</h3>
 
+                    {/* Tipo de Inventario (Único / Grupal) */}
+                    <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1.5">Tipo de Registro</label>
+                        <div className="flex gap-3">
+                            <label className="flex items-center gap-2 cursor-pointer">
+                                <input 
+                                    type="radio" name="tipoInventario" value="Único" 
+                                    checked={formData.tipoInventario === 'Único'} onChange={handleChange}
+                                    className="text-blue-600 focus:ring-blue-500" 
+                                />
+                                <span className="text-sm text-gray-700">Único (Pieza individual)</span>
+                            </label>
+                            <label className="flex items-center gap-2 cursor-pointer">
+                                <input 
+                                    type="radio" name="tipoInventario" value="Grupal" 
+                                    checked={formData.tipoInventario === 'Grupal'} onChange={handleChange}
+                                    className="text-blue-600 focus:ring-blue-500" 
+                                />
+                                <span className="text-sm text-gray-700">Grupal (Lote/Varios)</span>
+                            </label>
+                        </div>
+                    </div>
+
                     {/* Código / QR */}
                     <div>
                         <label className="block text-xs font-medium text-gray-700 mb-1.5">Código / QR *</label>
@@ -195,19 +248,22 @@ const IngresarAlmacenModal = ({ isOpen, onClose, produccionData, onSuccess }) =>
                                 name="codigo"
                                 value={formData.codigo}
                                 onChange={handleChange}
-                                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono uppercase focus:ring-2 focus:ring-blue-400 outline-none"
+                                readOnly={formData.tipoInventario === 'Grupal'}
+                                className={`flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono uppercase focus:ring-2 focus:ring-blue-400 outline-none ${formData.tipoInventario === 'Grupal' ? 'bg-gray-100 cursor-not-allowed' : ''}`}
                                 placeholder="Ej: PROD-2025-0001"
                                 required
                             />
-                            <button
-                                type="button"
-                                onClick={generarCodigoAutomatico}
-                                className="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition flex items-center gap-1 text-sm"
-                                title="Generar código automático"
-                            >
-                                <FaDice size={14} />
-                                Auto
-                            </button>
+                            {formData.tipoInventario !== 'Grupal' && (
+                                <button
+                                    type="button"
+                                    onClick={generarCodigoAutomatico}
+                                    className="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition flex items-center gap-1 text-sm"
+                                    title="Generar código automático"
+                                >
+                                    <FaDice size={14} />
+                                    Auto
+                                </button>
+                            )}
                             {/* QR Preview */}
                             <div className="w-16 h-16 bg-white p-1 border border-gray-200 rounded-lg flex items-center justify-center flex-shrink-0">
                                 {formData.codigo ? (

@@ -8,10 +8,7 @@ const BuscadorProducto = ({ onScan, onSelect, onQRClick }) => {
     const [results, setResults] = useState([]);
     const [showResults, setShowResults] = useState(false);
     const [loading, setLoading] = useState(false);
-    const [previewImg, setPreviewImg] = useState(null); // { url }
     const searchRef = useRef(null);
-    const previewTimeoutRef = useRef(null);
-    const longPressRef = useRef(null);
 
     // Cerrar resultados al hacer click fuera
     useEffect(() => {
@@ -22,23 +19,6 @@ const BuscadorProducto = ({ onScan, onSelect, onQRClick }) => {
         };
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, []);
-
-    // Limpiar preview al soltar en cualquier lugar (seguridad)
-    useEffect(() => {
-        const clearPreview = () => {
-            setPreviewImg(null);
-            if (previewTimeoutRef.current) clearTimeout(previewTimeoutRef.current);
-            if (longPressRef.current) clearTimeout(longPressRef.current);
-        };
-        window.addEventListener('mouseup', clearPreview);
-        window.addEventListener('touchend', clearPreview);
-        window.addEventListener('touchcancel', clearPreview);
-        return () => {
-            window.removeEventListener('mouseup', clearPreview);
-            window.removeEventListener('touchend', clearPreview);
-            window.removeEventListener('touchcancel', clearPreview);
-        };
     }, []);
 
     const handleSearch = async (e) => {
@@ -61,8 +41,9 @@ const BuscadorProducto = ({ onScan, onSelect, onQRClick }) => {
         try {
             const allProducts = await productosExternosDB.getAllConsolidated();
             const filtered = allProducts.filter(p =>
-                p.nombre.toLowerCase().includes(text.toLowerCase()) ||
-                (p.codigo_usuario && p.codigo_usuario.toLowerCase().includes(text.toLowerCase()))
+                (p.stock_actual > 0) &&
+                (p.nombre.toLowerCase().includes(text.toLowerCase()) ||
+                (p.codigo_usuario && p.codigo_usuario.toLowerCase().includes(text.toLowerCase())))
             );
             setResults(filtered.slice(0, 5)); // Top 5
             setShowResults(true);
@@ -83,34 +64,6 @@ const BuscadorProducto = ({ onScan, onSelect, onQRClick }) => {
             setShowResults(false);
         }
     };
-
-    // --- Preview de imagen al mantener presionado (long press para móvil) ---
-    const startPreview = useCallback((url, e) => {
-        if (!url) return;
-        // En touch, usar long press (300ms) para evitar conflictos con scroll
-        if (e.type === 'touchstart') {
-            e.stopPropagation();
-            longPressRef.current = setTimeout(() => {
-                setPreviewImg({ url });
-            }, 300);
-        } else {
-            // Mouse: preview inmediato
-            e.preventDefault();
-            e.stopPropagation();
-            setPreviewImg({ url });
-        }
-    }, []);
-
-    const stopPreview = useCallback((e) => {
-        if (e) {
-            e.stopPropagation();
-        }
-        if (longPressRef.current) {
-            clearTimeout(longPressRef.current);
-            longPressRef.current = null;
-        }
-        setPreviewImg(null);
-    }, []);
 
     return (
         <div className="relative w-full z-20 flex gap-2" ref={searchRef}>
@@ -169,40 +122,15 @@ const BuscadorProducto = ({ onScan, onSelect, onQRClick }) => {
                             <div
                                 key={product.id}
                                 onClick={() => {
-                                    if (hasStock && !previewImg) {
-                                        onSelect(product);
-                                        setQuery('');
-                                        setShowResults(false);
-                                    }
+                                    onSelect(product);
+                                    setQuery('');
+                                    setShowResults(false);
                                 }}
-                                className={`px-3 py-2.5 border-b border-gray-50 last:border-0 transition-all flex items-center justify-between group ${
-                                    hasStock 
-                                    ? 'hover:bg-blue-50 cursor-pointer active:bg-blue-100' 
-                                    : 'bg-gray-50/50 cursor-not-allowed grayscale-[0.5] opacity-60'
-                                }`}
+                                className="px-3 py-2.5 border-b border-gray-50 last:border-0 transition-all flex items-center justify-between group hover:bg-blue-50 cursor-pointer active:bg-blue-100"
                             >
                                 <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                                    {product.imagen_url ? (
-                                        <img 
-                                            src={product.imagen_url} 
-                                            alt={product.nombre} 
-                                            className="w-9 h-9 rounded-lg object-cover border border-gray-100 shadow-sm select-none flex-shrink-0"
-                                            draggable={false}
-                                            onMouseDown={(e) => startPreview(product.imagen_url, e)}
-                                            onMouseUp={stopPreview}
-                                            onTouchStart={(e) => startPreview(product.imagen_url, e)}
-                                            onTouchEnd={stopPreview}
-                                            onTouchCancel={stopPreview}
-                                        />
-                                    ) : (
-                                        <div className="w-9 h-9 rounded-lg bg-gray-100 flex items-center justify-center text-gray-400 border border-gray-100 flex-shrink-0">
-                                            <FaBarcode size={12} />
-                                        </div>
-                                    )}
                                     <div className="flex flex-col gap-0.5 min-w-0">
-                                        <span className={`font-mono text-[10px] px-1.5 py-0.5 rounded w-fit transition-colors ${
-                                            hasStock ? 'text-blue-600 bg-blue-50 group-hover:bg-blue-100' : 'text-gray-400 bg-gray-100'
-                                        }`}>
+                                        <span className="font-mono text-[10px] px-1.5 py-0.5 rounded w-fit transition-colors text-blue-600 bg-blue-50 group-hover:bg-blue-100">
                                             {product.codigo_usuario}
                                         </span>
                                         <span className="text-xs text-gray-700 truncate max-w-[160px] sm:max-w-[250px]">
@@ -212,14 +140,9 @@ const BuscadorProducto = ({ onScan, onSelect, onQRClick }) => {
                                 </div>
                                 
                                 <div className="flex flex-col items-end gap-1 flex-shrink-0 ml-2">
-                                    <span className={`text-sm font-medium leading-none ${hasStock ? 'text-gray-700' : 'text-gray-400'}`}>
+                                    <span className="text-sm font-medium leading-none text-gray-700">
                                         S/ {Math.round(Number(product.precio))}
                                     </span>
-                                    {!hasStock && (
-                                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-red-200 text-red-900">
-                                            AGOTADO
-                                        </span>
-                                    )}
                                 </div>
                             </div>
                         );
@@ -227,37 +150,10 @@ const BuscadorProducto = ({ onScan, onSelect, onQRClick }) => {
                 </div>
             )}
 
-            {/* Overlay de previsualización de imagen (press & hold) - Renderizado como portal */}
-            {previewImg && createPortal(
-                <div 
-                    className="fixed inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm"
-                    style={{ zIndex: 99999, touchAction: 'none' }}
-                    onMouseUp={stopPreview}
-                    onTouchEnd={stopPreview}
-                    onTouchCancel={stopPreview}
-                    onClick={stopPreview}
-                >
-                    <div style={{ animation: 'previewZoomIn 0.15s ease-out' }}>
-                        <img 
-                            src={previewImg.url} 
-                            alt="Preview" 
-                            className="w-44 h-44 rounded-2xl object-cover border-4 border-white shadow-2xl"
-                            draggable={false}
-                            style={{ touchAction: 'none', pointerEvents: 'none' }}
-                        />
-                    </div>
-                </div>,
-                document.body
-            )}
-
             <style>{`
                 @keyframes fadeSlideIn {
                     from { opacity: 0; transform: translateY(-4px); }
                     to { opacity: 1; transform: translateY(0); }
-                }
-                @keyframes previewZoomIn {
-                    from { opacity: 0; transform: scale(0.75); }
-                    to { opacity: 1; transform: scale(1); }
                 }
             `}</style>
         </div>

@@ -11,9 +11,8 @@ import PoliticasEnvios from './pages/PoliticasEnvios/PoliticasEnvios';
 import ShippingPolicies from './pages/ShippingPolicies/ShippingPolicies';
 import VideoShorts from './pages/VideoShorts';
 import ElTaller from './pages/ElTaller/ElTaller';
-
-// Importamos ProductGridPage (maneja el catálogo dinámico)
 import ProductGridPage from './pages/ProductGridPage';
+import DashboardMaster from './pages/DashboardMaster';
 
 // Componentes
 import Header from './components/Header/Header';
@@ -34,12 +33,11 @@ import AdminPanel from './components/AdminPanel';
 import CarouselAdmin from './components/CarouselAdmin';
 import CategoriaAdmin from './components/CategoriaAdmin';
 import ProductoAdmin from './components/ProductoAdmin';
-
 import Pedidos from './components/Pedidos';
 import ReportePedidos from './components/ReportePedidos';
 import ReporteCodigosQR from './components/ReporteCodigosQR';
 
-// Módulo de Inventario
+// Módulos
 import InventarioHome from './modules/inventario/pages/InventarioHome';
 import Produccion from './modules/inventario/pages/Produccion';
 import ProduccionReporte from './modules/inventario/pages/ProduccionReporte';
@@ -47,7 +45,6 @@ import Ventas from './modules/inventario/pages/Ventas';
 import Catalogo from './modules/inventario/pages/Catalogo';
 import Compras from './modules/inventario/pages/Compras';
 import Inventario from './modules/inventario/pages/Inventario';
-
 import StockInicial from './modules/inventario/pages/StockInicial';
 import ProductoForm from './modules/inventario/pages/ProductoForm';
 import ProductoEdit from './modules/inventario/pages/ProductoEdit';
@@ -58,29 +55,20 @@ import CuentasPorCobrar from './modules/ventas/pages/CuentasPorCobrar';
 import Clientes from './modules/clientes/pages/Clientes';
 import Proveedores from './modules/proveedores/pages/Proveedores';
 import CotizadorAutor from './modules/ventas/pages/CotizadorAutor';
-
-// Módulo de Compras
 import RegistroCompras from './modules/compras/pages/RegistroCompras';
 import ReporteCompras from './modules/compras/pages/ReporteCompras';
-
-// Módulo de Materiales
 import RegistroMateriales from './modules/materiales/pages/RegistroMateriales';
 import ReporteMateriales from './modules/materiales/pages/ReporteMateriales';
 import TiposMateriales from './modules/materiales/pages/TiposMateriales';
-
-// Módulo de Gastos
 import Gastos from './modules/gastos/pages/Gastos';
-import Deudas from './modules/gastos/pages/Deudas'; // NUEVO IMPORT
-
-// Módulo de Configuración
+import Deudas from './modules/gastos/pages/Deudas';
 import TiposProducto from './modules/configuracion/pages/TiposProducto';
-
-// Módulo Financiero
 import Dashboard from './pages/Dashboard';
 
 const MainContent = () => {
     const location = useLocation();
     const isAdmin = location.pathname.startsWith('/admin');
+
     const isInventarioModule = location.pathname.startsWith('/inventario') ||
         location.pathname.startsWith('/produccion') ||
         location.pathname.startsWith('/ventas') ||
@@ -91,12 +79,13 @@ const MainContent = () => {
         location.pathname.startsWith('/proveedores') ||
         location.pathname.startsWith('/materiales') ||
         location.pathname.startsWith('/gastos') ||
-        location.pathname.startsWith('/deudas') || // NUEVA CONDICIÓN
+        location.pathname.startsWith('/deudas') ||
         location.pathname.startsWith('/configuracion') ||
         location.pathname.startsWith('/config') ||
         location.pathname.startsWith('/producto-form') ||
         location.pathname.startsWith('/cotizador') ||
         location.pathname.startsWith('/stock-inicial') ||
+        location.pathname.startsWith('/dashboard-master') ||
         location.pathname.startsWith('/dashboard');
 
     const hideHeaderFooter = isAdmin || isInventarioModule;
@@ -106,7 +95,6 @@ const MainContent = () => {
             <ScrollToTop />
             {!hideHeaderFooter && <Header />}
             <Routes>
-                {/* Rutas públicas */}
                 <Route path="/" element={<Home />} />
                 <Route path="/sobremi" element={<SobreMi />} />
                 <Route path="/contacto" element={<Contacto />} />
@@ -117,25 +105,19 @@ const MainContent = () => {
                 <Route path="/carrusel" element={<PublicCarousel />} />
                 <Route path="/producto/:id" element={<ProductoDetalle />} />
                 <Route path="/tienda" element={<Tienda />} />
-
-                {/* Rutas dinámicas de ProductGridPage */}
                 <Route path="/catalogo/:material/:categoria" element={<ProductGridPage />} />
-
-                {/* Rutas de autenticación */}
                 <Route path="/signup" element={<SignUp />} />
                 <Route path="/login" element={<Login />} />
 
-                {/* Panel de administración - Rutas privadas */}
+                <Route path="/dashboard-master" element={<PrivateRoute><DashboardMaster /></PrivateRoute>} />
+
                 <Route path="/admin" element={<PrivateRoute><AdminPanel /></PrivateRoute>} />
                 <Route path="/admin/carrusel" element={<PrivateRoute><CarouselAdmin /></PrivateRoute>} />
                 <Route path="/admin/categoria" element={<PrivateRoute><CategoriaAdmin /></PrivateRoute>} />
                 <Route path="/admin/productos" element={<PrivateRoute><ProductoAdmin /></PrivateRoute>} />
-
                 <Route path="/admin/pedidos" element={<PrivateRoute><Pedidos /></PrivateRoute>} />
                 <Route path="/admin/reportes" element={<PrivateRoute><ReportePedidos /></PrivateRoute>} />
                 <Route path="/admin/codigos-qr" element={<PrivateRoute><ReporteCodigosQR /></PrivateRoute>} />
-
-                {/* Módulo de Inventario - Rutas privadas */}
                 <Route path="/inventario-home" element={<PrivateRoute><InventarioHome /></PrivateRoute>} />
                 <Route path="/produccion" element={<PrivateRoute><Produccion /></PrivateRoute>} />
                 <Route path="/produccion-reporte" element={<PrivateRoute><ProduccionReporte /></PrivateRoute>} />
@@ -160,10 +142,9 @@ const MainContent = () => {
                 <Route path="/materiales/reporte" element={<PrivateRoute><ReporteMateriales /></PrivateRoute>} />
                 <Route path="/config/tipos-materiales" element={<PrivateRoute><TiposMateriales /></PrivateRoute>} />
                 <Route path="/gastos" element={<PrivateRoute><Gastos /></PrivateRoute>} />
-                <Route path="/deudas" element={<PrivateRoute><Deudas /></PrivateRoute>} /> {/* NUEVA RUTA */}
+                <Route path="/deudas" element={<PrivateRoute><Deudas /></PrivateRoute>} />
                 <Route path="/configuracion/tipos-producto" element={<PrivateRoute><TiposProducto /></PrivateRoute>} />
                 <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
-
             </Routes>
             {!hideHeaderFooter && (
                 <>
@@ -178,7 +159,8 @@ const MainContent = () => {
 function App() {
     return (
         <AuthProvider>
-            <Router>
+            {/* Flags v7 para limpiar avisos de consola */}
+            <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
                 <MainContent />
             </Router>
         </AuthProvider>

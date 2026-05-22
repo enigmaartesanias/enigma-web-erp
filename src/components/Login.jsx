@@ -12,10 +12,10 @@ const Login = () => {
   const [error, setError] = useState(null);
   const navigate = useNavigate();
 
-  // Redirigir si ya está autenticado
+  // Redirigir si ya está autenticado al Dashboard Master
   useEffect(() => {
     if (user) {
-      navigate('/admin', { replace: true });
+      navigate('/dashboard-master', { replace: true });
     }
   }, [user, navigate]);
 
@@ -34,8 +34,8 @@ const Login = () => {
 
       if (signInError) throw signInError;
 
-      // Redirigir tras login exitoso
-      navigate('/admin', { replace: true });
+      // Redirigir al Dashboard Master tras login exitoso
+      navigate('/dashboard-master', { replace: true });
     } catch (err) {
       console.error('Error al iniciar sesión:', err.message);
       setError(`Error al iniciar sesión: ${err.message}`);
@@ -64,7 +64,7 @@ const Login = () => {
               required
             />
           </div>
-          
+
           <div className="mb-6">
             <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="password">
               Contraseña
@@ -79,13 +79,13 @@ const Login = () => {
               required
             />
           </div>
-          
+
           {error && (
             <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
               <span className="block sm:inline">{error}</span>
             </div>
           )}
-          
+
           <div className="flex items-center justify-between">
             <button
               type="submit"
@@ -96,7 +96,7 @@ const Login = () => {
             </button>
           </div>
         </form>
-        
+
         <p className="text-center text-gray-500 text-xs mt-4">
           ¿No tienes cuenta?{' '}
           <Link to="/signup" className="text-blue-500 hover:text-blue-800">

@@ -1,20 +1,30 @@
 {
-    "name": "Enigma Gestion",
+    "name": "Enigma Gestión",
     "short_name": "Enigma",
+    "description": "Portal de gestión y accesos de Artesanías Enigma",
     "start_url": "/dashboard-master",
     "display": "standalone",
-    "background_color": "#ffffff",
-    "theme_color": "#ffffff",
+    "orientation": "portrait-primary",
+    "background_color": "#0c0a09",
+    "theme_color": "#0c0a09",
     "icons": [
         {
             "src": "/pwa-192x192.png",
             "sizes": "192x192",
-            "type": "image/png"
+            "type": "image/png",
+            "purpose": "any"
         },
         {
             "src": "/pwa-512x512.png",
             "sizes": "512x512",
-            "type": "image/png"
+            "type": "image/png",
+            "purpose": "any"
+        },
+        {
+            "src": "/pwa-maskable-512x512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "maskable"
         }
     ]
 }

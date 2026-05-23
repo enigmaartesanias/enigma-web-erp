@@ -1,64 +1,80 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { productosExternosDB } from '../../../utils/productosExternosNeonClient';
 import { produccionDB } from '../../../utils/produccionNeonClient';
-import { storage } from '../../../firebaseConfig';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { compressAndResizeImage, validateImageFile } from '../../../utils/imageOptimizer';
 import QRCode from 'react-qr-code';
-import { FaTimes, FaCamera, FaBoxOpen, FaSpinner, FaRandom } from 'react-icons/fa'; // Añadido FaRandom
+import { FaTimes, FaBoxOpen, FaSpinner, FaRandom } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 
 /**
- * StockIngressModal
- * Se muestra SOLO cuando tipo_produccion === 'STOCK' al marcar como terminado.
+ * StockIngressModal — v2
+ * Regla de Oro: SIN imágenes. Solo texto.
+ * Switch Único / Grupal con lógica de código diferenciada.
  */
 const StockIngressModal = ({ item, onSuccess, onCancel }) => {
+    const [tipoIngreso, setTipoIngreso] = useState('Único');   // 'Único' | 'Grupal'
     const [codigo, setCodigo] = useState('');
-    const [lote, setLote] = useState(''); // NUEVO: Estado del lote
+    const [lote, setLote] = useState('');
     const [precio, setPrecio] = useState('');
     const [precioOferta, setPrecioOferta] = useState('');
-    const [codigoCheck, setCodigoCheck] = useState(null);
+    const [codigoCheck, setCodigoCheck] = useState(null);      // null | 'checking' | { exists, stockActual, precio }
     const [loading, setLoading] = useState(false);
-    const [uploadingImg, setUploadingImg] = useState(false);
-    const [localImageUrl, setLocalImageUrl] = useState(null);
-    const fileInputRef = useRef(null);
     const debounceRef = useRef(null);
 
-    const hasProductionImage = !!item?.imagen_url;
+    // ── Cuando cambia el tipo de ingreso, limpiar código ────────────────────
+    useEffect(() => {
+        setCodigo('');
+        setLote('');
+        setCodigoCheck(null);
+    }, [tipoIngreso]);
 
-    // Auto-uppercase + sin espacios + Extracción manual del lote si lo escriben
+    // ── Auto-uppercase + sin espacios ────────────────────────────────────────
     const handleCodigoChange = (e) => {
         const val = e.target.value.toUpperCase().replace(/\s/g, '');
         setCodigo(val);
 
-        // Extraer Lote automáticamente si se escribe a mano
+        // Extrae lote automáticamente si escriben "AN-ALP-L003"
         if (val.includes('-L')) {
             const parts = val.split('-L');
             if (parts.length > 1) {
-                setLote('L' + parts[parts.length - 1].split('-')[0].toUpperCase());
+                setLote('L' + parts[parts.length - 1].split('-')[0]);
             }
         }
     };
 
-    // NUEVO: Función para Auto Generar Código de Lote
-    const generarCodigoUnico = async () => {
-        if (!item.tipo_producto || !item.metal) {
-            toast.error('Falta Tipo de Producto o Metal en la producción para generar el lote.');
-            return;
-        }
-
-        try {
-            const data = await productosExternosDB.getNextLote(item.tipo_producto, item.metal);
-            setCodigo(data.codigoUnico);
-            setLote(data.nextLote);
-            toast.success('Código de lote autogenerado');
-        } catch (error) {
-            console.error('Error obteniendo lote:', error);
-            toast.error('Error al generar el código.');
+    // ── Generar código según tipo ────────────────────────────────────────────
+    const generarCodigo = async () => {
+        if (tipoIngreso === 'Grupal') {
+            // Código inteligente: PROD-CAT-MAT-PRECIO
+            if (!precio) {
+                toast.error('Ingresa primero el precio de venta para generar el código grupal.');
+                return;
+            }
+            const cat = (item.tipo_producto || item.categoria || 'PRD').substring(0, 3).toUpperCase();
+            const mat = (item.metal || item.material || 'MAT').substring(0, 3).toUpperCase();
+            const prc = parseFloat(precio);
+            const code = `PROD-${cat}-${mat}-${prc}`;
+            setCodigo(code);
+            setLote('');
+            toast.success(`Código grupal generado: ${code}`);
+        } else {
+            // Código único correlativo automático (comportamiento original)
+            if (!item.tipo_producto || !item.metal) {
+                toast.error('Falta Tipo de Producto o Metal en la producción.');
+                return;
+            }
+            try {
+                const data = await productosExternosDB.getNextLote(item.tipo_producto, item.metal);
+                setCodigo(data.codigoUnico);
+                setLote(data.nextLote);
+                toast.success('Código de lote autogenerado');
+            } catch (err) {
+                console.error(err);
+                toast.error('Error al generar el código.');
+            }
         }
     };
 
-    // Validación en tiempo real del código
+    // ── Validación en tiempo real del código ─────────────────────────────────
     useEffect(() => {
         if (debounceRef.current) clearTimeout(debounceRef.current);
         if (!codigo.trim()) { setCodigoCheck(null); return; }
@@ -68,6 +84,7 @@ const StockIngressModal = ({ item, onSuccess, onCancel }) => {
             try {
                 const result = await productosExternosDB.checkCodigo(codigo.trim());
                 setCodigoCheck(result);
+                // Si el grupo ya existe y no pusieron precio, lo prefila
                 if (result.exists && result.precio && !precio) {
                     setPrecio(String(parseFloat(result.precio).toFixed(2)));
                 }
@@ -79,28 +96,7 @@ const StockIngressModal = ({ item, onSuccess, onCancel }) => {
         return () => clearTimeout(debounceRef.current);
     }, [codigo]);
 
-    const handleImageUpload = async (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-        const validation = validateImageFile(file, 5);
-        if (!validation.valid) { toast.error(validation.error); return; }
-
-        setUploadingImg(true);
-        try {
-            const optimized = await compressAndResizeImage(file, { maxSizeMB: 0.5, maxWidth: 1024, quality: 0.8 });
-            const fileName = `produccion/${Date.now()}-${Math.random().toString(36).substring(2, 8)}.jpg`;
-            const storageRef = ref(storage, fileName);
-            await uploadBytes(storageRef, optimized);
-            const url = await getDownloadURL(storageRef);
-            setLocalImageUrl(url);
-            toast.success('Imagen lista');
-        } catch {
-            toast.error('Error al subir imagen');
-        } finally {
-            setUploadingImg(false);
-        }
-    };
-
+    // ── Feedback visual del código ───────────────────────────────────────────
     const renderCodigoFeedback = () => {
         if (!codigo) return null;
         if (codigoCheck === 'checking') return (
@@ -109,24 +105,27 @@ const StockIngressModal = ({ item, onSuccess, onCancel }) => {
                 <span>Verificando...</span>
             </div>
         );
-        if (!codigoCheck || codigoCheck === null) return null;
+        if (!codigoCheck) return null;
         if (codigoCheck.exists) return (
             <div className="mt-1.5 px-2.5 py-1.5 bg-emerald-50 border border-emerald-200 rounded-lg text-xs text-emerald-700 flex items-start gap-1.5">
                 <span className="font-bold flex-shrink-0 mt-0.5">✅</span>
                 <span>
-                    Grupo <strong>{codigo}</strong> existe · Stock actual: <strong>{codigoCheck.stockActual}u</strong>
-                    {' '}→ sumará <strong>{item.cantidad}u</strong> → Total: <strong>{codigoCheck.stockActual + item.cantidad}u</strong>
+                    Grupo <strong>{codigo}</strong> existe · Stock actual:{' '}
+                    <strong>{codigoCheck.stockActual}u</strong>
+                    {' '}→ sumará <strong>{item.cantidad}u</strong>
+                    {' '}→ Total: <strong>{codigoCheck.stockActual + item.cantidad}u</strong>
                 </span>
             </div>
         );
         return (
             <div className="mt-1.5 px-2.5 py-1.5 bg-blue-50 border border-blue-200 rounded-lg text-xs text-blue-700 flex items-center gap-1.5">
                 <span className="flex-shrink-0">🆕</span>
-                <span>Código nuevo · se creará el grupo <strong>{codigo}</strong></span>
+                <span>Código nuevo · se creará <strong>{tipoIngreso === 'Grupal' ? 'el grupo' : 'el lote'}</strong> <strong>{codigo}</strong></span>
             </div>
         );
     };
 
+    // ── Submit principal ─────────────────────────────────────────────────────
     const handleSubmit = async () => {
         if (!codigo.trim()) { toast.error('El código es obligatorio'); return; }
         if (!precio) { toast.error('El precio de venta es obligatorio'); return; }
@@ -136,20 +135,21 @@ const StockIngressModal = ({ item, onSuccess, onCancel }) => {
             // 1. Marcar producción como terminada
             await produccionDB.updateEstado(item.id_produccion, 'terminado');
 
-            // 2. Enviar a stock
-            const finalImageUrl = item.imagen_url || localImageUrl || null;
+            // 2. Enviar a stock — SIN imagen_url (Regla de Oro)
             const result = await productosExternosDB.enviarAStock({
                 codigo: codigo.trim(),
-                lote: lote || null, // NUEVO: Se envía el lote a la base de datos
+                lote: lote || null,
                 cantidad: item.cantidad,
                 precio: parseFloat(precio),
                 precioReferencial: precioOferta ? parseFloat(precioOferta) : null,
                 produccionId: item.id_produccion,
                 codigo_produccion: item.codigo_correlativo || `PR-${String(item.id_produccion).padStart(4, '0')}`,
                 tipo_producto: item.tipo_producto,
+                tipo_inventario: tipoIngreso,           // 'Único' | 'Grupal'
+                origen_producto: 'Produccion',
                 nombre: item.nombre_producto || `${item.tipo_producto} de ${item.metal}`,
                 material: item.metal || '',
-                imagen_url: finalImageUrl,
+                imagen_url: null,                  // ← REGLA DE ORO: siempre null
                 costo: parseFloat(item.costo_total_unitario || item.costo_materiales || 0)
             });
 
@@ -159,7 +159,7 @@ const StockIngressModal = ({ item, onSuccess, onCancel }) => {
             }
 
             toast.success(
-                `✅ ${codigo} · ${item.tipo_producto || 'Producto'} ingresado al stock`,
+                `✅ ${codigo} · ${tipoIngreso} ingresado al stock`,
                 { duration: 4000 }
             );
             onSuccess();
@@ -171,6 +171,7 @@ const StockIngressModal = ({ item, onSuccess, onCancel }) => {
         }
     };
 
+    // ── Solo marcar como terminado ───────────────────────────────────────────
     const handleTerminarSinStock = async () => {
         setLoading(true);
         try {
@@ -184,17 +185,19 @@ const StockIngressModal = ({ item, onSuccess, onCancel }) => {
         }
     };
 
+    // ── Render ───────────────────────────────────────────────────────────────
     return (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-200">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
 
+                {/* Header */}
                 <div className="bg-gradient-to-r from-purple-600 to-indigo-600 px-5 py-4">
                     <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2">
                             <FaBoxOpen className="text-white/80" size={15} />
                             <span className="text-sm font-semibold text-white tracking-wide">Ingresar al Stock</span>
                         </div>
-                        <button onClick={onCancel} className="text-white/60 hover:text-white transition-colors p-1 rounded-full hover:bg-white/10">
+                        <button onClick={onCancel} className="text-white/60 hover:text-white p-1 rounded-full hover:bg-white/10">
                             <FaTimes size={15} />
                         </button>
                     </div>
@@ -202,44 +205,91 @@ const StockIngressModal = ({ item, onSuccess, onCancel }) => {
                         {item.nombre_producto || `${item.tipo_producto} de ${item.metal}`}
                     </p>
                     <div className="flex items-center gap-3 mt-1">
-                        <span className="text-white/70 text-xs">{item.cantidad} {item.cantidad === 1 ? 'unidad' : 'unidades'}</span>
+                        <span className="text-white/70 text-xs">
+                            {item.cantidad} {item.cantidad === 1 ? 'unidad' : 'unidades'}
+                        </span>
                         <span className="text-white/30">·</span>
-                        <span className="text-white/70 text-xs">Costo: S/ {parseFloat(item.costo_total_unitario || item.costo_materiales || 0).toFixed(2)}</span>
+                        <span className="text-white/70 text-xs">
+                            Costo: S/ {parseFloat(item.costo_total_unitario || item.costo_materiales || 0).toFixed(2)}
+                        </span>
                     </div>
                 </div>
 
                 <div className="p-5 space-y-4">
-                    {hasProductionImage ? (
-                        <div className="flex items-center gap-3 px-3 py-2.5 bg-gray-50 rounded-xl border border-gray-100">
-                            <img src={item.imagen_url} alt="Producto" className="w-10 h-10 rounded-lg object-cover flex-shrink-0 border border-gray-200" />
-                            <div>
-                                <p className="text-xs font-medium text-gray-600">Imagen incluida</p>
-                                <p className="text-[10px] text-gray-400">Viene automáticamente de producción</p>
-                            </div>
-                        </div>
-                    ) : (
-                        <div className="flex items-center gap-3">
-                            <div onClick={() => !uploadingImg && fileInputRef.current?.click()} className="w-16 h-16 rounded-xl border-2 border-dashed border-gray-300 flex flex-col items-center justify-center cursor-pointer hover:border-purple-400 hover:bg-purple-50/30 transition-all flex-shrink-0">
-                                {uploadingImg ? (
-                                    <FaSpinner className="animate-spin text-purple-500" size={18} />
-                                ) : localImageUrl ? (
-                                    <img src={localImageUrl} alt="preview" className="w-full h-full object-cover rounded-xl" />
-                                ) : (
-                                    <>
-                                        <FaCamera size={18} className="text-gray-400 mb-0.5" />
-                                        <span className="text-[9px] text-gray-400">Foto</span>
-                                    </>
-                                )}
-                                <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
-                            </div>
-                            <p className="text-xs text-gray-400 leading-relaxed">Foto opcional.<br /><span className="text-gray-300">Se usará en el catálogo de inventario.</span></p>
-                        </div>
-                    )}
 
-                    {/* MODIFICADO: Input de código ahora tiene el botón "Auto" */}
+                    {/* ── Switch Único / Grupal ── */}
+                    <div>
+                        <label className="block text-[10px] font-bold text-gray-500 mb-2 uppercase tracking-wider">
+                            Tipo de Ingreso
+                        </label>
+                        <div className="flex rounded-xl border border-gray-200 overflow-hidden">
+                            {['Único', 'Grupal'].map(tipo => (
+                                <button
+                                    key={tipo}
+                                    type="button"
+                                    onClick={() => setTipoIngreso(tipo)}
+                                    className={`flex-1 py-2.5 text-xs font-bold transition-all ${tipoIngreso === tipo
+                                            ? 'bg-gray-900 text-white'
+                                            : 'bg-white text-gray-400 hover:bg-gray-50'
+                                        }`}
+                                >
+                                    {tipo === 'Único' ? '🔹 Único' : '📦 Grupal'}
+                                </button>
+                            ))}
+                        </div>
+                        <p className="mt-1.5 text-[10px] text-gray-400 leading-relaxed">
+                            {tipoIngreso === 'Único'
+                                ? 'Lote correlativo automático. Cada pieza es individual.'
+                                : 'Agrupa por metal y precio. Suma stock si el código ya existe.'}
+                        </p>
+                    </div>
+
+                    {/* ── Precio (va antes del código en Grupal para poder generar) ── */}
+                    <div className="grid grid-cols-2 gap-3">
+                        <div>
+                            <label className="block text-[10px] font-bold text-gray-500 mb-1.5 uppercase tracking-wider">
+                                Precio venta <span className="text-red-400">*</span>
+                            </label>
+                            <div className="relative">
+                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 font-medium">S/</span>
+                                <input
+                                    type="number"
+                                    value={precio}
+                                    onChange={e => setPrecio(e.target.value)}
+                                    placeholder="0.00"
+                                    step="0.50"
+                                    className="w-full pl-7 pr-3 py-2.5 border border-gray-300 rounded-xl text-sm font-bold text-gray-800 focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
+                                />
+                            </div>
+                        </div>
+                        <div>
+                            <label className="block text-[10px] font-bold text-blue-400 mb-1.5 uppercase tracking-wider">
+                                Precio oferta
+                            </label>
+                            <div className="relative">
+                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 font-medium">S/</span>
+                                <input
+                                    type="number"
+                                    value={precioOferta}
+                                    onChange={e => setPrecioOferta(e.target.value)}
+                                    placeholder="Opcional"
+                                    step="0.50"
+                                    className="w-full pl-7 pr-3 py-2.5 border border-blue-200 bg-blue-50/40 rounded-xl text-sm focus:ring-2 focus:ring-blue-400 focus:border-transparent outline-none"
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* ── Código SKU / Lote ── */}
                     <div>
                         <label className="block text-[10px] font-bold text-gray-500 mb-1.5 uppercase tracking-wider">
-                            Código SKU / Lote <span className="text-red-400">*</span>
+                            {tipoIngreso === 'Único' ? 'Código SKU / Lote' : 'Código Grupal'}{' '}
+                            <span className="text-red-400">*</span>
+                            {tipoIngreso === 'Grupal' && (
+                                <span className="ml-1 text-gray-300 normal-case font-normal">
+                                    (PROD-CAT-MAT-PRECIO)
+                                </span>
+                            )}
                         </label>
                         <div className="flex gap-2 items-start">
                             <div className="flex-1">
@@ -248,21 +298,25 @@ const StockIngressModal = ({ item, onSuccess, onCancel }) => {
                                         type="text"
                                         value={codigo}
                                         onChange={handleCodigoChange}
-                                        placeholder="Ej: AN-ALP-L001"
+                                        placeholder={tipoIngreso === 'Único' ? 'Ej: AN-ALP-L001' : 'Ej: PROD-ANI-COB-50'}
                                         autoFocus
-                                        className="w-full px-3 py-2.5 border border-gray-300 rounded-xl text-sm font-mono font-bold uppercase tracking-widest focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
+                                        readOnly={tipoIngreso === 'Grupal'} // Grupal: solo auto-generado
+                                        className={`w-full px-3 py-2.5 border rounded-xl text-sm font-mono font-bold uppercase tracking-widest focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none ${tipoIngreso === 'Grupal' ? 'bg-gray-50 border-gray-200 text-gray-600 cursor-not-allowed' : 'border-gray-300'
+                                            }`}
                                     />
                                     <button
                                         type="button"
-                                        onClick={generarCodigoUnico}
-                                        className="px-3 py-2 bg-gray-900 hover:bg-gray-800 text-white rounded-xl text-[10px] font-bold transition-colors whitespace-nowrap flex items-center gap-1 shadow-sm"
-                                        title="Generar Lote Automático"
+                                        onClick={generarCodigo}
+                                        className="px-3 py-2 bg-gray-900 hover:bg-gray-800 text-white rounded-xl text-[10px] font-bold whitespace-nowrap flex items-center gap-1 shadow-sm"
+                                        title={tipoIngreso === 'Único' ? 'Generar Lote Automático' : 'Generar Código Grupal'}
                                     >
                                         <FaRandom size={12} /> Auto
                                     </button>
                                 </div>
                                 {renderCodigoFeedback()}
                             </div>
+
+                            {/* QR Preview */}
                             <div className="w-14 h-14 bg-white border border-gray-200 rounded-xl flex items-center justify-center flex-shrink-0 p-1.5">
                                 {codigo ? (
                                     <QRCode value={codigo} size={40} />
@@ -273,31 +327,27 @@ const StockIngressModal = ({ item, onSuccess, onCancel }) => {
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-3">
-                        <div>
-                            <label className="block text-[10px] font-bold text-gray-500 mb-1.5 uppercase tracking-wider">Precio venta <span className="text-red-400">*</span></label>
-                            <div className="relative">
-                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 font-medium">S/</span>
-                                <input type="number" value={precio} onChange={e => setPrecio(e.target.value)} placeholder="0.00" step="0.50" className="w-full pl-7 pr-3 py-2.5 border border-gray-300 rounded-xl text-sm font-bold text-gray-800 focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none" />
-                            </div>
-                        </div>
-                        <div>
-                            <label className="block text-[10px] font-bold text-blue-400 mb-1.5 uppercase tracking-wider">Precio oferta</label>
-                            <div className="relative">
-                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 font-medium">S/</span>
-                                <input type="number" value={precioOferta} onChange={e => setPrecioOferta(e.target.value)} placeholder="Opcional" step="0.50" className="w-full pl-7 pr-3 py-2.5 border border-blue-200 bg-blue-50/40 rounded-xl text-sm focus:ring-2 focus:ring-blue-400 focus:border-transparent outline-none" />
-                            </div>
-                        </div>
-                    </div>
-
+                    {/* ── Acciones ── */}
                     <div className="space-y-2 pt-1">
-                        <button onClick={handleSubmit} disabled={loading || !codigo.trim() || !precio} className="w-full py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl text-sm font-semibold shadow-md shadow-purple-200 hover:opacity-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2">
-                            {loading ? <><FaSpinner className="animate-spin" size={13} /> Ingresando...</> : <><FaBoxOpen size={13} /> Ingresar al Stock</>}
+                        <button
+                            onClick={handleSubmit}
+                            disabled={loading || !codigo.trim() || !precio}
+                            className="w-full py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl text-sm font-semibold shadow-md shadow-purple-200 hover:opacity-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                        >
+                            {loading
+                                ? <><FaSpinner className="animate-spin" size={13} /> Ingresando...</>
+                                : <><FaBoxOpen size={13} /> Ingresar al Stock</>
+                            }
                         </button>
-                        <button onClick={handleTerminarSinStock} disabled={loading} className="w-full py-2 text-[11px] text-gray-400 hover:text-gray-600 transition-colors">
+                        <button
+                            onClick={handleTerminarSinStock}
+                            disabled={loading}
+                            className="w-full py-2 text-[11px] text-gray-400 hover:text-gray-600 transition-colors"
+                        >
                             Solo marcar como terminado · ingresar al stock después
                         </button>
                     </div>
+
                 </div>
             </div>
         </div>

@@ -10,7 +10,6 @@ const ClienteForm = ({ isOpen, onClose, onSave, initialData = null }) => {
     });
     const [errors, setErrors] = useState({});
 
-    // Reset form cuando cambia initialData o se abre el modal
     useEffect(() => {
         if (isOpen) {
             setFormData({
@@ -32,10 +31,12 @@ const ClienteForm = ({ isOpen, onClose, onSave, initialData = null }) => {
             newErrors.nombre = 'Mínimo 2 caracteres';
         }
 
-        // Teléfono es opcional, pero si se ingresa debe tener formato correcto
+        // Acepta: +1 (310) 745-4347 | 999888777 | +51 987 654 321 | etc.
+        // Elimina espacios, guiones, paréntesis y + para contar solo dígitos
         if (formData.telefono.trim()) {
-            if (!/^\d{7,15}$/.test(formData.telefono.replace(/\s/g, ''))) {
-                newErrors.telefono = 'Formato inválido';
+            const soloDigitos = formData.telefono.replace(/[\s\-().+]/g, '');
+            if (!/^\d{6,15}$/.test(soloDigitos)) {
+                newErrors.telefono = 'Número inválido (6-15 dígitos, puede incluir +, espacios o guiones)';
             }
         }
 
@@ -45,19 +46,14 @@ const ClienteForm = ({ isOpen, onClose, onSave, initialData = null }) => {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-
         if (validate()) {
-            onSave({
-                ...formData,
-                id: initialData?.id
-            });
+            onSave({ ...formData, id: initialData?.id });
         }
     };
 
     const handleChange = (e) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
-        // Limpiar error del campo
         if (errors[name]) {
             setErrors(prev => ({ ...prev, [name]: '' }));
         }
@@ -73,10 +69,7 @@ const ClienteForm = ({ isOpen, onClose, onSave, initialData = null }) => {
                     <h3 className="text-base font-semibold">
                         {initialData ? 'Editar Cliente' : 'Nuevo Cliente'}
                     </h3>
-                    <button
-                        onClick={onClose}
-                        className="text-white hover:text-gray-200 transition"
-                    >
+                    <button onClick={onClose} className="text-white hover:text-gray-200 transition">
                         <FaTimes size={18} />
                     </button>
                 </div>
@@ -85,47 +78,38 @@ const ClienteForm = ({ isOpen, onClose, onSave, initialData = null }) => {
                 <form onSubmit={handleSubmit} className="p-4 space-y-3">
                     {/* Nombre */}
                     <div>
-                        <label className="block text-xs font-medium text-gray-700 mb-1">
-                            Nombre *
-                        </label>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">Nombre *</label>
                         <input
                             type="text"
                             name="nombre"
                             value={formData.nombre}
                             onChange={handleChange}
-                            className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-1 focus:ring-gray-400 outline-none ${errors.nombre ? 'border-red-500' : 'border-gray-300'
-                                }`}
+                            className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-1 focus:ring-gray-400 outline-none ${errors.nombre ? 'border-red-500' : 'border-gray-300'}`}
                             placeholder="Ej: Juan Pérez"
                         />
-                        {errors.nombre && (
-                            <p className="text-xs text-red-600 mt-1">{errors.nombre}</p>
-                        )}
+                        {errors.nombre && <p className="text-xs text-red-600 mt-1">{errors.nombre}</p>}
                     </div>
 
                     {/* Teléfono */}
                     <div>
                         <label className="block text-xs font-medium text-gray-700 mb-1">
                             Teléfono
+                            <span className="ml-1 text-gray-400 font-normal">(local o internacional)</span>
                         </label>
                         <input
                             type="tel"
                             name="telefono"
                             value={formData.telefono}
                             onChange={handleChange}
-                            className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-1 focus:ring-gray-400 outline-none ${errors.telefono ? 'border-red-500' : 'border-gray-300'
-                                }`}
-                            placeholder="Ej: 999888777"
+                            className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-1 focus:ring-gray-400 outline-none ${errors.telefono ? 'border-red-500' : 'border-gray-300'}`}
+                            placeholder="Ej: +1 (310) 745-4347 o 999888777"
                         />
-                        {errors.telefono && (
-                            <p className="text-xs text-red-600 mt-1">{errors.telefono}</p>
-                        )}
+                        {errors.telefono && <p className="text-xs text-red-600 mt-1">{errors.telefono}</p>}
                     </div>
 
                     {/* DNI */}
                     <div>
-                        <label className="block text-xs font-medium text-gray-700 mb-1">
-                            DNI
-                        </label>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">DNI</label>
                         <input
                             type="text"
                             name="dni"
@@ -138,9 +122,7 @@ const ClienteForm = ({ isOpen, onClose, onSave, initialData = null }) => {
 
                     {/* Dirección */}
                     <div>
-                        <label className="block text-xs font-medium text-gray-700 mb-1">
-                            Dirección
-                        </label>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">Dirección</label>
                         <textarea
                             name="direccion"
                             value={formData.direccion}

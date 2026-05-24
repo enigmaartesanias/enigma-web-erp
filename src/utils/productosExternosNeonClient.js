@@ -26,6 +26,48 @@ export const productosExternosDB = {
     }));
   },
 
+  // ─── NUEVO: buscado por código QR o id ───────────────────────
+  // Llamado desde useVentas.scanProduct() al escanear un QR.
+  // Busca primero por codigo_usuario (ej: COMP-ANI-ALP-25),
+  // y como fallback por id numérico.
+  async getByCodigoConsolidated(codigo) {
+    if (!codigo) return null;
+
+    // 1. Buscar por codigo_usuario exacto (caso normal del QR)
+    const [porCodigo] = await sql`
+      SELECT * FROM productos_externos
+      WHERE estado_activo = TRUE
+        AND UPPER(codigo_usuario) = UPPER(${codigo.trim()})
+      LIMIT 1
+    `;
+    if (porCodigo) return {
+      ...porCodigo,
+      stock_actual: Number(porCodigo.stock_actual) || 0,
+      costo: Number(porCodigo.costo) || 0,
+      precio: Number(porCodigo.precio) || 0,
+    };
+
+    // 2. Fallback: buscar por id numérico (QR generado con String(producto.id))
+    const idNum = parseInt(codigo, 10);
+    if (!isNaN(idNum)) {
+      const [porId] = await sql`
+        SELECT * FROM productos_externos
+        WHERE estado_activo = TRUE
+          AND id = ${idNum}
+        LIMIT 1
+      `;
+      if (porId) return {
+        ...porId,
+        stock_actual: Number(porId.stock_actual) || 0,
+        costo: Number(porId.costo) || 0,
+        precio: Number(porId.precio) || 0,
+      };
+    }
+
+    return null; // No encontrado
+  },
+  // ─────────────────────────────────────────────────────────────
+
   async getNextLote(tipoProducto, material) {
     if (!tipoProducto || !material) return { prefix: '', nextLote: 'L001', codigoUnico: '' };
     const getAbrev = (str) => str.substring(0, 3).toUpperCase();

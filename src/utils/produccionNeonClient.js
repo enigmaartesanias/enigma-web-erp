@@ -28,11 +28,11 @@ export const produccionDB = {
         p.nombre_cliente,
         p.precio_total as precio_venta_pedido,
         pt.mano_de_obra as costo_mano_obra,
-        (pt.costo_materiales + pt.mano_de_obra + pt.costo_herramientas + pt.otros_gastos) as costo_total_unitario,
-        (pt.costo_materiales + pt.mano_de_obra + pt.costo_herramientas + pt.otros_gastos) * pt.cantidad as costo_total_produccion,
+        ((pt.costo_materiales + pt.mano_de_obra + pt.costo_herramientas + pt.otros_gastos) / CASE WHEN pt.cantidad > 0 THEN pt.cantidad ELSE 1 END) as costo_total_unitario,
+        (pt.costo_materiales + pt.mano_de_obra + pt.costo_herramientas + pt.otros_gastos) as costo_total_produccion,
         CASE 
           WHEN p.precio_total IS NOT NULL THEN 
-            p.precio_total - ((pt.costo_materiales + pt.mano_de_obra + pt.costo_herramientas + pt.otros_gastos) * pt.cantidad)
+            p.precio_total - (pt.costo_materiales + pt.mano_de_obra + pt.costo_herramientas + pt.otros_gastos)
           ELSE NULL
         END as ganancia_estimada_pedido
       FROM produccion_taller pt
@@ -197,6 +197,22 @@ RETURNING *
     return produccion;
   },
 
+  async updateCostosReales(id, data) {
+    const [produccion] = await sql`
+      UPDATE produccion_taller SET
+        peso_material_gramos = ${data.peso_material_gramos || 0},
+        horas_trabajo_real = ${data.horas_trabajo_real || 0},
+        costo_insumos_extra = ${data.costo_insumos_extra || 0},
+        costo_materiales = ${data.costo_materiales || 0},
+        mano_de_obra = ${data.mano_de_obra || 0},
+        costo_herramientas = ${data.costo_herramientas || 0},
+        precio_sugerido = ${data.precio_sugerido || 0}
+      WHERE id_produccion = ${id}
+      RETURNING *
+    `;
+    return produccion;
+  },
+
   async updateEstado(id, nuevoEstado) {
     const now = new Date();
     const localToday = getLocalDate();
@@ -316,8 +332,8 @@ RETURNING *
       SELECT 
         pt.*,
         p.nombre_cliente,
-        (pt.costo_materiales + pt.mano_de_obra + pt.costo_herramientas + pt.otros_gastos) as costo_total_unitario,
-        (pt.costo_materiales + pt.mano_de_obra + pt.costo_herramientas + pt.otros_gastos) * pt.cantidad as costo_total_produccion
+        ((pt.costo_materiales + pt.mano_de_obra + pt.costo_herramientas + pt.otros_gastos) / CASE WHEN pt.cantidad > 0 THEN pt.cantidad ELSE 1 END) as costo_total_unitario,
+        (pt.costo_materiales + pt.mano_de_obra + pt.costo_herramientas + pt.otros_gastos) as costo_total_produccion
       FROM produccion_taller pt
       LEFT JOIN pedidos p ON pt.pedido_id = p.id_pedido
       WHERE pt.estado_produccion = 'terminado'

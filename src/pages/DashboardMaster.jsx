@@ -71,127 +71,144 @@ const DashboardMaster = () => {
         }
     };
 
-    const menuItems = [
-        { title: 'Sitio Web', path: '/', icon: <Store size={22} />, color: 'bg-indigo-600' },
-        { title: 'Administración Web', path: '/admin', icon: <Settings size={22} />, color: 'bg-indigo-600' },
-        { title: 'Sistema ERP', path: '/inventario-home', icon: <Package size={22} />, color: 'bg-indigo-600' },
-    ];
+    // NOTA: No usar clases dinámicas — Tailwind las purga. Cada botón tiene className estático.
 
     const shareItems = [
         {
             key: 'catalogo',
             label: 'Catálogo · Pulseras de cobre',
             sublabel: 'artesaniasenigma.com/catalogo/Cobre/Pulsera',
-            icon: <Image size={18} />,
-            color: 'border-amber-200 text-amber-900 bg-amber-50',
-            iconColor: 'text-amber-600',
-            dot: 'bg-amber-400',
+            icon: <Image size={15} className="stroke-[1.8]" />,
         },
         {
             key: 'ubicacion',
             label: 'Ubicación · Carabayllo',
             sublabel: 'artesaniasenigma.com/contacto',
-            icon: <MapPin size={18} />,
-            color: 'border-teal-200 text-teal-900 bg-teal-50',
-            iconColor: 'text-teal-600',
-            dot: 'bg-teal-400',
+            icon: <MapPin size={15} className="stroke-[1.8]" />,
         },
         {
             key: 'politicas',
             label: 'Políticas de envío',
             sublabel: 'artesaniasenigma.com/politicasenvios',
-            icon: <FileText size={18} />,
-            color: 'border-blue-200 text-blue-900 bg-blue-50',
-            iconColor: 'text-blue-600',
-            dot: 'bg-blue-400',
+            icon: <FileText size={15} className="stroke-[1.8]" />,
         },
     ];
 
     return (
-        <div className="min-h-screen bg-gray-50 px-4 py-6">
+        <div className="min-h-screen bg-slate-50/50 px-4 py-6 flex flex-col justify-between max-w-sm mx-auto">
+            <div>
+                {/* Header */}
+                <header className="mb-5 text-center mt-2">
+                    <p className="text-[9px] tracking-[0.25em] text-slate-400 uppercase font-black mb-1">Panel principal</p>
+                    <h1 className="text-xl font-black tracking-wider text-slate-850">ENIGMA</h1>
+                    <p className="text-[10.5px] text-slate-400 font-medium">Artesanías y Accesorios</p>
+                </header>
 
-            {/* Header */}
-            <header className="mb-8 text-center">
-                <p className="text-xs tracking-[0.2em] text-gray-400 uppercase mb-1">Panel principal</p>
-                <h1 className="text-2xl font-bold tracking-wider text-gray-800">ENIGMA</h1>
-                <p className="text-xs text-gray-400 mt-1">Artesanías y Accesorios</p>
-            </header>
-
-            {/* Menú principal */}
-            <div className="grid grid-cols-1 gap-3 max-w-sm mx-auto">
-                {menuItems.map((item) => (
+                {/* Menú principal — inline styles para evitar purge de Tailwind */}
+                <div style={{ display: 'grid', gap: '10px' }}>
                     <button
-                        key={item.title}
-                        onClick={() => navigate(item.path)}
-                        className={`${item.color} text-white px-5 py-4 rounded-xl shadow flex items-center justify-between transition-transform active:scale-95`}
+                        onClick={() => navigate('/')}
+                        style={{ background: '#1e293b', color: '#fff', border: 'none', borderRadius: '12px', padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', boxShadow: '0 1px 3px rgba(0,0,0,.12)', transition: 'opacity .15s' }}
+                        onMouseDown={e => e.currentTarget.style.opacity = '.85'}
+                        onMouseUp={e => e.currentTarget.style.opacity = '1'}
+                        onTouchStart={e => e.currentTarget.style.opacity = '.85'}
+                        onTouchEnd={e => e.currentTarget.style.opacity = '1'}
                     >
-                        <span className="font-semibold text-base">{item.title}</span>
-                        {item.icon}
+                        <span style={{ fontWeight: 700, fontSize: '12px', letterSpacing: '-0.01em' }}>Sitio Web</span>
+                        <Store size={18} style={{ color: '#94a3b8' }} />
                     </button>
-                ))}
-            </div>
 
-            {/* Instalar PWA */}
-            {deferredPrompt && (
-                <div className="max-w-sm mx-auto mt-3">
                     <button
-                        onClick={handleInstall}
-                        className="flex items-center justify-center gap-2 bg-yellow-400 text-yellow-900 w-full py-4 rounded-xl font-bold shadow"
+                        onClick={() => navigate('/admin')}
+                        style={{ background: '#1e293b', color: '#fff', border: 'none', borderRadius: '12px', padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', boxShadow: '0 1px 3px rgba(0,0,0,.12)', transition: 'opacity .15s' }}
+                        onMouseDown={e => e.currentTarget.style.opacity = '.85'}
+                        onMouseUp={e => e.currentTarget.style.opacity = '1'}
+                        onTouchStart={e => e.currentTarget.style.opacity = '.85'}
+                        onTouchEnd={e => e.currentTarget.style.opacity = '1'}
                     >
-                        <Download size={18} /> Instalar app Enigma
+                        <span style={{ fontWeight: 700, fontSize: '12px', letterSpacing: '-0.01em' }}>Administración Web</span>
+                        <Settings size={18} style={{ color: '#94a3b8' }} />
+                    </button>
+
+                    <button
+                        onClick={() => navigate('/inventario-home')}
+                        className="bg-indigo-600 text-white px-4 py-3 rounded-xl flex items-center justify-between shadow-sm transition-all duration-200 active:scale-[0.985]"
+                    >
+                        <span className="font-bold text-xs tracking-tight">Sistema ERP</span>
+                        <Package size={18} className="stroke-[1.8] text-indigo-200" />
                     </button>
                 </div>
-            )}
 
-            {/* Compartir con cliente */}
-            <div className="max-w-sm mx-auto mt-9">
-                <div className="flex items-center gap-2 mb-3">
-                    <Share2 size={13} className="text-gray-400" />
-                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest">
-                        Compartir con cliente
+                {/* Instalar PWA - Más compacto */}
+                {deferredPrompt && (
+                    <div className="mt-2.5">
+                        <button
+                            onClick={handleInstall}
+                            className="flex items-center justify-center gap-2 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-amber-950 w-full py-3 rounded-xl font-bold text-xs shadow-sm shadow-amber-100/50 transition-all duration-200 active:scale-[0.98]"
+                        >
+                            <Download size={15} className="stroke-[2.2]" /> Instalar app Enigma
+                        </button>
+                    </div>
+                )}
+
+                {/* Compartir con cliente - Más compacto */}
+                <div className="mt-8">
+                    <div className="flex items-center gap-2 mb-3 px-1">
+                        <Share2 size={11} className="text-slate-450 stroke-[2.2]" />
+                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.18em]">
+                            Compartir con cliente
+                        </p>
+                    </div>
+
+                    <div className="flex flex-col gap-2">
+                        {shareItems.map((item) => {
+                            const isSharing = sharing === item.key;
+                            const isCopied = copied === item.key;
+                            return (
+                                <button
+                                    key={item.key}
+                                    onClick={() => handleShare(item.key)}
+                                    disabled={isSharing}
+                                    className="w-full flex items-center justify-between gap-3 px-3.5 py-2.5 bg-white border border-gray-100 hover:border-slate-200/80 rounded-xl shadow-sm hover:shadow active:scale-[0.99] transition-all duration-200 disabled:opacity-50 min-w-0 text-left"
+                                >
+                                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                                        <div className="w-8 h-8 rounded-lg bg-slate-50 text-slate-500 flex items-center justify-center flex-shrink-0 border border-slate-100/50">
+                                            {item.icon}
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-xs font-bold text-slate-800 leading-tight">{item.label}</p>
+                                            <p className="text-[9.5px] text-slate-400 font-semibold mt-0.5 truncate">{item.sublabel}</p>
+                                        </div>
+                                    </div>
+                                    <span className={`text-[10px] font-extrabold px-3 py-1.5 rounded-lg transition-all duration-150 flex-shrink-0 border ${
+                                        isCopied
+                                            ? 'bg-emerald-50 text-emerald-600 border-emerald-100/80'
+                                            : 'bg-indigo-50 text-indigo-600 border-indigo-100/40 hover:bg-indigo-100'
+                                    }`}>
+                                        {isSharing ? '...' : isCopied ? 'Copiado' : 'Enviar'}
+                                    </span>
+                                </button>
+                            );
+                        })}
+                    </div>
+
+                    {/* Nota de uso */}
+                    <p className="text-[9.5px] text-slate-400 font-semibold text-center mt-3 leading-relaxed">
+                        Toca "Enviar" → se abre WhatsApp con el mensaje listo.<br />
+                        Si no, el texto se copia automáticamente.
                     </p>
                 </div>
-
-                <div className="flex flex-col gap-2">
-                    {shareItems.map((item) => {
-                        const isSharing = sharing === item.key;
-                        const isCopied = copied === item.key;
-                        return (
-                            <button
-                                key={item.key}
-                                onClick={() => handleShare(item.key)}
-                                disabled={isSharing}
-                                className={`flex items-center justify-between px-4 py-3 rounded-xl border ${item.color} transition-transform active:scale-95 disabled:opacity-50`}
-                            >
-                                <div className="flex items-center gap-3">
-                                    <span className={item.iconColor}>{item.icon}</span>
-                                    <div className="text-left">
-                                        <p className="text-sm font-semibold leading-tight">{item.label}</p>
-                                        <p className="text-[11px] opacity-50 mt-0.5 truncate max-w-[190px]">{item.sublabel}</p>
-                                    </div>
-                                </div>
-                                <span className="text-xs font-bold opacity-60 min-w-[40px] text-right">
-                                    {isSharing ? '...' : isCopied ? 'Copiado' : 'Enviar'}
-                                </span>
-                            </button>
-                        );
-                    })}
-                </div>
-
-                {/* Nota de uso */}
-                <p className="text-[11px] text-gray-400 text-center mt-3 leading-relaxed">
-                    Toca "Enviar" → se abre WhatsApp con el mensaje listo.<br />
-                    Si no, el texto se copia automáticamente.
-                </p>
             </div>
 
-            {/* Cerrar sesión */}
-            <button
-                onClick={logout}
-                className="mt-10 flex items-center justify-center gap-2 text-red-400 w-full max-w-sm mx-auto font-medium text-sm"
-            >
-                <LogOut size={16} /> Cerrar sesión
-            </button>
+            {/* Cerrar sesión - Más compacto */}
+            <div className="mt-12">
+                <button
+                    onClick={logout}
+                    className="w-full flex items-center justify-center gap-2 text-rose-500 hover:text-rose-600 font-bold text-xs bg-rose-50/50 hover:bg-rose-50 py-2.5 rounded-xl transition-all duration-200 active:scale-[0.985] border border-rose-100/50"
+                >
+                    <LogOut size={14} className="stroke-[2.2]" /> Cerrar sesión
+                </button>
+            </div>
         </div>
     );
 };

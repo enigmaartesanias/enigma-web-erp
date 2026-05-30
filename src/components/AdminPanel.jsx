@@ -3,6 +3,7 @@ import React from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
+import { Image, ShoppingBag, LogOut, ChevronRight } from 'lucide-react';
 
 import logo from '../assets/logo.png';
 
@@ -12,8 +13,8 @@ const AdminPanel = () => {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
-        <div className="w-10 h-10 border-4 border-t-blue-500 border-gray-200 rounded-full animate-spin"></div>
+      <div className="flex justify-center items-center min-h-screen bg-gray-50/50">
+        <div className="w-8 h-8 border-3 border-t-slate-800 border-gray-200 rounded-full animate-spin"></div>
       </div>
     );
   }
@@ -30,98 +31,82 @@ const AdminPanel = () => {
   };
 
   return (
-    <div className="bg-gray-50 min-h-screen">
-      {/* Logo Header */}
-      <div className="flex justify-center pt-8 bg-gray-50">
-        <Link to="/">
-          <img src={logo} alt="Logo" className="h-10 object-contain hover:opacity-80 transition-opacity" />
-        </Link>
-      </div>
+    <div className="bg-gray-50/40 min-h-screen pb-16 flex flex-col justify-between">
+      <div>
+        {/* Logo Header */}
+        <div className="flex justify-center pt-10 pb-6 bg-white border-b border-gray-100/80 shadow-sm">
+          <Link to="/" className="transition-transform active:scale-98">
+            <img src={logo} alt="Enigma Logo" className="h-10 object-contain hover:opacity-90 transition-opacity" />
+          </Link>
+        </div>
 
-      {/* Header Text */}
-      <header className="px-4 mb-4 mt-8">
-        <h1 className="text-xl font-medium tracking-wide text-center text-gray-800 uppercase">Panel de Administración</h1>
-        {user && (
-          <p className="text-center text-xs text-gray-500 mt-2">
-            Sesión iniciada como: <span className="font-medium text-gray-700">{user.email}</span>
-          </p>
-        )}
-      </header>
+        {/* Header Text */}
+        <header className="px-4 mb-8 mt-10 text-center max-w-md mx-auto">
+          <p className="text-[10px] tracking-[0.25em] text-slate-400 uppercase font-black mb-1.5">Gestión de Contenido</p>
+          <h1 className="text-xl font-bold tracking-tight text-slate-800 uppercase">Panel de Administración</h1>
+          {user && (
+            <div className="inline-flex items-center gap-1.5 mt-3 bg-slate-100/80 px-3 py-1.5 rounded-full border border-slate-200/50">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+              <p className="text-[10.5px] font-medium text-slate-500">
+                Sesión: <span className="font-semibold text-slate-700">{user.email}</span>
+              </p>
+            </div>
+          )}
+        </header>
 
-      {/* Main */}
-      <main className="container mx-auto px-4 pb-12">
-        {/* Grupo 1: Carrusel y Productos */}
-        <div className="mb-8">
-          <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-4 text-center">Gestión de Contenido</h3>
-          <div className="grid grid-cols-2 lg:grid-cols-2 gap-4 md:gap-8 max-w-4xl mx-auto">
+        {/* Main Grid */}
+        <main className="container mx-auto px-4 max-w-md">
+          <div className="grid grid-cols-1 gap-4">
+            
             {/* Carrusel */}
             <Link
               to="/admin/carrusel"
-              className="block p-6 bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 text-center border border-gray-100"
+              className="group flex items-center justify-between p-5 bg-white rounded-2xl border border-gray-100 hover:border-slate-200/80 shadow-sm hover:shadow-md transition-all duration-300 transform active:scale-[0.99]"
             >
-              <div className="w-12 h-12 md:w-16 md:h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-3 md:mb-4">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 md:h-8 md:w-8 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors group-hover:bg-indigo-100">
+                  <Image size={22} className="stroke-[1.8]" />
+                </div>
+                <div className="text-left">
+                  <h2 className="text-sm font-bold text-slate-800 mb-0.5">Carrusel Principal</h2>
+                  <p className="text-xs text-slate-400">Edita los banners promocionales de la web.</p>
+                </div>
               </div>
-              <h2 className="text-base md:text-xl font-medium text-gray-800 mb-1">Carrusel</h2>
-              <p className="text-xs md:text-sm text-gray-500 hidden md:block">Administra las imágenes del carrusel principal.</p>
+              <ChevronRight size={16} className="text-slate-300 transition-transform group-hover:translate-x-0.5" />
             </Link>
 
             {/* Productos */}
             <Link
               to="/admin/productos"
-              className="block p-6 bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 text-center border border-gray-100"
+              className="group flex items-center justify-between p-5 bg-white rounded-2xl border border-gray-100 hover:border-slate-200/80 shadow-sm hover:shadow-md transition-all duration-300 transform active:scale-[0.99]"
             >
-              <div className="w-12 h-12 md:w-16 md:h-16 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-3 md:mb-4">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 md:h-8 md:w-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l-1 7H6l-1-7z" />
-                </svg>
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-teal-50 text-teal-600 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors group-hover:bg-teal-100">
+                  <ShoppingBag size={22} className="stroke-[1.8]" />
+                </div>
+                <div className="text-left">
+                  <h2 className="text-sm font-bold text-slate-800 mb-0.5">Catálogo de Productos</h2>
+                  <p className="text-xs text-slate-400">Gestiona precios, imágenes, stock y descripciones.</p>
+                </div>
               </div>
-              <h2 className="text-base md:text-xl font-medium text-gray-800 mb-1">Productos</h2>
-              <p className="text-xs md:text-sm text-gray-500 hidden md:block">Administra tus productos: imágenes, precios, materiales y más.</p>
+              <ChevronRight size={16} className="text-slate-300 transition-transform group-hover:translate-x-0.5" />
             </Link>
+
           </div>
-        </div>
+        </main>
+      </div>
 
-
-        {/* Grupo 4: Sistema de Inventario Integrado */}
-        <div className="mb-8">
-          <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-4 text-center">Sistema de Inventario</h3>
-          <div className="grid grid-cols-1 lg:grid-cols-1 gap-4 md:gap-8 max-w-md mx-auto">
-            {/* Sistema de Inventario Integrado */}
-            <Link
-              to="/inventario-home"
-              className="block p-6 bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl shadow-md hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 text-center border-2 border-indigo-200"
-            >
-              <div className="w-12 h-12 md:w-16 md:h-16 bg-indigo-600 rounded-full flex items-center justify-center mx-auto mb-3 md:mb-4">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 md:h-8 md:w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                </svg>
-              </div>
-              <h2 className="text-base md:text-xl font-medium text-gray-900 mb-1">Sistema ERP Completo</h2>
-              <p className="text-xs md:text-sm text-gray-600 hidden md:block mb-2">Producción, Compras, Ventas, Inventario y más.</p>
-              <div className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-indigo-700 bg-indigo-100 px-3 py-1 rounded-full">
-                <span>✨ Integrado</span>
-              </div>
-            </Link>
-          </div>
-        </div>
-
-        {/* Botón de cierre de sesión */}
-        <div className="flex justify-center mt-12">
-          <button
-            onClick={handleLogout}
-            className="bg-red-500 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg shadow transition-colors duration-200 flex items-center gap-2"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-            </svg>
-            Cerrar sesión
-          </button>
-        </div>
-      </main >
-    </div >
+      {/* Botón de cierre de sesión */}
+      <div className="flex justify-center px-4 mt-16 max-w-sm mx-auto w-full">
+        <button
+          onClick={handleLogout}
+          className="w-full bg-rose-50 hover:bg-rose-100/85 text-rose-600 font-bold py-3.5 px-6 rounded-2xl transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2 border border-rose-100 text-sm shadow-sm"
+        >
+          <LogOut size={16} className="stroke-[2.2]" />
+          Cerrar sesión
+        </button>
+      </div>
+    </div>
   );
 };
 

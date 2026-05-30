@@ -74,14 +74,15 @@ export default function Inventario() {
     // ── Grid filtrado ──────────────────────────────────────────
     const filteredProductos = productos.filter(p => {
         const hasStock = p.stock_actual > 0;
-        const matchesSearch = (p.nombre?.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        const matchesSearch =
+            (p.nombre?.toLowerCase().includes(searchTerm.toLowerCase())) ||
             (p.codigo_usuario?.toLowerCase().includes(searchTerm.toLowerCase()));
         const matchesCategory = !selectedCategory || (p.categoria?.toUpperCase() === selectedCategory);
         const matchesMetal = !selectedMetal || (p.material?.toUpperCase() === selectedMetal);
         return hasStock && matchesSearch && matchesCategory && matchesMetal;
     });
 
-    // ── Tarjeta resumen (reactiva al filtro) ───────────────────
+    // ── Tarjeta resumen ────────────────────────────────────────
     const resumen = filteredProductos.reduce((acc, p) => {
         const stock = Number(p.stock_actual) || 0;
         const costo = Number(p.costo) || 0;
@@ -92,6 +93,12 @@ export default function Inventario() {
         acc.totalVenta += stock * precio;
         return acc;
     }, { productos: 0, unidades: 0, totalCosto: 0, totalVenta: 0 });
+
+    // ── Productos fabricados sin costo registrado ──────────────
+    const sinCosto = filteredProductos.filter(p =>
+        (p.origen === 'PRODUCCION' || p.origen === 'INV_TALLER') &&
+        (Number(p.costo) || 0) === 0
+    ).length;
 
     const fmt = (n) => `S/ ${Number(n).toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
@@ -152,6 +159,21 @@ export default function Inventario() {
                         </div>
                     ))}
                 </div>
+
+                {/* ── Alerta global sin costo ── */}
+                {!loading && sinCosto > 0 && (
+                    <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
+                        <span className="text-amber-500 text-base mt-0.5">⚠</span>
+                        <div>
+                            <p className="text-xs font-bold text-amber-800 leading-tight">
+                                {sinCosto} {sinCosto === 1 ? 'producto fabricado no tiene' : 'productos fabricados no tienen'} costo registrado
+                            </p>
+                            <p className="text-[10px] text-amber-600 mt-0.5">
+                                El reporte financiero puede estar incompleto. Edita el producto para agregar el costo real.
+                            </p>
+                        </div>
+                    </div>
+                )}
 
                 {/* Producción Pendiente */}
                 {!loading && pendientes.length > 0 && (
@@ -229,6 +251,9 @@ export default function Inventario() {
                                 const stock = Number(p.stock_actual) || 0;
                                 const costo = Number(p.costo) || 0;
                                 const precio = Number(p.precio) || 0;
+                                const esFabricadoSinCosto =
+                                    (p.origen === 'PRODUCCION' || p.origen === 'INV_TALLER') && costo === 0;
+
                                 return (
                                     <tr key={p.id} className="hover:bg-gray-50 transition-colors">
                                         <td className="px-4 py-3 font-mono font-bold text-gray-700 whitespace-nowrap">
@@ -252,9 +277,21 @@ export default function Inventario() {
                                         <td className="px-4 py-3 text-center font-black text-teal-600 whitespace-nowrap">
                                             {stock}
                                         </td>
-                                        <td className="px-4 py-3 text-right text-gray-500 whitespace-nowrap">
-                                            {fmt(costo)}
+
+                                        {/* ── Costo unitario con alerta si es fabricado sin costo ── */}
+                                        <td className="px-4 py-3 text-right whitespace-nowrap">
+                                            {esFabricadoSinCosto ? (
+                                                <div className="flex flex-col items-end gap-0.5">
+                                                    <span className="text-gray-400">S/ 0.00</span>
+                                                    <span className="inline-flex items-center gap-1 text-[9px] font-bold text-amber-600 bg-amber-50 border border-amber-100 px-1.5 py-0.5 rounded-full leading-none">
+                                                        ⚠ sin costo
+                                                    </span>
+                                                </div>
+                                            ) : (
+                                                <span className="text-gray-500">{fmt(costo)}</span>
+                                            )}
                                         </td>
+
                                         <td className="px-4 py-3 text-right font-semibold text-amber-700 whitespace-nowrap">
                                             {fmt(stock * costo)}
                                         </td>
@@ -304,6 +341,17 @@ export default function Inventario() {
                                     </td>
                                     <td />
                                 </tr>
+
+                                {/* ── Alerta en pie de tabla si hay fabricados sin costo ── */}
+                                {sinCosto > 0 && (
+                                    <tr>
+                                        <td colSpan={9} className="px-4 pb-3">
+                                            <div className="flex items-center gap-2 text-[10px] font-semibold text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
+                                                ⚠ {sinCosto} {sinCosto === 1 ? 'producto fabricado sin costo registrado' : 'productos fabricados sin costo registrado'} — el reporte financiero puede estar incompleto.
+                                            </div>
+                                        </td>
+                                    </tr>
+                                )}
                             </tfoot>
                         )}
                     </table>

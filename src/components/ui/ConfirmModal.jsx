@@ -1,19 +1,6 @@
 import React from 'react';
 import { FaTimes } from 'react-icons/fa';
 
-/**
- * Modal de confirmación elegante y reutilizable
- * @param {boolean} isOpen - Estado de apertura del modal
- * @param {Function} onClose - Función para cerrar el modal
- * @param {Function} onConfirm - Función a ejecutar al confirmar
- * @param {string} title - Título del modal
- * @param {string} message - Mensaje descriptivo
- * @param {ReactNode} icon - Icono a mostrar (opcional)
- * @param {string} confirmText - Texto del botón confirmar (default: "Confirmar")
- * @param {string} cancelText - Texto del botón cancelar (default: "Cancelar")
- * @param {string} confirmColor - Color del botón: 'red' | 'green' | 'blue' | 'yellow' (default: 'blue')
- * @param {boolean} isDangerous - Si es una acción peligrosa (default: false)
- */
 const ConfirmModal = ({
     isOpen,
     onClose,
@@ -28,7 +15,6 @@ const ConfirmModal = ({
 }) => {
     if (!isOpen) return null;
 
-    // Colores según tipo de acción
     const colorClasses = {
         red: 'bg-red-600 hover:bg-red-700 focus:ring-red-500',
         green: 'bg-green-600 hover:bg-green-700 focus:ring-green-500',
@@ -49,19 +35,13 @@ const ConfirmModal = ({
     };
 
     const handleBackdropClick = (e) => {
-        if (e.target === e.currentTarget) {
-            onClose();
-        }
+        if (e.target === e.currentTarget) onClose();
     };
 
-    // Cerrar con ESC
     React.useEffect(() => {
-        const handleEsc = (e) => {
-            if (e.key === 'Escape') onClose();
-        };
+        const handleEsc = (e) => { if (e.key === 'Escape') onClose(); };
         if (isOpen) {
             window.addEventListener('keydown', handleEsc);
-            // Prevenir scroll del body
             document.body.style.overflow = 'hidden';
         }
         return () => {
@@ -72,14 +52,28 @@ const ConfirmModal = ({
 
     return (
         <div
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50 backdrop-blur-sm animate-fadeIn"
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50 backdrop-blur-sm"
+            style={{ animation: 'confirmFadeIn 0.2s ease-out' }}
             onClick={handleBackdropClick}
         >
+            <style>{`
+                @keyframes confirmFadeIn {
+                    from { opacity: 0; }
+                    to { opacity: 1; }
+                }
+                @keyframes confirmScaleIn {
+                    from { opacity: 0; transform: scale(0.95); }
+                    to { opacity: 1; transform: scale(1); }
+                }
+                .confirm-scale-in {
+                    animation: confirmScaleIn 0.2s ease-out;
+                }
+            `}</style>
+
             <div
-                className="bg-white rounded-xl shadow-2xl max-w-md w-full transform transition-all animate-scaleIn"
+                className="bg-white rounded-xl shadow-2xl max-w-md w-full transform transition-all confirm-scale-in"
                 onClick={(e) => e.stopPropagation()}
             >
-                {/* Header con icono y close */}
                 <div className="relative p-6 pb-4">
                     <button
                         onClick={onClose}
@@ -89,27 +83,20 @@ const ConfirmModal = ({
                         <FaTimes size={20} />
                     </button>
 
-                    {/* Icono */}
                     {icon && (
                         <div className={`flex justify-center mb-4 ${iconColorClasses[confirmColor]}`}>
-                            <div className="text-5xl">
-                                {icon}
-                            </div>
+                            <div className="text-5xl">{icon}</div>
                         </div>
                     )}
 
-                    {/* Título */}
                     <h3 className="text-xl font-bold text-gray-900 text-center mb-2">
                         {title}
                     </h3>
-
-                    {/* Mensaje */}
                     <p className="text-sm text-gray-600 text-center leading-relaxed">
                         {message}
                     </p>
                 </div>
 
-                {/* Footer con botones */}
                 <div className="px-6 py-4 bg-gray-50 rounded-b-xl flex justify-end gap-3">
                     <button
                         onClick={onClose}
@@ -125,29 +112,6 @@ const ConfirmModal = ({
                     </button>
                 </div>
             </div>
-
-            <style jsx>{`
-                @keyframes fadeIn {
-                    from { opacity: 0; }
-                    to { opacity: 1; }
-                }
-                @keyframes scaleIn {
-                    from { 
-                        opacity: 0;
-                        transform: scale(0.95);
-                    }
-                    to { 
-                        opacity: 1;
-                        transform: scale(1);
-                    }
-                }
-                .animate-fadeIn {
-                    animation: fadeIn 0.2s ease-out;
-                }
-                .animate-scaleIn {
-                    animation: scaleIn 0.2s ease-out;
-                }
-            `}</style>
         </div>
     );
 };

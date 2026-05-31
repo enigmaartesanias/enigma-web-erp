@@ -12,6 +12,21 @@ export const productosExternosDB = {
     return productos;
   },
 
+  async getById(id) {
+    const [producto] = await sql`
+      SELECT * FROM productos_externos
+      WHERE id = ${id}
+      LIMIT 1
+    `;
+    if (!producto) return null;
+    return {
+      ...producto,
+      stock_actual: Number(producto.stock_actual) || 0,
+      costo: Number(producto.costo) || 0,
+      precio: Number(producto.precio) || 0,
+    };
+  },
+
   async getAllConsolidated() {
     const productos = await sql`
       SELECT * FROM productos_externos

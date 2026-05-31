@@ -2,11 +2,10 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { productosExternosDB } from '../../../utils/productosExternosNeonClient';
 import { tiposProductoDB } from '../../../utils/tiposProductoDB';
+import { materialesDB } from '../../../utils/materialesNeonClient';
 import QRCode from 'react-qr-code';
 import { FaSave, FaArrowLeft, FaRandom, FaSpinner } from 'react-icons/fa';
 import toast from 'react-hot-toast';
-
-const METALES = ['Plata', 'Alpaca', 'Cobre', 'Bronce', 'Bisutería'];
 
 // Campos que NO deben convertirse a mayúsculas
 const NO_UPPERCASE = ['origen', 'tipo_producto', 'material', 'categoria'];
@@ -15,6 +14,9 @@ const ProductoForm = () => {
     const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
     const [categorias, setCategorias] = useState([]);
+    const [metales, setMetales] = useState([]);
+    // Estado para verificación de código grupal existente
+    const [codigoGrupalInfo, setCodigoGrupalInfo] = useState(null); // null | { exists, stockActual, nombre }
 
     const [formData, setFormData] = useState({
         nombre: '',
@@ -30,7 +32,10 @@ const ProductoForm = () => {
         tipo_producto: 'Único'
     });
 
-    useEffect(() => { loadCategorias(); }, []);
+    useEffect(() => {
+        loadCategorias();
+        loadMetales();
+    }, []);
 
     const loadCategorias = async () => {
         try {
@@ -41,8 +46,24 @@ const ProductoForm = () => {
         }
     };
 
+    const loadMetales = async () => {
+        try {
+            // Incluir inactivos=false para solo activos; igual que TiposMateriales y RegistroMateriales
+            const data = await materialesDB.getMetales(false);
+            setMetales(data);
+        } catch (error) {
+            console.error('Error al cargar materiales:', error);
+        }
+    };
+
     const handleChange = (e) => {
         const { name, value } = e.target;
+        // Al cambiar tipo_producto, resetear info de código grupal
+        if (name === 'tipo_producto') {
+            setCodigoGrupalInfo(null);
+            setFormData(prev => ({ ...prev, codigo_usuario: '', nombre: '', [name]: value }));
+            return;
+        }
         setFormData(prev => ({
             ...prev,
             [name]: NO_UPPERCASE.includes(name) ? value : value.toUpperCase()
@@ -65,12 +86,30 @@ const ProductoForm = () => {
             const mat = formData.material.substring(0, 3).toUpperCase();
             const prc = parseFloat(formData.precio);
             const nuevoCodigo = `${prefijo}-${cat}-${mat}-${prc}`;
-            setFormData(prev => ({ ...prev, codigo_usuario: nuevoCodigo }));
-            toast.success(`Código grupal: ${nuevoCodigo}`);
+            setFormData(prev => ({ ...prev, codigo_usuario: nuevoCodigo, nombre: '' }));
+
+            // Verificar si el código ya existe en inventario
+            try {
+                const check = await productosExternosDB.checkCodigo(nuevoCodigo);
+                setCodigoGrupalInfo({ ...check, codigo: nuevoCodigo });
+                if (check.exists) {
+                    toast('📦 Código existente. Solo se sumará el stock.', {
+                        icon: 'ℹ️',
+                        style: { background: '#EFF6FF', color: '#1D4ED8', border: '1px solid #BFDBFE' },
+                        duration: 4000
+                    });
+                } else {
+                    toast.success(`Código nuevo: ${nuevoCodigo}`);
+                }
+            } catch {
+                setCodigoGrupalInfo({ exists: false, codigo: nuevoCodigo });
+                toast.success(`Código grupal: ${nuevoCodigo}`);
+            }
         } else {
             try {
                 const data = await productosExternosDB.getNextLote(formData.categoria, formData.material);
                 setFormData(prev => ({ ...prev, codigo_usuario: data.codigoUnico, lote: data.nextLote }));
+                setCodigoGrupalInfo(null);
                 toast.success('Código de lote autogenerado');
             } catch (error) {
                 toast.error('Error al generar código');
@@ -81,7 +120,14 @@ const ProductoForm = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!formData.costo || !formData.precio || !formData.codigo_usuario) {
-            toast.error('Faltan campos obligatorios');
+            toast.error('Faltan campos obligatorios: Costo, Precio y Código son requeridos');
+            return;
+        }
+        // En modo Grupal con código NUEVO sí se requiere nombre
+        const esGrupalNuevo = formData.tipo_producto === 'Grupal' && codigoGrupalInfo && !codigoGrupalInfo.exists;
+        const esUnico = formData.tipo_producto === 'Único';
+        if ((esGrupalNuevo || esUnico) && !formData.nombre.trim()) {
+            toast.error('El Nombre del Producto es obligatorio');
             return;
         }
 
@@ -102,8 +148,23 @@ const ProductoForm = () => {
                 await productosExternosDB.create(productData);
             }
 
-            toast.success('Producto registrado exitosamente');
-            navigate('/inventario-home');
+            toast.success('✅ Producto guardado correctamente', { duration: 3000 });
+
+            // Resetear form para ingresar otro producto
+            setCodigoGrupalInfo(null);
+            setFormData({
+                nombre: '',
+                costo: '',
+                precio: '',
+                codigo_usuario: '',
+                stock_actual: '',
+                categoria: '',
+                material: '',
+                descripcion: '',
+                lote: '',
+                origen: 'COMPRA',
+                tipo_producto: 'Único'
+            });
         } catch (error) {
             toast.error('Error al guardar: ' + error.message);
         } finally {
@@ -140,16 +201,61 @@ const ProductoForm = () => {
 
                 <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 space-y-4">
 
-                    {/* Código + botón generar + QR preview */}
-                    <div className="flex gap-2 items-center">
+                    {/* Categoria + Material */}
+                    <div className="grid grid-cols-2 gap-4">
+                        <select name="categoria" value={formData.categoria} onChange={handleChange} className="p-3 border rounded-lg text-sm">
+                            <option value="">Categoría</option>
+                            {categorias.map(c => <option key={c.id} value={c.nombre}>{c.nombre}</option>)}
+                        </select>
+                        <select name="material" value={formData.material} onChange={handleChange} className="p-3 border rounded-lg text-sm">
+                            <option value="">Material</option>
+                            {metales.map(m => <option key={m.id} value={m.nombre}>{m.nombre}</option>)}
+                        </select>
+                    </div>
+
+                    {/* Banner informativo cuando el código grupal YA existe */}
+                    {formData.tipo_producto === 'Grupal' && codigoGrupalInfo?.exists && (
+                        <div className="flex items-start gap-3 bg-blue-50 border border-blue-200 rounded-lg p-3">
+                            <span className="text-blue-500 text-lg flex-shrink-0">ℹ️</span>
+                            <div>
+                                <p className="text-xs font-bold text-blue-800">Código ya registrado en inventario</p>
+                                <p className="text-[11px] text-blue-600 mt-0.5">
+                                    Stock actual: <strong>{codigoGrupalInfo.stockActual} uds.</strong> — al guardar se sumará el stock ingresado.
+                                </p>
+                                <p className="text-[10px] text-blue-400 mt-0.5">El nombre del producto no se modifica.</p>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Campo Nombre: oculto si es Grupal con código existente */}
+                    {!(formData.tipo_producto === 'Grupal' && codigoGrupalInfo?.exists) && (
+                        <input
+                            name="nombre"
+                            value={formData.nombre}
+                            onChange={handleChange}
+                            placeholder={formData.tipo_producto === 'Grupal' ? 'Nombre del grupo de productos' : 'Nombre Producto'}
+                            className="w-full p-3 border rounded-lg text-sm"
+                        />
+                    )}
+
+                    {/* Stock / Costo / Precio */}
+                    <div className="grid grid-cols-3 gap-3">
+                        <input type="number" name="stock_actual" value={formData.stock_actual} onChange={handleChange} placeholder="Stock" className="p-3 border rounded-lg text-sm" />
+                        <input type="number" name="costo" value={formData.costo} onChange={handleChange} placeholder="Costo" className="p-3 border rounded-lg text-sm" />
+                        <input type="number" name="precio" value={formData.precio} onChange={handleChange} placeholder="Precio" className="p-3 border rounded-lg text-sm" />
+                    </div>
+
+                    {/* Código + botón generar + QR preview — al final */}
+                    <div className="flex gap-2 items-center pt-1">
                         <input
                             name="codigo_usuario"
                             value={formData.codigo_usuario}
                             onChange={handleChange}
                             placeholder="CÓDIGO"
                             readOnly={formData.tipo_producto === 'Grupal'}
-                            className={`flex-1 p-3 border rounded-lg font-mono font-bold text-sm ${formData.tipo_producto === 'Grupal' ? 'bg-gray-50 text-gray-500 cursor-not-allowed' : ''
-                                }`}
+                            className={`flex-1 p-3 border rounded-lg font-mono font-bold text-sm ${
+                                formData.tipo_producto === 'Grupal' ? 'bg-gray-50 text-gray-500 cursor-not-allowed' : ''
+                            }`}
                         />
                         <button
                             type="button"
@@ -166,35 +272,10 @@ const ProductoForm = () => {
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
-                        <select name="categoria" value={formData.categoria} onChange={handleChange} className="p-3 border rounded-lg text-sm">
-                            <option value="">Categoría</option>
-                            {categorias.map(c => <option key={c.id} value={c.nombre}>{c.nombre}</option>)}
-                        </select>
-                        <select name="material" value={formData.material} onChange={handleChange} className="p-3 border rounded-lg text-sm">
-                            <option value="">Material</option>
-                            {METALES.map(m => <option key={m} value={m}>{m}</option>)}
-                        </select>
-                    </div>
-
-                    <input
-                        name="nombre"
-                        value={formData.nombre}
-                        onChange={handleChange}
-                        placeholder="Nombre Producto"
-                        className="w-full p-3 border rounded-lg text-sm"
-                    />
-
-                    <div className="grid grid-cols-3 gap-3">
-                        <input type="number" name="stock_actual" value={formData.stock_actual} onChange={handleChange} placeholder="Stock" className="p-3 border rounded-lg text-sm" />
-                        <input type="number" name="costo" value={formData.costo} onChange={handleChange} placeholder="Costo" className="p-3 border rounded-lg text-sm" />
-                        <input type="number" name="precio" value={formData.precio} onChange={handleChange} placeholder="Precio" className="p-3 border rounded-lg text-sm" />
-                    </div>
-
-                    {formData.tipo_producto === 'Grupal' && (
+                    {formData.tipo_producto === 'Grupal' && codigoGrupalInfo && !codigoGrupalInfo.exists && (
                         <p className="text-[10px] text-gray-400 leading-relaxed">
-                            📦 Código grupal: <strong>{formData.codigo_usuario || 'genera con el botón →'}</strong>
-                            <br />El stock se sumará si el código ya existe en inventario.
+                            📦 Código nuevo: <strong>{formData.codigo_usuario}</strong>
+                            <br />Se creará un nuevo grupo en inventario.
                         </p>
                     )}
                 </div>

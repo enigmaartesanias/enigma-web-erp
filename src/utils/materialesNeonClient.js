@@ -2,8 +2,8 @@ import { neon } from '@neondatabase/serverless';
 
 const sql = neon(import.meta.env.VITE_DATABASE_URL);
 
+// Exportación de la base de datos de materiales
 export const materialesDB = {
-    // Crear compra de materiales
     async create(data) {
         try {
             const [compra] = await sql`
@@ -25,7 +25,6 @@ export const materialesDB = {
         }
     },
 
-    // Obtener todas las compras
     async getAll() {
         try {
             const compras = await sql`
@@ -47,7 +46,6 @@ export const materialesDB = {
         }
     },
 
-    // Obtener todos los items detallados para reporte
     async getAllItems() {
         try {
             const items = await sql`
@@ -68,7 +66,6 @@ export const materialesDB = {
         }
     },
 
-    // Obtener por ID
     async getById(id) {
         try {
             const [compra] = await sql`
@@ -86,7 +83,6 @@ export const materialesDB = {
         }
     },
 
-    // Obtener por rango de fechas
     async getByDateRange(startDate, endDate) {
         try {
             const compras = await sql`
@@ -105,7 +101,6 @@ export const materialesDB = {
         }
     },
 
-    // Eliminar compra
     async delete(id) {
         try {
             await sql`DELETE FROM materiales_compras WHERE id = ${id}`;
@@ -115,17 +110,14 @@ export const materialesDB = {
         }
     },
 
-    // ==========================================
-    // NUEVO: Obtener lista de metales para Pedidos y Producción
-    // ==========================================
-    async getMetales() {
+    async getMetales(incluirInactivos = false) {
         try {
-            const metales = await sql`
-                SELECT id, nombre, precio_gramo, unidad, orden 
-                FROM materiales
-                WHERE activo = true
-                ORDER BY orden ASC
-            `;
+            let metales;
+            if (incluirInactivos) {
+                metales = await sql`SELECT id, nombre, precio_gramo, unidad, orden, activo FROM materiales ORDER BY orden ASC`;
+            } else {
+                metales = await sql`SELECT id, nombre, precio_gramo, unidad, orden FROM materiales WHERE activo = true ORDER BY orden ASC`;
+            }
             return metales;
         } catch (error) {
             console.error('Error obteniendo lista de metales:', error);
@@ -133,12 +125,12 @@ export const materialesDB = {
         }
     },
 
-    // Crear nuevo metal/material en el catálogo
     async createMetal({ nombre, unidad, precio_gramo, orden }) {
         try {
+            const nombreNormalizado = nombre.toUpperCase().trim();
             const [metal] = await sql`
                 INSERT INTO materiales (nombre, unidad, precio_gramo, orden, activo)
-                VALUES (${nombre}, ${unidad}, ${precio_gramo || 0}, ${orden || 99}, true)
+                VALUES (${nombreNormalizado}, ${unidad}, ${precio_gramo || 0}, ${orden || 99}, true)
                 RETURNING *
             `;
             return metal;
@@ -148,12 +140,25 @@ export const materialesDB = {
         }
     },
 
-    // Soft-delete (marcar inactivo) un metal del catálogo
-    async deleteMetal(id) {
+    async updateMetal(id, { nombre, unidad, precio_gramo, orden }) {
         try {
             await sql`
-                UPDATE materiales SET activo = false WHERE id = ${id}
+                UPDATE materiales 
+                SET nombre = ${nombre.toUpperCase().trim()}, 
+                    unidad = ${unidad}, 
+                    precio_gramo = ${precio_gramo}, 
+                    orden = ${orden}
+                WHERE id = ${id}
             `;
+        } catch (error) {
+            console.error('Error actualizando metal:', error);
+            throw error;
+        }
+    },
+
+    async deleteMetal(id) {
+        try {
+            await sql`UPDATE materiales SET activo = false WHERE id = ${id}`;
         } catch (error) {
             console.error('Error eliminando metal:', error);
             throw error;
@@ -161,27 +166,17 @@ export const materialesDB = {
     }
 };
 
+// Exportación de los items
 export const materialesItemsDB = {
-    // Crear items en batch Y ACTUALIZAR PRECIOS AUTOMÁTICAMENTE
     async createBatch(compraId, items) {
         try {
-            const values = items.map(item => ({
-                compra_id: compraId,
-                nombre_material: item.nombre_material,
-                cantidad: item.cantidad,
-                unidad: item.unidad || 'Unidad',
-                costo_unitario: item.costo_unitario,
-                subtotal: item.subtotal
-            }));
-
-            for (const item of values) {
-                // 1. Insertar el historial de compra
+            for (const item of items) {
                 await sql`
                     INSERT INTO materiales_items (
                         compra_id, nombre_material, cantidad, unidad, costo_unitario, subtotal
                     ) VALUES (
-                        ${item.compra_id},
-                        ${item.nombre_material},
+                        ${compraId},
+                        ${item.nombre_material.toUpperCase()},
                         ${item.cantidad},
                         ${item.unidad},
                         ${item.costo_unitario},
@@ -189,8 +184,6 @@ export const materialesItemsDB = {
                     )
                 `;
 
-                // 2. ACTUALIZAR PRECIO DE REFERENCIA
-                // Si el metal se compró a un precio mayor a 0, actualizamos su precio por gramo oficial
                 if (item.costo_unitario > 0) {
                     await sql`
                         UPDATE materiales 
@@ -200,38 +193,31 @@ export const materialesItemsDB = {
                 }
             }
         } catch (error) {
-            console.error('Error creando items de materiales y actualizando precios:', error);
+            console.error('Error creando items de materiales:', error);
             throw error;
         }
     },
 
-    // Obtener items de una compra
     async getByCompraId(compraId) {
         try {
-            const items = await sql`
-                SELECT * FROM materiales_items
-                WHERE compra_id = ${compraId}
-                ORDER BY fecha_registro
-            `;
-            return items;
+            return await sql`SELECT * FROM materiales_items WHERE compra_id = ${compraId} ORDER BY fecha_registro`;
         } catch (error) {
-            console.error('Error obteniendo items de materiales:', error);
+            console.error('Error obteniendo items:', error);
             throw error;
         }
     },
 
-    // Eliminar items de una compra
     async deleteByCompraId(compraId) {
         try {
             await sql`DELETE FROM materiales_items WHERE compra_id = ${compraId}`;
         } catch (error) {
-            console.error('Error eliminando items de materiales:', error);
+            console.error('Error eliminando items:', error);
             throw error;
         }
     }
 };
 
-// Función auxiliar para generar código de compra
+// Función auxiliar necesaria
 export function generarCodigoMaterial() {
     const fecha = new Date();
     const año = fecha.getFullYear().toString().slice(-2);

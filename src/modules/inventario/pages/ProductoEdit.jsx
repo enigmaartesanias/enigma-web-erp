@@ -3,22 +3,14 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { productosExternosDB } from '../../../utils/productosExternosNeonClient';
 import { produccionDB } from '../../../utils/produccionNeonClient';
 import { tiposProductoDB } from '../../../utils/tiposProductoDB';
-import { storage } from '../../../firebaseConfig';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { v4 as uuidv4 } from 'uuid';
 import QRCode from 'react-qr-code';
-import { FaCamera, FaSave, FaTimes, FaQrcode } from 'react-icons/fa';
-import { compressAndResizeImage, validateImageFile } from '../../../utils/imageOptimizer';
+import { FaSave, FaTimes, FaQrcode } from 'react-icons/fa';
 
 const ProductoEdit = () => {
     const { id } = useParams();
     const navigate = useNavigate();
-    const fileInputRef = useRef(null);
     const [loading, setLoading] = useState(false);
     const [fetching, setFetching] = useState(true);
-    const [previewUrl, setPreviewUrl] = useState(null);
-    const [imageFile, setImageFile] = useState(null);
-    const [processingImage, setProcessingImage] = useState(false);
     const [categorias, setCategorias] = useState([]);
 
     const [formData, setFormData] = useState({
@@ -81,7 +73,6 @@ const ProductoEdit = () => {
                     origen: productData.origen || 'COMPRA',
                     produccion_id: productData.produccion_id || null
                 });
-                setPreviewUrl(productData.imagen_url);
             } else {
                 alert('Producto no encontrado');
                 navigate('/inventario');
@@ -134,41 +125,6 @@ const ProductoEdit = () => {
         }
     };
 
-    const handleImageChange = async (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-
-        const validation = validateImageFile(file, 5);
-        if (!validation.valid) {
-            alert(validation.error);
-            return;
-        }
-
-        setProcessingImage(true);
-
-        try {
-            const optimizedFile = await compressAndResizeImage(file, {
-                maxSizeMB: 1,
-                maxWidth: 1000,
-                maxHeight: 1000,
-                quality: 0.8
-            });
-
-            setImageFile(optimizedFile);
-
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                setPreviewUrl(reader.result);
-            };
-            reader.readAsDataURL(optimizedFile);
-        } catch (error) {
-            console.error('Error al procesar imagen:', error);
-            alert('Error al procesar la imagen.');
-        } finally {
-            setProcessingImage(false);
-        }
-    };
-
     const handleSubmit = async (e) => {
         e.preventDefault();
 
@@ -179,14 +135,6 @@ const ProductoEdit = () => {
 
         try {
             setLoading(true);
-            let imageUrl = previewUrl;
-
-            if (imageFile) {
-                const fileName = `productos_externos/${uuidv4()}_${imageFile.name}`;
-                const storageRef = ref(storage, fileName);
-                await uploadBytes(storageRef, imageFile);
-                imageUrl = await getDownloadURL(storageRef);
-            }
 
             const productData = {
                 ...formData,
@@ -195,27 +143,12 @@ const ProductoEdit = () => {
                 stock_actual: parseInt(formData.stock_actual) || 0,
                 stock_minimo: 0,
                 precio_adicional: formData.precio_adicional ? parseFloat(formData.precio_adicional) : null,
-                imagen_url: imageUrl,
+                imagen_url: null, // REGLA DE ORO: siempre null en inventario
                 material: formData.material,
                 lote: formData.lote || null
             };
 
             await productosExternosDB.update(id, productData);
-
-            // Si es de producción, actualizar también la imagen en el registro original
-            if (formData.origen === 'PRODUCCION' && formData.produccion_id && imageUrl !== previewUrl) {
-                try {
-                    const prodRecord = await produccionDB.getById(formData.produccion_id);
-                    if (prodRecord) {
-                        await produccionDB.update(formData.produccion_id, {
-                            ...prodRecord,
-                            imagen_url: imageUrl
-                        });
-                    }
-                } catch (err) {
-                    console.error('Error sincronizando con producción:', err);
-                }
-            }
 
             alert('Producto actualizado correctamente');
             navigate('/inventario');
@@ -303,47 +236,29 @@ const ProductoEdit = () => {
             </div>
 
             <div className="max-w-xl mx-auto px-4 space-y-4">
-                
-                <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col items-center justify-center relative">
-                        <div
-                            className="w-32 h-32 bg-gray-50 rounded-lg border-2 border-dashed border-gray-200 flex items-center justify-center relative overflow-hidden cursor-pointer hover:border-blue-400"
-                            onClick={() => fileInputRef.current.click()}
-                        >
-                            {previewUrl ? (
-                                <img src={previewUrl} alt="Preview" className="w-full h-full object-cover" />
-                            ) : (
-                                <FaCamera size={30} className="text-gray-300" />
-                            )}
-                            <div className="absolute inset-x-0 bottom-0 bg-black/40 text-white text-[9px] py-1 text-center font-bold">EDITAR FOTO</div>
-                        </div>
-                        <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleImageChange} />
-                        <span className="text-[10px] text-gray-400 mt-2 font-medium">REPRESENTATIVO</span>
-                    </div>
 
-                    <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col items-center justify-center">
-                        <div className="w-32 h-32 bg-white p-2 border border-blue-50 rounded-lg flex items-center justify-center flex-col shadow-sm">
-                            {formData.codigo_usuario ? (
-                                <div id="qr-svg-wrapper">
-                                    <QRCode id="qr-svg-component" value={formData.codigo_usuario} size={100} />
-                                </div>
-                            ) : (
-                                <FaQrcode className="text-gray-200 text-5xl" />
-                            )}
-                        </div>
-                        <span className="text-[10px] text-gray-500 mt-2 font-mono font-bold uppercase tracking-widest">{formData.codigo_usuario}</span>
-                        
-                        {formData.codigo_usuario && (
-                            <div className="flex gap-2 mt-3">
-                                <button 
-                                    onClick={(e) => { e.preventDefault(); handleDownloadQR(); }} 
-                                    className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 border border-gray-200 text-gray-700 text-[10px] font-bold rounded flex items-center transition"
-                                >
-                                    Descargar
-                                </button>
+                {/* QR centrado */}
+                <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col items-center justify-center">
+                    <div className="w-32 h-32 bg-white p-2 border border-blue-50 rounded-lg flex items-center justify-center flex-col shadow-sm">
+                        {formData.codigo_usuario ? (
+                            <div id="qr-svg-wrapper">
+                                <QRCode id="qr-svg-component" value={formData.codigo_usuario} size={100} />
                             </div>
+                        ) : (
+                            <FaQrcode className="text-gray-200 text-5xl" />
                         )}
                     </div>
+                    <span className="text-[10px] text-gray-500 mt-2 font-mono font-bold uppercase tracking-widest">{formData.codigo_usuario}</span>
+                    {formData.codigo_usuario && (
+                        <div className="flex gap-2 mt-3">
+                            <button
+                                onClick={(e) => { e.preventDefault(); handleDownloadQR(); }}
+                                className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 border border-gray-200 text-gray-700 text-[10px] font-bold rounded flex items-center transition"
+                            >
+                                Descargar QR
+                            </button>
+                        </div>
+                    )}
                 </div>
 
                 <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 space-y-4">

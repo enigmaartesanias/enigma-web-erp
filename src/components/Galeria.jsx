@@ -29,6 +29,7 @@ const BASE_ROUTES = {
         pulseras: "/catalogo/Cobre/Pulsera",
         anillos: "/catalogo/Cobre/Anillo",
         collares: "/catalogo/Cobre/Collar",
+
         all: "/catalogo/Cobre/all",
     },
 };
@@ -38,6 +39,7 @@ const CATEGORIES = [
     { name: "Pulseras", slug: "pulseras" },
     { name: "Anillos", slug: "anillos" },
     { name: "Collares", slug: "collares" },
+
 ];
 
 const MATERIAL_CARDS = [

@@ -139,6 +139,9 @@ const CategoriaShowcase = () => {
             background: #cbd5e1 !important; /* gray-300 */
             border: none !important;
             box-shadow: none !important;
+            font-size: 0 !important;
+            color: transparent !important;
+            overflow: hidden !important;
           }
           .slick-dots-custom li.slick-active button {
             background: #1f2937 !important; /* gray-800 */

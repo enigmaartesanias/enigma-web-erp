@@ -1,9 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
-import Slider from 'react-slick';
-import 'slick-carousel/slick/slick.css';
-import 'slick-carousel/slick/slick-theme.css';
 
 import ImageModal from './ImageModal';
 
@@ -60,6 +57,7 @@ const ProductoDetalle = () => {
                 setError('No se pudo cargar el producto.');
             } else {
                 setProducto(data);
+                setCurrentSlide(0);
             }
 
             setLoading(false);
@@ -75,10 +73,10 @@ const ProductoDetalle = () => {
                     const { data, error } = await supabase
                         .from('productos')
                         .select('*')
-                        .eq('categoria_id', producto.categoria_id) // Filtrar por la misma categoría
-                        .eq('activo', true) // Solo productos activos
-                        .neq('id', id) // Excluir el producto actual
-                        .order('created_at', { ascending: false }) // Mostrar los más recientes primero
+                        .eq('categoria_id', producto.categoria_id)
+                        .eq('activo', true)
+                        .neq('id', id)
+                        .order('created_at', { ascending: false })
                         .limit(4);
 
                     if (error) throw error;
@@ -159,49 +157,6 @@ const ProductoDetalle = () => {
 
     const totalImages = imageUrls.length;
 
-    let sliderRef = null;
-
-    const settings = {
-        dots: true,
-        infinite: false,
-        speed: 500,
-        slidesToShow: 1,
-        slidesToScroll: 1,
-        arrows: false,
-        afterChange: index => setCurrentSlide(index),
-        responsive: [
-            {
-                breakpoint: 1024,
-                settings: {
-                    slidesToShow: 1,
-                    slidesToScroll: 1,
-                    infinite: true,
-                    draggable: true,
-                    arrows: false,
-                },
-            },
-            {
-                breakpoint: 600,
-                settings: {
-                    slidesToShow: 1,
-                    slidesToScroll: 1,
-                    initialSlide: 1,
-                    arrows: false,
-                },
-            },
-            {
-                breakpoint: 480,
-                settings: {
-                    slidesToShow: 1,
-                    slidesToScroll: 1,
-                    arrows: false,
-                },
-            },
-        ],
-    };
-
-    const shareText = `¡Mira este producto! ${producto.titulo}\n${window.location.href}`;
-
     return (
         <main className="pt-20 pb-12 bg-gray-50 min-h-screen">
             {/* Navegación: Inicio y Catálogo */}
@@ -222,53 +177,49 @@ const ProductoDetalle = () => {
             </div>
 
             <div className="container mx-auto p-4 max-w-3xl bg-white shadow-xl rounded-lg">
-                {/* Galería */}
+                {/* ── Galería: Imagen principal + Thumbnails ── */}
                 <div className="mb-6 producto-detalle-galeria">
-                    <Slider {...settings} ref={slider => (sliderRef = slider)}>
-                        {imageUrls.map((url, index) => (
-                            <div key={index} className="relative carousel-slide-container">
-                                <img
-                                    src={url}
-                                    alt={`Imagen ${index + 1}`}
-                                    className="w-full h-full object-contain bg-gray-50 rounded cursor-pointer"
-                                    onClick={() => openModal(url)}
-                                />
-                                <div
-                                    className="absolute bottom-4 right-4 p-3 bg-gray-800 bg-opacity-80 hover:bg-opacity-100 rounded-full cursor-pointer transition-all duration-200 hover:scale-110 shadow-lg"
-                                    onClick={() => openModal(url)}
-                                    title="Ampliar imagen"
-                                >
-                                    <LupaIcono />
-                                </div>
-                            </div>
-                        ))}
-                    </Slider>
 
-                    {/* Navegación y contador personalizados */}
+                    {/* Imagen principal */}
+                    <div className="relative galeria-main-container">
+                        <img
+                            key={currentSlide}
+                            src={imageUrls[currentSlide]}
+                            alt={`${producto.titulo} — imagen ${currentSlide + 1}`}
+                            className="galeria-imagen-principal"
+                            onClick={() => openModal(imageUrls[currentSlide])}
+                        />
+                        <div
+                            className="absolute bottom-4 right-4 p-3 bg-gray-800 bg-opacity-80 hover:bg-opacity-100 rounded-full cursor-pointer transition-all duration-200 hover:scale-110 shadow-lg"
+                            onClick={() => openModal(imageUrls[currentSlide])}
+                            title="Ampliar imagen"
+                        >
+                            <LupaIcono />
+                        </div>
+                    </div>
+
+                    {/* Thumbnails — solo si hay más de 1 imagen */}
                     {totalImages > 1 && (
-                        <div className="flex justify-center items-center mt-6 space-x-4">
-                            <button
-                                onClick={() => sliderRef.slickPrev()}
-                                className={`text-2xl font-bold text-gray-500 hover:text-gray-700 ${currentSlide === 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                disabled={currentSlide === 0}
-                            >
-                                &lt;
-                            </button>
-                            <span className="text-sm text-gray-500">
-                                {currentSlide + 1} de {totalImages}
-                            </span>
-                            <button
-                                onClick={() => sliderRef.slickNext()}
-                                className={`text-2xl font-bold text-gray-500 hover:text-gray-700 ${currentSlide === totalImages - 1 ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                disabled={currentSlide === totalImages - 1}
-                            >
-                                &gt;
-                            </button>
+                        <div className="galeria-thumbs-row">
+                            {imageUrls.map((url, index) => (
+                                <button
+                                    key={index}
+                                    onClick={() => setCurrentSlide(index)}
+                                    className={`galeria-thumb-btn${currentSlide === index ? ' galeria-thumb-activo' : ''}`}
+                                    aria-label={`Ver imagen ${index + 1}`}
+                                    title={`Imagen ${index + 1}`}
+                                >
+                                    <img
+                                        src={url}
+                                        alt={`Miniatura ${index + 1}`}
+                                        className="galeria-thumb-img"
+                                    />
+                                </button>
+                            ))}
                         </div>
                     )}
                 </div>
 
-                {/* Detalles - Orden reorganizado */}
                 {/* Detalles - Nuevo Diseño Minimalista y Elegante */}
                 <div className="py-2 mb-8 space-y-8">
                     {/* Título */}

@@ -134,67 +134,131 @@ html {
   margin-top: 2rem;
 }
 
-/* Personalización de puntos de react-slick */
-.slick-dots-custom {
-  display: flex !important;
-  justify-content: center !important;
-  align-items: center !important;
-  gap: 0.5rem !important;
-  list-style: none !important;
-  padding: 0 !important;
-  margin: 0 !important;
-}
 
-.slick-dots-custom li {
-  width: 8px !important;
-  height: 8px !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  list-style: none !important;
-  opacity: 0.5;
-  transition: opacity 0.3s ease;
-}
+/* ═══════════════════════════════════════════════════
+   Galería de producto — imagen principal + thumbnails
+   ═══════════════════════════════════════════════════ */
 
-.slick-dots-custom li.slick-active {
-  opacity: 1 !important;
-}
-
-.slick-dots-custom li button {
-  width: 8px !important;
-  height: 8px !important;
-  border-radius: 50% !important;
-  background-color: #1f2937 !important;
-  border: none !important;
-  padding: 0 !important;
-  margin: 0 !important;
-  cursor: pointer;
-}
-
-.slick-dots-custom li button:before {
-  content: none !important;
-  /* Elimina el contenido por defecto */
-}
-
-/* Estilos para el contenedor del slide del carrusel en ProductoDetalle */
-.carousel-slide-container {
+/* Contenedor de la imagen principal */
+.galeria-main-container {
+  width: 100%;
   height: 400px;
-  /* Altura por defecto para móviles */
+  overflow: hidden;
+  border-radius: 8px;
+  background-color: #f9fafb;
 }
 
-/* Media query para tablets y pantallas más grandes */
 @media (min-width: 640px) {
-
-  /* Coincide con el breakpoint 'sm' de Tailwind */
-  .carousel-slide-container {
+  .galeria-main-container {
     height: 550px;
   }
 }
 
-/* Media query para desktops y pantallas más grandes */
 @media (min-width: 768px) {
-
-  /* Coincide con el breakpoint 'md' de Tailwind */
-  .carousel-slide-container {
+  .galeria-main-container {
     height: 650px;
+  }
+}
+
+/* Imagen principal */
+.galeria-imagen-principal {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  cursor: pointer;
+  border-radius: 8px;
+  background-color: #f9fafb;
+  animation: galeria-fade-in 0.3s ease;
+}
+
+@keyframes galeria-fade-in {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Fila de thumbnails */
+.galeria-thumbs-row {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 0;
+}
+
+/* Botón de cada thumbnail */
+.galeria-thumb-btn {
+  position: relative;
+  width: 68px;
+  height: 68px;
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #f3f4f6;
+  cursor: pointer;
+  transition: border-color 0.25s ease, box-shadow 0.25s ease, transform 0.2s ease;
+  flex-shrink: 0;
+}
+
+.galeria-thumb-btn:hover {
+  border-color: #9ca3af;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+.galeria-thumb-activo {
+  border-color: #374151 !important;
+  box-shadow: 0 0 0 2px rgba(55, 65, 81, 0.25);
+  cursor: default;
+  pointer-events: none;
+}
+
+/* Overlay gris sobre el thumb activo */
+.galeria-thumb-activo::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.55);
+  border-radius: inherit;
+}
+
+/* Imagen dentro del thumbnail */
+.galeria-thumb-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* Responsive — thumbnails un poco más grandes en tablet+ */
+@media (min-width: 640px) {
+  .galeria-thumb-btn {
+    width: 80px;
+    height: 80px;
+    border-radius: 10px;
+  }
+
+  .galeria-thumbs-row {
+    gap: 12px;
+    margin-top: 14px;
+  }
+}
+
+@media (min-width: 768px) {
+  .galeria-thumb-btn {
+    width: 90px;
+    height: 90px;
+  }
+
+  .galeria-thumbs-row {
+    gap: 14px;
+    margin-top: 16px;
   }
 }

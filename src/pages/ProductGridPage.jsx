@@ -233,7 +233,9 @@ const ProductGridPage = () => {
         'ANILLO': 'Anillos',
         'ARETE': 'Aretes',
         'PULSERA': 'Pulseras',
-        'PERSONALIZADO': 'Diseños Personalizados'
+        'PERSONALIZADO': 'Diseños Personalizados',
+        'VINCHA_TIARA': 'Vinchas y Tiaras',
+        'TOBILLERA': 'Tobilleras'
     };
 
     // Construye el título de la página

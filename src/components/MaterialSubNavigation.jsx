@@ -9,6 +9,8 @@ const MaterialSubNavigation = ({ material, currentCategory }) => {
         { name: 'Pulseras', slug: 'Pulsera' },
         { name: 'Anillos', slug: 'Anillo' },
         { name: 'Collares', slug: 'Collar' },
+        { name: 'Vinchas/Tiaras', slug: 'VINCHA_TIARA' },
+        { name: 'Tobilleras', slug: 'TOBILLERA' },
     ];
 
     return (

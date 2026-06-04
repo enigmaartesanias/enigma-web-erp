@@ -69,10 +69,13 @@ const Header = () => {
             { name: 'Aretes', path: '/catalogo/Alpaca/ARETE' },
         ],
         Cobre: [
+            { name: 'Toda la Colección', path: '/cobre' },
             { name: 'Anillos', path: '/catalogo/Cobre/ANILLO' },
             { name: 'Pulseras', path: '/catalogo/Cobre/PULSERA' },
             { name: 'Collares', path: '/catalogo/Cobre/COLLAR' },
             { name: 'Aretes', path: '/catalogo/Cobre/ARETE' },
+            { name: 'Vinchas/Tiaras', path: '/catalogo/Cobre/VINCHA_TIARA' },
+            { name: 'Tobilleras', path: '/catalogo/Cobre/TOBILLERA' },
         ],
     };
 
@@ -148,14 +151,14 @@ const Header = () => {
                                 <ul
                                     className={`${activeDropdown === material ? 'block' : 'hidden'} 
                                         md:group-hover:block 
-                                        bg-gray-100 
+                                        bg-gray-50 
                                         md:bg-white md:absolute md:top-full md:left-0 md:min-w-[160px] md:shadow-lg md:border md:border-gray-200 z-50`}
                                 >
                                     {jewelryByMaterial[material].map((jewelry) => (
                                         <li key={`${material}-${jewelry.name}`}>
                                             <Link
                                                 to={jewelry.path}
-                                                className="block px-6 md:px-4 py-2 hover:bg-gray-200 text-sm md:text-base"
+                                                className={`block px-6 md:px-4 py-3 md:py-2 hover:bg-[#fdf6ee] hover:text-[#c8964a] transition-colors text-sm md:text-base ${jewelry.name === 'Toda la Colección' ? 'font-semibold text-[#c8964a] border-b border-gray-200/60' : 'text-gray-700'}`}
                                                 onClick={() => {
                                                     setActiveDropdown(null);
                                                     if (window.innerWidth < 768) toggleMenu();

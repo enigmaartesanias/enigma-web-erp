@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 
 // ==========================================
@@ -30,16 +30,15 @@ const BASE_ROUTES = {
         anillos: "/catalogo/Cobre/Anillo",
         collares: "/catalogo/Cobre/Collar",
 
-        all: "/catalogo/Cobre/all",
+        all: "/cobre",
     },
 };
 
 const CATEGORIES = [
-    { name: "Aretes", slug: "aretes" },
-    { name: "Pulseras", slug: "pulseras" },
-    { name: "Anillos", slug: "anillos" },
-    { name: "Collares", slug: "collares" },
-
+    { name: "Aretes", slug: "Arete" },
+    { name: "Pulseras", slug: "Pulsera" },
+    { name: "Anillos", slug: "Anillo" },
+    { name: "Collares", slug: "Collar" },
 ];
 
 const MATERIAL_CARDS = [
@@ -51,7 +50,7 @@ const MATERIAL_CARDS = [
         // CAMBIA LA RUTA DE LA IMAGEN AQUÍ PARA LA COLECCIÓN COBRE
         // ---------------------------------------------------------
         image: "/images/pulsera3.jpg",
-        categories: CATEGORIES,
+        categories: [],
         isCustom: false,
     },
     {
@@ -95,10 +94,13 @@ const MATERIAL_CARDS = [
 
 const MaterialCard = ({ card, isActive, isAnyCardActive, onToggle }) => {
     const [isHovered, setIsHovered] = useState(false);
-    const { name, description, image, key, categories, link, isCustom } = card;
+    const { name, description, image, images, key, categories, link, isCustom } = card;
+    const navigate = useNavigate();
 
     const getRoute = (materialKey, categorySlug) => {
-        return BASE_ROUTES[materialKey]?.[categorySlug] || "#";
+        if (isCustom) return link;
+        const materialCapitalized = materialKey.charAt(0).toUpperCase() + materialKey.slice(1);
+        return `/catalogo/${materialCapitalized}/${categorySlug}`;
     };
 
     // Detectar si estamos en modo móvil
@@ -125,30 +127,63 @@ const MaterialCard = ({ card, isActive, isAnyCardActive, onToggle }) => {
     // En móviles
     if (isMobile) {
         return (
-            <div className="w-full relative overflow-hidden rounded-xl transition-shadow duration-300 cursor-pointer">
-                {/* Imagen Estática */}
+            <div 
+                className="w-full relative overflow-hidden rounded-xl transition-shadow duration-300 cursor-pointer"
+                onClick={() => {
+                    if (key === 'cobre') navigate('/cobre');
+                }}
+            >
+                {/* Imagen Estática / Grid */}
                 <div className="relative w-full h-64 p-3">
-                    <img
-                        src={image}
-                        alt={name}
-                        className="w-full h-full object-cover transition-all duration-500 rounded-lg"
-                    />
+                    {images && images.length >= 5 ? (
+                        <div className="grid grid-cols-4 grid-rows-2 gap-1 w-full h-full rounded-lg overflow-hidden relative group">
+                            <div className="col-span-2 row-span-2 overflow-hidden">
+                                <img src={images[0]} alt={name} className="w-full h-full object-cover transition-transform duration-700 ease-in-out transform group-hover:scale-105" />
+                            </div>
+                            <div className="col-span-1 row-span-1 overflow-hidden">
+                                <img src={images[1]} alt={name} className="w-full h-full object-cover transition-transform duration-700 ease-in-out transform group-hover:scale-105" />
+                            </div>
+                            <div className="col-span-1 row-span-1 overflow-hidden">
+                                <img src={images[2]} alt={name} className="w-full h-full object-cover transition-transform duration-700 ease-in-out transform group-hover:scale-105" />
+                            </div>
+                            <div className="col-span-1 row-span-1 overflow-hidden">
+                                <img src={images[3]} alt={name} className="w-full h-full object-cover transition-transform duration-700 ease-in-out transform group-hover:scale-105" />
+                            </div>
+                            <div className="col-span-1 row-span-1 overflow-hidden">
+                                <img src={images[4]} alt={name} className="w-full h-full object-cover transition-transform duration-700 ease-in-out transform group-hover:scale-105" />
+                            </div>
+                            {/* Botón Central Colección Cobre (Mobile) */}
+                            <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
+                                <Link to={getRoute(key, "all")} className="pointer-events-auto px-4 py-2 bg-black/60 text-white border border-white/40 rounded-lg hover:bg-black/80 transition-colors backdrop-blur-sm shadow-lg text-sm font-semibold tracking-wide">
+                                    Galería Cobre
+                                </Link>
+                            </div>
+                        </div>
+                    ) : (
+                        <img
+                            src={image}
+                            alt={name}
+                            className="w-full h-full object-cover transition-all duration-500 rounded-lg"
+                        />
+                    )}
                     {/* Overlay suave para móvil */}
                     <div className="absolute inset-0 bg-black/10 pointer-events-none" />
 
 
 
-                    {/* Título centrado sobre la imagen (solo en móvil) */}
-                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
-                        <div
-                            className="backdrop-blur-sm px-4 py-1.5 rounded-lg border border-white/20"
-                            style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
-                        >
-                            <h3 className="text-lg font-normal text-white tracking-wide text-center">
-                                {name}
-                            </h3>
+                    {/* Título centrado sobre la imagen (solo en móvil, excepto Cobre que ya tiene su botón) */}
+                    {!(images && images.length >= 5) && (
+                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+                            <div
+                                className="backdrop-blur-sm px-4 py-1.5 rounded-lg border border-white/20"
+                                style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
+                            >
+                                <h3 className="text-lg font-normal text-white tracking-wide text-center">
+                                    {name}
+                                </h3>
+                            </div>
                         </div>
-                    </div>
+                    )}
                 </div>
 
                 {/* Enlaces debajo de la imagen (solo en móvil) */}
@@ -169,11 +204,11 @@ const MaterialCard = ({ card, isActive, isAnyCardActive, onToggle }) => {
                                         <div key={cat.slug} className="flex items-center">
                                             <Link
                                                 to={getRoute(key, cat.slug)}
-                                                className="hover:text-black hover:underline transition-colors"
+                                                className="hover:text-black hover:underline transition-colors text-sm sm:text-lg"
                                             >
                                                 {cat.name}
                                             </Link>
-                                            {j < chunk.length - 1 && <span className="text-gray-400 mx-4">|</span>}
+                                            {j < chunk.length - 1 && <span className="text-gray-400 mx-2 sm:mx-4">|</span>}
                                         </div>
                                     ))}
                                 </div>
@@ -206,17 +241,47 @@ const MaterialCard = ({ card, isActive, isAnyCardActive, onToggle }) => {
             onMouseLeave={() => setIsHovered(false)}
             onClick={(e) => {
                 e.stopPropagation();
-                onToggle();
+                if (key === 'cobre') {
+                    navigate('/cobre');
+                } else {
+                    onToggle();
+                }
             }}
             style={{ zIndex: 1 }}
         >
-            {/* Contenedor de la Imagen Estática */}
-            <div className="relative w-full h-80">
-                <img
-                    src={image}
-                    alt={name}
-                    className="w-full h-full object-cover transition-transform duration-700 ease-in-out transform hover:scale-105"
-                />
+            {/* Contenedor de la Imagen Estática / Grid */}
+            <div className="relative w-full h-80 rounded-xl overflow-hidden shadow-sm">
+                {images && images.length >= 5 ? (
+                    <div className="grid grid-cols-4 grid-rows-2 gap-1 w-full h-full relative group">
+                        <div className="col-span-2 row-span-2 overflow-hidden">
+                            <img src={images[0]} alt={name} className="w-full h-full object-cover transition-transform duration-700 ease-in-out transform group-hover:scale-105" />
+                        </div>
+                        <div className="col-span-1 row-span-1 overflow-hidden">
+                            <img src={images[1]} alt={name} className="w-full h-full object-cover transition-transform duration-700 ease-in-out transform group-hover:scale-105" />
+                        </div>
+                        <div className="col-span-1 row-span-1 overflow-hidden">
+                            <img src={images[2]} alt={name} className="w-full h-full object-cover transition-transform duration-700 ease-in-out transform group-hover:scale-105" />
+                        </div>
+                        <div className="col-span-1 row-span-1 overflow-hidden">
+                            <img src={images[3]} alt={name} className="w-full h-full object-cover transition-transform duration-700 ease-in-out transform group-hover:scale-105" />
+                        </div>
+                        <div className="col-span-1 row-span-1 overflow-hidden">
+                            <img src={images[4]} alt={name} className="w-full h-full object-cover transition-transform duration-700 ease-in-out transform group-hover:scale-105" />
+                        </div>
+                        {/* Botón Central Colección Cobre (Desktop) */}
+                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
+                            <Link to={getRoute(key, "all")} className="pointer-events-auto px-6 py-2.5 bg-black/60 text-white border border-white/40 rounded-lg hover:bg-black/80 transition-all backdrop-blur-sm shadow-xl text-base font-medium tracking-wide hover:scale-105">
+                                Galería Cobre
+                            </Link>
+                        </div>
+                    </div>
+                ) : (
+                    <img
+                        src={image}
+                        alt={name}
+                        className="w-full h-full object-cover transition-transform duration-700 ease-in-out transform hover:scale-105"
+                    />
+                )}
 
                 {/* Fondo base suave (gris/negro al 10-15%) para contexto, sin oscurecer demasiado */}
                 <div className="absolute inset-0 bg-black/10 pointer-events-none" />
@@ -270,11 +335,11 @@ const MaterialCard = ({ card, isActive, isAnyCardActive, onToggle }) => {
                                                 <div key={cat.slug} className="flex items-center">
                                                     <Link
                                                         to={getRoute(key, cat.slug)}
-                                                        className="hover:text-white hover:underline transition-colors"
+                                                        className="hover:text-white hover:underline transition-colors text-sm lg:text-base"
                                                     >
                                                         {cat.name}
                                                     </Link>
-                                                    {j < chunk.length - 1 && <span className="text-gray-500 mx-3">|</span>}
+                                                    {j < chunk.length - 1 && <span className="text-gray-500 mx-2 lg:mx-3">|</span>}
                                                 </div>
                                             ))}
                                         </div>

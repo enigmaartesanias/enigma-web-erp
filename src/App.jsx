@@ -13,6 +13,7 @@ import VideoShorts from './pages/VideoShorts';
 import ElTaller from './pages/ElTaller/ElTaller';
 import ProductGridPage from './pages/ProductGridPage';
 import DashboardMaster from './pages/DashboardMaster';
+import ColeccionCobre from './pages/ColeccionCobre';
 
 // Componentes
 import Header from './components/Header/Header';
@@ -102,6 +103,7 @@ const MainContent = () => {
                 <Route path="/shippingpolicies" element={<ShippingPolicies />} />
                 <Route path="/videoshorts" element={<VideoShorts />} />
                 <Route path="/el-taller" element={<ElTaller />} />
+                <Route path="/cobre" element={<ColeccionCobre />} />
                 <Route path="/carrusel" element={<PublicCarousel />} />
                 <Route path="/producto/:id" element={<ProductoDetalle />} />
                 <Route path="/tienda" element={<Tienda />} />

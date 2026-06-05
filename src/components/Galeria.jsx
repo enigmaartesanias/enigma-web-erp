@@ -74,18 +74,7 @@ const MATERIAL_CARDS = [
         image: "/images/anillo2.jpg",
         categories: CATEGORIES,
         isCustom: false,
-    },
-    {
-        name: "Diseños Personalizados",
-        key: "custom",
-
-        // ---------------------------------------------------------
-        // CAMBIA LA RUTA DE LA IMAGEN AQUÍ PARA PERSONALIZADOS
-        // ---------------------------------------------------------
-        image: "/images/per10.jpg",
-        link: "/catalogo/all/PERSONALIZADO",
-        isCustom: true,
-    },
+    }
 ];
 
 // ==========================================
@@ -126,6 +115,19 @@ const MaterialCard = ({ card, isActive, isAnyCardActive, onToggle }) => {
                         alt={name}
                         className="w-full h-full object-cover transition-transform duration-700 ease-in-out transform group-hover:scale-105"
                     />
+
+                    {/* Título centrado (tipo fade Alpaca) */}
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+                        <div
+                            className="backdrop-blur-sm px-4 py-1.5 rounded-lg border border-white/20"
+                            style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
+                        >
+                            <h3 className="text-lg font-normal text-white tracking-wide text-center">
+                                {name}
+                            </h3>
+                        </div>
+                    </div>
+
                     {/* Filtro/overlay sutil */}
                     <div className="absolute inset-0 bg-black/5 pointer-events-none" />
                 </div>
@@ -445,7 +447,7 @@ const Galeria = () => {
                                 <Link
                                     key={card.key}
                                     to="/cobre"
-                                    className="flex flex-col bg-white p-4 rounded-xl shadow-xl border border-gray-200 transition-all duration-300 hover:shadow-2xl w-full lg:w-[23.5%] cursor-pointer group hover:border-[#c8964a]/50"
+                                    className="flex flex-col bg-white p-4 rounded-xl shadow-xl border border-gray-200 transition-all duration-300 hover:shadow-2xl w-full lg:w-[32%] cursor-pointer group hover:border-[#c8964a]/50"
                                 >
                                     {CardContent}
                                 </Link>
@@ -455,7 +457,7 @@ const Galeria = () => {
                         return (
                             <div
                                 key={card.key}
-                                className="flex flex-col bg-white p-4 rounded-xl shadow-xl border border-gray-200 transition-shadow duration-300 hover:shadow-2xl w-full lg:w-[23.5%]"
+                                className="flex flex-col bg-white p-4 rounded-xl shadow-xl border border-gray-200 transition-shadow duration-300 hover:shadow-2xl w-full lg:w-[32%]"
                             >
                                 {CardContent}
                             </div>

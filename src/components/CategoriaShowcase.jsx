@@ -106,14 +106,28 @@ const CategoriaShowcase = () => {
     }
 
     return (
-        <section className="py-10 bg-gray-50">
-            <div className="container mx-auto px-3">
+        <section className="py-8 md:py-16 relative overflow-hidden bg-gray-900">
+            {/* Fondo "Vintage" Oscuro */}
+            <div className="absolute inset-0 z-0">
+                {/* Patrón de textura sutil (puntos finos) usando inline style para Tailwind v2 */}
+                <div 
+                    className="absolute inset-0 opacity-20" 
+                    style={{ 
+                        backgroundImage: 'radial-gradient(rgba(255,255,255,0.15) 1px, transparent 1px)', 
+                        backgroundSize: '24px 24px' 
+                    }}
+                ></div>
+                {/* Sombra interior para darle profundidad de marco */}
+                <div className="absolute inset-0 bg-gradient-to-b from-black via-transparent to-black pointer-events-none opacity-80"></div>
+            </div>
+
+            <div className="container mx-auto px-3 relative z-10">
                 {/* Título del showcase */}
-                <div className="text-center mb-8 md:mb-10">
-                    <h2 className="text-xl md:text-2xl font-light text-gray-900 mb-2">
-                        Creaciones del Momento
+                <div className="text-center mb-6 md:mb-12">
+                    <h2 className="text-2xl md:text-3xl font-light text-white tracking-widest mb-4" style={{ letterSpacing: '0.25em' }}>
+                        NOVEDADES
                     </h2>
-                    <div className="w-16 h-0.5 bg-yellow-500 mx-auto"></div>
+                    <div className="w-16 h-0.5 mx-auto" style={{ backgroundColor: '#c8964a', boxShadow: '0 0 8px rgba(200,150,74,0.8)' }}></div>
                 </div>
 
                 {/* Carrusel */}
@@ -123,7 +137,7 @@ const CategoriaShowcase = () => {
             height: auto !important;
           }
           .slick-dots-custom {
-            margin-top: 0.5rem;
+            margin-top: 1rem;
             display: flex !important;
             justify-content: center;
             align-items: center;
@@ -136,15 +150,17 @@ const CategoriaShowcase = () => {
             height: 8px !important;
             border-radius: 50% !important;
             padding: 0 !important;
-            background: #cbd5e1 !important; /* gray-300 */
+            background: #374151 !important; /* gray-700 */
             border: none !important;
             box-shadow: none !important;
             font-size: 0 !important;
             color: transparent !important;
             overflow: hidden !important;
+            transition: all 0.3s ease !important;
           }
           .slick-dots-custom li.slick-active button {
-            background: #1f2937 !important; /* gray-800 */
+            background: #c8964a !important; /* gold */
+            transform: scale(1.3) !important;
           }
         `}</style>
                 <div className="overflow-hidden">
@@ -163,10 +179,10 @@ const CategoriaShowcase = () => {
                                                 className="w-full h-full object-cover"
                                             />
                                         </div>
-                                        <div className="mt-3 text-sm text-black font-semibold text-left mb-2">
+                                        <div className="mt-4 text-sm text-gray-100 font-medium tracking-wide text-left mb-1">
                                             {producto.titulo}
                                         </div>
-                                        <div className="mt-1 text-sm text-black text-left mb-2">
+                                        <div className="mt-1 text-sm text-left mb-2" style={{ color: '#c8964a' }}>
                                             Desde S/ {Number(producto.precio)}
                                         </div>
                                     </Link>

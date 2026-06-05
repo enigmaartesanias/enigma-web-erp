@@ -57,10 +57,10 @@ const CelebrityCollaboration = () => {
                         </p>
 
                         <div className="pt-1 md:pt-4">
-                            {/* Botón deshabilitado pero visible */}
+                            {/* Botón activo a la página de colección */}
                             <button
-                                disabled
-                                className="inline-flex items-center gap-2 border border-yellow-600 text-yellow-600 px-4 py-1.5 md:px-6 md:py-2.5 rounded-md text-xs md:text-sm font-medium opacity-60 cursor-not-allowed transition-all"
+                                onClick={() => window.location.href = '/andru-donalds'}
+                                className="inline-flex items-center gap-2 border border-yellow-600 text-yellow-600 hover:bg-yellow-600 hover:text-white px-4 py-1.5 md:px-6 md:py-2.5 rounded-md text-xs md:text-sm font-medium transition-all"
                             >
                                 Explorar la Colección Privada
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

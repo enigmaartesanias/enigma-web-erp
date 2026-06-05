@@ -4,12 +4,12 @@ import { Link } from 'react-router-dom';
 const ColeccionCobre = () => {
     // 6 Categorías para el Grid de cards
     const categories = [
-        { name: 'Aretes',    image: '/images/aretes.jpg',   path: '/catalogo/Cobre/ARETE',        isNew: false },
-        { name: 'Pulseras',  image: '/images/pulsera3.jpg', path: '/catalogo/Cobre/PULSERA',      isNew: false },
-        { name: 'Anillos',   image: '/images/anillos.jpg',  path: '/catalogo/Cobre/ANILLO',       isNew: false },
-        { name: 'Collares',  image: '/images/collares.jpg', path: '/catalogo/Cobre/COLLAR',       isNew: false },
-        { name: 'Vinchas',   image: '/images/img1.jpg',     path: '/catalogo/Cobre/VINCHA_TIARA', isNew: true  },
-        { name: 'Tobilleras',image: '/images/img2.jpg',     path: '/catalogo/Cobre/TOBILLERA',    isNew: true  }
+        { name: 'Aretes',    image: '/images/aretecobre.png',   path: '/catalogo/Cobre/ARETE',        isNew: false },
+        { name: 'Pulseras',  image: '/images/pulseracobre.png', path: '/catalogo/Cobre/PULSERA',      isNew: false },
+        { name: 'Anillos',   image: '/images/anillocobre.png',  path: '/catalogo/Cobre/ANILLO',       isNew: false },
+        { name: 'Collares',  image: '/images/collarcobre.png', path: '/catalogo/Cobre/COLLAR',       isNew: false },
+        { name: 'Vinchas',   image: '/images/vinchacobre.png',     path: '/catalogo/Cobre/VINCHA_TIARA', isNew: true  },
+        { name: 'Tobilleras',image: '/images/tobilleracobre.png',     path: '/catalogo/Cobre/TOBILLERA',    isNew: true  }
     ];
 
     return (
@@ -62,8 +62,8 @@ const ColeccionCobre = () => {
                         <p className="flex-1 text-[#6a5a4a] leading-relaxed text-sm md:text-base font-light">
                             El cobre ha sido parte de la humanidad desde los albores de la civilización. En Enigma, retomamos esta herencia milenaria para forjar joyas que no solo adornan, sino que conectan con nuestras raíces. Cada martillazo y cada doblez es un tributo a las técnicas ancestrales que mantenemos vivas en nuestro taller.
                         </p>
-                        <div className="w-full md:w-1/3 h-32 md:h-36 rounded overflow-hidden shadow-sm flex-shrink-0 bg-gray-100 border border-[#e8e4de]">
-                            <img src="/images/img1.jpg" alt="Pieza de cobre terminada" className="w-full h-full object-cover hover:scale-105 transition-transform duration-700" />
+                        <div className="w-full md:w-1/3 h-48 md:h-64 rounded-xl overflow-hidden shadow-sm flex-shrink-0 bg-gray-100 border border-[#e8e4de]">
+                            <img src="/images/historia.png" alt="Pieza de cobre terminada" className="w-full h-full object-cover hover:scale-105 transition-transform duration-700" />
                         </div>
                     </div>
                 </section>
@@ -122,12 +122,12 @@ const ColeccionCobre = () => {
                       <Link
                         key={cat.name}
                         to={cat.path}
-                        className="group block bg-white border border-[#e0d8ce]
-                          rounded-[10px] overflow-hidden shadow-sm
-                          hover:border-[#c8964a] transition-all duration-300"
+                        className="group flex flex-col bg-white border border-[#e0d8ce]
+                          rounded-3xl overflow-hidden shadow-sm hover:shadow-md
+                          hover:border-[#c8964a] transition-all duration-300 h-full"
                       >
                         {/* Imagen con overlay y proporción fija */}
-                        <div className="relative w-full aspect-[4/3] overflow-hidden bg-[#e8e0d4]">
+                        <div className="relative w-full h-28 md:h-40 overflow-hidden bg-[#e8e0d4] flex-shrink-0">
                           <img
                             src={cat.image}
                             alt={cat.name}
@@ -150,14 +150,9 @@ const ColeccionCobre = () => {
                         </div>
 
                         {/* Label */}
-                        <div className="flex items-center justify-between px-3 py-3">
-                          <span className="text-sm text-[#2a2018] font-medium tracking-wide">
+                        <div className="flex items-center justify-center px-2 py-3 border-t border-[#f0ebe1] bg-[#fdfdfc] flex-grow">
+                          <span className="text-xs md:text-sm text-[#2a2018] font-serif font-light tracking-widest uppercase text-center group-hover:text-[#c8964a] transition-colors duration-300">
                             {cat.name}
-                          </span>
-                          <span className="text-[#c8964a] text-sm opacity-0
-                            group-hover:opacity-100 group-hover:translate-x-0.5
-                            transition-all duration-200">
-                            →
                           </span>
                         </div>
                       </Link>

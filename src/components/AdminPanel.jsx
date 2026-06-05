@@ -3,7 +3,7 @@ import React from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
-import { Image, ShoppingBag, LogOut, ChevronRight } from 'lucide-react';
+import { Image, ShoppingBag, LogOut, ChevronRight, Star } from 'lucide-react';
 
 import logo from '../assets/logo.png';
 
@@ -87,6 +87,23 @@ const AdminPanel = () => {
                 <div className="text-left">
                   <h2 className="text-sm font-bold text-slate-800 mb-0.5">Catálogo de Productos</h2>
                   <p className="text-xs text-slate-400">Gestiona precios, imágenes, stock y descripciones.</p>
+                </div>
+              </div>
+              <ChevronRight size={16} className="text-slate-300 transition-transform group-hover:translate-x-0.5" />
+            </Link>
+
+            {/* Colección Andru Donalds */}
+            <Link
+              to="/admin/andru-donalds"
+              className="group flex items-center justify-between p-5 bg-white rounded-2xl border border-gray-100 hover:border-slate-200/80 shadow-sm hover:shadow-md transition-all duration-300 transform active:scale-[0.99]"
+            >
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-amber-50 text-amber-500 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors group-hover:bg-amber-100">
+                  <Star size={22} className="stroke-[1.8]" />
+                </div>
+                <div className="text-left">
+                  <h2 className="text-sm font-bold text-slate-800 mb-0.5">Andru Donalds</h2>
+                  <p className="text-xs text-slate-400">Gestiona las imágenes de la colección privada.</p>
                 </div>
               </div>
               <ChevronRight size={16} className="text-slate-300 transition-transform group-hover:translate-x-0.5" />

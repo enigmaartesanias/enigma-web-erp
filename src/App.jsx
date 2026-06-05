@@ -14,6 +14,7 @@ import ElTaller from './pages/ElTaller/ElTaller';
 import ProductGridPage from './pages/ProductGridPage';
 import DashboardMaster from './pages/DashboardMaster';
 import ColeccionCobre from './pages/ColeccionCobre';
+import AndruDonaldsCollection from './pages/AndruDonaldsCollection';
 
 // Componentes
 import Header from './components/Header/Header';
@@ -37,6 +38,7 @@ import ProductoAdmin from './components/ProductoAdmin';
 import Pedidos from './components/Pedidos';
 import ReportePedidos from './components/ReportePedidos';
 import ReporteCodigosQR from './components/ReporteCodigosQR';
+import AndruDonaldsAdmin from './components/AndruDonaldsAdmin';
 
 // Módulos
 import InventarioHome from './modules/inventario/pages/InventarioHome';
@@ -105,6 +107,7 @@ const MainContent = () => {
                 <Route path="/el-taller" element={<ElTaller />} />
                 <Route path="/cobre" element={<ColeccionCobre />} />
                 <Route path="/carrusel" element={<PublicCarousel />} />
+                <Route path="/andru-donalds" element={<AndruDonaldsCollection />} />
                 <Route path="/producto/:id" element={<ProductoDetalle />} />
                 <Route path="/tienda" element={<Tienda />} />
                 <Route path="/catalogo/:material/:categoria" element={<ProductGridPage />} />
@@ -120,6 +123,7 @@ const MainContent = () => {
                 <Route path="/admin/pedidos" element={<PrivateRoute><Pedidos /></PrivateRoute>} />
                 <Route path="/admin/reportes" element={<PrivateRoute><ReportePedidos /></PrivateRoute>} />
                 <Route path="/admin/codigos-qr" element={<PrivateRoute><ReporteCodigosQR /></PrivateRoute>} />
+                <Route path="/admin/andru-donalds" element={<PrivateRoute><AndruDonaldsAdmin /></PrivateRoute>} />
                 <Route path="/inventario-home" element={<PrivateRoute><InventarioHome /></PrivateRoute>} />
                 <Route path="/produccion" element={<PrivateRoute><Produccion /></PrivateRoute>} />
                 <Route path="/produccion-reporte" element={<PrivateRoute><ProduccionReporte /></PrivateRoute>} />

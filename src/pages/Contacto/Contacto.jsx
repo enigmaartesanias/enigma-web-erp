@@ -1,5 +1,4 @@
 import React, { useRef, useState } from "react";
-import html2canvas from 'html2canvas';
 import { FaImage } from 'react-icons/fa';
 
 const Contacto = () => {
@@ -7,66 +6,47 @@ const Contacto = () => {
   const [isGenerating, setIsGenerating] = useState(false);
 
   const handleShareImage = async () => {
-    if (contentRef.current && !isGenerating) {
-      setIsGenerating(true);
-      try {
-        await new Promise(resolve => setTimeout(resolve, 100));
+    if (isGenerating) return;
+    setIsGenerating(true);
 
-        const canvas = await html2canvas(contentRef.current, {
-          scale: 2,
-          backgroundColor: '#ffffff',
-          useCORS: true,
-          logging: false,
-          ignoreElements: (element) => element.tagName === 'IFRAME' // Ignorar iframe para evitar problemas de CORS/blanco
-        });
+    try {
+      const response = await fetch('/images/ubicacion.jpg');
+      const blob = await response.blob();
+      const file = new File([blob], 'ubicacion.jpg', { type: 'image/jpeg' });
 
-        // NOTA: Html2Canvas no puede capturar iframes de Google Maps. 
-        // Se capturará el resto del contenido.
-
-        canvas.toBlob(async (blob) => {
-          if (!blob) {
-            alert("Error al generar la imagen.");
-            setIsGenerating(false);
-            return;
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        try {
+          await navigator.share({
+            files: [file],
+            title: 'Ubicación Enigma Artesanías',
+            text: 'Aquí tienes los datos de contacto y nuestra ubicación.'
+          });
+        } catch (error) {
+          if (error.name !== 'AbortError') {
+            console.error("Error al compartir:", error);
+            downloadImageBlob(blob);
           }
-
-          const file = new File([blob], 'Contacto-Enigma.png', { type: 'image/png' });
-
-          if (navigator.canShare && navigator.canShare({ files: [file] })) {
-            try {
-              await navigator.share({
-                files: [file],
-                title: 'Contacto Enigma Artesanías',
-                text: 'Aquí tienes los datos de contacto y ubicación.'
-              });
-            } catch (error) {
-              if (error.name !== 'AbortError') {
-                console.error("Error al compartir:", error);
-                downloadImage(canvas);
-              }
-            }
-          } else {
-            downloadImage(canvas);
-          }
-          setIsGenerating(false);
-        }, 'image/png');
-
-      } catch (error) {
-        console.error("Error al generar la imagen:", error);
-        alert("No se pudo generar la imagen.");
-        setIsGenerating(false);
+        }
+      } else {
+        downloadImageBlob(blob);
       }
+    } catch (error) {
+      console.error("Error al obtener la imagen:", error);
+      alert("No se pudo obtener la imagen de ubicación.");
+    } finally {
+      setIsGenerating(false);
     }
   };
 
-  const downloadImage = (canvas) => {
-    const image = canvas.toDataURL("image/png");
+  const downloadImageBlob = (blob) => {
+    const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
-    link.href = image;
-    link.download = 'Contacto-Enigma.png';
+    link.href = url;
+    link.download = 'ubicacion.jpg';
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   return (

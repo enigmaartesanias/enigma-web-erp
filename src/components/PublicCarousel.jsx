@@ -59,17 +59,29 @@ const PublicCarousel = () => {
     if (carouselItems.length === 0) return <div className="p-4 text-center text-gray-500">No hay imágenes en el carrusel.</div>;
 
     return (
-        <section className="py-10 md:py-16 bg-gray-50 overflow-hidden">
-            <div className="container mx-auto px-2 md:px-8 lg:px-16">
-                <div className="text-center mb-8 md:mb-10">
-                    <h2 className="text-xl md:text-2xl font-light text-gray-900 mb-2">Joyas con historia</h2>
-                    <div className="w-16 h-0.5 bg-yellow-500 mx-auto"></div>
+        <section className="py-12 md:py-20 bg-gray-900 relative overflow-hidden">
+            {/* Textura sutil en el fondo de la sección */}
+            <div className="absolute inset-0 z-0">
+                <div 
+                    className="absolute inset-0 opacity-20" 
+                    style={{ 
+                        backgroundImage: 'radial-gradient(rgba(255,255,255,0.15) 1px, transparent 1px)', 
+                        backgroundSize: '24px 24px' 
+                    }}
+                ></div>
+                <div className="absolute inset-0 bg-gradient-to-b from-black via-transparent to-black pointer-events-none opacity-80"></div>
+            </div>
+
+            <div className="container mx-auto px-2 md:px-8 lg:px-16 relative z-10">
+                <div className="text-center mb-8 md:mb-12">
+                    <h2 className="text-xl md:text-2xl font-light text-white mb-4 tracking-widest uppercase" style={{ letterSpacing: '0.15em' }}>Joyas con historia</h2>
+                    <div className="w-16 h-0.5 mx-auto" style={{ backgroundColor: '#c8964a', boxShadow: '0 0 8px rgba(200,150,74,0.8)' }}></div>
                 </div>
 
                 <div id="carousel-container" className="flex overflow-x-auto pb-6 snap-x snap-mandatory no-scrollbar cursor-grab active:cursor-grabbing">
                     {carouselItems.map((item) => (
-                        <div key={item.id} className="flex-shrink-0 w-1/3 lg:w-1/6 px-1 md:px-2 aspect-[3/4] snap-center">
-                            <div className="group relative h-full w-full overflow-hidden rounded-lg shadow-md transition-all duration-500 hover:shadow-xl">
+                        <div key={item.id} className="flex-shrink-0 w-1/3 lg:w-1/6 px-1 md:px-2 snap-center" style={{ aspectRatio: '3/4' }}>
+                            <div className="group relative h-full w-full overflow-hidden rounded-xl shadow-[0_0_15px_rgba(0,0,0,0.6)] transition-all duration-500 hover:shadow-xl">
                                 <img src={item.image_url} alt={item.description} className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110" />
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100 flex items-end p-2 md:p-3">
                                     <p className="text-white text-[8px] md:text-[10px] lg:text-xs font-normal leading-tight">{item.description}</p>

@@ -2,7 +2,7 @@ import andruDonalds from '../assets/images/andru.jpg';
 
 const CelebrityCollaboration = () => {
     return (
-        <section className="relative bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200 py-12 md:py-20 overflow-hidden flex items-center min-h-[350px] md:min-h-[500px]">
+        <section className="relative bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200 py-8 md:py-20 mt-8 overflow-hidden flex items-center min-h-[350px] md:min-h-[500px]">
             {/* Decorative background elements */}
             <div className="absolute inset-0 opacity-10">
                 <div className="absolute top-0 left-0 w-64 h-64 bg-yellow-400 rounded-full filter blur-3xl"></div>
@@ -14,7 +14,7 @@ const CelebrityCollaboration = () => {
 
                     {/* Imagen */}
                     <div className="flex justify-center lg:justify-end">
-                        <div className="relative">
+                        <div className="relative w-full max-w-[160px] md:max-w-sm mx-auto lg:mx-0">
                             {/* Badge "Artista de Confianza" */}
                             <div className="absolute -top-3 -left-3 bg-gradient-to-br from-yellow-500 to-orange-500 text-white px-3 py-1.5 rounded-full text-xs font-semibold shadow-lg z-10">
                                 ⭐ Artista de Confianza
@@ -43,31 +43,31 @@ const CelebrityCollaboration = () => {
                     </div>
 
                     {/* Contenido */}
-                    <div className="text-center lg:text-left">
-                        <div className="inline-block text-gray-500 px-3 py-1 text-[10px] md:text-xs font-medium mb-3 uppercase tracking-widest">
+                    <div className="text-center lg:text-left space-y-1.5 md:space-y-4">
+                        <div className="inline-block text-gray-500 px-3 py-1 text-[9px] md:text-xs font-medium uppercase tracking-widest">
                             COLABORACIÓN EXCLUSIVA
                         </div>
 
-                        <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-4 leading-tight">
-                            <span className="text-yellow-600">Andru Donalds</span>
-                            <span className="block text-yellow-600 mt-1">& Enigma</span>
+                        <h2 className="text-xl md:text-3xl lg:text-4xl font-bold leading-tight text-yellow-600">
+                            Andru Donalds & Enigma
                         </h2>
 
-                        <p className="text-sm md:text-base text-gray-700 mb-6 leading-relaxed">
+                        <p className="text-xs md:text-base text-gray-700 leading-relaxed px-4 lg:px-0">
                             Desde 2022, creo piezas únicas que capturan la esencia del legendista de ENIGMA.
                         </p>
 
-                        {/* Botón deshabilitado pero visible */}
-                        <button
-                            disabled
-                            className="inline-flex items-center gap-2 border border-yellow-600 text-yellow-600 px-6 py-2.5 rounded-md text-sm font-medium opacity-60 cursor-not-allowed transition-all"
-                            style={{ paddingLeft: '24px', paddingRight: '24px' }}
-                        >
-                            Explorar la Colección Privada
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                            </svg>
-                        </button>
+                        <div className="pt-1 md:pt-4">
+                            {/* Botón deshabilitado pero visible */}
+                            <button
+                                disabled
+                                className="inline-flex items-center gap-2 border border-yellow-600 text-yellow-600 px-4 py-1.5 md:px-6 md:py-2.5 rounded-md text-xs md:text-sm font-medium opacity-60 cursor-not-allowed transition-all"
+                            >
+                                Explorar la Colección Privada
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                </svg>
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>

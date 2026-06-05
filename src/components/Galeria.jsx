@@ -116,6 +116,30 @@ const MaterialCard = ({ card, isActive, isAnyCardActive, onToggle }) => {
         return () => mediaQuery.removeEventListener("change", listener);
     }, []);
 
+    if (key === 'cobre') {
+        return (
+            <div className="w-full">
+                {/* Contenedor de la Imagen Estática */}
+                <div className="relative w-full h-64 md:h-80 rounded-xl overflow-hidden shadow-sm">
+                    <img
+                        src={image}
+                        alt={name}
+                        className="w-full h-full object-cover transition-transform duration-700 ease-in-out transform group-hover:scale-105"
+                    />
+                    {/* Filtro/overlay sutil */}
+                    <div className="absolute inset-0 bg-black/5 pointer-events-none" />
+                </div>
+
+                {/* Texto copy decorativo debajo de la imagen */}
+                <div className="mt-4 flex justify-center">
+                    <span className="text-sm text-gray-500 font-medium tracking-wide text-center group-hover:text-[#c8964a] transition-colors duration-300">
+                        Aretes · Pulseras · Anillos · y más →
+                    </span>
+                </div>
+            </div>
+        );
+    }
+
     // Helper para agrupar categorías en pares
     const chunkedCategories = [];
     if (categories) {
@@ -395,27 +419,48 @@ const Galeria = () => {
 
                 {/* Flex row en desktop, column en móvil */}
                 <div className="flex flex-col gap-12 lg:flex-row lg:justify-between lg:gap-6">
-                    {MATERIAL_CARDS.map((card) => (
-                        <div
-                            key={card.key}
-                            className="flex flex-col bg-white p-4 rounded-xl shadow-xl border border-gray-200 transition-shadow duration-300 hover:shadow-2xl w-full lg:w-[23.5%]"
-                        >
-                            {/* Título y descripción solo visibles en desktop */}
-                            <h3 className="hidden lg:block text-xl sm:text-2xl font-semibold text-gray-800 tracking-tight mb-1 text-center">
-                                {card.name}
-                            </h3>
-                            <p className="hidden lg:block text-xs sm:text-sm text-gray-600 mb-3 text-center">
-                                {card.description}
-                            </p>
+                    {MATERIAL_CARDS.map((card) => {
+                        const isCobre = card.key === 'cobre';
+                        const CardContent = (
+                            <>
+                                {/* Título y descripción solo visibles en desktop */}
+                                <h3 className="hidden lg:block text-xl sm:text-2xl font-semibold text-gray-800 tracking-tight mb-1 text-center group-hover:text-[#c8964a] transition-colors duration-300">
+                                    {card.name}
+                                </h3>
+                                <p className="hidden lg:block text-xs sm:text-sm text-gray-600 mb-3 text-center">
+                                    {card.description}
+                                </p>
 
-                            <MaterialCard
-                                card={card}
-                                isActive={activeCard === card.key}
-                                isAnyCardActive={activeCard !== null}
-                                onToggle={() => handleCardToggle(card.key)}
-                            />
-                        </div>
-                    ))}
+                                <MaterialCard
+                                    card={card}
+                                    isActive={activeCard === card.key}
+                                    isAnyCardActive={activeCard !== null}
+                                    onToggle={() => handleCardToggle(card.key)}
+                                />
+                            </>
+                        );
+
+                        if (isCobre) {
+                            return (
+                                <Link
+                                    key={card.key}
+                                    to="/cobre"
+                                    className="flex flex-col bg-white p-4 rounded-xl shadow-xl border border-gray-200 transition-all duration-300 hover:shadow-2xl w-full lg:w-[23.5%] cursor-pointer group hover:border-[#c8964a]/50"
+                                >
+                                    {CardContent}
+                                </Link>
+                            );
+                        }
+
+                        return (
+                            <div
+                                key={card.key}
+                                className="flex flex-col bg-white p-4 rounded-xl shadow-xl border border-gray-200 transition-shadow duration-300 hover:shadow-2xl w-full lg:w-[23.5%]"
+                            >
+                                {CardContent}
+                            </div>
+                        );
+                    })}
                 </div>
             </div>
         </section>

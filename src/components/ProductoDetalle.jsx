@@ -150,6 +150,7 @@ const ProductoDetalle = () => {
     useEffect(() => {
         if (producto) {
             const setMetaTag = (property, content) => {
+                if (!content) return;
                 let element = document.querySelector(`meta[property="${property}"]`);
                 if (!element) {
                     element = document.createElement('meta');
@@ -168,11 +169,23 @@ const ProductoDetalle = () => {
             setMetaTag('og:type', 'product');
 
             if (producto.imagen_principal_url) {
-                setMetaTag('og:image', producto.imagen_principal_url);
+                // Asegurar que la URL sea absoluta
+                const imageUrl = producto.imagen_principal_url.startsWith('http') 
+                    ? producto.imagen_principal_url 
+                    : `${window.location.origin}${producto.imagen_principal_url.startsWith('/') ? '' : '/'}${producto.imagen_principal_url}`;
+                
+                setMetaTag('og:image', imageUrl);
+                setMetaTag('og:image:secure_url', imageUrl);
+                setMetaTag('og:image:width', '800');
+                setMetaTag('og:image:height', '800');
+                setMetaTag('og:image:alt', producto.titulo);
+                
+                const isPng = imageUrl.toLowerCase().includes('.png');
+                setMetaTag('og:image:type', isPng ? 'image/png' : 'image/jpeg');
             }
 
             return () => {
-                ['og:title', 'og:description', 'og:url', 'og:image', 'og:type'].forEach(property => {
+                ['og:title', 'og:description', 'og:url', 'og:image', 'og:image:secure_url', 'og:image:width', 'og:image:height', 'og:image:alt', 'og:image:type', 'og:type'].forEach(property => {
                     const element = document.querySelector(`meta[property="${property}"]`);
                     if (element) {
                         document.head.removeChild(element);
@@ -180,7 +193,7 @@ const ProductoDetalle = () => {
                 });
             };
         }
-    }, [producto]);
+    }, [producto, id]);
 
     if (loading) return <div className="p-8 text-center">Cargando producto...</div>;
     if (error) return <div className="p-8 text-center text-red-500">{error}</div>;

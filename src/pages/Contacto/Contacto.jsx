@@ -10,8 +10,10 @@ const Contacto = () => {
     setIsGenerating(true);
 
     try {
-      const response = await fetch('/images/ubicacion.jpg');
+      // Cargamos el archivo .png que realmente existe en la carpeta
+      const response = await fetch('/images/ubicacion.png');
       const blob = await response.blob();
+      // Lo compartimos como jpg tal como pediste
       const file = new File([blob], 'ubicacion.jpg', { type: 'image/jpeg' });
 
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
@@ -42,6 +44,7 @@ const Contacto = () => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
+    // Guardarlo con extensión .jpg
     link.download = 'ubicacion.jpg';
     document.body.appendChild(link);
     link.click();
@@ -97,7 +100,7 @@ const Contacto = () => {
             }`}
         >
           <FaImage className="mr-2" />
-          {isGenerating ? 'Generando...' : 'Compartir Imagen'}
+          {isGenerating ? 'Cargando...' : 'Compartir Imagen'}
         </button>
       </div>
     </section>

@@ -122,8 +122,8 @@ const Header = () => {
                             {symbol}
                         </div>
                         <div>
-                            <span style={{ display: 'block', fontWeight: 500, fontSize: 14, color: C.text }}>{label}</span>
-                            <span style={{ display: 'block', fontSize: 11, color: C.sub }}>{sub}</span>
+                            <span style={{ display: 'block', fontWeight: 500, fontSize: 16, color: C.text }}>{label}</span>
+                            <span style={{ display: 'block', fontSize: 12, color: C.sub }}>{sub}</span>
                         </div>
                     </div>
                     <span style={{
@@ -154,7 +154,7 @@ const Header = () => {
                                             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                                             width: '100%', padding: '8px 10px 8px 0',
                                             background: 'none', border: 'none', cursor: 'pointer',
-                                            fontSize: 13, textAlign: 'left',
+                                            fontSize: 15, textAlign: 'left',
                                             color: isToda ? C.dorado : '#555',
                                             fontWeight: isToda ? 600 : 400,
                                         }}
@@ -205,8 +205,8 @@ const Header = () => {
                         {iconContent}
                     </div>
                     <div>
-                        <span style={{ display: 'block', fontWeight: 500, fontSize: 14, color: C.text }}>{label}</span>
-                        <span style={{ display: 'block', fontSize: 11, color: C.sub }}>{sub}</span>
+                        <span style={{ display: 'block', fontWeight: 500, fontSize: 16, color: C.text }}>{label}</span>
+                        <span style={{ display: 'block', fontSize: 12, color: C.sub }}>{sub}</span>
                     </div>
                 </div>
                 <span style={{ color: C.sub, fontSize: 20, lineHeight: 1 }}>›</span>
@@ -393,28 +393,6 @@ const Header = () => {
                     boxShadow: menuOpen ? '4px 0 24px rgba(0,0,0,0.15)' : 'none',
                 }}
             >
-                {/* Cabecera fija (flex-shrink:0) */}
-                <div style={{
-                    flexShrink: 0,
-                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                    padding: '14px 20px',
-                    borderBottom: `1px solid ${C.bordes}`,
-                    backgroundColor: '#fff',
-                }}>
-                    <span style={groupLabel}>Bienvenido</span>
-                    <button
-                        onClick={closeAll}
-                        aria-label="Cerrar menú"
-                        style={{
-                            width: 30, height: 30, borderRadius: '50%',
-                            backgroundColor: '#111', border: 'none',
-                            color: '#fff', fontSize: 18,
-                            cursor: 'pointer',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        }}
-                    >×</button>
-                </div>
-
                 {/* Cuerpo scrolleable (flex:1 + overflowY:auto) */}
                 <div style={{
                     flex: 1,

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
+import { Truck } from 'lucide-react';
 
 import ImageModal from './ImageModal';
 
@@ -145,6 +146,42 @@ const ProductoDetalle = () => {
         }
     }, [producto, id]);
 
+    // Inyectar etiquetas Open Graph dinámicamente para WhatsApp
+    useEffect(() => {
+        if (producto) {
+            const setMetaTag = (property, content) => {
+                let element = document.querySelector(`meta[property="${property}"]`);
+                if (!element) {
+                    element = document.createElement('meta');
+                    element.setAttribute('property', property);
+                    document.head.appendChild(element);
+                }
+                element.setAttribute('content', content);
+            };
+
+            const pageTitle = `${producto.titulo} | Catálogo`;
+            document.title = pageTitle;
+            
+            setMetaTag('og:title', producto.titulo);
+            setMetaTag('og:description', producto.descripcion ? producto.descripcion.substring(0, 150) + "..." : `Precio referencial: S/ ${Number(producto.precio).toFixed(2)} PEN`);
+            setMetaTag('og:url', window.location.href);
+            setMetaTag('og:type', 'product');
+
+            if (producto.imagen_principal_url) {
+                setMetaTag('og:image', producto.imagen_principal_url);
+            }
+
+            return () => {
+                ['og:title', 'og:description', 'og:url', 'og:image', 'og:type'].forEach(property => {
+                    const element = document.querySelector(`meta[property="${property}"]`);
+                    if (element) {
+                        document.head.removeChild(element);
+                    }
+                });
+            };
+        }
+    }, [producto]);
+
     if (loading) return <div className="p-8 text-center">Cargando producto...</div>;
     if (error) return <div className="p-8 text-center text-red-500">{error}</div>;
     if (!producto) return <div className="p-8 text-center">Producto no encontrado.</div>;
@@ -243,8 +280,20 @@ const ProductoDetalle = () => {
 
                     {/* Descripción */}
                     {producto.descripcion && (
-                        <div className="text-left text-gray-700 font-light leading-relaxed">
-                            <p>{producto.descripcion}</p>
+                        <div className="text-left mt-4 mb-2">
+                            <h3 className="text-xs font-bold tracking-widest text-zinc-500 uppercase mb-3">
+                                Detalles de la pieza
+                            </h3>
+                            <div className="text-zinc-700 font-light leading-relaxed">
+                                {producto.descripcion.split(/(?:\r?\n)+|(?=Realizado en )/i).map((part, index) => {
+                                    if (!part || part.trim() === '') return null;
+                                    return (
+                                        <p key={index} className="mb-4 last:mb-0">
+                                            {part.trim()}
+                                        </p>
+                                    );
+                                })}
+                            </div>
                         </div>
                     )}
 
@@ -256,29 +305,32 @@ const ProductoDetalle = () => {
                         <p className="text-sm text-gray-600 font-light italic">
                             🛠 Imagen referencial. Cada pieza se elabora de forma artesanal, por lo que puede presentar ligeras variaciones.
                         </p>
+                        <p className="text-sm text-gray-600 font-medium mt-2">
+                            * El precio de venta no incluye IGV.
+                        </p>
+                        <div className="mt-3">
+                            <Link to="/PoliticasEnvios" className="inline-flex items-center gap-2 text-sm text-indigo-600 hover:text-indigo-800 hover:underline transition-colors font-medium">
+                                <Truck size={16} />
+                                Información de envío
+                            </Link>
+                        </div>
                     </div>
 
-                    {/* Información Adicional */}
-                    <div className="text-left bg-gray-50 p-6 rounded-lg">
-                        <h3 className="text-sm font-medium text-gray-900 mb-3 flex items-center gap-2">
-                            🔹 Información adicional
-                        </h3>
-                        <div className="space-y-2 text-sm text-gray-600 font-light">
-                            <p>• El precio no incluye IGV</p>
-                            <p>• Tiempo de elaboración según pedido</p>
-                            <p>• Para tallas, disponibilidad o envíos, contáctame por WhatsApp</p>
-                            <div className="pt-2">
-                                <Link to="/PoliticasEnvios" className="text-indigo-600 hover:text-indigo-800 hover:underline transition-colors font-medium">
-                                    Más detalles de envío
-                                </Link>
-                                <span className="text-gray-500 ml-1">o consulta el producto en el enlace de arriba.</span>
-                            </div>
-                        </div>
+                    {/* Botón Cotizar por WhatsApp */}
+                    <div className="pt-2">
+                        <a
+                            href={`https://wa.me/51960282376?text=${encodeURIComponent(`Hola, quisiera cotizar este producto: ${producto.titulo}\n\nEnlace: ${window.location.href}`)}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="block w-full md:max-w-xs text-center bg-green-700 hover:bg-green-800 text-white text-sm font-medium tracking-wide rounded-lg py-3 px-6 shadow-sm hover:shadow-md transition-all duration-300"
+                        >
+                            Cotizar por WhatsApp
+                        </a>
                     </div>
                 </div>
 
                 {/* Productos relacionados */}
-                <div className="py-10 mb-6">
+                <div className="py-6 mb-2">
                     <h2 className="text-1xl font-bold mb-4 text-left">
                         Productos relacionados
                     </h2>

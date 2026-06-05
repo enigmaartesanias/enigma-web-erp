@@ -332,7 +332,13 @@ const ProductoDetalle = () => {
                     {/* Botón Cotizar por WhatsApp */}
                     <div className="pt-2">
                         <a
-                            href={`https://wa.me/51960282376?text=${encodeURIComponent(`Hola, quisiera cotizar este producto: ${producto.titulo}\n\nEnlace: ${window.location.href}`)}`}
+                            href={`https://wa.me/51960282376?text=${encodeURIComponent(
+                              `🔹 *Consulta de producto*\n\n` +
+                              `*${producto.titulo}*\n` +
+                              `Precio ref.: S/ ${Number(producto.precio).toFixed(2)} PEN\n\n` +
+                              `📎 Imagen: ${producto.imagen_principal_url}\n` +
+                              `🔗 Ver producto: ${window.location.href}`
+                            )}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="block w-full md:max-w-xs text-center bg-green-700 hover:bg-green-800 text-white text-sm font-medium tracking-wide rounded-lg py-3 px-6 shadow-sm hover:shadow-md transition-all duration-300"

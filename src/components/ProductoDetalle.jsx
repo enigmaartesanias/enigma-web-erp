@@ -1,10 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
-import { Truck } from 'lucide-react';
 
 import ImageModal from './ImageModal';
 
+// ── Constantes de conversión internacional (PEN → divisa final con comisión WU) ──
+const FACTOR_AMERICA = 0.4500; // PEN → USD (incluye logística)
+const FACTOR_EUROPA = 0.4063; // PEN → EUR (incluye logística)
+
+// ── Ícono de lupa para la galería ──
 const LupaIcono = () => (
     <svg
         xmlns="http://www.w3.org/2000/svg"
@@ -20,28 +24,95 @@ const LupaIcono = () => (
     </svg>
 );
 
+// ── Chevron SVG para acordeón (Lucide-style) ──
+const ChevronIcono = ({ abierto }) => (
+    <svg
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        style={{
+            width: '16px',
+            height: '16px',
+            color: '#9ca3af',
+            transition: 'transform 300ms ease',
+            transform: abierto ? 'rotate(180deg)' : 'rotate(0deg)',
+            flexShrink: 0,
+        }}
+    >
+        <polyline points="6 9 12 15 18 9" />
+    </svg>
+);
+
+// ── Mini bandera vía flagcdn.com (evita el problema de emoji en Windows) ──
+const FlagImg = ({ code, alt }) => (
+    <img
+        src={`https://flagcdn.com/20x15/${code}.png`}
+        srcSet={`https://flagcdn.com/40x30/${code}.png 2x`}
+        width="20"
+        height="15"
+        alt={alt}
+        style={{ display: 'inline-block', borderRadius: '2px', flexShrink: 0 }}
+    />
+);
+
+// ── Ícono Compartir ──
+const ShareIcono = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="18" cy="5" r="3"></circle>
+        <circle cx="6" cy="12" r="3"></circle>
+        <circle cx="18" cy="19" r="3"></circle>
+        <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+        <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+    </svg>
+);
+
 const ProductoDetalle = () => {
     const { id } = useParams();
+
+    // ── Estados existentes — NO TOCAR ──
     const [producto, setProducto] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [relacionados, setRelacionados] = useState([]);
     const [categoriaNombre, setCategoriaNombre] = useState('');
     const [currentSlide, setCurrentSlide] = useState(0);
-
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [modalImageUrl, setModalImageUrl] = useState('');
 
+    // ── Estados nuevos: internacionalización ──
+    const [region, setRegion] = useState('peru'); // 'peru' | 'america' | 'europa'
+    const [precioVisible, setPrecioVisible] = useState(true);
+
+    // ── Estados nuevos: acordeones y descripción ──
+    const [acordeon1, setAcordeon1] = useState(false);
+    const [acordeon2, setAcordeon2] = useState(false);
+    const [isExpanded, setIsExpanded] = useState(false);
+
+    // ── Handlers de galería — NO TOCAR ──
     const openModal = (url) => {
         setModalImageUrl(url);
         setIsModalOpen(true);
     };
-
     const closeModal = () => {
         setIsModalOpen(false);
         setModalImageUrl('');
     };
 
+    // ── Cambio de región con fade ──
+    const cambiarRegion = (nuevaRegion) => {
+        if (nuevaRegion === region) return;
+        setPrecioVisible(false);
+        setTimeout(() => {
+            setRegion(nuevaRegion);
+            setPrecioVisible(true);
+        }, 180);
+    };
+
+    // ── useEffect: fetchProducto — NO TOCAR ──
     useEffect(() => {
         const fetchProducto = async () => {
             setLoading(true);
@@ -67,6 +138,7 @@ const ProductoDetalle = () => {
         fetchProducto();
     }, [id]);
 
+    // ── useEffect: fetchRelacionados — NO TOCAR ──
     useEffect(() => {
         if (producto) {
             const fetchRelacionados = async () => {
@@ -91,6 +163,7 @@ const ProductoDetalle = () => {
         }
     }, [producto, id]);
 
+    // ── useEffect: fetchMateriales + fetchCategoria — NO TOCAR ──
     useEffect(() => {
         if (producto) {
             const fetchMateriales = async () => {
@@ -146,7 +219,7 @@ const ProductoDetalle = () => {
         }
     }, [producto, id]);
 
-    // Inyectar etiquetas Open Graph dinámicamente para WhatsApp
+    // ── useEffect: Open Graph meta tags — NO TOCAR ──
     useEffect(() => {
         if (producto) {
             const setMetaTag = (property, content) => {
@@ -162,24 +235,23 @@ const ProductoDetalle = () => {
 
             const pageTitle = `${producto.titulo} | Catálogo`;
             document.title = pageTitle;
-            
+
             setMetaTag('og:title', producto.titulo);
-            setMetaTag('og:description', producto.descripcion ? producto.descripcion.substring(0, 150) + "..." : `Precio referencial: S/ ${Number(producto.precio).toFixed(2)} PEN`);
+            setMetaTag('og:description', producto.descripcion ? producto.descripcion.substring(0, 150) + '...' : `Precio referencial: S/ ${Number(producto.precio).toFixed(2)} PEN`);
             setMetaTag('og:url', window.location.href);
             setMetaTag('og:type', 'product');
 
             if (producto.imagen_principal_url) {
-                // Asegurar que la URL sea absoluta
-                const imageUrl = producto.imagen_principal_url.startsWith('http') 
-                    ? producto.imagen_principal_url 
+                const imageUrl = producto.imagen_principal_url.startsWith('http')
+                    ? producto.imagen_principal_url
                     : `${window.location.origin}${producto.imagen_principal_url.startsWith('/') ? '' : '/'}${producto.imagen_principal_url}`;
-                
+
                 setMetaTag('og:image', imageUrl);
                 setMetaTag('og:image:secure_url', imageUrl);
                 setMetaTag('og:image:width', '800');
                 setMetaTag('og:image:height', '800');
                 setMetaTag('og:image:alt', producto.titulo);
-                
+
                 const isPng = imageUrl.toLowerCase().includes('.png');
                 setMetaTag('og:image:type', isPng ? 'image/png' : 'image/jpeg');
             }
@@ -195,10 +267,12 @@ const ProductoDetalle = () => {
         }
     }, [producto, id]);
 
+    // ── Estados de carga/error ──
     if (loading) return <div className="p-8 text-center">Cargando producto...</div>;
     if (error) return <div className="p-8 text-center text-red-500">{error}</div>;
     if (!producto) return <div className="p-8 text-center">Producto no encontrado.</div>;
 
+    // ── Galería — NO TOCAR ──
     const imageUrls = [
         producto.imagen_principal_url,
         producto.imagen2_url,
@@ -207,9 +281,119 @@ const ProductoDetalle = () => {
 
     const totalImages = imageUrls.length;
 
+    // ── Lógica de precio por región (envío incluido en precio internacional) ──
+    const tieneIntl = producto.precio_internacional_base !== null &&
+                      producto.precio_internacional_base !== undefined &&
+                      Number(producto.precio_internacional_base) > 0;
+
+    // Precio final = conversi\u00f3n directa (el factor ya incluye el costo de env\u00edo)
+    const precioUSD = tieneIntl ? Math.round(Number(producto.precio_internacional_base) * FACTOR_AMERICA) : null;
+    const precioEUR = tieneIntl ? Math.round(Number(producto.precio_internacional_base) * FACTOR_EUROPA) : null;
+
+    const getPrecioDisplay = () => {
+        if (region === 'america') {
+            return tieneIntl ? `$ ${precioUSD} USD` : 'Consultar precio';
+        }
+        if (region === 'europa') {
+            return tieneIntl ? `€ ${precioEUR} EUR` : 'Consultar precio';
+        }
+        return producto.precio ? `S/ ${Number(producto.precio).toFixed(2)} PEN` : 'Precio a consultar';
+    };
+
+    const mostrarDesde = region === 'america' || region === 'europa' ? tieneIntl : !!producto.precio;
+
+    const getMicroDesc = () => {
+        if (region === 'america') {
+            return tieneIntl
+                ? 'Pieza de autor + empaque premium. Incluye envío internacional certificado. El costo final varía según la talla de muñeca o elementos personalizados.'
+                : 'Precio a coordinar. Escríbenos por WhatsApp para cotizar tu envío.';
+        }
+        if (region === 'europa') {
+            return tieneIntl
+                ? 'Pieza de autor + empaque premium. Incluye envío internacional certificado. El costo final varía según la talla de muñeca o elementos personalizados.'
+                : 'Precio a coordinar. Escríbenos por WhatsApp para cotizar tu envío.';
+        }
+        return 'Precio de campaña. No incluye IGV. Envío por cotizar según destino. El costo final puede variar según la medida de tu muñeca o iniciales adicionales.';
+    };
+
+    // ── Contenido de acordeón Envío ──
+    const getEnvioTexto = () => {
+        if (region === 'america' || region === 'europa') {
+            return 'Envío internacional certificado con código de rastreo activo. Tiempo estimado: 20 días hábiles. Tu pieza viaja en empaque premium de la marca. El costo de envío está incluido en el precio mostrado.';
+        }
+        return 'Enviamos a todo el país vía Olva Courier (Lima: S/ 10.00, provincias según destino) o Shalom (tarifa según agencia destino, pago en destino). También puedes recoger sin costo en nuestro taller en Carabayllo, Lima, previa coordinación.';
+    };
+
+    const getPagoTexto = () => {
+        if (region === 'america' || region === 'europa') {
+            return 'Trabajamos bajo pedido de autor. El pago se coordina de forma manual mediante Western Union desde la agencia de tu preferencia. Te enviamos los datos exactos al confirmar tu pedido por WhatsApp.';
+        }
+        return 'Aceptamos Yape, Plin y transferencias bancarias (BCP, Interbank, BBVA) a nombre de Aldo Magallanes — número 960 282 376. Taller principal en Carabayllo, Lima (atención previa cita).';
+    };
+
+    // ── Construcción del mensaje de WhatsApp ──
+    const buildWhatsAppMessage = () => {
+        const nombre = producto.titulo;
+        const url = window.location.href;
+
+        if (region === 'peru') {
+            const precioLocal = producto.precio
+                ? `S/. ${Number(producto.precio).toFixed(2)} PEN`
+                : 'precio por consultar';
+            return `Hola Enigma, quiero cotizar la *${nombre}* con el precio local de ${precioLocal}. Deseo coordinar la entrega en Per\u00fa.\n\n\uD83D\uDD17 ${url}`;
+        }
+
+        const divisa = tieneIntl
+            ? (region === 'america' ? `$ ${precioUSD} USD` : `\u20ac ${precioEUR} EUR`)
+            : '(precio a consultar)';
+
+        return `Hola Enigma, estoy en [escribe tu pa\u00eds] \uD83C\uDF0D\n\nVi la *${nombre}* (${divisa}, incluye env\u00edo) en tu web.\n\n\u00BFDeseas alguna personalizaci\u00f3n?\n\u2610 No, tal cual la foto.\n\u2610 S\u00ed, deseo a\u00f1adir: __________\n\nQuedo a la espera para coordinar medidas y datos de Western Union.\n\n\uD83D\uDD17 ${url}`;
+    };
+
+    // ── Compartir con Web Share API (Apunta al endpoint de Open Graph) ──
+    const handleShare = async () => {
+        const urlCompartir = `https://artesaniasenigma.com/api/share/product/${producto.id}`;
+        
+        let shareText = '';
+        if (region === 'peru') {
+            const precioLocal = producto.precio ? `S/. ${Number(producto.precio).toFixed(2)} PEN` : 'precio por consultar';
+            shareText = `\u2728 ${producto.titulo} - Desde ${precioLocal}. Joyer\u00eda de autor hecha a pedido. Env\u00edo por cotizar seg\u00fan destino.`;
+        } else {
+            const divisa = tieneIntl ? (region === 'america' ? `$ ${precioUSD} USD` : `\u20ac ${precioEUR} EUR`) : '(precio a consultar)';
+            shareText = `\u2728 ${producto.titulo} - Desde ${divisa}. Handcrafted exclusively to order. International certified shipping included!`;
+        }
+
+        if (navigator.share) {
+            try {
+                await navigator.share({
+                    title: `${producto.titulo} | Enigma Joyer\u00eda`,
+                    text: shareText,
+                    url: urlCompartir
+                });
+            } catch (error) {
+                console.error("Error al compartir:", error);
+            }
+        } else {
+            try {
+                await navigator.clipboard.writeText(`${shareText}\n${urlCompartir}`);
+                alert("Enlace copiado al portapapeles");
+            } catch (error) {
+                console.error("No se pudo copiar", error);
+            }
+        }
+    };
+
+    // ── Botones del segmented control con banderas (flagcdn.com) ──
+    const regiones = [
+        { key: 'peru',    label: 'Perú',    flag: 'pe', flagAlt: 'Perú'    },
+        { key: 'america', label: 'América',  flag: 'us', flagAlt: 'EE.UU.'   },
+        { key: 'europa',  label: 'Europa',    flag: 'eu', flagAlt: 'Europa'   },
+    ];
+
     return (
         <main className="pt-20 pb-12 bg-gray-50 min-h-screen">
-            {/* Navegación: Inicio y Catálogo */}
+
+            {/* ── Navegación breadcrumb — NO TOCAR ── */}
             <div className="container mx-auto px-8 max-w-3xl flex justify-between items-center">
                 <Link to="/" className="text-sm text-gray-600 hover:text-black hover:underline transition-colors">
                     &lt; Inicio
@@ -217,20 +401,19 @@ const ProductoDetalle = () => {
                 <Link
                     to={producto?.material_principal && categoriaNombre
                         ? `/catalogo/${producto.material_principal}/${categoriaNombre}`
-                        : "/catalogo/all/all"}
+                        : '/catalogo/all/all'}
                     className="text-sm text-gray-600 hover:text-black hover:underline transition-colors"
                 >
                     {producto?.material_principal && categoriaNombre
                         ? `Volver a ${producto.material_principal} / ${categoriaNombre} >`
-                        : "Ver Catálogo >"}
+                        : 'Ver Catálogo >'}
                 </Link>
             </div>
 
             <div className="container mx-auto p-4 max-w-3xl bg-white shadow-xl rounded-lg">
-                {/* ── Galería: Imagen principal + Thumbnails ── */}
-                <div className="mb-6 producto-detalle-galeria">
 
-                    {/* Imagen principal */}
+                {/* ── Galería — NO TOCAR ── */}
+                <div className="mb-6 producto-detalle-galeria">
                     <div className="relative galeria-main-container">
                         <img
                             key={currentSlide}
@@ -248,7 +431,6 @@ const ProductoDetalle = () => {
                         </div>
                     </div>
 
-                    {/* Thumbnails — solo si hay más de 1 imagen */}
                     {totalImages > 1 && (
                         <div className="galeria-thumbs-row">
                             {imageUrls.map((url, index) => (
@@ -270,85 +452,208 @@ const ProductoDetalle = () => {
                     )}
                 </div>
 
-                {/* Detalles - Nuevo Diseño Minimalista y Elegante */}
-                <div className="py-2 mb-8 space-y-8">
-                    {/* Título */}
-                    <h2 className="text-2xl md:text-3xl font-light text-gray-900 tracking-wide text-left">{producto.titulo}</h2>
+                {/* ── Detalles del producto ── */}
+                <div className="py-2 mb-8 space-y-6">
 
-                    {/* Precio y Disclaimer */}
-                    <div className="text-left space-y-2">
-                        {producto.precio && (
-                            <div>
-                                <p className="text-xl md:text-2xl font-light text-gray-800">
-                                    Desde S/ {Number(producto.precio).toFixed(2)} PEN
-                                </p>
-                                <p className="text-xs text-gray-500 font-light mt-1 max-w-lg">
-                                    Precio referencial. Puede variar según material, piedra, acabado y talla. Se realiza a pedido según diseño y medida.
-                                </p>
-                            </div>
+                    {/* 1. Título — Playfair Display */}
+                    <h2
+                        className="text-xl md:text-2xl font-semibold text-gray-900 tracking-wide text-left leading-snug"
+                        style={{ fontFamily: "'Playfair Display', serif" }}
+                    >
+                        {producto.titulo}
+                    </h2>
+
+                    {/* 1.5. Material Base */}
+                    <p className="text-xs text-gray-500 italic tracking-wide mt-1.5 mb-4 text-left">
+                        Material base: {producto.material_principal || "Cobre puro forjado con pátinas turquesas"}
+                    </p>
+
+                    {/* 2. Bloque de precio con fade */}
+                    <div
+                        className="text-left mb-2 space-y-0.5"
+                        style={{
+                            transition: 'opacity 180ms ease-in-out',
+                            opacity: precioVisible ? 1 : 0,
+                        }}
+                    >
+                        {mostrarDesde && (
+                            <p className="text-xs font-normal text-gray-400 uppercase tracking-wider">
+                                Desde
+                            </p>
                         )}
-                        {/* Material (opcional, si se desea menos prominente) */}
-                        {/* <p className="text-sm text-gray-500 uppercase tracking-widest">{producto.material_principal}</p> */}
+                        <p
+                            className="text-xl font-semibold text-gray-800 mb-1"
+                            style={{ fontFamily: "'Inter', sans-serif" }}
+                        >
+                            {getPrecioDisplay()}
+                        </p>
+                        <p
+                            className="text-xs text-gray-500 font-light pt-1 max-w-sm leading-relaxed"
+                            style={{ fontFamily: "'Inter', sans-serif" }}
+                        >
+                            {getMicroDesc()}
+                        </p>
                     </div>
 
-                    {/* Descripción */}
+                    {/* 3. Selector de región — siempre visible */}
+                    <div className="border border-gray-200 rounded-xl p-1 flex gap-1 bg-gray-50">
+                        {regiones.map(({ key, label, flag, flagAlt }) => (
+                            <button
+                                key={key}
+                                onClick={() => cambiarRegion(key)}
+                                className="flex-1 flex items-center justify-center gap-1.5 rounded-lg py-2 px-1 transition-all duration-300"
+                                style={
+                                    region === key
+                                        ? {
+                                            fontFamily: "'Inter', sans-serif",
+                                            fontSize: '0.7rem',
+                                            fontWeight: '600',
+                                            color: '#ffffff',
+                                            backgroundColor: '#1a1a1a',
+                                            boxShadow: '0 2px 8px rgba(0,0,0,0.25)',
+                                            letterSpacing: '0.02em',
+                                        }
+                                        : {
+                                            fontFamily: "'Inter', sans-serif",
+                                            fontSize: '0.7rem',
+                                            fontWeight: '400',
+                                            color: '#9ca3af',
+                                            backgroundColor: 'transparent',
+                                        }
+                                }
+                            >
+                                <FlagImg code={flag} alt={flagAlt} />
+                                <span>{label}</span>
+                            </button>
+                        ))}
+                    </div>
+
+                    {/* 4. Descripción de la pieza */}
                     {producto.descripcion && (
-                        <div className="text-left mt-4 mb-2">
+                        <div className="text-left">
                             <h3 className="text-xs font-bold tracking-widest text-zinc-500 uppercase mb-3">
                                 Detalles de la pieza
                             </h3>
-                            <div className="text-zinc-700 font-light leading-relaxed">
+                            <div className={`text-zinc-700 font-light leading-relaxed text-sm space-y-2 ${!isExpanded ? 'line-clamp-4' : ''}`}>
                                 {producto.descripcion.split(/(?:\r?\n)+|(?=Realizado en )/i).map((part, index) => {
                                     if (!part || part.trim() === '') return null;
                                     return (
-                                        <p key={index} className="mb-4 last:mb-0">
+                                        <p key={index}>
                                             {part.trim()}
                                         </p>
                                     );
                                 })}
                             </div>
+                            <button 
+                                onClick={() => setIsExpanded(!isExpanded)}
+                                className="text-xs text-gray-500 font-medium mt-2 hover:text-gray-800 underline transition-colors"
+                            >
+                                {isExpanded ? 'Ver menos' : 'Leer m\u00e1s...'}
+                            </button>
                         </div>
                     )}
 
-                    {/* Nota Artesanal */}
+                    {/* 5. Nota artesanal */}
                     <div className="text-left border-l-2 border-gray-200 pl-4 py-1">
-                        <h3 className="text-sm font-medium text-gray-900 mb-1 flex items-center gap-2">
+                        <h3 className="text-xs font-medium text-gray-900 mb-1 flex items-center gap-2">
                             🔹 Nota artesanal
                         </h3>
-                        <p className="text-sm text-gray-600 font-light italic">
+                        <p className="text-xs text-gray-600 font-light italic">
                             🛠 Imagen referencial. Cada pieza se elabora de forma artesanal, por lo que puede presentar ligeras variaciones.
                         </p>
-                        <p className="text-sm text-gray-600 font-medium mt-2">
+                        <p className="text-xs text-gray-600 font-medium mt-2">
                             * El precio de venta no incluye IGV.
                         </p>
-                        <div className="mt-3">
-                            <Link to="/PoliticasEnvios" className="inline-flex items-center gap-2 text-sm text-indigo-600 hover:text-indigo-800 hover:underline transition-colors font-medium">
-                                <Truck size={16} />
-                                Información de envío
-                            </Link>
+                    </div>
+
+                    {/* 6. Acordeón: Detalles de envío */}
+                    <div className="border-t border-b border-gray-100">
+                        <button
+                            className="w-full flex justify-between items-center cursor-pointer py-3.5 text-left bg-transparent border-none"
+                            onClick={() => setAcordeon1(!acordeon1)}
+                            aria-expanded={acordeon1}
+                        >
+                            <span
+                                className="text-xs font-medium text-gray-600 uppercase tracking-wider"
+                                style={{ fontFamily: "'Inter', sans-serif", letterSpacing: '0.1em' }}
+                            >
+                                Detalles de Env\u00edo y Entrega
+                            </span>
+                            <ChevronIcono abierto={acordeon1} />
+                        </button>
+                        <div
+                            style={{
+                                maxHeight: acordeon1 ? '300px' : '0px',
+                                overflow: 'hidden',
+                                transition: 'max-height 300ms ease-in-out',
+                            }}
+                        >
+                            <p
+                                className="text-xs text-gray-500 font-light leading-relaxed pb-4 pr-2"
+                                style={{ fontFamily: "'Inter', sans-serif" }}
+                            >
+                                {getEnvioTexto()}
+                            </p>
                         </div>
                     </div>
 
-                    {/* Botón Cotizar por WhatsApp */}
-                    <div className="pt-2">
+                    {/* 7. Acordeón: Métodos de pago */}
+                    <div className="border-b border-gray-100">
+                        <button
+                            className="w-full flex justify-between items-center cursor-pointer py-3.5 text-left bg-transparent border-none"
+                            onClick={() => setAcordeon2(!acordeon2)}
+                            aria-expanded={acordeon2}
+                        >
+                            <span
+                                className="text-xs font-medium text-gray-600 uppercase tracking-wider"
+                                style={{ fontFamily: "'Inter', sans-serif", letterSpacing: '0.1em' }}
+                            >
+                                M\u00e9todos de Pago y Ubicaci\u00f3n
+                            </span>
+                            <ChevronIcono abierto={acordeon2} />
+                        </button>
+                        <div
+                            style={{
+                                maxHeight: acordeon2 ? '300px' : '0px',
+                                overflow: 'hidden',
+                                transition: 'max-height 300ms ease-in-out',
+                            }}
+                        >
+                            <p
+                                className="text-xs text-gray-500 font-light leading-relaxed pb-4 pr-2"
+                                style={{ fontFamily: "'Inter', sans-serif" }}
+                            >
+                                {getPagoTexto()}
+                            </p>
+                        </div>
+                    </div>
+
+                    {/* 8. Botón CTA WhatsApp */}
+                    <div className="pt-3">
                         <a
-                            href={`https://wa.me/51960282376?text=${encodeURIComponent(
-                              `🔹 *Consulta de producto*\n\n` +
-                              `*${producto.titulo}*\n` +
-                              `Precio ref.: S/ ${Number(producto.precio).toFixed(2)} PEN\n\n` +
-                              `📎 Imagen: ${producto.imagen_principal_url}\n` +
-                              `🔗 Ver producto: ${window.location.href}`
-                            )}`}
+                            href={`https://wa.me/51960282376?text=${encodeURIComponent(buildWhatsAppMessage())}`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="block w-full md:max-w-xs text-center bg-green-700 hover:bg-green-800 text-white text-sm font-medium tracking-wide rounded-lg py-3 px-6 shadow-sm hover:shadow-md transition-all duration-300"
+                            className="block w-full text-center bg-green-700 hover:bg-green-800 text-white text-sm font-medium tracking-wide rounded-xl py-3.5 px-6 shadow-md hover:shadow-lg transition-all duration-300"
+                            style={{ fontFamily: "'Inter', sans-serif" }}
                         >
                             Cotizar por WhatsApp
                         </a>
                     </div>
+
+                    {/* 9. Botón Compartir */}
+                    <div className="pt-1 pb-2 border-b border-gray-100">
+                        <button
+                            onClick={handleShare}
+                            className="w-full flex items-center justify-center gap-2 text-gray-600 hover:text-gray-900 text-sm font-medium py-2 rounded-lg transition-colors border border-transparent hover:bg-gray-100"
+                        >
+                            <ShareIcono /> Compartir Pieza
+                        </button>
+                    </div>
+
                 </div>
 
-                {/* Productos relacionados */}
+                {/* 9. Productos relacionados — NO TOCAR ── */}
                 <div className="py-6 mb-2">
                     <h2 className="text-1xl font-bold mb-4 text-left">
                         Productos relacionados
@@ -364,7 +669,6 @@ const ProductoDetalle = () => {
                                             className="w-full h-48 sm:h-56 object-cover rounded hover:shadow-lg transition-shadow"
                                         />
                                         <h3 className="mt-2 text-sm font-semibold text-gray-800">{relatedProducto.titulo}</h3>
-
                                     </Link>
                                 </div>
                             ))
@@ -375,14 +679,17 @@ const ProductoDetalle = () => {
                         )}
                     </div>
                 </div>
+
             </div>
-            {/* Modal para ver la imagen ampliada */}
+
+            {/* ── ImageModal — NO TOCAR ── */}
             <ImageModal
                 isOpen={isModalOpen}
                 onClose={closeModal}
                 imageUrl={modalImageUrl}
                 productUrl={window.location.href}
             />
+
         </main>
     );
 };

@@ -1,6 +1,12 @@
 [build]
   command = "rm -rf node_modules package-lock.json && npm install && npm run build"
   publish = "dist"
+  functions = "netlify/functions"
+
+[[redirects]]
+  from = "/api/share/product/:id"
+  to = "/.netlify/functions/share-product?id=:id"
+  status = 200
 
 [[redirects]]
   from = "/*"

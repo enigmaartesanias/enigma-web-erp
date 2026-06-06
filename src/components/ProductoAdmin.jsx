@@ -40,6 +40,7 @@ const ProductoAdmin = () => {
         imagen2_url: '',
         imagen3_url: '',
         precio: '',
+        precio_internacional_base: '',
         slug: '',
         orden: 0,
         activo: true,
@@ -162,7 +163,8 @@ const ProductoAdmin = () => {
             const formDataToSend = {
                 ...productData,
                 slug: slug,
-                precio: formData.precio !== '' ? parseFloat(formData.precio) : null
+                precio: formData.precio !== '' ? parseFloat(formData.precio) : null,
+                precio_internacional_base: formData.precio_internacional_base !== '' ? parseFloat(formData.precio_internacional_base) : null
             };
 
             let productId;
@@ -254,6 +256,7 @@ const ProductoAdmin = () => {
             imagen2_url: '',
             imagen3_url: '',
             precio: '',
+            precio_internacional_base: '',
             slug: '',
             orden: 0,
             activo: true,
@@ -428,7 +431,7 @@ const ProductoAdmin = () => {
                             </div>
 
                             <div>
-                                <label className="block text-xs font-bold mb-1 text-gray-600">Precio</label>
+                                <label className="block text-xs font-bold mb-1 text-gray-600">Precio local (S/)</label>
                                 <input
                                     type="number"
                                     name="precio"
@@ -439,6 +442,25 @@ const ProductoAdmin = () => {
                                     min="0"
                                     step="0.01"
                                 />
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-bold mb-1 text-gray-600">
+                                    Precio semilla intl. (S/)
+                                </label>
+                                <input
+                                    type="number"
+                                    name="precio_internacional_base"
+                                    value={formData.precio_internacional_base}
+                                    onChange={handleInputChange}
+                                    className="w-full p-2 text-sm border rounded focus:ring-2 focus:ring-blue-500 border-amber-300 bg-amber-50"
+                                    placeholder="Ej: 420.00"
+                                    min="0"
+                                    step="0.01"
+                                />
+                                <p className="text-xs text-amber-600 mt-1">
+                                    En soles. Activa selector 🇺🇸🇪🇺 en la ficha pública.
+                                </p>
                             </div>
 
                             <div className="flex items-center gap-6 mt-6">

@@ -46,10 +46,18 @@ const Footer = () => {
               </Link>
               <button onClick={async (e) => {
                 e.preventDefault();
+                const isProductPage = window.location.pathname.startsWith('/producto/');
+                let shareUrl = window.location.href;
+                
+                if (isProductPage) {
+                   const productId = window.location.pathname.split('/producto/')[1];
+                   shareUrl = `https://artesaniasenigma.com/api/share/product/${productId}`;
+                }
+
                 const shareData = {
                   title: document.title || 'Enigma Artesanías',
-                  text: 'Mira esta página de artesanías y accesorios increíbles.',
-                  url: window.location.href,
+                  text: isProductPage ? 'Mira esta increíble pieza de autor hecha a pedido.' : 'Mira esta página de artesanías y accesorios increíbles.',
+                  url: shareUrl,
                 };
                 if (navigator.share) {
                   try {

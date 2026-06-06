@@ -27,6 +27,10 @@
         "function": "shareProduct"
       },
       {
+        "source": "/producto/:id",
+        "function": "shareProduct"
+      },
+      {
         "source": "**", 
         "destination": "/index.html"
       }

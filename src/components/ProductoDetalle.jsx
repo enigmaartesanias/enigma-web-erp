@@ -340,14 +340,14 @@ const ProductoDetalle = () => {
             const precioLocal = producto.precio
                 ? `S/. ${Number(producto.precio).toFixed(2)} PEN`
                 : 'precio por consultar';
-            return `Hola Enigma, quiero cotizar la *${nombre}* con el precio local de ${precioLocal}. Deseo coordinar la entrega en Per\u00fa.\n\n\uD83D\uDD17 ${url}`;
+            return `Hola Enigma, quiero cotizar la *${nombre}* con el precio local de ${precioLocal}. Deseo coordinar la entrega en Perú.\n\n🔗 ${url}`;
         }
 
         const divisa = tieneIntl
-            ? (region === 'america' ? `$ ${precioUSD} USD` : `\u20ac ${precioEUR} EUR`)
+            ? (region === 'america' ? `$ ${precioUSD} USD` : `€ ${precioEUR} EUR`)
             : '(precio a consultar)';
 
-        return `Hola Enigma, estoy en [escribe tu pa\u00eds] \uD83C\uDF0D\n\nVi la *${nombre}* (${divisa}, incluye env\u00edo) en tu web.\n\n\u00BFDeseas alguna personalizaci\u00f3n?\n\u2610 No, tal cual la foto.\n\u2610 S\u00ed, deseo a\u00f1adir: __________\n\nQuedo a la espera para coordinar medidas y datos de Western Union.\n\n\uD83D\uDD17 ${url}`;
+        return `Hola Enigma, estoy en [escribe tu país] 🌍\n\nVi la *${nombre}* (${divisa}) en tu web.\n\n¿Deseas alguna personalización?\n☐ No, tal cual la foto.\n☐ Sí, deseo añadir: __________\n\nQuedo a la espera para coordinar medidas y datos de Western Union.\n\n🔗 ${url}`;
     };
 
     // ── Compartir con Web Share API (Apunta al endpoint de Open Graph) ──
@@ -357,10 +357,10 @@ const ProductoDetalle = () => {
         let shareText = '';
         if (region === 'peru') {
             const precioLocal = producto.precio ? `S/. ${Number(producto.precio).toFixed(2)} PEN` : 'precio por consultar';
-            shareText = `\u2728 ${producto.titulo} - Desde ${precioLocal}. Joyer\u00eda de autor hecha a pedido. Env\u00edo por cotizar seg\u00fan destino.`;
+            shareText = `✨ ${producto.titulo} - Desde ${precioLocal}. Joyería de autor hecha a pedido. Envío por cotizar según destino.`;
         } else {
-            const divisa = tieneIntl ? (region === 'america' ? `$ ${precioUSD} USD` : `\u20ac ${precioEUR} EUR`) : '(precio a consultar)';
-            shareText = `\u2728 ${producto.titulo} - Desde ${divisa}. Handcrafted exclusively to order. International certified shipping included!`;
+            const divisa = tieneIntl ? (region === 'america' ? `$ ${precioUSD} USD` : `€ ${precioEUR} EUR`) : '(precio a consultar)';
+            shareText = `✨ ${producto.titulo} - Desde ${divisa}. Handcrafted exclusively to order.`;
         }
 
         if (navigator.share) {

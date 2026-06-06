@@ -352,7 +352,7 @@ const ProductoDetalle = () => {
 
     // ── Compartir con Web Share API (Apunta al endpoint de Open Graph) ──
     const handleShare = async () => {
-        const urlCompartir = `https://artesaniasenigma.com/api/share/product/${producto.id}`;
+        const urlCompartir = `https://artesaniasenigma.com/producto/${producto.id}`;
         
         let shareText = '';
         if (region === 'peru') {

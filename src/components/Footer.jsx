@@ -51,7 +51,7 @@ const Footer = () => {
                 
                 if (isProductPage) {
                    const productId = window.location.pathname.split('/producto/')[1];
-                   shareUrl = `https://artesaniasenigma.com/api/share/product/${productId}`;
+                   shareUrl = `https://artesaniasenigma.com/producto/${productId}`;
                 }
 
                 const shareData = {

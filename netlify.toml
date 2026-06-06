@@ -11,12 +11,12 @@
 
 [[redirects]]
   from = "/producto/:id"
-  to = "/.netlify/functions/share-product?id=:id"
+  to = "/.netlify/functions/share-product"
   status = 200
 
 [[redirects]]
   from = "/api/share/product/:id"
-  to = "/.netlify/functions/share-product?id=:id"
+  to = "/.netlify/functions/share-product"
   status = 200
 
 [[redirects]]

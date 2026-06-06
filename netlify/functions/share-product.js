@@ -7,12 +7,18 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 export const handler = async (event) => {
     try {
-        const id = event.queryStringParameters.id;
-
+        // Extraer el ID desde queryString o desde el path de la URL (/producto/206 o /api/share/product/206)
+        let id = event.queryStringParameters && event.queryStringParameters.id;
+        
         if (!id) {
+            const pathParts = event.path.split('/').filter(Boolean);
+            id = pathParts[pathParts.length - 1]; // Toma el último segmento de la URL
+        }
+
+        if (!id || id === 'producto' || id === 'product') {
             return {
                 statusCode: 400,
-                body: "Falta el ID del producto",
+                body: "Falta el ID del producto en la URL",
             };
         }
 

@@ -59,7 +59,7 @@ export const handler = async (event) => {
 
     <!-- Redirecci\u00f3n inmediata al Frontend React -->
     <script>
-        window.location.href = "https://artesaniasenigma.com/producto/" + "${producto.id}";
+        window.location.replace("https://artesaniasenigma.com/producto/" + "${producto.id}" + "?ssr=1");
     </script>
 </head>
 <body>

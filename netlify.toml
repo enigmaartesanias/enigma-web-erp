@@ -4,6 +4,17 @@
   functions = "netlify/functions"
 
 [[redirects]]
+  from = "/producto/:id"
+  query = {ssr = ":ssr"}
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/producto/:id"
+  to = "/.netlify/functions/share-product?id=:id"
+  status = 200
+
+[[redirects]]
   from = "/api/share/product/:id"
   to = "/.netlify/functions/share-product?id=:id"
   status = 200

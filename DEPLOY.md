@@ -1,105 +1,72 @@
-# 🚀 Guía de Deploy - Enigma Artesanías
+# 🚀 Guía de Despliegue - Enigma Joyería de Autor
+
+Este proyecto está alojado en **Firebase (Hosting y Cloud Functions)**. El dominio principal en producción es [artesaniasenigma.com](https://artesaniasenigma.com).
 
 ## Configuración del Proyecto
 
-- **Repositorio GitHub**: https://github.com/enigmaartesanias/noviembre2025
-- **Rama de Producción**: `main`
-- **Plataforma**: Netlify
-- **URL Producción**: https://enigmajewelry.netlify.app
+- **Repositorio GitHub**: https://github.com/enigmaartesanias/enigma-web-erp
+- **Plataforma**: Firebase (Plan Blaze)
+- **ID de Proyecto**: `aldoartesanias`
+- **Dominio Principal**: https://artesaniasenigma.com
+- **Subdominios Alternativos**:
+  - https://aldoartesanias.web.app
+  - https://aldoartesanias.firebaseapp.com
 
-## Proceso de Deploy Automático
+---
 
-Cada vez que hagas `push` a la rama `main`, Netlify automáticamente:
+## 🛠️ Requisitos Previos
 
-1. ✅ Detecta los cambios
-2. ✅ Instala las dependencias
-3. ✅ Ejecuta el build (`npm run build`)
-4. ✅ Publica el sitio actualizado
-
-## Pasos para Hacer Deploy
-
-### 1. Asegúrate de estar en la rama main
-
+Asegúrate de tener instalada globalmente la herramienta CLI de Firebase:
 ```bash
-git checkout main
+npm install -g firebase-tools
 ```
-
-### 2. Guarda tus cambios
-
+Y de haber iniciado sesión con tu cuenta de Google asociada al proyecto:
 ```bash
-git add .
-git commit -m "Descripción de tus cambios"
+firebase login
 ```
 
-### 3. Sube los cambios a GitHub
+---
 
+## 🚀 Proceso de Despliegue
+
+Sigue estos pasos para construir la aplicación React y desplegar tanto el Frontend (Hosting) como el Backend (Cloud Functions) a Firebase.
+
+### 1. Construir la aplicación Frontend (React SPA)
+Ejecuta la compilación de Vite en la raíz del proyecto. Esto generará la carpeta `dist/`:
 ```bash
-git push origin main
+npm run build
 ```
 
-### 4. Verifica el deploy en Netlify
+### 2. Desplegar a Firebase
+Puedes desplegar todo el proyecto a la vez, o desplegar por separado según lo que hayas modificado:
 
-1. Ve a: https://app.netlify.com
-2. Busca tu sitio: `enigmajewelry`
-3. Espera 2-5 minutos
-4. Visita tu sitio: https://enigmajewelry.netlify.app
+- **Desplegar Todo (Recomendado cuando hay cambios en ambos lados):**
+  ```bash
+  firebase deploy
+  ```
 
-## ⚙️ Configuración de Netlify
+- **Desplegar Solo el Frontend (Si solo modificaste vistas/React):**
+  ```bash
+  firebase deploy --only hosting
+  ```
 
-### Variables de Entorno Requeridas
+- **Desplegar Solo las Funciones (Si solo modificaste la lógica de Open Graph en `functions/`):**
+  ```bash
+  firebase deploy --only functions
+  ```
 
-En Netlify (Site settings → Environment variables):
+---
 
-```
-VITE_SUPABASE_URL=https://qwvhrtdddpmaovnyarhr.supabase.co
-VITE_SUPABASE_ANON_KEY=[tu-clave-anonima]
-```
+## ⚙️ Estructura del Despliegue
 
-### Configuración de Build
+- **`dist/`**: Contiene el código frontend compilado listo para producción.
+- **`firebase.json`**: Define el comportamiento de Firebase Hosting (redirecciones, reescrituras de rutas para el SPA y para el Open Graph) y registra la carpeta `functions/`.
+- **`functions/`**: Contiene el código Node.js 22 de la Cloud Function `shareProduct` encargada de servir los metadatos dinámicos para los scrapers de redes sociales (WhatsApp, Facebook, Twitter, etc.).
 
-El archivo `netlify.toml` ya está configurado con:
-
-```toml
-[build]
-  command = "rm -rf node_modules package-lock.json && npm install && npm run build"
-  publish = "dist"
-
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
-```
+---
 
 ## 📝 Notas Importantes
 
-- **Trabaja siempre en `main`**: No uses otras ramas para desarrollo
-- **Deploy automático**: Cada push dispara un nuevo deploy
-- **Tiempo estimado**: 2-5 minutos por deploy
-- **Node.js**: El proyecto usa Node.js 20.x
-
-## 🔧 Solución de Problemas
-
-### El deploy falla
-
-1. Revisa los logs en Netlify dashboard
-2. Verifica que el build funcione localmente:
-   ```bash
-   npm run build
-   ```
-3. Confirma que las variables de entorno estén en Netlify
-
-### Los cambios no se reflejan
-
-1. Espera 5 minutos (puede haber caché)
-2. Limpia el caché del navegador (Ctrl + Shift + R)
-3. Verifica que el deploy esté "Published" en Netlify
-
-### Error de Node.js
-
-El proyecto requiere Node.js 20.x. Netlify usa la versión especificada en:
-- `package.json` → `"engines": { "node": "20.x" }`
-- `.nvmrc` → `20`
-
-## 📞 Contacto
-
-Si tienes problemas con el deploy, revisa los logs en Netlify o contacta al equipo de desarrollo.
+- **Plan de Facturación**: El proyecto requiere mantenerse en el plan **Blaze** en Firebase para poder utilizar Cloud Functions.
+- **Variables de Entorno**: Las credenciales de Supabase se encuentran directamente en `src/supabaseClient.jsx` (para el frontend) y se replican de forma estática en `functions/index.js` (para la Cloud Function) para asegurar que el backend funcione independientemente de variables externas durante el deploy.
+- **Node.js**: Las funciones se ejecutan bajo Node.js versión `22`. Asegúrate de tener esta versión en tu entorno local para evitar advertencias durante las pruebas con emuladores.

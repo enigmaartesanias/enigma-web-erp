@@ -37,10 +37,7 @@ export const shareProduct = onRequest({ cors: true, invoker: "public" }, async (
       return res.status(404).send("Producto no encontrado");
     }
 
-    const precioMostrar = producto.precio_local || producto.precio || "a consultar";
-    const precioTexto = isNaN(precioMostrar) ? "Precio a consultar" : `Desde S/. ${Number(precioMostrar).toFixed(2)} PEN`;
-    
-    const descripcion = `Pieza personalizada hecha a pedido. ${precioTexto}.`;
+    const descripcion = `Pieza personalizada hecha a pedido. Joyería de autor | Enigma Artesanías.`;
     const urlRedirect = `https://artesaniasenigma.com/producto/${producto.id}`;
 
     // Intentar leer la plantilla index.html compilada local

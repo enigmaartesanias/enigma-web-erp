@@ -24,10 +24,12 @@ No es un template. Es un ERP construido desde cero para un rubro específico, co
 Tienda y catálogo público construido con React + Vite + Supabase.
 
 - Catálogo dinámico con galerías, categorías y novedades
-- Integración WhatsApp con contexto del producto consultado
+- Integración WhatsApp con contexto del producto (precio según región: Perú / América / Europa)
+- Página de detalle de producto con selector de región y precio internacional (USD / EUR) vía Western Union
+- Landing page **Colección Cobre** con hero, acordeones informativos y grid de categorías con scroll ancla (`#coleccion`)
+- Open Graph optimizado: descripción limpia sin precios en soles para compartir en redes / WhatsApp
 - Diseño responsive optimizado para móvil y escritorio
 - Panel de administración seguro para gestión de contenido
-- Entorno de staging espejo en Netlify para pruebas
 
 ---
 
@@ -134,6 +136,8 @@ src/
 │   ├── Inventario/      # Stock y movimientos
 │   ├── Finanzas/        # Reportes financieros
 │   └── Reportes/        # Popularidad, QR, producción
+├── pages/
+│   └── ColeccionCobre/  # Landing page con ancla #coleccion
 ├── utils/
 │   ├── ventasClient.js
 │   ├── pedidosNeonClient.js
@@ -141,6 +145,15 @@ src/
 │   └── ...
 └── firebaseConfig.js
 ```
+
+---
+
+## 🔄 Últimos cambios (jun 2026)
+
+- **WhatsApp simplificado** — Mensajes de cotización limpios para Perú, América y Europa. Se eliminaron bloques de texto genérico (saludo con país, formulario de personalización, mención a Western Union).
+- **OG Description limpio** — El `og:description` ya no incluye el precio en soles al compartir en redes sociales o WhatsApp, evitando confusión en clientes internacionales.
+- **Scroll ancla en ColeccionCobre** — Al navegar desde la tarjeta del index o desde el menú, la página abre directamente en la sección "Explora piezas en cobre" (`/cobre#coleccion`) con scroll suave que respeta el header fijo.
+- **Navegación precisa** — El cálculo del scroll usa `getBoundingClientRect()` + offset manual (80px) para mostrar siempre el título de sección antes de los botones de categoría.
 
 ---
 

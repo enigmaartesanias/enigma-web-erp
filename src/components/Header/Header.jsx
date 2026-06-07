@@ -28,7 +28,7 @@ const groupLabel = {
 
 const jewelryByMaterial = {
     Cobre: [
-        { name: 'Toda la Colección', path: '/cobre' },
+        { name: 'Toda la Colección', path: '/cobre#coleccion' },
         { name: 'Aretes',            path: '/catalogo/Cobre/ARETE' },
         { name: 'Pulseras',          path: '/catalogo/Cobre/PULSERA' },
         { name: 'Anillos',           path: '/catalogo/Cobre/ANILLO' },

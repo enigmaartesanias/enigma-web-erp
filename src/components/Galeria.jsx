@@ -30,7 +30,7 @@ const BASE_ROUTES = {
         anillos: "/catalogo/Cobre/Anillo",
         collares: "/catalogo/Cobre/Collar",
 
-        all: "/cobre",
+        all: "/cobre#coleccion",
     },
 };
 
@@ -156,7 +156,7 @@ const MaterialCard = ({ card, isActive, isAnyCardActive, onToggle }) => {
             <div 
                 className="w-full relative overflow-hidden rounded-xl transition-shadow duration-300 cursor-pointer"
                 onClick={() => {
-                    if (key === 'cobre') navigate('/cobre');
+                    if (key === 'cobre') navigate('/cobre#coleccion');
                 }}
             >
                 {/* Imagen Estática / Grid */}
@@ -268,7 +268,7 @@ const MaterialCard = ({ card, isActive, isAnyCardActive, onToggle }) => {
             onClick={(e) => {
                 e.stopPropagation();
                 if (key === 'cobre') {
-                    navigate('/cobre');
+                    navigate('/cobre#coleccion');
                 } else {
                     onToggle();
                 }
@@ -446,7 +446,7 @@ const Galeria = () => {
                             return (
                                 <Link
                                     key={card.key}
-                                    to="/cobre"
+                                    to="/cobre#coleccion"
                                     className="flex flex-col bg-white p-4 rounded-xl shadow-xl border border-gray-200 transition-all duration-300 hover:shadow-2xl w-full lg:w-[32%] cursor-pointer group hover:border-[#c8964a]/50"
                                 >
                                     {CardContent}

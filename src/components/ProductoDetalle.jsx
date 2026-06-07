@@ -237,7 +237,14 @@ const ProductoDetalle = () => {
             document.title = pageTitle;
 
             setMetaTag('og:title', producto.titulo);
-            setMetaTag('og:description', producto.descripcion ? producto.descripcion.substring(0, 150) + '...' : `Precio referencial: S/ ${Number(producto.precio).toFixed(2)} PEN`);
+            const descLimpia = producto.descripcion
+                ? producto.descripcion
+                    .replace(/Desde\s+S\/\.?\s*[\d.,]+\s*PEN\.?/gi, '')
+                    .replace(/\s{2,}/g, ' ')
+                    .trim()
+                    .substring(0, 150) + '...'
+                : 'Joyería de autor hecha a pedido | Enigma Artesanías';
+            setMetaTag('og:description', descLimpia);
             setMetaTag('og:url', window.location.href);
             setMetaTag('og:type', 'product');
 
@@ -283,8 +290,8 @@ const ProductoDetalle = () => {
 
     // ── Lógica de precio por región (envío incluido en precio internacional) ──
     const tieneIntl = producto.precio_internacional_base !== null &&
-                      producto.precio_internacional_base !== undefined &&
-                      Number(producto.precio_internacional_base) > 0;
+        producto.precio_internacional_base !== undefined &&
+        Number(producto.precio_internacional_base) > 0;
 
     // Precio final = conversi\u00f3n directa (el factor ya incluye el costo de env\u00edo)
     const precioUSD = tieneIntl ? Math.round(Number(producto.precio_internacional_base) * FACTOR_AMERICA) : null;
@@ -340,20 +347,20 @@ const ProductoDetalle = () => {
             const precioLocal = producto.precio
                 ? `S/. ${Number(producto.precio).toFixed(2)} PEN`
                 : 'precio por consultar';
-            return `Hola Enigma, quiero cotizar la *${nombre}* con el precio local de ${precioLocal}. Deseo coordinar la entrega en Perú.\n\n🔗 ${url}`;
+            return `Hola Enigma, vi la *${nombre}* (${precioLocal}) en tu web y me gustaría cotizarla.\n\n🔗 ${url}`;
         }
 
         const divisa = tieneIntl
             ? (region === 'america' ? `$ ${precioUSD} USD` : `€ ${precioEUR} EUR`)
             : '(precio a consultar)';
 
-        return `Hola Enigma, estoy en [escribe tu país] 🌍\n\nVi la *${nombre}* (${divisa}) en tu web.\n\n¿Deseas alguna personalización?\n☐ No, tal cual la foto.\n☐ Sí, deseo añadir: __________\n\nQuedo a la espera para coordinar medidas y datos de Western Union.\n\n🔗 ${url}`;
+        return `Hola Enigma, vi la *${nombre}* (${divisa}) en tu web y me gustaría cotizarla.\n\n🔗 ${url}`;
     };
 
     // ── Compartir con Web Share API (Apunta al endpoint de Open Graph) ──
     const handleShare = async () => {
         const urlCompartir = `https://artesaniasenigma.com/producto/${producto.id}`;
-        
+
         let shareText = '';
         if (region === 'peru') {
             const precioLocal = producto.precio ? `S/. ${Number(producto.precio).toFixed(2)} PEN` : 'precio por consultar';
@@ -385,9 +392,9 @@ const ProductoDetalle = () => {
 
     // ── Botones del segmented control con banderas (flagcdn.com) ──
     const regiones = [
-        { key: 'peru',    label: 'Perú',    flag: 'pe', flagAlt: 'Perú'    },
-        { key: 'america', label: 'América',  flag: 'us', flagAlt: 'EE.UU.'   },
-        { key: 'europa',  label: 'Europa',    flag: 'eu', flagAlt: 'Europa'   },
+        { key: 'peru', label: 'Perú', flag: 'pe', flagAlt: 'Perú' },
+        { key: 'america', label: 'América', flag: 'us', flagAlt: 'EE.UU.' },
+        { key: 'europa', label: 'Europa', flag: 'eu', flagAlt: 'Europa' },
     ];
 
     return (
@@ -544,7 +551,7 @@ const ProductoDetalle = () => {
                                     );
                                 })}
                             </div>
-                            <button 
+                            <button
                                 onClick={() => setIsExpanded(!isExpanded)}
                                 className="text-xs text-gray-500 font-medium mt-2 hover:text-gray-800 underline transition-colors"
                             >

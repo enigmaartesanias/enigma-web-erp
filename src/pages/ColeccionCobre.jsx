@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 
 const ColeccionCobre = () => {
@@ -10,6 +10,21 @@ const ColeccionCobre = () => {
     { nombre: 'Vinchas', imagen: '/images/vinchacobre.png', ruta: '/catalogo/Cobre/VINCHA_TIARA', badge: 'NUEVO' },
     { nombre: 'Tobilleras', imagen: '/images/tobilleracobre.png', ruta: '/catalogo/Cobre/TOBILLERA', badge: 'NUEVOS' },
   ];
+
+  useEffect(() => {
+    if (window.location.hash === '#coleccion') {
+      const el = document.getElementById('coleccion');
+      if (el) {
+        // Calcular offset manual: posición del elemento - header (64px) - margen extra (16px)
+        setTimeout(() => {
+          const top = el.getBoundingClientRect().top + window.scrollY - 80;
+          window.scrollTo({ top, behavior: 'smooth' });
+        }, 100);
+      }
+    } else {
+      window.scrollTo({ top: 0, behavior: 'instant' });
+    }
+  }, []);
 
   return (
     <div className="bg-[#f2eeea] font-sans min-h-screen text-[#2a2018] pt-[64px] md:pt-[72px]">

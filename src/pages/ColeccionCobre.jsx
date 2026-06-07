@@ -2,58 +2,38 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 
 const ColeccionCobre = () => {
-  // 6 Categorías para el Grid de cards
   const categories = [
-    { name: 'Aretes', image: '/images/aretecobre.png', path: '/catalogo/Cobre/ARETE', isNew: false },
-    { name: 'Pulseras', image: '/images/pulseracobre.png', path: '/catalogo/Cobre/PULSERA', isNew: false },
-    { name: 'Anillos', image: '/images/anillocobre.png', path: '/catalogo/Cobre/ANILLO', isNew: false },
-    { name: 'Collares', image: '/images/collarcobre.png', path: '/catalogo/Cobre/COLLAR', isNew: false },
-    { name: 'Vinchas', image: '/images/vinchacobre.png', path: '/catalogo/Cobre/VINCHA_TIARA', isNew: true },
-    { name: 'Tobilleras', image: '/images/tobilleracobre.png', path: '/catalogo/Cobre/TOBILLERA', isNew: true }
+    { nombre: 'Aretes', imagen: '/images/aretecobre.png', ruta: '/catalogo/Cobre/ARETE', badge: null },
+    { nombre: 'Pulseras', imagen: '/images/pulseracobre.png', ruta: '/catalogo/Cobre/PULSERA', badge: null },
+    { nombre: 'Anillos', imagen: '/images/anillocobre.png', ruta: '/catalogo/Cobre/ANILLO', badge: null },
+    { nombre: 'Collares', imagen: '/images/collarcobre.png', ruta: '/catalogo/Cobre/COLLAR', badge: null },
+    { nombre: 'Vinchas', imagen: '/images/vinchacobre.png', ruta: '/catalogo/Cobre/VINCHA_TIARA', badge: 'NUEVO' },
+    { nombre: 'Tobilleras', imagen: '/images/tobilleracobre.png', ruta: '/catalogo/Cobre/TOBILLERA', badge: 'NUEVOS' },
   ];
 
   return (
-    <div className="bg-[#faf9f7] font-sans min-h-screen text-[#2a2018] pt-[64px] md:pt-[72px]">
+    <div className="bg-[#f2eeea] font-sans min-h-screen text-[#2a2018] pt-[64px] md:pt-[72px]">
 
       {/* [1] HERO COMPACTO */}
-      <div className="relative w-full bg-[#2a2018] flex flex-col
-              items-center justify-center text-center px-6
-              min-h-[220px] md:min-h-[320px] overflow-hidden">
-
-        {/* Imagen de fondo — object-position ajustado para mobile */}
+      <div className="relative w-full bg-[#2a2018] flex flex-col items-center justify-center text-center px-6 min-h-[220px] md:min-h-[320px] overflow-hidden">
         <img
           src="/images/tecnica.jpg"
           alt="Taller trabajando cobre"
-          className="absolute inset-0 w-full h-full
-                  object-cover object-center
-                  opacity-50 mix-blend-luminosity"
+          className="absolute inset-0 w-full h-full object-cover object-center opacity-50 mix-blend-luminosity"
         />
-
-        {/* Overlay oscuro */}
         <div className="absolute inset-0 bg-[#1a0e06]/50" />
-
-        {/* Contenido */}
         <div className="relative z-10 flex flex-col items-center max-w-2xl py-10 md:py-16">
-          <p className="text-[#c8964a] uppercase text-[10px] md:text-xs
-                  tracking-[0.22em] mb-3 font-medium">
-            Colección
-          </p>
-          <h1 className="text-3xl md:text-5xl text-[#faf9f7]
-                  font-serif font-light mb-3 leading-tight tracking-wide">
-            Cobre Artesanal
-          </h1>
+          <p className="text-[#c8964a] uppercase text-[10px] md:text-xs tracking-[0.22em] mb-3 font-medium">Colección</p>
+          <h1 className="text-3xl md:text-5xl text-[#faf9f7] font-serif font-light mb-3 leading-tight tracking-wide">Cobre Artesanal</h1>
           <div className="w-8 h-px bg-[#c8964a] opacity-70 mb-3" />
-          <p className="text-[#faf9f7]/60 text-xs md:text-base
-                  font-light tracking-widest">
-            Metal vivo · forjado a mano en Lima
-          </p>
+          <p className="text-[#faf9f7]/60 text-xs md:text-base font-light tracking-widest">Metal vivo · forjado a mano en Lima</p>
         </div>
       </div>
 
-      {/* CONTENEDOR DE CONTENIDO PRINCIPAL */}
+      {/* CONTENEDOR PRINCIPAL */}
       <div className="container mx-auto px-4 md:px-6 max-w-4xl py-10 space-y-12">
 
-        {/* [2] HISTORIA (VISIBLE DIRECTAMENTE) */}
+        {/* [2] HISTORIA */}
         <section className="space-y-4">
           <div className="text-center mb-4">
             <p className="text-[10px] tracking-[0.2em] uppercase text-[#c8964a] font-medium">Historia del Cobre</p>
@@ -68,10 +48,9 @@ const ColeccionCobre = () => {
           </div>
         </section>
 
-        {/* [3] MÍSTICA Y PROCESO (ACORDEONES CERRADOS POR DEFECTO) */}
+        {/* [3] ACORDEONES */}
         <section className="space-y-3">
-          {/* Mística */}
-          <details className="group border border-[#e8e4de] bg-white rounded-lg p-4 transition-all duration-300 shadow-sm">
+          <details className="group border border-[#e8e4de] bg-white rounded-lg p-4 shadow-sm">
             <summary className="flex justify-between items-center text-sm md:text-base font-medium text-[#2a2018] cursor-pointer hover:text-[#c8964a] list-none select-none [&::-webkit-details-marker]:hidden">
               <span className="tracking-wide font-medium">Mística y Propiedades</span>
               <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 transform group-open:rotate-180 transition-transform duration-300 text-[#c8964a]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -85,8 +64,7 @@ const ColeccionCobre = () => {
             </div>
           </details>
 
-          {/* Proceso */}
-          <details className="group border border-[#e8e4de] bg-white rounded-lg p-4 transition-all duration-300 shadow-sm">
+          <details className="group border border-[#e8e4de] bg-white rounded-lg p-4 shadow-sm">
             <summary className="flex justify-between items-center text-sm md:text-base font-medium text-[#2a2018] cursor-pointer hover:text-[#c8964a] list-none select-none [&::-webkit-details-marker]:hidden">
               <span className="tracking-wide font-medium">Proceso de Creación</span>
               <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 transform group-open:rotate-180 transition-transform duration-300 text-[#c8964a]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -98,62 +76,112 @@ const ColeccionCobre = () => {
                 <p className="flex-1 text-[#6a5a4a] leading-relaxed text-sm md:text-base font-light">
                   Todo comienza con un trozo de cobre crudo. Mediante el fuego, el martillo y la paciencia, moldeamos cada curva. No usamos moldes; cada pieza es esculpida a mano, garantizando que tu joya sea única.
                 </p>
-                <div className="w-full md:w-1/3 h-32 md:h-36 rounded overflow-hidden shadow-sm flex-shrink-0 bg-gray-100 border border-[#e8e4de]">
-                  <img src="/images/img2.jpg" alt="Proceso de trabajo" className="w-full h-full object-cover" />
+                <div className="w-full md:w-1/3 h-48 md:h-64 rounded-xl overflow-hidden shadow-sm flex-shrink-0 bg-gray-100 border border-[#e8e4de]">
+                  <img src="https://qwvhrtdddpmaovnyarhr.supabase.co/storage/v1/object/public/producto-images/8eac9868-28b7-4fed-9fd7-8c9c8c0dcf6d.jpg" alt="Proceso de trabajo" className="w-full h-full object-cover hover:scale-105 transition-transform duration-700" />
                 </div>
               </div>
             </div>
           </details>
         </section>
 
-        {/* [4] GRID DE CATEGORÍAS */}
+        {/* [4] GRID DE CATEGORÍAS — botones separados, fondo transparente, banda cobre */}
         <section id="coleccion" className="scroll-mt-24">
-          <div className="text-center mb-8">
-            <p className="text-[10px] tracking-[0.2em] uppercase text-[#c8964a] mb-2 font-medium">
-              Colección
-            </p>
-            <h2 className="text-2xl md:text-3xl font-serif font-light text-[#2a2018] tracking-wide">
-              Explora piezas en cobre
-            </h2>
+          <div className="text-center mb-6">
+            <p className="text-[10px] tracking-[0.2em] uppercase text-[#c8964a] mb-2 font-medium">Colección</p>
+            <h2 className="text-2xl md:text-3xl font-serif font-light text-[#2a2018] tracking-wide">Explora piezas en cobre</h2>
           </div>
 
-          <div className="grid grid-cols-2 gap-3 md:gap-4 px-1 md:px-0">
-            {categories.map(cat => (
+          {/* Grid sin marco contenedor — cada botón flota separado */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr',
+            gap: '16px',
+          }}>
+            {categories.map(categoria => (
               <Link
-                key={cat.name}
-                to={cat.path}
-                className="group flex flex-col bg-white border border-[#e0d8ce]
-                          rounded-3xl overflow-hidden shadow-sm hover:shadow-md
-                          hover:border-[#c8964a] transition-all duration-300 h-full"
+                key={categoria.nombre}
+                to={categoria.ruta}
+                style={{
+                  position: 'relative',
+                  display: 'block',
+                  width: '100%',
+                  aspectRatio: '1 / 1',
+                  borderRadius: '16px',
+                  overflow: 'hidden',
+                  textDecoration: 'none',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.13)',
+                  background: '#e8e0d8',
+                  transition: 'transform 0.18s ease, box-shadow 0.18s ease',
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.transform = 'scale(1.02)';
+                  e.currentTarget.style.boxShadow = '0 6px 18px rgba(0,0,0,0.18)';
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.transform = 'scale(1)';
+                  e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.13)';
+                }}
+                onTouchStart={e => {
+                  e.currentTarget.style.transform = 'scale(0.97)';
+                }}
+                onTouchEnd={e => {
+                  e.currentTarget.style.transform = 'scale(1)';
+                }}
               >
-                {/* Imagen con overlay y proporción fija */}
-                <div className="relative w-full h-28 md:h-40 overflow-hidden bg-[#e8e0d4] flex-shrink-0">
-                  <img
-                    src={cat.image}
-                    alt={cat.name}
-                    className="w-full h-full object-cover
-                              group-hover:scale-105 transition-transform duration-500"
-                  />
-                  {/* Overlay degradado sutil */}
-                  <div className="absolute inset-0 bg-gradient-to-t
-                            from-[#2a2018]/30 via-transparent to-transparent" />
+                {/* Imagen ocupa todo el botón menos la banda */}
+                <img
+                  src={categoria.imagen}
+                  alt={categoria.nombre}
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover',
+                    objectPosition: 'center',
+                    display: 'block',
+                  }}
+                />
 
-                  {/* Badge nuevo — solo para Vinchas y Tobilleras */}
-                  {cat.isNew && (
-                    <span className="absolute top-2 left-2
-                              text-[9px] tracking-wider uppercase
-                              bg-[#fdf0e0] text-[#a07030]
-                              px-2 py-0.5 rounded-full font-medium">
-                      nuevo
-                    </span>
-                  )}
-                </div>
-
-                {/* Label */}
-                <div className="flex items-center justify-center px-2 py-3 border-t border-[#f0ebe1] bg-[#fdfdfc] flex-grow">
-                  <span className="text-xs md:text-sm text-[#2a2018] font-serif font-light tracking-widest uppercase text-center group-hover:text-[#c8964a] transition-colors duration-300">
-                    {cat.name}
+                {/* Badge NUEVO/NUEVOS */}
+                {categoria.badge && (
+                  <span style={{
+                    position: 'absolute',
+                    top: '8px',
+                    left: '8px',
+                    zIndex: 10,
+                    backgroundColor: '#15803d',
+                    color: 'white',
+                    fontSize: '0.6rem',
+                    fontWeight: 500,
+                    letterSpacing: '0.06em',
+                    padding: '3px 9px',
+                    borderRadius: '999px',
+                    border: '1.5px solid rgba(255,255,255,0.3)',
+                  }}>
+                    {categoria.badge}
                   </span>
+                )}
+
+                {/* Banda inferior tono cobre/rosado */}
+                <div style={{
+                  position: 'absolute',
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  zIndex: 10,
+                  background: 'linear-gradient(to right, #c49a7a, #b8836a)',
+                  color: '#3a1a08',
+                  textAlign: 'center',
+                  fontSize: '0.7rem',
+                  fontWeight: 600,
+                  letterSpacing: '0.14em',
+                  textTransform: 'uppercase',
+                  padding: '7px 4px',
+                  borderTop: '1px solid rgba(255,255,255,0.2)',
+                }}>
+                  {categoria.nombre}
                 </div>
               </Link>
             ))}
@@ -162,7 +190,7 @@ const ColeccionCobre = () => {
 
         {/* [5] CUIDADO DEL COBRE */}
         <section className="pt-4">
-          <details className="group border border-[#e8e4de] bg-white rounded-lg p-4 transition-all duration-300 shadow-sm">
+          <details className="group border border-[#e8e4de] bg-white rounded-lg p-4 shadow-sm">
             <summary className="flex justify-between items-center text-sm md:text-base font-medium text-[#2a2018] cursor-pointer hover:text-[#c8964a] list-none select-none [&::-webkit-details-marker]:hidden">
               <span className="tracking-wide font-medium">Cuidado y Limpieza</span>
               <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 transform group-open:rotate-180 transition-transform duration-300 text-[#c8964a]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -171,15 +199,9 @@ const ColeccionCobre = () => {
             </summary>
             <div className="mt-4 border-t border-[#e8e4de]/40 pt-4">
               <ol className="space-y-3 text-[#6a5a4a] text-sm md:text-base font-light list-decimal pl-5 marker:text-[#c8964a] marker:font-medium">
-                <li className="pl-1">
-                  <span className="text-[#2a2018] font-medium">Limpieza natural</span> — Limón y sal devuelven el brillo. Frota suave y enjuaga.
-                </li>
-                <li className="pl-1">
-                  <span className="text-[#2a2018] font-medium">Evita humedad</span> — Retírala antes de bañarte o nadar.
-                </li>
-                <li className="pl-1">
-                  <span className="text-[#2a2018] font-medium">Almacenamiento</span> — Bolsitas de tela individual, lugar seco.
-                </li>
+                <li className="pl-1"><span className="text-[#2a2018] font-medium">Limpieza natural</span> — Limón y sal devuelven el brillo. Frota suave y enjuaga.</li>
+                <li className="pl-1"><span className="text-[#2a2018] font-medium">Evita humedad</span> — Retírala antes de bañarte o nadar.</li>
+                <li className="pl-1"><span className="text-[#2a2018] font-medium">Almacenamiento</span> — Bolsitas de tela individual, lugar seco.</li>
               </ol>
             </div>
           </details>

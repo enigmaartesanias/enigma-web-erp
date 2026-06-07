@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import './styles/styles.css';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import ScrollToTop from './components/ScrollToTop';
@@ -71,6 +71,12 @@ import Dashboard from './pages/Dashboard';
 const MainContent = () => {
     const location = useLocation();
     const isAdmin = location.pathname.startsWith('/admin');
+
+    useEffect(() => {
+        if (!location.pathname.startsWith('/producto/')) {
+            document.title = 'Enigma Artesanías y Accesorios - Joyería Artesanal Peruana';
+        }
+    }, [location.pathname]);
 
     const isInventarioModule = location.pathname.startsWith('/inventario') ||
         location.pathname.startsWith('/produccion') ||

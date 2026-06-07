@@ -328,7 +328,7 @@ const ProductoDetalle = () => {
         if (region === 'america' || region === 'europa') {
             return 'Trabajamos bajo pedido de autor. El pago se coordina de forma manual mediante Western Union desde la agencia de tu preferencia. Te enviamos los datos exactos al confirmar tu pedido por WhatsApp.';
         }
-        return 'Aceptamos Yape, Plin y transferencias bancarias (BCP, Interbank, BBVA) a nombre de Aldo Magallanes — número 960 282 376. Taller principal en Carabayllo, Lima (atención previa cita).';
+        return 'Aceptamos Yape, Plin y transferencias bancarias (BCP, Interbank) a nombre de Aldo Magallanes — número 960 282 376. Taller principal en Carabayllo, Lima (atención previa cita).';
     };
 
     // ── Construcción del mensaje de WhatsApp ──
@@ -577,7 +577,7 @@ const ProductoDetalle = () => {
                                 className="text-xs font-medium text-gray-600 uppercase tracking-wider"
                                 style={{ fontFamily: "'Inter', sans-serif", letterSpacing: '0.1em' }}
                             >
-                                Detalles de Env\u00edo y Entrega
+                                Detalles de Envío y Entrega
                             </span>
                             <ChevronIcono abierto={acordeon1} />
                         </button>
@@ -608,7 +608,7 @@ const ProductoDetalle = () => {
                                 className="text-xs font-medium text-gray-600 uppercase tracking-wider"
                                 style={{ fontFamily: "'Inter', sans-serif", letterSpacing: '0.1em' }}
                             >
-                                M\u00e9todos de Pago y Ubicaci\u00f3n
+                                Métodos de Pago y Ubicación
                             </span>
                             <ChevronIcono abierto={acordeon2} />
                         </button>

@@ -1,7 +1,66 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 
 const Footer = () => {
+  // Guarda el último precio+título emitido por ProductoDetalle
+  const precioRef = useRef({ precio: '', titulo: '', region: 'peru' });
+
+  useEffect(() => {
+    const handler = (e) => {
+      precioRef.current = e.detail;
+    };
+    window.addEventListener('enigma:region-precio', handler);
+    return () => window.removeEventListener('enigma:region-precio', handler);
+  }, []);
+
+  const handleCompartir = async (e) => {
+    e.preventDefault();
+    const isProductPage = window.location.pathname.startsWith('/producto/');
+    let shareUrl = window.location.href;
+
+    if (isProductPage) {
+      const productId = window.location.pathname.split('/producto/')[1];
+      shareUrl = `https://artesaniasenigma.com/producto/${productId}`;
+    }
+
+    // Construir texto con precio si estamos en página de producto
+    let shareText = 'Mira esta página de artesanías y accesorios increíbles.';
+    if (isProductPage) {
+      const { precio, titulo, region } = precioRef.current;
+      if (precio) {
+        const esLocal = region === 'peru';
+        shareText = titulo
+          ? `✨ ${titulo} — ${precio}${esLocal ? ' (no incluye envío)' : ' (shipping included)'}`
+          : `Hecha a pedido — ${precio}`;
+      } else {
+        shareText = 'Hecha a pedido.';
+      }
+    }
+
+    const shareData = {
+      title: document.title || 'Enigma Artesanías',
+      text: shareText,
+      url: shareUrl,
+    };
+
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+      } catch (err) {
+        if (err.name !== 'AbortError') {
+          console.error('Error al compartir:', err);
+        }
+      }
+    } else {
+      try {
+        await navigator.clipboard.writeText(`${shareText}\n${shareUrl}`);
+        alert('¡Enlace copiado al portapapeles!');
+      } catch (err) {
+        console.error('Error al copiar:', err);
+      }
+    }
+  };
+
   return (
     <footer className="bg-black text-white py-8 w-full">
       <div className="container mx-auto px-8">
@@ -44,39 +103,10 @@ const Footer = () => {
               <Link to="/shippingpolicies" className="hover:text-white transition-colors">
                 Shipping Policies
               </Link>
-              <button onClick={async (e) => {
-                e.preventDefault();
-                const isProductPage = window.location.pathname.startsWith('/producto/');
-                let shareUrl = window.location.href;
-
-                if (isProductPage) {
-                  const productId = window.location.pathname.split('/producto/')[1];
-                  shareUrl = `https://artesaniasenigma.com/producto/${productId}`;
-                }
-
-                const shareData = {
-                  title: document.title || 'Enigma Artesanías',
-                  text: isProductPage ? 'Hecha a pedido.' : 'Mira esta página de artesanías y accesorios increíbles.',
-                  url: shareUrl,
-                };
-                if (navigator.share) {
-                  try {
-                    await navigator.share(shareData);
-                  } catch (err) {
-                    // Evitar loggear el error si el usuario cancela la acción
-                    if (err.name !== 'AbortError') {
-                      console.error('Error al compartir:', err);
-                    }
-                  }
-                } else {
-                  try {
-                    await navigator.clipboard.writeText(shareData.url);
-                    alert('¡Enlace de esta página copiado al portapapeles!');
-                  } catch (err) {
-                    console.error('Error al copiar:', err);
-                  }
-                }
-              }} className="hover:text-teal-400 text-teal-600 font-medium transition-colors focus:outline-none mt-2 md:mt-0">
+              <button
+                onClick={handleCompartir}
+                className="hover:text-teal-400 text-teal-600 font-medium transition-colors focus:outline-none mt-2 md:mt-0"
+              >
                 Compartir Página
               </button>
             </div>

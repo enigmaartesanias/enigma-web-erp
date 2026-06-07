@@ -156,12 +156,32 @@ const ProductoDetalle = () => {
         setModalImageUrl('');
     };
 
+    // ── Emite evento global con precio+región activos (para Footer) ──
+    const emitirPrecioRegion = (reg, prod) => {
+        if (!prod) return;
+        let precioStr = '';
+        const tieneIntlLocal = prod.precio_internacional_base !== null &&
+            prod.precio_internacional_base !== undefined &&
+            Number(prod.precio_internacional_base) > 0;
+        if (reg === 'peru') {
+            precioStr = prod.precio ? `S/ ${Number(prod.precio).toFixed(2)} PEN` : '';
+        } else if (reg === 'america') {
+            precioStr = tieneIntlLocal ? `$ ${Math.round(Number(prod.precio_internacional_base) * FACTOR_AMERICA)} USD` : '';
+        } else if (reg === 'europa') {
+            precioStr = tieneIntlLocal ? `€ ${Math.round(Number(prod.precio_internacional_base) * FACTOR_EUROPA)} EUR` : '';
+        }
+        window.dispatchEvent(new CustomEvent('enigma:region-precio', {
+            detail: { region: reg, precio: precioStr, titulo: prod.titulo }
+        }));
+    };
+
     // ── Cambio de región con fade ──
     const cambiarRegion = (nuevaRegion) => {
         if (nuevaRegion === region) return;
         setPrecioVisible(false);
         setTimeout(() => {
             setRegion(nuevaRegion);
+            emitirPrecioRegion(nuevaRegion, producto);
             setPrecioVisible(true);
         }, 180);
     };
@@ -184,6 +204,8 @@ const ProductoDetalle = () => {
             } else {
                 setProducto(data);
                 setCurrentSlide(0);
+                // Emitir precio inicial (región Perú por defecto)
+                emitirPrecioRegion('peru', data);
             }
 
             setLoading(false);
@@ -540,64 +562,86 @@ const ProductoDetalle = () => {
                         {t.materialBase}: {producto.material_principal || "Cobre puro forjado con pátinas turquesas"}
                     </p>
 
-                    {/* 2. Bloque de precio con fade */}
+                    {/* 2+3. Selector de región con precio integrado */}
                     <div
-                        className="text-left mb-2 space-y-0.5"
+                        className="border border-gray-200 rounded-xl p-1 flex gap-1 bg-gray-50"
                         style={{
                             transition: 'opacity 180ms ease-in-out',
                             opacity: precioVisible ? 1 : 0,
                         }}
                     >
-                        {mostrarDesde && (
-                            <p className="text-xs font-normal text-gray-400 uppercase tracking-wider">
-                                {t.desde}
-                            </p>
-                        )}
-                        <p
-                            className="text-xl font-semibold text-gray-800 mb-1"
-                            style={{ fontFamily: "'Inter', sans-serif" }}
-                        >
-                            {getPrecioDisplay()}
-                        </p>
-                        <p
-                            className="text-xs text-gray-500 font-light pt-1 max-w-sm leading-relaxed"
-                            style={{ fontFamily: "'Inter', sans-serif" }}
-                        >
-                            {getMicroDesc()}
-                        </p>
-                    </div>
+                        {regiones.map(({ key, label, flag, flagAlt }) => {
+                            const isActive = region === key;
 
-                    {/* 3. Selector de región — siempre visible */}
-                    <div className="border border-gray-200 rounded-xl p-1 flex gap-1 bg-gray-50">
-                        {regiones.map(({ key, label, flag, flagAlt }) => (
-                            <button
-                                key={key}
-                                onClick={() => cambiarRegion(key)}
-                                className="flex-1 flex items-center justify-center gap-1.5 rounded-lg py-2 px-1 transition-all duration-300"
-                                style={
-                                    region === key
-                                        ? {
-                                            fontFamily: "'Inter', sans-serif",
-                                            fontSize: '0.7rem',
-                                            fontWeight: '600',
-                                            color: '#ffffff',
-                                            backgroundColor: '#1a1a1a',
-                                            boxShadow: '0 2px 8px rgba(0,0,0,0.25)',
-                                            letterSpacing: '0.02em',
-                                        }
-                                        : {
-                                            fontFamily: "'Inter', sans-serif",
-                                            fontSize: '0.7rem',
-                                            fontWeight: '400',
-                                            color: '#9ca3af',
-                                            backgroundColor: 'transparent',
-                                        }
-                                }
-                            >
-                                <FlagImg code={flag} alt={flagAlt} />
-                                <span>{label}</span>
-                            </button>
-                        ))}
+                            // Calcular precio para esta región
+                            let precioBtn = null;
+                            if (key === 'peru') {
+                                precioBtn = producto.precio
+                                    ? `S/ ${Number(producto.precio).toFixed(2)}`
+                                    : null;
+                            } else if (key === 'america') {
+                                precioBtn = tieneIntl ? `$ ${precioUSD} USD` : null;
+                            } else if (key === 'europa') {
+                                precioBtn = tieneIntl ? `€ ${precioEUR} EUR` : null;
+                            }
+
+                            return (
+                                <button
+                                    key={key}
+                                    onClick={() => cambiarRegion(key)}
+                                    className="flex-1 flex flex-col items-center justify-center gap-0.5 rounded-lg py-2 px-1 transition-all duration-300"
+                                    style={
+                                        isActive
+                                            ? {
+                                                fontFamily: "'Inter', sans-serif",
+                                                fontSize: '0.7rem',
+                                                fontWeight: '600',
+                                                color: '#ffffff',
+                                                backgroundColor: '#1a1a1a',
+                                                boxShadow: '0 2px 8px rgba(0,0,0,0.25)',
+                                                letterSpacing: '0.02em',
+                                            }
+                                            : {
+                                                fontFamily: "'Inter', sans-serif",
+                                                fontSize: '0.7rem',
+                                                fontWeight: '400',
+                                                color: '#9ca3af',
+                                                backgroundColor: 'transparent',
+                                            }
+                                    }
+                                >
+                                    <span className="flex items-center gap-1">
+                                        <FlagImg code={flag} alt={flagAlt} />
+                                        <span>{label}</span>
+                                    </span>
+                                    {isActive && precioBtn && (
+                                        <span
+                                            style={{
+                                                fontSize: '0.75rem',
+                                                fontWeight: '700',
+                                                color: '#ffffff',
+                                                letterSpacing: '0.01em',
+                                                marginTop: '2px',
+                                            }}
+                                        >
+                                            {precioBtn}
+                                        </span>
+                                    )}
+                                    {isActive && !precioBtn && (
+                                        <span
+                                            style={{
+                                                fontSize: '0.65rem',
+                                                fontWeight: '400',
+                                                color: 'rgba(255,255,255,0.7)',
+                                                marginTop: '2px',
+                                            }}
+                                        >
+                                            {lang === 'es' ? 'a consultar' : 'on request'}
+                                        </span>
+                                    )}
+                                </button>
+                            );
+                        })}
                     </div>
 
                     {/* 4. Descripción de la pieza */}

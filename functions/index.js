@@ -29,7 +29,7 @@ export const shareProduct = onRequest({ cors: true, invoker: "public" }, async (
     // Consultar el producto en Supabase
     const { data: producto, error } = await supabase
       .from('productos')
-      .select('id, titulo, precio, precio_local, imagen_principal_url')
+      .select('id, titulo, precio, precio_local, imagen_principal_url, descripcion')
       .eq('id', id)
       .single();
 
@@ -37,7 +37,12 @@ export const shareProduct = onRequest({ cors: true, invoker: "public" }, async (
       return res.status(404).send("Producto no encontrado");
     }
 
-    const descripcion = `Pieza personalizada hecha a pedido. Joyería de autor | Enigma Artesanías.`;
+    const descRaw = producto.descripcion || '';
+    const descripcion = descRaw
+      .replace(/Desde\s+S\/\.?\s*[\d.,]+\s*PEN\.?/gi, '')
+      .replace(/\s{2,}/g, ' ')
+      .trim()
+      .substring(0, 150) || 'Pieza personalizada hecha a pedido. Joyería de autor | Enigma Artesanías.';
     const urlRedirect = `https://artesaniasenigma.com/producto/${producto.id}`;
 
     // Intentar leer la plantilla index.html compilada local
@@ -85,7 +90,7 @@ export const shareProduct = onRequest({ cors: true, invoker: "public" }, async (
         .replaceAll('{{URL}}', urlRedirect);
       
       res.setHeader("Content-Type", "text/html; charset=utf-8");
-      res.setHeader("Cache-Control", "public, max-age=3600");
+      res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
       return res.status(200).send(html);
     }
 
@@ -116,7 +121,7 @@ export const shareProduct = onRequest({ cors: true, invoker: "public" }, async (
     html = html.replace(/<meta[^>]*?property="og:url"[^>]*?>/is, `<meta property="og:url" content="${urlRedirect}" />`);
 
     res.setHeader("Content-Type", "text/html; charset=utf-8");
-    res.setHeader("Cache-Control", "public, max-age=3600");
+    res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
     return res.status(200).send(html);
 
   } catch (err) {

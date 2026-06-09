@@ -1,32 +1,49 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 
 const HomeVideoShort = () => {
-    const video = {
-        iframe: `<iframe width="100%" height="100%" src="https://www.youtube.com/embed/UI1cGnz4MDA" title="Un trabajo en alpaca y resina" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>`,
-        title: 'Un trabajo en alpaca y resina',
-    };
+    const navigate = useNavigate();
 
     return (
-        <section className="bg-gray-50 pt-6 pb-4 md:py-24 border-t border-gray-100">
-            <div className="container mx-auto px-4 text-center">
-                <div className="text-center mb-8 md:mb-10">
-                    <h2 className="text-xl md:text-2xl font-light text-gray-900 mb-2">
-                        La Magia detrás del Metal
-                    </h2>
-                    <div className="w-16 h-0.5 bg-yellow-500 mx-auto"></div>
+        <section className="bg-stone-900 text-stone-100 py-20 px-6 md:px-12">
+            <div className="max-w-5xl mx-auto flex flex-col md:flex-row gap-12 items-center">
+
+                {/* Lado Izquierdo: Preview Visual Estilizado */}
+                <div className="w-full md:w-1/2 flex-shrink-0">
+                    <div className="relative aspect-video w-full rounded-sm border border-stone-700 overflow-hidden bg-stone-950">
+                        <img
+                            src="https://img.youtube.com/vi/_KdRykr7pbc/mqdefault.jpg"
+                            alt="Archivo Histórico Enigma"
+                            className="w-full h-full object-cover opacity-60 filter grayscale hover:grayscale-0 transition-all duration-500"
+                        />
+                        <div className="absolute inset-0 flex items-center justify-center">
+                            <span className="w-12 h-12 rounded-full border border-stone-400 flex items-center justify-center bg-stone-900/80 text-stone-300 backdrop-blur-xs">
+                                ✦
+                            </span>
+                        </div>
+                    </div>
                 </div>
 
-                <div className="flex flex-col items-center">
-                    <div
-                        className="rounded-xl overflow-hidden shadow-2xl bg-black flex justify-center w-full transform hover:scale-[1.02] transition-transform duration-500"
-                        style={{
-                            aspectRatio: '371/659',
-                            maxWidth: 340,
-                            margin: '0 auto',
-                        }}
-                        dangerouslySetInnerHTML={{ __html: video.iframe }}
-                    />
+                {/* Lado Derecho: Invitación a la Lectura */}
+                <div className="w-full md:w-1/2 text-center md:text-left">
+                    <span className="block text-[10px] tracking-[0.3em] uppercase text-stone-500 mb-4 font-medium">
+                        El Origen del Oficio
+                    </span>
+                    <h2 className="text-xl md:text-2xl font-light tracking-wide text-stone-200 mb-4 uppercase">
+                        La Técnica
+                    </h2>
+                    <p className="text-sm text-stone-400 font-normal leading-relaxed mb-6">
+                        En Enigma Joyas de Autor, combinamos técnicas ancestrales como el alambrismo y el martillado
+                        con acabados oxidados contemporáneos que otorgan carácter y autenticidad a cada pieza.
+                    </p>
+                    <button
+                        onClick={() => navigate('/el-oficio')}
+                        className="inline-block text-xs tracking-widest uppercase text-[#c8964a] hover:text-stone-100 transition-colors bg-none border-none cursor-pointer"
+                    >
+                        Ver más detalles del taller →
+                    </button>
                 </div>
+
             </div>
         </section>
     );

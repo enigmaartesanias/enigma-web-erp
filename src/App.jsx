@@ -15,6 +15,7 @@ import ProductGridPage from './pages/ProductGridPage';
 import DashboardMaster from './pages/DashboardMaster';
 import ColeccionCobre from './pages/ColeccionCobre';
 import AndruDonaldsCollection from './pages/AndruDonaldsCollection';
+import ElOficioEditorial from './views/ElOficioEditorial';
 
 // Componentes
 import Header from './components/Header/Header';
@@ -111,6 +112,7 @@ const MainContent = () => {
                 <Route path="/shippingpolicies" element={<ShippingPolicies />} />
                 <Route path="/videoshorts" element={<VideoShorts />} />
                 <Route path="/el-taller" element={<ElTaller />} />
+                <Route path="/el-oficio" element={<ElOficioEditorial />} />
                 <Route path="/cobre" element={<ColeccionCobre />} />
                 <Route path="/carrusel" element={<PublicCarousel />} />
                 <Route path="/andru-donalds" element={<AndruDonaldsCollection />} />

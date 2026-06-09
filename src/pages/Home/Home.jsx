@@ -1,12 +1,13 @@
+import React from 'react';
 import SimpleImageHero from '../../components/Hero/SimpleImageHero';
 import CategoriaShowcase from '../../components/CategoriaShowcase';
 import Galeria from '../../components/Galeria';
 import Hero3 from '../../components/Hero/Hero3';
 import CelebrityCollaboration from '../../components/CelebrityCollaboration';
 import SocialProof from '../../components/SocialProof';
-import HomeVideoShort from '../../components/HomeVideoShort';
-
 import PublicCarousel from '../../components/PublicCarousel';
+
+// El componente de la miniatura gris (HomeVideoShort) ha sido removido de aquí por completo
 
 const Home = () => {
   return (
@@ -19,13 +20,12 @@ const Home = () => {
           <SimpleImageHero />
         </div>
         <CelebrityCollaboration />
+
+        {/* Aquí está tu sección principal de la técnica (foto labradorita) */}
         <CategoriaShowcase />
 
         <Galeria />
-
         <Hero3 />
-
-        <HomeVideoShort />
         <PublicCarousel />
         <SocialProof />
       </main>

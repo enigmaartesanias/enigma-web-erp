@@ -3,17 +3,17 @@ import { Link } from 'react-router-dom';
 
 const Hero3 = () => {
   return (
-    <section className="bg-gray-900 py-8 md:py-16 relative overflow-hidden">
+    <section className="bg-white py-8 md:py-16 relative overflow-hidden">
       {/* Textura sutil en el fondo de la sección */}
       <div className="absolute inset-0 z-0">
-          <div 
-              className="absolute inset-0 opacity-20" 
-              style={{ 
-                  backgroundImage: 'radial-gradient(rgba(255,255,255,0.15) 1px, transparent 1px)', 
-                  backgroundSize: '24px 24px' 
-              }}
-          ></div>
-          <div className="absolute inset-0 bg-gradient-to-b from-black via-transparent to-black pointer-events-none opacity-80"></div>
+        <div
+          className="absolute inset-0 opacity-20"
+          style={{
+            backgroundImage: 'radial-gradient(rgba(255,255,255,0.15) 1px, transparent 1px)',
+            backgroundSize: '24px 24px'
+          }}
+        ></div>
+        <div className="absolute inset-0 bg-gradient-to-b from-black via-transparent to-black pointer-events-none opacity-80"></div>
       </div>
 
       <div className="container mx-auto px-4 md:px-8 lg:px-16 relative z-10">
@@ -34,16 +34,16 @@ const Hero3 = () => {
               <h2 className="text-xl md:text-2xl font-light text-white mb-3 uppercase tracking-widest" style={{ letterSpacing: '0.15em' }}>
                 La Técnica
               </h2>
-              <div className="w-12 h-0.5 mb-4 mx-auto md:mx-0" style={{ backgroundColor: '#c8964a', boxShadow: '0 0 8px rgba(200,150,74,0.8)' }}></div>
+              <div className="w-12 h-0.5 mb-4 mx-auo md:mx-0" style={{ backgroundColor: '#c8964a', boxShadow: '0 0 8px rgba(200,150,74,0.8)' }}></div>
 
               {/* Cita */}
               <blockquote className="text-center md:text-left text-sm md:text-base lg:text-lg text-gray-300 pl-0 mb-4 leading-relaxed font-light">
-                En Enigma Artesanías y Accesorios, combinamos técnicas ancestrales como el alambrismo y el martillado con acabados envejecidos que otorgan carácter y autenticidad.
+                En Enigma joyas de autor, combinamos técnicas ancestrales como el alambrismo y el martillado con acabados envejecidos que otorgan carácter y autenticidad.
               </blockquote>
 
               <div>
                 <Link
-                  to="/el-taller"
+                  to="/el-oficio"
                   className="inline-block hover:text-white font-medium transition-colors text-sm"
                   style={{ color: '#c8964a' }}
                 >

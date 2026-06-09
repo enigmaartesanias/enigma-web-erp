@@ -1,23 +1,22 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import logo from '../../assets/logo.png';
-import youtubeIcon from '../../assets/youtube.ico';
 
 /* ─────────────────────────────────────────
    Paleta Enigma — inline para evitar purge
    de Tailwind v2 sin JIT
 ───────────────────────────────────────── */
 const C = {
-    dorado:   '#c8964a',
-    text:     '#1a1a1a',
-    sub:      '#b09070',
-    crema:    '#fdf9f5',
-    bordes:   '#ede8e2',
-    icCobre:  '#fdf0e0',
-    icPlata:  '#f0f0f0',
+    dorado: '#c8964a',
+    text: '#1a1a1a',
+    sub: '#b09070',
+    crema: '#fdf9f5',
+    bordes: '#ede8e2',
+    icCobre: '#fdf0e0',
+    icPlata: '#f0f0f0',
     icAlpaca: '#eef4f0',
-    textCobre:'#a07030',
-    textAlp:  '#4a7a5a',
+    textCobre: '#a07030',
+    textAlp: '#4a7a5a',
 };
 
 const groupLabel = {
@@ -29,24 +28,24 @@ const groupLabel = {
 const jewelryByMaterial = {
     Cobre: [
         { name: 'Toda la Colección', path: '/cobre#coleccion' },
-        { name: 'Aretes',            path: '/catalogo/Cobre/ARETE' },
-        { name: 'Pulseras',          path: '/catalogo/Cobre/PULSERA' },
-        { name: 'Anillos',           path: '/catalogo/Cobre/ANILLO' },
-        { name: 'Collares',          path: '/catalogo/Cobre/COLLAR' },
-        { name: 'Vinchas / Tiaras',  path: '/catalogo/Cobre/VINCHA_TIARA' },
-        { name: 'Tobilleras',        path: '/catalogo/Cobre/TOBILLERA' },
+        { name: 'Aretes', path: '/catalogo/Cobre/ARETE' },
+        { name: 'Pulseras', path: '/catalogo/Cobre/PULSERA' },
+        { name: 'Anillos', path: '/catalogo/Cobre/ANILLO' },
+        { name: 'Collares', path: '/catalogo/Cobre/COLLAR' },
+        { name: 'Vinchas / Tiaras', path: '/catalogo/Cobre/VINCHA_TIARA' },
+        { name: 'Tobilleras', path: '/catalogo/Cobre/TOBILLERA' },
     ],
     Alpaca: [
-        { name: 'Anillos',  path: '/catalogo/Alpaca/ANILLO' },
+        { name: 'Anillos', path: '/catalogo/Alpaca/ANILLO' },
         { name: 'Pulseras', path: '/catalogo/Alpaca/PULSERA' },
         { name: 'Collares', path: '/catalogo/Alpaca/COLLAR' },
-        { name: 'Aretes',   path: '/catalogo/Alpaca/ARETE' },
+        { name: 'Aretes', path: '/catalogo/Alpaca/ARETE' },
     ],
     Plata: [
-        { name: 'Anillos',  path: '/catalogo/Plata/ANILLO' },
+        { name: 'Anillos', path: '/catalogo/Plata/ANILLO' },
         { name: 'Pulseras', path: '/catalogo/Plata/PULSERA' },
         { name: 'Collares', path: '/catalogo/Plata/COLLAR' },
-        { name: 'Aretes',   path: '/catalogo/Plata/ARETE' },
+        { name: 'Aretes', path: '/catalogo/Plata/ARETE' },
     ],
 };
 
@@ -55,15 +54,14 @@ const jewelryByMaterial = {
 ───────────────────────────────────────── */
 const Header = () => {
     const navigate = useNavigate();
-    const [menuOpen, setMenuOpen]             = useState(false);
+    const [menuOpen, setMenuOpen] = useState(false);
     const [activeDropdown, setActiveDropdown] = useState(null);
 
-    const openMenu  = () => setMenuOpen(true);
-    const closeAll  = () => { setMenuOpen(false); setActiveDropdown(null); };
+    const openMenu = () => setMenuOpen(true);
+    const closeAll = () => { setMenuOpen(false); setActiveDropdown(null); };
     const toggleMenu = () => setMenuOpen(o => !o);
     const toggleDropdown = (m) => setActiveDropdown(d => d === m ? null : m);
 
-    /* Navegar y cerrar el drawer */
     const goTo = (path) => {
         closeAll();
         navigate(path);
@@ -99,7 +97,6 @@ const Header = () => {
         return () => document.removeEventListener('mousedown', onDown);
     }, [activeDropdown]);
 
-    /* ── Fila de metal con submenú ── */
     const MetalRow = ({ symbol, label, sub, iconBg, iconColor, metal }) => {
         const open = activeDropdown === metal;
         return (
@@ -107,7 +104,7 @@ const Header = () => {
                 <button
                     onClick={() => toggleDropdown(metal)}
                     style={{
-                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                        display: 'flex', alignItems: 'center', justifyBetween: 'space-between',
                         width: '100%', padding: '12px 0', background: 'none', border: 'none',
                         cursor: 'pointer', textAlign: 'left',
                     }}
@@ -131,7 +128,7 @@ const Header = () => {
                         display: 'inline-block',
                         transform: open ? 'rotate(90deg)' : 'none',
                         transition: 'transform 0.2s',
-                    }}>›</span>
+                    }} Position>›</span>
                 </button>
 
                 {open && (
@@ -145,7 +142,7 @@ const Header = () => {
                     }}>
                         {jewelryByMaterial[metal].map(j => {
                             const isToda = j.name === 'Toda la Colección';
-                            const isNew  = j.name.includes('Vinchas') || j.name.includes('Tobilleras');
+                            const isNew = j.name.includes('Vinchas') || j.name.includes('Tobilleras');
                             return (
                                 <li key={j.name}>
                                     <button
@@ -184,7 +181,6 @@ const Header = () => {
         );
     };
 
-    /* ── Fila de servicio / nosotros (botón que navega) ── */
     const NavRow = ({ path, iconBg, iconColor, iconContent, label, sub, hasDivider = true }) => (
         <div style={hasDivider ? { borderBottom: `1px solid ${C.bordes}` } : {}}>
             <button
@@ -216,7 +212,6 @@ const Header = () => {
 
     return (
         <>
-            {/* ── Media queries para ocultar elementos mobile/desktop ── */}
             <style>{`
                 @media (min-width: 768px) {
                     #hamburger-btn  { display: none !important; }
@@ -235,18 +230,16 @@ const Header = () => {
                     position: 'fixed', top: 0, left: 0, right: 0,
                     height: 64, zIndex: 100,
                     backgroundColor: '#ffffff',
-                    boxShadow: '0 1px 8px rgba(0,0,0,0.08)',
+                    boxShadow: '0 1px 8px rgba(0,0,0,0.04)',
                     display: 'flex', alignItems: 'center',
                     justifyContent: 'space-between',
                     padding: '0 24px',
                 }}
             >
-                {/* Logo */}
                 <button onClick={() => goTo('/')} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center' }}>
                     <img src={logo} alt="Enigma artesanías" style={{ height: 40, display: 'block' }} />
                 </button>
 
-                {/* Botón hamburguesa — solo mobile (controlado por CSS) */}
                 <button
                     id="hamburger-btn"
                     onClick={toggleMenu}
@@ -282,48 +275,32 @@ const Header = () => {
                     }} />
                 </button>
 
-                {/* Menú desktop — solo desktop (controlado por CSS) */}
+                {/* Nav Desktop */}
                 <ul id="desktop-nav" style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 4, listStyle: 'none', margin: 0, padding: 0 }}>
                     <li>
-                        <Link to="/sobremi" style={{ display: 'block', padding: '8px 12px', fontSize: 14, fontWeight: 500, color: '#1a1a1a', textDecoration: 'none' }}
-                            onMouseEnter={e => e.currentTarget.style.color = '#888'}
-                            onMouseLeave={e => e.currentTarget.style.color = '#1a1a1a'}>
-                            Sobre mí
+                        <Link to="/el-oficio" style={{ display: 'block', padding: '8px 12px', fontSize: 14, fontWeight: 500, color: '#1a1a1a', textDecoration: 'none' }}>
+                            El Oficio
                         </Link>
                     </li>
                     {['Cobre', 'Alpaca', 'Plata'].map(material => (
                         <li key={material} className="has-submenu" style={{ position: 'relative' }}
-                            onMouseEnter={() => openMenu && setActiveDropdown(material)}
+                            onMouseEnter={() => setActiveDropdown(material)}
                             onMouseLeave={() => setActiveDropdown(null)}
                         >
-                            <button
-                                style={{ padding: '8px 12px', fontSize: 14, fontWeight: 500, color: '#1a1a1a', background: 'none', border: 'none', cursor: 'pointer' }}
-                                onClick={() => toggleDropdown(material)}
-                            >
+                            <button style={{ padding: '8px 12px', fontSize: 14, fontMedium: 500, color: '#1a1a1a', background: 'none', border: 'none', cursor: 'pointer' }}>
                                 {material}
                             </button>
                             {activeDropdown === material && (
                                 <ul style={{
                                     position: 'absolute', top: '100%', left: 0,
                                     backgroundColor: '#fff', border: '1px solid #e5e7eb',
-                                    boxShadow: '0 4px 16px rgba(0,0,0,0.10)',
+                                    boxShadow: '0 4px 16px rgba(0,0,0,0.06)',
                                     minWidth: 180, listStyle: 'none', margin: 0, padding: '6px 0',
                                     zIndex: 200,
                                 }}>
                                     {jewelryByMaterial[material].map(j => (
                                         <li key={j.name}>
-                                            <Link
-                                                to={j.path}
-                                                onClick={() => setActiveDropdown(null)}
-                                                style={{
-                                                    display: 'block', padding: '8px 16px',
-                                                    fontSize: 14, textDecoration: 'none',
-                                                    fontWeight: j.name === 'Toda la Colección' ? 600 : 400,
-                                                    color: j.name === 'Toda la Colección' ? C.dorado : '#374151',
-                                                }}
-                                                onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#fdf9f2'; }}
-                                                onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent'; }}
-                                            >
+                                            <Link to={j.path} onClick={() => setActiveDropdown(null)} style={{ display: 'block', padding: '8px 16px', fontSize: 14, textDecoration: 'none', fontWeight: j.name === 'Toda la Colección' ? 600 : 400, color: j.name === 'Toda la Colección' ? C.dorado : '#374151' }}>
                                                 {j.name}
                                             </Link>
                                         </li>
@@ -333,131 +310,60 @@ const Header = () => {
                         </li>
                     ))}
                     <li>
-                        <Link to="/catalogo/all/PERSONALIZADO" onClick={() => setActiveDropdown(null)}
-                            style={{ display: 'block', padding: '8px 12px', fontSize: 14, fontWeight: 500, color: '#1a1a1a', textDecoration: 'none' }}
-                            onMouseEnter={e => e.currentTarget.style.color = '#888'}
-                            onMouseLeave={e => e.currentTarget.style.color = '#1a1a1a'}>
+                        <Link to="/catalogo/all/PERSONALIZADO" style={{ display: 'block', padding: '8px 12px', fontSize: 14, fontWeight: 500, color: '#1a1a1a', textDecoration: 'none' }}>
                             Personalizados
                         </Link>
                     </li>
                     <li>
-                        <Link to="/videoshorts" onClick={() => setActiveDropdown(null)}
-                            style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '8px 12px', fontSize: 14, fontWeight: 500, color: '#1a1a1a', textDecoration: 'none' }}
-                            onMouseEnter={e => e.currentTarget.style.color = '#888'}
-                            onMouseLeave={e => e.currentTarget.style.color = '#1a1a1a'}>
-                            <img src={youtubeIcon} alt="YouTube" style={{ width: 16, height: 16 }} />
-                            Videos Shorts
-                        </Link>
-                    </li>
-                    <li>
-                        <Link to="/contacto" onClick={() => setActiveDropdown(null)}
-                            style={{ display: 'block', padding: '8px 12px', fontSize: 14, fontWeight: 500, color: '#1a1a1a', textDecoration: 'none' }}
-                            onMouseEnter={e => e.currentTarget.style.color = '#888'}
-                            onMouseLeave={e => e.currentTarget.style.color = '#1a1a1a'}>
+                        <Link to="/contacto" style={{ display: 'block', padding: '8px 12px', fontSize: 14, fontWeight: 500, color: '#1a1a1a', textDecoration: 'none' }}>
                             Contacto
                         </Link>
                     </li>
                 </ul>
             </header>
 
-            {/* ══════════════════════════════════════════════
-                OVERLAY — cierra el drawer al clic fuera
-            ══════════════════════════════════════════════ */}
-            {menuOpen && (
-                <div
-                    id="menu-overlay"
-                    onClick={closeAll}
-                    style={{
-                        position: 'fixed', inset: 0,
-                        zIndex: 98,
-                        backgroundColor: 'rgba(0,0,0,0.25)',
-                    }}
-                />
-            )}
+            {menuOpen && <div id="menu-overlay" onClick={closeAll} style={{ position: 'fixed', inset: 0, zIndex: 98, backgroundColor: 'rgba(0,0,0,0.15)' }} />}
 
-            {/* ══════════════════════════════════════════════
-                DRAWER MÓVIL
-                FUERA del <header> → sin conflicto de
-                stacking context → links y scroll funcionan
-            ══════════════════════════════════════════════ */}
+            {/* BARRA DE NAVEGACIÓN MÓVIL (DRAWER) */}
             <nav
                 id="mobile-menu-nav"
                 style={{
-                    position: 'fixed',
-                    top: 64, left: 0, right: 0, bottom: 0,
-                    zIndex: 99,
-                    display: 'flex', flexDirection: 'column',
-                    backgroundColor: '#ffffff',
+                    position: 'fixed', top: 64, left: 0, right: 0, bottom: 0, zIndex: 99,
+                    display: 'flex', flexDirection: 'column', backgroundColor: '#ffffff',
                     transform: menuOpen ? 'translateX(0)' : 'translateX(-100%)',
                     transition: 'transform 0.3s ease-in-out',
-                    boxShadow: menuOpen ? '4px 0 24px rgba(0,0,0,0.15)' : 'none',
+                    boxShadow: menuOpen ? '4px 0 24px rgba(0,0,0,0.08)' : 'none',
                 }}
             >
-                {/* Cuerpo scrolleable (flex:1 + overflowY:auto) */}
-                <div style={{
-                    flex: 1,
-                    overflowY: 'auto',
-                    overflowX: 'hidden',
-                    WebkitOverflowScrolling: 'touch',
-                    padding: '16px 20px',
-                }}>
+                <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', WebkitOverflowScrolling: 'touch', padding: '16px 20px' }}>
+
                     {/* COLECCIONES */}
                     <span style={groupLabel}>Colecciones</span>
-
                     <div style={{ borderBottom: `1px solid ${C.bordes}` }}>
-                        <MetalRow symbol="Cu" label="Cobre" sub="6 categorías disponibles"
-                            iconBg={C.icCobre} iconColor={C.textCobre} metal="Cobre" />
+                        <MetalRow symbol="Cu" label="Cobre" sub="6 categorías disponibles" iconBg={C.icCobre} iconColor={C.textCobre} metal="Cobre" />
                     </div>
                     <div style={{ borderBottom: `1px solid ${C.bordes}` }}>
-                        <MetalRow symbol="Al" label="Alpaca" sub="Anillos · Pulseras · Collares · Aretes"
-                            iconBg={C.icAlpaca} iconColor={C.textAlp} metal="Alpaca" />
+                        <MetalRow symbol="Al" label="Alpaca" sub="Anillos · Pulseras · Collares · Aretes" iconBg={C.icAlpaca} iconColor={C.textAlp} metal="Alpaca" />
                     </div>
                     <div style={{ marginBottom: 20 }}>
-                        <MetalRow symbol="Ag" label="Plata" sub="Anillos · Pulseras · Collares · Aretes"
-                            iconBg={C.icPlata} iconColor="#666" metal="Plata" />
+                        <MetalRow symbol="Ag" label="Plata" sub="Anillos · Pulseras · Collares · Aretes" iconBg={C.icPlata} iconColor="#666" metal="Plata" />
                     </div>
 
                     {/* SERVICIOS */}
                     <div style={{ borderTop: `1px solid ${C.bordes}`, paddingTop: 16, marginBottom: 20 }}>
                         <span style={groupLabel}>Servicios</span>
-                        <NavRow
-                            path="/catalogo/all/PERSONALIZADO"
-                            iconBg="#e8f0f8" iconColor="#4a6b82" iconContent="+"
-                            label="Personalizados" sub="Diseña tu pieza única"
-                        />
-                        <NavRow
-                            path="/videoshorts"
-                            iconBg="#fce8e8" iconColor="#e53e3e"
-                            iconContent={<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>}
-                            label="Videos Shorts" sub="Proceso y técnicas"
-                            hasDivider={false}
-                        />
+                        <NavRow path="/catalogo/all/PERSONALIZADO" iconBg="#e8f0f8" iconColor="#4a6b82" iconContent="+" label="Personalizados" sub="Diseña tu pieza única" hasDivider={false} />
                     </div>
 
-                    {/* NOSOTROS */}
+                    {/* NOSOTROS (Unificado y Corregido) */}
                     <div style={{ borderTop: `1px solid ${C.bordes}`, paddingTop: 16, marginBottom: 8 }}>
                         <span style={groupLabel}>Nosotros</span>
-                        <NavRow
-                            path="/sobremi"
-                            iconBg="#f0ece8" iconColor="#888" iconContent="—"
-                            label="Sobre mí" sub="Historia del taller"
-                        />
-                        <NavRow
-                            path="/contacto"
-                            iconBg="#f0f0f0" iconColor="#666" iconContent="@"
-                            label="Contacto" sub="WhatsApp · Redes"
-                            hasDivider={false}
-                        />
+                        <NavRow path="/el-oficio" iconBg="#f0ece8" iconColor={C.dorado} iconContent="—" label="El Oficio" sub="Orfebre · Joyería de Autor" />
+                        <NavRow path="/contacto" iconBg="#f0f0f0" iconColor="#666" iconContent="@" label="Contacto" sub="WhatsApp · Redes" hasDivider={false} />
                     </div>
 
                     {/* Footer del drawer */}
-                    <div style={{
-                        borderTop: `1px solid ${C.bordes}`,
-                        margin: '12px -20px 0',
-                        padding: '12px 20px',
-                        backgroundColor: C.crema,
-                        display: 'flex', alignItems: 'center', gap: 8,
-                    }}>
+                    <div style={{ borderTop: `1px solid ${C.bordes}`, margin: '12px -20px 0', padding: '12px 20px', backgroundColor: C.crema, display: 'flex', alignItems: 'center', gap: 8 }}>
                         <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: C.dorado, flexShrink: 0, display: 'inline-block' }} />
                         <span style={{ fontSize: 10, color: C.sub, letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 500 }}>
                             artesaniasenigma.com · Lima, Perú

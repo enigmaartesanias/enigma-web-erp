@@ -39,9 +39,14 @@ const ColeccionCobre = () => {
         <div className="absolute inset-0 bg-[#1a0e06]/50" />
         <div className="relative z-10 flex flex-col items-center max-w-2xl py-10 md:py-16">
           <p className="text-[#c8964a] uppercase text-[10px] md:text-xs tracking-[0.22em] mb-3 font-medium">Colección</p>
-          <h1 className="text-3xl md:text-5xl text-[#faf9f7] font-serif font-light mb-3 leading-tight tracking-wide">Cobre Artesanal</h1>
+          <h1 
+            className="text-[2.8rem] md:text-[4rem] text-[#faf9f7] mb-3 leading-tight"
+            style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: '300', letterSpacing: '0.04em' }}
+          >Cobre Artesanal</h1>
           <div className="w-8 h-px bg-[#c8964a] opacity-70 mb-3" />
-          <p className="text-[#faf9f7]/60 text-xs md:text-base font-light tracking-widest">Metal vivo · forjado a mano en Lima</p>
+          <p 
+            style={{ fontSize: '11px', fontWeight: '300', letterSpacing: '0.28em', color: 'rgba(250,249,247,0.5)' }}
+          >Metal vivo · forjado a mano en Lima</p>
         </div>
       </div>
 
@@ -51,10 +56,10 @@ const ColeccionCobre = () => {
         {/* [2] HISTORIA */}
         <section className="space-y-4">
           <div className="text-center mb-4">
-            <p className="text-[10px] tracking-[0.2em] uppercase text-[#c8964a] font-medium">Historia del Cobre</p>
+            <p style={{ fontSize: '9px', fontWeight: '500', letterSpacing: '0.22em', color: '#c8964a', textTransform: 'uppercase' }}>Historia del Cobre</p>
           </div>
           <div className="flex flex-col md:flex-row gap-6 items-center bg-white border border-[#e8e4de] rounded-lg p-5 shadow-sm">
-            <p className="flex-1 text-[#6a5a4a] leading-relaxed text-sm md:text-base font-light">
+            <p className="flex-1" style={{ textAlign: 'left', fontFamily: "'Cormorant Garamond', serif", fontSize: '16px', fontWeight: '300', fontStyle: 'italic', color: '#6a5a4a', lineHeight: '1.85' }}>
               El cobre ha sido parte de la humanidad desde los albores de la civilización. En Enigma, retomamos esta herencia milenaria para forjar joyas que no solo adornan, sino que conectan con nuestras raíces. Cada martillazo y cada doblez es un tributo a las técnicas ancestrales que mantenemos vivas en nuestro taller.
             </p>
             <div className="w-full md:w-1/3 h-48 md:h-64 rounded-xl overflow-hidden shadow-sm flex-shrink-0 bg-gray-100 border border-[#e8e4de]">
@@ -66,29 +71,29 @@ const ColeccionCobre = () => {
         {/* [3] ACORDEONES */}
         <section className="space-y-3">
           <details className="group border border-[#e8e4de] bg-white rounded-lg p-4 shadow-sm">
-            <summary className="flex justify-between items-center text-sm md:text-base font-medium text-[#2a2018] cursor-pointer hover:text-[#c8964a] list-none select-none [&::-webkit-details-marker]:hidden">
-              <span className="tracking-wide font-medium">Mística y Propiedades</span>
+            <summary className="flex justify-between items-center cursor-pointer hover:text-[#c8964a] list-none select-none [&::-webkit-details-marker]:hidden">
+              <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '11px', fontWeight: '400', letterSpacing: '0.18em', textTransform: 'uppercase', color: '#2a2018' }}>Mística y Propiedades</span>
               <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 transform group-open:rotate-180 transition-transform duration-300 text-[#c8964a]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 9l-7 7-7-7" />
               </svg>
             </summary>
             <div className="mt-4 border-t border-[#e8e4de]/40 pt-4">
-              <p className="text-[#6a5a4a] leading-relaxed text-sm md:text-base font-light">
+              <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', fontWeight: '300', color: '#6a5a4a', lineHeight: '1.75' }}>
                 Más allá de su belleza cálida, el cobre es conocido como un excelente conductor de energía. Históricamente se le atribuyen propiedades sanadoras, ayudando a equilibrar las energías del cuerpo, aliviar dolencias articulares y fomentar la vitalidad física y espiritual de quien lo porta.
               </p>
             </div>
           </details>
 
           <details className="group border border-[#e8e4de] bg-white rounded-lg p-4 shadow-sm">
-            <summary className="flex justify-between items-center text-sm md:text-base font-medium text-[#2a2018] cursor-pointer hover:text-[#c8964a] list-none select-none [&::-webkit-details-marker]:hidden">
-              <span className="tracking-wide font-medium">Proceso de Creación</span>
+            <summary className="flex justify-between items-center cursor-pointer hover:text-[#c8964a] list-none select-none [&::-webkit-details-marker]:hidden">
+              <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '11px', fontWeight: '400', letterSpacing: '0.18em', textTransform: 'uppercase', color: '#2a2018' }}>Proceso de Creación</span>
               <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 transform group-open:rotate-180 transition-transform duration-300 text-[#c8964a]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 9l-7 7-7-7" />
               </svg>
             </summary>
             <div className="mt-4 border-t border-[#e8e4de]/40 pt-4">
               <div className="flex flex-col md:flex-row-reverse gap-6 items-center">
-                <p className="flex-1 text-[#6a5a4a] leading-relaxed text-sm md:text-base font-light">
+                <p className="flex-1" style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', fontWeight: '300', color: '#6a5a4a', lineHeight: '1.75' }}>
                   Todo comienza con un trozo de cobre crudo. Mediante el fuego, el martillo y la paciencia, moldeamos cada curva. No usamos moldes; cada pieza es esculpida a mano, garantizando que tu joya sea única.
                 </p>
                 <div className="w-full md:w-1/3 h-48 md:h-64 rounded-xl overflow-hidden shadow-sm flex-shrink-0 bg-gray-100 border border-[#e8e4de]">
@@ -102,8 +107,9 @@ const ColeccionCobre = () => {
         {/* [4] GRID DE CATEGORÍAS — botones separados, fondo transparente, banda cobre */}
         <section id="coleccion" className="scroll-mt-24">
           <div className="text-center mb-6">
-            <p className="text-[10px] tracking-[0.2em] uppercase text-[#c8964a] mb-2 font-medium">Colección</p>
-            <h2 className="text-2xl md:text-3xl font-serif font-light text-[#2a2018] tracking-wide">Explora piezas en cobre</h2>
+            <p style={{ fontSize: '9px', fontWeight: '500', letterSpacing: '0.24em', color: '#c8964a', textTransform: 'uppercase' }}>Colección</p>
+            <div style={{ width: '20px', height: '0.5px', background: '#c8964a', opacity: 0.6, margin: '6px auto 10px' }} />
+            <h2 className="text-[26px] md:text-[32px]" style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: '300', color: '#2a2018', letterSpacing: '0.05em' }}>Explora piezas en cobre</h2>
           </div>
 
           {/* Grid sin marco contenedor — cada botón flota separado */}
@@ -179,24 +185,35 @@ const ColeccionCobre = () => {
                   </span>
                 )}
 
-                {/* Banda inferior tono cobre/rosado */}
+                {/* Banda inferior refinada */}
                 <div style={{
                   position: 'absolute',
-                  bottom: 0,
-                  left: 0,
-                  right: 0,
-                  zIndex: 10,
-                  background: 'linear-gradient(to right, #c49a7a, #b8836a)',
-                  color: '#3a1a08',
-                  textAlign: 'center',
-                  fontSize: '0.7rem',
-                  fontWeight: 600,
-                  letterSpacing: '0.14em',
-                  textTransform: 'uppercase',
-                  padding: '7px 4px',
-                  borderTop: '1px solid rgba(255,255,255,0.2)',
+                  bottom: 0, left: 0, right: 0, zIndex: 10,
+                  background: 'rgba(242,238,234,0.93)',
+                  borderTop: '0.5px solid rgba(200,150,74,0.25)',
+                  padding: '9px 12px 10px',
+                  display: 'flex',
+                  alignItems: 'baseline',
+                  justifyContent: 'space-between',
                 }}>
-                  {categoria.nombre}
+                  <span style={{
+                    fontFamily: "'Cormorant Garamond', serif",
+                    fontSize: '14px',
+                    fontWeight: '300',
+                    color: '#2a2018',
+                    letterSpacing: '0.08em',
+                  }}>
+                    {categoria.nombre}
+                  </span>
+                  <span style={{
+                    fontFamily: "'Inter', sans-serif",
+                    fontSize: '10px',
+                    fontWeight: '300',
+                    color: '#c8964a',
+                    letterSpacing: '0.05em',
+                  }}>
+                    ver →
+                  </span>
                 </div>
               </Link>
             ))}
@@ -206,18 +223,22 @@ const ColeccionCobre = () => {
         {/* [5] CUIDADO DEL COBRE */}
         <section className="pt-4">
           <details className="group border border-[#e8e4de] bg-white rounded-lg p-4 shadow-sm">
-            <summary className="flex justify-between items-center text-sm md:text-base font-medium text-[#2a2018] cursor-pointer hover:text-[#c8964a] list-none select-none [&::-webkit-details-marker]:hidden">
-              <span className="tracking-wide font-medium">Cuidado y Limpieza</span>
+            <summary className="flex justify-between items-center cursor-pointer hover:text-[#c8964a] list-none select-none [&::-webkit-details-marker]:hidden">
+              <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '11px', fontWeight: '400', letterSpacing: '0.18em', textTransform: 'uppercase', color: '#2a2018' }}>Cuidado y Limpieza</span>
               <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 transform group-open:rotate-180 transition-transform duration-300 text-[#c8964a]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 9l-7 7-7-7" />
               </svg>
             </summary>
-            <div className="mt-4 border-t border-[#e8e4de]/40 pt-4">
-              <ol className="space-y-3 text-[#6a5a4a] text-sm md:text-base font-light list-decimal pl-5 marker:text-[#c8964a] marker:font-medium">
-                <li className="pl-1"><span className="text-[#2a2018] font-medium">Limpieza natural</span> — Limón y sal devuelven el brillo. Frota suave y enjuaga.</li>
-                <li className="pl-1"><span className="text-[#2a2018] font-medium">Evita humedad</span> — Retírala antes de bañarte o nadar.</li>
-                <li className="pl-1"><span className="text-[#2a2018] font-medium">Almacenamiento</span> — Bolsitas de tela individual, lugar seco.</li>
-              </ol>
+            <div className="mt-4 border-t border-[#e8e4de]/40 pt-4 space-y-2">
+              <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', fontWeight: '300', color: '#6a5a4a', lineHeight: '1.75' }}>
+                — Limpieza natural. Limón y sal devuelven el brillo; frota suave y enjuaga.
+              </p>
+              <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', fontWeight: '300', color: '#6a5a4a', lineHeight: '1.75' }}>
+                — Evita la humedad. Retírala antes de bañarte o nadar.
+              </p>
+              <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', fontWeight: '300', color: '#6a5a4a', lineHeight: '1.75' }}>
+                — Almacenamiento. Guárdala en bolsita de tela individual en lugar seco.
+              </p>
             </div>
           </details>
         </section>

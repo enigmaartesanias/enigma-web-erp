@@ -128,7 +128,7 @@ const Header = () => {
                         display: 'inline-block',
                         transform: open ? 'rotate(90deg)' : 'none',
                         transition: 'transform 0.2s',
-                    }} Position>›</span>
+                    }}>›</span>
                 </button>
 
                 {open && (

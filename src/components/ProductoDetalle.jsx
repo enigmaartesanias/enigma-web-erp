@@ -97,17 +97,7 @@ const ChevronIcono = ({ abierto }) => (
     </svg>
 );
 
-// ── Mini bandera vía flagcdn.com (evita el problema de emoji en Windows) ──
-const FlagImg = ({ code, alt }) => (
-    <img
-        src={`https://flagcdn.com/20x15/${code}.png`}
-        srcSet={`https://flagcdn.com/40x30/${code}.png 2x`}
-        width="20"
-        height="15"
-        alt={alt}
-        style={{ display: 'inline-block', borderRadius: '2px', flexShrink: 0 }}
-    />
-);
+
 
 // ── Ícono Compartir ──
 const ShareIcono = () => (
@@ -133,18 +123,14 @@ const ProductoDetalle = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [modalImageUrl, setModalImageUrl] = useState('');
 
-    // ── Estados nuevos: internacionalización ──
-    const [region, setRegion] = useState('peru'); // 'peru' | 'america' | 'europa'
-    const [precioVisible, setPrecioVisible] = useState(true);
+    // ── Variables de región fija (solo Perú) ──
+    const region = 'peru';
+    const t = UI_TEXT.es;
 
     // ── Estados nuevos: acordeones y descripción ──
     const [acordeon1, setAcordeon1] = useState(false);
     const [acordeon2, setAcordeon2] = useState(false);
     const [isExpanded, setIsExpanded] = useState(false);
-
-    // ── Helper de idioma: ES para Perú, EN para América/Europa ──
-    const lang = region === 'peru' ? 'es' : 'en';
-    const t = UI_TEXT[lang];
 
     // ── Handlers de galería — NO TOCAR ──
     const openModal = (url) => {
@@ -156,34 +142,13 @@ const ProductoDetalle = () => {
         setModalImageUrl('');
     };
 
-    // ── Emite evento global con precio+región activos (para Footer) ──
+    // ── Emite evento global con precio PEN (para Footer) ──
     const emitirPrecioRegion = (reg, prod) => {
         if (!prod) return;
-        let precioStr = '';
-        const tieneIntlLocal = prod.precio_internacional_base !== null &&
-            prod.precio_internacional_base !== undefined &&
-            Number(prod.precio_internacional_base) > 0;
-        if (reg === 'peru') {
-            precioStr = prod.precio ? `S/ ${Number(prod.precio).toFixed(2)} PEN` : '';
-        } else if (reg === 'america') {
-            precioStr = tieneIntlLocal ? `$ ${Math.round(Number(prod.precio_internacional_base) * FACTOR_AMERICA)} USD` : '';
-        } else if (reg === 'europa') {
-            precioStr = tieneIntlLocal ? `€ ${Math.round(Number(prod.precio_internacional_base) * FACTOR_EUROPA)} EUR` : '';
-        }
+        const precioStr = prod.precio ? `S/ ${Number(prod.precio).toFixed(2)} PEN` : '';
         window.dispatchEvent(new CustomEvent('enigma:region-precio', {
-            detail: { region: reg, precio: precioStr, titulo: prod.titulo }
+            detail: { region: 'peru', precio: precioStr, titulo: prod.titulo }
         }));
-    };
-
-    // ── Cambio de región con fade ──
-    const cambiarRegion = (nuevaRegion) => {
-        if (nuevaRegion === region) return;
-        setPrecioVisible(false);
-        setTimeout(() => {
-            setRegion(nuevaRegion);
-            emitirPrecioRegion(nuevaRegion, producto);
-            setPrecioVisible(true);
-        }, 180);
     };
 
     // ── useEffect: fetchProducto — NO TOCAR ──
@@ -372,117 +337,48 @@ const ProductoDetalle = () => {
     const precioUSD = tieneIntl ? Math.round(Number(producto.precio_internacional_base) * FACTOR_AMERICA) : null;
     const precioEUR = tieneIntl ? Math.round(Number(producto.precio_internacional_base) * FACTOR_EUROPA) : null;
 
-    const getPrecioDisplay = () => {
-        if (region === 'america') {
-            return tieneIntl ? `$ ${precioUSD} USD` : t.consultarPrecio;
-        }
-        if (region === 'europa') {
-            return tieneIntl ? `€ ${precioEUR} EUR` : t.consultarPrecio;
-        }
-        return producto.precio ? `S/ ${Number(producto.precio).toFixed(2)} PEN` : t.precioConsultar;
-    };
+    // ── Descripción: siempre español ──
+    const getDescripcion = () => producto.descripcion;
 
-    const mostrarDesde = region === 'america' || region === 'europa' ? tieneIntl : !!producto.precio;
 
-    const getMicroDesc = () => {
-        if (region === 'america') {
-            return tieneIntl
-                ? 'Author piece + premium packaging. Includes certified international shipping. Final price may vary depending on wrist size or custom elements.'
-                : 'Price to be quoted. Contact us via WhatsApp to get a shipping estimate.';
-        }
-        if (region === 'europa') {
-            return tieneIntl
-                ? 'Author piece + premium packaging. Includes certified international shipping. Final price may vary depending on wrist size or custom elements.'
-                : 'Price to be quoted. Contact us via WhatsApp to get a shipping estimate.';
-        }
-        return 'Precio de campaña. No incluye IGV. Envío por cotizar según destino. El costo final puede variar según la medida de tu muñeca o iniciales adicionales.';
-    };
 
-    // ── Contenido de acordeón Envío ──
-    const getEnvioTexto = () => {
-        if (region === 'america' || region === 'europa') {
-            return 'Certified international shipping with active tracking code. Estimated delivery: 20 business days. Your piece travels in the brand\'s premium packaging. Shipping cost is included in the displayed price.';
-        }
-        return 'Enviamos a todo el país vía Olva Courier (Lima: S/ 10.00, provincias según destino) o Shalom (tarifa según agencia destino, pago en destino). También puedes recoger sin costo en nuestro taller en Carabayllo, Lima, previa coordinación.';
-    };
-
-    const getPagoTexto = () => {
-        if (region === 'america' || region === 'europa') {
-            return 'We work on a made-to-order basis. Payment is coordinated manually via Western Union from the agency of your choice. We will send you the exact details once you confirm your order via WhatsApp.';
-        }
-        return 'Aceptamos Yape, Plin y transferencias bancarias (BCP, Interbank) a nombre de Aldo Magallanes — número 960 282 376. Taller principal en Carabayllo, Lima (atención previa cita).';
-    };
-
-    // ── Descripción: usa descripcion_en si existe y región es internacional ──
-    const getDescripcion = () => {
-        if (region !== 'peru' && producto.descripcion_en) {
-            return producto.descripcion_en;
-        }
-        return producto.descripcion;
-    };
-
-    // ── Construcción del mensaje de WhatsApp ──
+    // ── Construcción del mensaje de WhatsApp (Español, Perú, PEN) ──
     const buildWhatsAppMessage = () => {
         const nombre = producto.titulo;
         const url = window.location.href;
-
-        if (region === 'peru') {
-            const precioLocal = producto.precio
-                ? `S/. ${Number(producto.precio).toFixed(2)} PEN`
-                : 'precio por consultar';
-            return `Hola Enigma, vi la *${nombre}* (${precioLocal}) en tu web y me gustaría cotizarla.\n\n🔗 ${url}`;
-        }
-
-        const divisa = tieneIntl
-            ? (region === 'america' ? `$ ${precioUSD} USD` : `€ ${precioEUR} EUR`)
-            : '(price on request)';
-
-        return `Hi Enigma, I saw the *${nombre}* (${divisa}) on your website and I'd like to place an order.\n\n🔗 ${url}`;
+        const precioLocal = producto.precio
+            ? `S/. ${Number(producto.precio).toFixed(2)} PEN`
+            : 'precio por consultar';
+        return `Hola Enigma, vi la *${nombre}* (${precioLocal}) en tu web y me gustaría cotizarla.\n\n🔗 ${url}`;
     };
 
-    // ── Compartir con Web Share API (Apunta al endpoint de Open Graph) ──
+    // ── Compartir con Web Share API — NO TOCAR ──
     const handleShare = async () => {
         const urlCompartir = `https://artesaniasenigma.com/producto/${producto.id}`;
-
-        let shareText = '';
-        if (region === 'peru') {
-            const precioLocal = producto.precio
-                ? `S/. ${Number(producto.precio).toFixed(2)} PEN`
-                : 'precio por consultar';
-            shareText = `✨ ${producto.titulo}\nDesde ${precioLocal} (no incluye envío)\nJoyería de autor hecha a pedido.`;
-        } else {
-            const divisa = tieneIntl
-                ? (region === 'america' ? `$ ${precioUSD} USD` : `€ ${precioEUR} EUR`)
-                : '(price on request)';
-            shareText = `✨ ${producto.titulo}\nFrom ${divisa} (shipping included)\nHandcrafted exclusively to order.`;
-        }
+        const precioLocal = producto.precio
+            ? `S/. ${Number(producto.precio).toFixed(2)} PEN`
+            : 'precio por consultar';
+        const shareText = `✨ ${producto.titulo}\nDesde ${precioLocal} (no incluye envío)\nJoyería de autor hecha a pedido.`;
 
         if (navigator.share) {
             try {
                 await navigator.share({
                     title: `${producto.titulo} | Enigma Joyería`,
                     text: shareText,
-                    url: urlCompartir   // ← este genera el preview automático
+                    url: urlCompartir,
                 });
             } catch (error) {
-                console.error("Error al compartir:", error);
+                console.error('Error al compartir:', error);
             }
         } else {
             try {
                 await navigator.clipboard.writeText(`${shareText}\n${urlCompartir}`);
-                alert("Enlace copiado al portapapeles");
+                alert('Enlace copiado al portapapeles');
             } catch (error) {
-                console.error("No se pudo copiar", error);
+                console.error('No se pudo copiar', error);
             }
         }
     };
-
-    // ── Botones del segmented control con banderas (flagcdn.com) ──
-    const regiones = [
-        { key: 'peru', label: 'Perú', flag: 'pe', flagAlt: 'Perú' },
-        { key: 'america', label: 'América', flag: 'us', flagAlt: 'EE.UU.' },
-        { key: 'europa', label: 'Europa', flag: 'eu', flagAlt: 'Europa' },
-    ];
 
     return (
         <main className="pt-20 pb-12 bg-gray-50 min-h-screen">
@@ -549,99 +445,65 @@ const ProductoDetalle = () => {
                 {/* ── Detalles del producto ── */}
                 <div className="py-2 mb-8 space-y-6">
 
-                    {/* 1. Título — Playfair Display */}
+                    {/* 1. Título — Cormorant Garamond */}
                     <h2
-                        className="text-xl md:text-2xl font-semibold text-gray-900 tracking-wide text-left leading-snug"
-                        style={{ fontFamily: "'Playfair Display', serif" }}
+                        style={{
+                            fontFamily: "'Cormorant Garamond', serif",
+                            fontSize: '26px',
+                            fontWeight: '300',
+                            color: '#1c1917',
+                            textAlign: 'left',
+                            lineHeight: '1.2',
+                            margin: '0',
+                        }}
                     >
                         {producto.titulo}
                     </h2>
 
                     {/* 1.5. Material Base */}
                     <p className="text-xs text-gray-500 italic tracking-wide mt-1.5 mb-4 text-left">
-                        {t.materialBase}: {producto.material_principal || "Cobre puro forjado con pátinas turquesas"}
+                        Material base: {producto.material_principal || "Cobre puro forjado con pátinas turquesas"}
                     </p>
 
-                    {/* 2+3. Selector de región con precio integrado */}
-                    <div
-                        className="border border-gray-200 rounded-xl p-1 flex gap-1 bg-gray-50"
-                        style={{
-                            transition: 'opacity 180ms ease-in-out',
-                            opacity: precioVisible ? 1 : 0,
-                        }}
-                    >
-                        {regiones.map(({ key, label, flag, flagAlt }) => {
-                            const isActive = region === key;
+                    {/* 2. Bloque de precios fijo */}
+                    <div style={{ padding: '0', marginBottom: '0' }}>
+                        {/* Precio PEN destacado */}
+                        <div style={{
+                            fontFamily: "'Cormorant Garamond', serif",
+                            fontSize: '22px',
+                            fontWeight: '400',
+                            color: '#1c1917',
+                            letterSpacing: '0.02em',
+                        }}>
+                            {producto.precio
+                                ? `S/ ${Number(producto.precio).toFixed(2)}`
+                                : 'Precio a consultar'}
+                            {producto.precio && (
+                                <span style={{ fontSize: '13px', fontWeight: '300',
+                                    letterSpacing: '0.1em', marginLeft: '4px' }}>PEN</span>
+                            )}
+                        </div>
 
-                            // Calcular precio para esta región
-                            let precioBtn = null;
-                            if (key === 'peru') {
-                                precioBtn = producto.precio
-                                    ? `S/ ${Number(producto.precio).toFixed(2)}`
-                                    : null;
-                            } else if (key === 'america') {
-                                precioBtn = tieneIntl ? `$ ${precioUSD} USD` : null;
-                            } else if (key === 'europa') {
-                                precioBtn = tieneIntl ? `€ ${precioEUR} EUR` : null;
-                            }
+                        {/* Nota envío Perú */}
+                        <p style={{ fontSize: '11px', fontWeight: '300', color: '#78716c',
+                            lineHeight: '1.6', margin: '5px 0 0' }}>
+                            · Retiro en showroom o envío a nivel nacional<br />
+                            · Costo adicional según agencia Olva / Shalom
+                        </p>
 
-                            return (
-                                <button
-                                    key={key}
-                                    onClick={() => cambiarRegion(key)}
-                                    className="flex-1 flex flex-col items-center justify-center gap-0.5 rounded-lg py-2 px-1 transition-all duration-300"
-                                    style={
-                                        isActive
-                                            ? {
-                                                fontFamily: "'Inter', sans-serif",
-                                                fontSize: '0.7rem',
-                                                fontWeight: '600',
-                                                color: '#ffffff',
-                                                backgroundColor: '#1a1a1a',
-                                                boxShadow: '0 2px 8px rgba(0,0,0,0.25)',
-                                                letterSpacing: '0.02em',
-                                            }
-                                            : {
-                                                fontFamily: "'Inter', sans-serif",
-                                                fontSize: '0.7rem',
-                                                fontWeight: '400',
-                                                color: '#9ca3af',
-                                                backgroundColor: 'transparent',
-                                            }
-                                    }
-                                >
-                                    <span className="flex items-center gap-1">
-                                        <FlagImg code={flag} alt={flagAlt} />
-                                        <span>{label}</span>
-                                    </span>
-                                    {isActive && precioBtn && (
-                                        <span
-                                            style={{
-                                                fontSize: '0.75rem',
-                                                fontWeight: '700',
-                                                color: '#ffffff',
-                                                letterSpacing: '0.01em',
-                                                marginTop: '2px',
-                                            }}
-                                        >
-                                            {precioBtn}
-                                        </span>
-                                    )}
-                                    {isActive && !precioBtn && (
-                                        <span
-                                            style={{
-                                                fontSize: '0.65rem',
-                                                fontWeight: '400',
-                                                color: 'rgba(255,255,255,0.7)',
-                                                marginTop: '2px',
-                                            }}
-                                        >
-                                            {lang === 'es' ? 'a consultar' : 'on request'}
-                                        </span>
-                                    )}
-                                </button>
-                            );
-                        })}
+                        {/* Precios internacionales — solo si tieneIntl */}
+                        {tieneIntl && (
+                            <>
+                                <div style={{ fontSize: '13px', fontWeight: '300', color: '#57534e',
+                                    marginTop: '14px', letterSpacing: '0.03em' }}>
+                                    $ {precioUSD} USD &nbsp;/&nbsp; € {precioEUR} EUR
+                                </div>
+                                <p style={{ fontSize: '10px', fontWeight: '300', fontStyle: 'italic',
+                                    color: '#a8a29e', margin: '3px 0 0', lineHeight: '1.5' }}>
+                                    · Precio internacional incluye envío certificado prioritario
+                                </p>
+                            </>
+                        )}
                     </div>
 
                     {/* 4. Descripción de la pieza */}
@@ -670,19 +532,22 @@ const ProductoDetalle = () => {
                     )}
 
                     {/* 5. Nota artesanal */}
-                    <div className="text-left border-l-2 border-gray-200 pl-4 py-1">
-                        <h3 className="text-xs font-medium text-gray-900 mb-1 flex items-center gap-2">
-                            🔹 {t.notaArtesanal}
-                        </h3>
-                        <p className="text-xs text-gray-600 font-light italic">
-                            🛠 {t.notaImagen}
-                        </p>
-                        <p className="text-xs text-gray-600 font-medium mt-2">
-                            {t.notaIgv}
+                    <div style={{
+                        borderLeft: '1.5px solid #e7e5e4',
+                        paddingLeft: '14px',
+                        paddingTop: '4px',
+                        paddingBottom: '4px',
+                        marginTop: '0',
+                    }}>
+                        <p style={{ fontSize: '11px', fontWeight: '300', fontStyle: 'italic',
+                            color: '#a8a29e', lineHeight: '1.7', margin: '0' }}>
+                            Cada pieza se forja a mano de manera individual en nuestro taller,
+                            haciendo de cada diseño una creación exclusiva con alma propia
+                            y ligeras variaciones naturales.
                         </p>
                     </div>
 
-                    {/* 6. Acordeón: Detalles de envío */}
+                    {/* 6. Acordeón: Cuidado del metal */}
                     <div className="border-t border-b border-gray-100">
                         <button
                             className="w-full flex justify-between items-center cursor-pointer py-3.5 text-left bg-transparent border-none"
@@ -693,7 +558,7 @@ const ProductoDetalle = () => {
                                 className="text-xs font-medium text-gray-600 uppercase tracking-wider"
                                 style={{ fontFamily: "'Inter', sans-serif", letterSpacing: '0.1em' }}
                             >
-                                {t.envioTitulo}
+                                CUIDADO DEL METAL
                             </span>
                             <ChevronIcono abierto={acordeon1} />
                         </button>
@@ -708,12 +573,14 @@ const ProductoDetalle = () => {
                                 className="text-xs text-gray-500 font-light leading-relaxed pb-4 pr-2"
                                 style={{ fontFamily: "'Inter', sans-serif" }}
                             >
-                                {getEnvioTexto()}
+                                Limpia tu pieza con un paño suave y seco después de cada uso.
+                                Evita el contacto con agua, perfumes y cremas. Guárdala en la bolsa
+                                de tela incluida para preservar su acabado y pátina original.
                             </p>
                         </div>
                     </div>
 
-                    {/* 7. Acordeón: Métodos de pago */}
+                    {/* 7. Acordeón: Políticas e intercambios */}
                     <div className="border-b border-gray-100">
                         <button
                             className="w-full flex justify-between items-center cursor-pointer py-3.5 text-left bg-transparent border-none"
@@ -724,7 +591,7 @@ const ProductoDetalle = () => {
                                 className="text-xs font-medium text-gray-600 uppercase tracking-wider"
                                 style={{ fontFamily: "'Inter', sans-serif", letterSpacing: '0.1em' }}
                             >
-                                {t.pagoTitulo}
+                                POLÍTICAS E INTERCAMBIOS
                             </span>
                             <ChevronIcono abierto={acordeon2} />
                         </button>
@@ -739,21 +606,38 @@ const ProductoDetalle = () => {
                                 className="text-xs text-gray-500 font-light leading-relaxed pb-4 pr-2"
                                 style={{ fontFamily: "'Inter', sans-serif" }}
                             >
-                                {getPagoTexto()}
+                                Trabajamos bajo pedido. Cada pieza se fabrica una vez confirmado
+                                el encargo vía WhatsApp. Coordinamos el método de pago y los
+                                detalles de envío o retiro de forma personalizada en la conversación.
                             </p>
                         </div>
                     </div>
 
-                    {/* 8. Botón CTA WhatsApp */}
+                    {/* 8. Botón CTA */}
                     <div className="pt-3">
                         <a
                             href={`https://wa.me/51960282376?text=${encodeURIComponent(buildWhatsAppMessage())}`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="block w-full text-center bg-green-700 hover:bg-green-800 text-white text-sm font-medium tracking-wide rounded-xl py-3.5 px-6 shadow-md hover:shadow-lg transition-all duration-300"
-                            style={{ fontFamily: "'Inter', sans-serif" }}
+                            style={{
+                                display: 'block',
+                                width: '100%',
+                                textAlign: 'center',
+                                background: '#2c2420',
+                                color: '#f5f3ef',
+                                border: 'none',
+                                borderRadius: '2px',
+                                padding: '14px 20px',
+                                fontFamily: "'Inter', sans-serif",
+                                fontSize: '10px',
+                                fontWeight: '500',
+                                letterSpacing: '0.22em',
+                                textTransform: 'uppercase',
+                                textDecoration: 'none',
+                                cursor: 'pointer',
+                            }}
                         >
-                            {t.cotizar}
+                            Solicitar esta pieza
                         </a>
                     </div>
 

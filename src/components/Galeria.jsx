@@ -5,8 +5,6 @@ import { useState, useEffect } from "react";
 // 1. DATOS Y CONFIGURACIÓN
 // ==========================================
 
-
-
 const DEFAULT_SUBTITLE = "Explora nuestra colección exclusiva";
 
 const BASE_ROUTES = {
@@ -29,7 +27,6 @@ const BASE_ROUTES = {
         pulseras: "/catalogo/Cobre/Pulsera",
         anillos: "/catalogo/Cobre/Anillo",
         collares: "/catalogo/Cobre/Collar",
-
         all: "/cobre#coleccion",
     },
 };
@@ -41,14 +38,20 @@ const CATEGORIES = [
     { name: "Collares", slug: "Collar" },
 ];
 
+// ── Categorías extendidas para el acordeón de Cobre ──
+const COBRE_CATEGORIES = [
+    { name: "Aretes", slug: "Arete", nuevo: false },
+    { name: "Pulseras", slug: "Pulsera", nuevo: false },
+    { name: "Anillos", slug: "Anillo", nuevo: false },
+    { name: "Collares", slug: "Collar", nuevo: false },
+    { name: "Vinchas", slug: "VINCHA_TIARA", nuevo: true },
+    { name: "Tobilleras", slug: "TOBILLERA", nuevo: true },
+];
+
 const MATERIAL_CARDS = [
     {
         name: "Colección Cobre",
         key: "cobre",
-
-        // ---------------------------------------------------------
-        // CAMBIA LA RUTA DE LA IMAGEN AQUÍ PARA LA COLECCIÓN COBRE
-        // ---------------------------------------------------------
         image: "/images/pulsera3.jpg",
         categories: [],
         isCustom: false,
@@ -56,10 +59,6 @@ const MATERIAL_CARDS = [
     {
         name: "Colección Alpaca",
         key: "alpaca",
-
-        // ---------------------------------------------------------
-        // CAMBIA LA RUTA DE LA IMAGEN AQUÍ PARA LA COLECCIÓN ALPACA
-        // ---------------------------------------------------------
         image: "/images/collar23.jpg",
         categories: CATEGORIES,
         isCustom: false,
@@ -67,10 +66,6 @@ const MATERIAL_CARDS = [
     {
         name: "Colección Plata",
         key: "plata",
-
-        // ---------------------------------------------------------
-        // CAMBIA LA RUTA DE LA IMAGEN AQUÍ PARA LA COLECCIÓN PLATA
-        // ---------------------------------------------------------
         image: "/images/anillo2.jpg",
         categories: CATEGORIES,
         isCustom: false,
@@ -92,57 +87,194 @@ const MaterialCard = ({ card, isActive, isAnyCardActive, onToggle }) => {
         return `/catalogo/${materialCapitalized}/${categorySlug}`;
     };
 
-    // Detectar si estamos en modo móvil
     const [isMobile, setIsMobile] = useState(false);
 
     useEffect(() => {
         const mediaQuery = window.matchMedia("(max-width: 768px)");
         setIsMobile(mediaQuery.matches);
-
         const listener = () => setIsMobile(mediaQuery.matches);
         mediaQuery.addEventListener("change", listener);
-
         return () => mediaQuery.removeEventListener("change", listener);
     }, []);
 
+    // ── TARJETA COBRE: acordeón con categorías directas ──
     if (key === 'cobre') {
+        const [cobreOpen, setCobreOpen] = useState(false);
+
         return (
             <div className="w-full">
-                {/* Contenedor de la Imagen Estática */}
-                <div className="relative w-full h-64 md:h-80 rounded-xl overflow-hidden shadow-sm">
+                {/* Imagen */}
+                <div
+                    className="relative w-full rounded-xl overflow-hidden cursor-pointer"
+                    style={{ height: isMobile ? '200px' : '260px' }}
+                    onClick={() => setCobreOpen(!cobreOpen)}
+                >
                     <img
                         src={image}
                         alt={name}
-                        className="w-full h-full object-cover transition-transform duration-700 ease-in-out transform group-hover:scale-105"
+                        className="w-full h-full object-cover transition-transform duration-700"
+                        style={{ transform: cobreOpen ? 'scale(1.03)' : 'scale(1)' }}
                     />
-
-                    {/* Título centrado (tipo fade Alpaca) */}
-                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
-                        <div
-                            className="backdrop-blur-sm px-4 py-1.5 rounded-lg border border-white/20"
-                            style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
-                        >
-                            <h3 className="text-lg font-normal text-white tracking-wide text-center">
-                                {name}
-                            </h3>
-                        </div>
-                    </div>
-
-                    {/* Filtro/overlay sutil */}
-                    <div className="absolute inset-0 bg-black/5 pointer-events-none" />
+                    {/* Overlay sutil siempre presente */}
+                    <div className="absolute inset-0 bg-black/10 pointer-events-none" />
                 </div>
 
-                {/* Texto copy decorativo debajo de la imagen */}
-                <div className="mt-4 flex justify-center">
-                    <span className="text-sm text-gray-500 font-medium tracking-wide text-center group-hover:text-[#c8964a] transition-colors duration-300">
-                        Aretes · Pulseras · Anillos · y más →
+                {/* Cabecera con chevron — toca para expandir */}
+                <div
+                    className="flex items-center justify-between px-1 pt-3 pb-1 cursor-pointer"
+                    onClick={() => setCobreOpen(!cobreOpen)}
+                >
+                    <div>
+                        <p style={{
+                            fontFamily: "'Inter', sans-serif",
+                            fontSize: '9px',
+                            fontWeight: '500',
+                            letterSpacing: '0.22em',
+                            textTransform: 'uppercase',
+                            color: '#c8964a',
+                            margin: '0 0 2px',
+                        }}>
+                            Colección
+                        </p>
+                        <p style={{
+                            fontFamily: "'Cormorant Garamond', serif",
+                            fontSize: '18px',
+                            fontWeight: '300',
+                            color: '#2a2018',
+                            letterSpacing: '0.04em',
+                            margin: 0,
+                        }}>
+                            Cobre Artesanal
+                        </p>
+                    </div>
+                    <span style={{
+                        fontFamily: "'Inter', sans-serif",
+                        fontSize: '18px',
+                        fontWeight: '300',
+                        color: '#c8964a',
+                        lineHeight: 1,
+                        transition: 'transform 0.3s ease',
+                        transform: cobreOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                        display: 'inline-block',
+                        paddingRight: '2px',
+                    }}>
+                        ⌄
                     </span>
                 </div>
+
+                {/* Acordeón: grid 2 columnas × 3 filas */}
+                <div style={{
+                    maxHeight: cobreOpen ? '280px' : '0px',
+                    overflow: 'hidden',
+                    transition: 'max-height 0.35s ease-in-out',
+                }}>
+                    <div style={{
+                        borderTop: '0.5px solid #ede9e4',
+                        padding: '12px 2px 4px',
+                    }}>
+                        <p style={{
+                            fontFamily: "'Inter', sans-serif",
+                            fontSize: '8px',
+                            fontWeight: '500',
+                            letterSpacing: '0.22em',
+                            textTransform: 'uppercase',
+                            color: '#a8a29e',
+                            margin: '0 0 10px',
+                        }}>
+                            Explorar por categoría
+                        </p>
+
+                        {/* Grid 2 columnas */}
+                        <div style={{
+                            display: 'grid',
+                            gridTemplateColumns: '1fr 1fr',
+                            gap: '7px',
+                        }}>
+                            {COBRE_CATEGORIES.map((cat) => (
+                                <Link
+                                    key={cat.slug}
+                                    to={`/catalogo/Cobre/${cat.slug}`}
+                                    style={{
+                                        fontFamily: "'Inter', sans-serif",
+                                        fontSize: '11px',
+                                        fontWeight: '400',
+                                        letterSpacing: '0.1em',
+                                        color: '#3a2a1a',
+                                        background: '#f7f4f0',
+                                        border: '0.5px solid #e8e2da',
+                                        borderRadius: '8px',
+                                        padding: '10px 12px',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'space-between',
+                                        textDecoration: 'none',
+                                        transition: 'background 0.18s',
+                                    }}
+                                    onMouseEnter={e => e.currentTarget.style.background = '#ede6dc'}
+                                    onMouseLeave={e => e.currentTarget.style.background = '#f7f4f0'}
+                                >
+                                    <span>{cat.name}</span>
+                                    <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                        {cat.nuevo && (
+                                            <span style={{
+                                                display: 'inline-block',
+                                                width: '6px',
+                                                height: '6px',
+                                                background: '#c8964a',
+                                                borderRadius: '50%',
+                                                flexShrink: 0,
+                                            }} />
+                                        )}
+                                        <span style={{ color: '#c8964a', fontSize: '13px', fontWeight: '300' }}>›</span>
+                                    </span>
+                                </Link>
+                            ))}
+                        </div>
+
+                        {/* Ver toda la colección */}
+                        <Link
+                            to="/cobre#coleccion"
+                            style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '5px',
+                                marginTop: '12px',
+                                paddingTop: '12px',
+                                borderTop: '0.5px solid #ede9e4',
+                                fontFamily: "'Inter', sans-serif",
+                                fontSize: '9px',
+                                fontWeight: '400',
+                                letterSpacing: '0.18em',
+                                textTransform: 'uppercase',
+                                color: '#a8a29e',
+                                textDecoration: 'none',
+                            }}
+                        >
+                            Ver historia de la colección &nbsp;→
+                        </Link>
+                    </div>
+                </div>
+
+                {/* Texto copy cuando está cerrado */}
+                {!cobreOpen && (
+                    <div className="mt-2 flex justify-center">
+                        <span style={{
+                            fontFamily: "'Inter', sans-serif",
+                            fontSize: '12px',
+                            fontWeight: '300',
+                            color: '#a8a29e',
+                            letterSpacing: '0.05em',
+                        }}>
+                            Aretes · Pulseras · Anillos · y más
+                        </span>
+                    </div>
+                )}
             </div>
         );
     }
 
-    // Helper para agrupar categorías en pares
+    // ── Helper para agrupar categorías en pares ──
     const chunkedCategories = [];
     if (categories) {
         for (let i = 0; i < categories.length; i += 2) {
@@ -153,13 +285,12 @@ const MaterialCard = ({ card, isActive, isAnyCardActive, onToggle }) => {
     // En móviles
     if (isMobile) {
         return (
-            <div 
+            <div
                 className="w-full relative overflow-hidden rounded-xl transition-shadow duration-300 cursor-pointer"
                 onClick={() => {
                     if (key === 'cobre') navigate('/cobre#coleccion');
                 }}
             >
-                {/* Imagen Estática / Grid */}
                 <div className="relative w-full h-64 p-3">
                     {images && images.length >= 5 ? (
                         <div className="grid grid-cols-4 grid-rows-2 gap-1 w-full h-full rounded-lg overflow-hidden relative group">
@@ -178,7 +309,6 @@ const MaterialCard = ({ card, isActive, isAnyCardActive, onToggle }) => {
                             <div className="col-span-1 row-span-1 overflow-hidden">
                                 <img src={images[4]} alt={name} className="w-full h-full object-cover transition-transform duration-700 ease-in-out transform group-hover:scale-105" />
                             </div>
-                            {/* Botón Central Colección Cobre (Mobile) */}
                             <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
                                 <Link to={getRoute(key, "all")} className="pointer-events-auto px-4 py-2 bg-black/60 text-white border border-white/40 rounded-lg hover:bg-black/80 transition-colors backdrop-blur-sm shadow-lg text-sm font-semibold tracking-wide">
                                     Galería Cobre
@@ -192,12 +322,7 @@ const MaterialCard = ({ card, isActive, isAnyCardActive, onToggle }) => {
                             className="w-full h-full object-cover transition-all duration-500 rounded-lg"
                         />
                     )}
-                    {/* Overlay suave para móvil */}
                     <div className="absolute inset-0 bg-black/10 pointer-events-none" />
-
-
-
-                    {/* Título centrado sobre la imagen (solo en móvil, excepto Cobre que ya tiene su botón) */}
                     {!(images && images.length >= 5) && (
                         <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
                             <div
@@ -211,8 +336,6 @@ const MaterialCard = ({ card, isActive, isAnyCardActive, onToggle }) => {
                         </div>
                     )}
                 </div>
-
-                {/* Enlaces debajo de la imagen (solo en móvil) */}
                 <div className="mt-5 flex flex-col items-center gap-2">
                     {isCustom ? (
                         <Link
@@ -241,8 +364,6 @@ const MaterialCard = ({ card, isActive, isAnyCardActive, onToggle }) => {
                             ))}
                         </>
                     )}
-
-                    {/* Botón Ver Todo para Móvil */}
                     {!isCustom && (
                         <Link
                             to={getRoute(key, "all")}
@@ -275,7 +396,6 @@ const MaterialCard = ({ card, isActive, isAnyCardActive, onToggle }) => {
             }}
             style={{ zIndex: 1 }}
         >
-            {/* Contenedor de la Imagen Estática / Grid */}
             <div className="relative w-full h-80 rounded-xl overflow-hidden shadow-sm">
                 {images && images.length >= 5 ? (
                     <div className="grid grid-cols-4 grid-rows-2 gap-1 w-full h-full relative group">
@@ -294,7 +414,6 @@ const MaterialCard = ({ card, isActive, isAnyCardActive, onToggle }) => {
                         <div className="col-span-1 row-span-1 overflow-hidden">
                             <img src={images[4]} alt={name} className="w-full h-full object-cover transition-transform duration-700 ease-in-out transform group-hover:scale-105" />
                         </div>
-                        {/* Botón Central Colección Cobre (Desktop) */}
                         <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
                             <Link to={getRoute(key, "all")} className="pointer-events-auto px-6 py-2.5 bg-black/60 text-white border border-white/40 rounded-lg hover:bg-black/80 transition-all backdrop-blur-sm shadow-xl text-base font-medium tracking-wide hover:scale-105">
                                 Galería Cobre
@@ -308,11 +427,7 @@ const MaterialCard = ({ card, isActive, isAnyCardActive, onToggle }) => {
                         className="w-full h-full object-cover transition-transform duration-700 ease-in-out transform hover:scale-105"
                     />
                 )}
-
-                {/* Fondo base suave (gris/negro al 10-15%) para contexto, sin oscurecer demasiado */}
                 <div className="absolute inset-0 bg-black/10 pointer-events-none" />
-
-                {/* Overlay de categorías (aparece al activar o hacer hover) */}
                 <div
                     style={{
                         position: "absolute",
@@ -370,8 +485,6 @@ const MaterialCard = ({ card, isActive, isAnyCardActive, onToggle }) => {
                                             ))}
                                         </div>
                                     ))}
-
-                                    {/* Botón Ver Todo para Desktop */}
                                     <Link
                                         to={getRoute(key, "all")}
                                         className="mt-4 text-sm text-gray-400 hover:text-white font-normal transition-colors flex items-center gap-1 group"
@@ -419,20 +532,17 @@ const Galeria = () => {
                     </p>
                 </div>
 
-                {/* Flex row en desktop, column en móvil */}
                 <div className="flex flex-col gap-12 lg:flex-row lg:justify-between lg:gap-6">
                     {MATERIAL_CARDS.map((card) => {
                         const isCobre = card.key === 'cobre';
                         const CardContent = (
                             <>
-                                {/* Título y descripción solo visibles en desktop */}
                                 <h3 className="hidden lg:block text-xl sm:text-2xl font-semibold text-gray-800 tracking-tight mb-1 text-center group-hover:text-[#c8964a] transition-colors duration-300">
                                     {card.name}
                                 </h3>
                                 <p className="hidden lg:block text-xs sm:text-sm text-gray-600 mb-3 text-center">
                                     {card.description}
                                 </p>
-
                                 <MaterialCard
                                     card={card}
                                     isActive={activeCard === card.key}
@@ -442,15 +552,16 @@ const Galeria = () => {
                             </>
                         );
 
+                        // Cobre ya NO es un <Link> wrapper — el acordeón maneja
+                        // la navegación internamente
                         if (isCobre) {
                             return (
-                                <Link
+                                <div
                                     key={card.key}
-                                    to="/cobre#coleccion"
-                                    className="flex flex-col bg-white p-4 rounded-xl shadow-xl border border-gray-200 transition-all duration-300 hover:shadow-2xl w-full lg:w-[32%] cursor-pointer group hover:border-[#c8964a]/50"
+                                    className="flex flex-col bg-white p-4 rounded-xl shadow-xl border border-gray-200 transition-all duration-300 hover:shadow-2xl w-full lg:w-[32%]"
                                 >
                                     {CardContent}
-                                </Link>
+                                </div>
                             );
                         }
 

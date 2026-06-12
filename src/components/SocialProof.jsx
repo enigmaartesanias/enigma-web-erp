@@ -12,7 +12,7 @@ const SocialProof = () => {
         },
         {
             platform: 'TikTok',
-            followers: '3.6k',
+            followers: '4k',
             icon: FaTiktok,
             url: 'https://www.tiktok.com/@artesaniasenigma',
             color: 'from-gray-900 to-gray-700',
@@ -20,7 +20,7 @@ const SocialProof = () => {
         },
         {
             platform: 'Facebook',
-            followers: '17k',
+            followers: '18k',
             icon: FaFacebook,
             url: 'https://www.facebook.com/enigmaartesaniasyaccesorios/',
             color: 'from-blue-600 to-blue-800',
@@ -47,7 +47,7 @@ const SocialProof = () => {
                     </h2>
                     <div className="w-16 h-0.5 bg-yellow-500 mx-auto mb-3"></div>
                     <p className="text-base md:text-xl text-gray-600">
-                        Más de <span className="font-bold text-gray-900">46,000 seguidores</span> confían en nuestro arte
+                        Más de <span className="font-bold text-gray-900">47,000 seguidores</span> confían en nuestro arte
                     </p>
                 </div>
 

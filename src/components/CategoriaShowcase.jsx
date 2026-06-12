@@ -10,19 +10,18 @@ const CategoriaShowcase = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
+    // ── Fetch — NO TOCAR ──
     useEffect(() => {
         async function fetchProductos() {
             try {
                 setLoading(true);
                 setError(null);
-
                 const { data, error } = await supabase
                     .from('productos')
                     .select('*')
                     .eq('activo', true)
                     .eq('is_novedoso', true)
                     .order('created_at', { ascending: false });
-
                 if (error) throw error;
                 setProductos(data || []);
             } catch (err) {
@@ -32,7 +31,6 @@ const CategoriaShowcase = () => {
                 setLoading(false);
             }
         }
-
         fetchProductos();
     }, []);
 
@@ -66,16 +64,14 @@ const CategoriaShowcase = () => {
 
     if (loading) {
         return (
-            <section className="py-16 bg-gray-50">
+            <section className="py-16 bg-gray-900">
                 <div className="container mx-auto px-4">
-                    <div className="text-center">
-                        <div className="animate-pulse">
-                            <div className="h-8 bg-gray-300 rounded w-64 mx-auto mb-4"></div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                {[1, 2, 3, 4, 5, 6].map(i => (
-                                    <div key={i} className="bg-gray-300 rounded-lg h-56"></div>
-                                ))}
-                            </div>
+                    <div className="animate-pulse text-center">
+                        <div className="h-6 bg-gray-700 rounded w-48 mx-auto mb-4"></div>
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                            {[1, 2, 3, 4].map(i => (
+                                <div key={i} className="bg-gray-800 rounded h-56"></div>
+                            ))}
                         </div>
                     </div>
                 </div>
@@ -85,112 +81,153 @@ const CategoriaShowcase = () => {
 
     if (error) {
         return (
-            <section className="py-16 bg-gray-50">
+            <section className="py-16 bg-gray-900">
                 <div className="container mx-auto px-4 text-center">
-                    <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+                    <p style={{ color: '#a8a29e', fontFamily: "'Inter', sans-serif", fontSize: '12px' }}>
                         {error}
-                    </div>
+                    </p>
                 </div>
             </section>
         );
     }
 
-    if (productos.length === 0) {
-        return (
-            <section className="py-16 bg-gray-50">
-                <div className="container mx-auto px-4 text-center">
-                    <p className="text-gray-500">No hay productos destacados en este momento.</p>
-                </div>
-            </section>
-        );
-    }
+    if (productos.length === 0) return null;
 
     return (
-        <section className="py-8 md:py-16 relative overflow-hidden bg-gray-900">
-            {/* Fondo "Vintage" Oscuro */}
-            <div className="absolute inset-0 z-0">
-                {/* Patrón de textura sutil (puntos finos) usando inline style para Tailwind v2 */}
-                <div 
-                    className="absolute inset-0 opacity-20" 
-                    style={{ 
-                        backgroundImage: 'radial-gradient(rgba(255,255,255,0.15) 1px, transparent 1px)', 
-                        backgroundSize: '24px 24px' 
-                    }}
-                ></div>
-                {/* Sombra interior para darle profundidad de marco */}
-                <div className="absolute inset-0 bg-gradient-to-b from-black via-transparent to-black pointer-events-none opacity-80"></div>
-            </div>
+        <section className="relative overflow-hidden" style={{ background: '#111009', padding: '2.5rem 0 3rem' }}>
+
+            {/* Textura de fondo */}
+            <div
+                className="absolute inset-0 opacity-10 pointer-events-none"
+                style={{
+                    backgroundImage: 'radial-gradient(rgba(255,255,255,0.12) 1px, transparent 1px)',
+                    backgroundSize: '24px 24px',
+                }}
+            />
+            {/* Degradado superior e inferior */}
+            <div className="absolute inset-0 bg-gradient-to-b from-black via-transparent to-black pointer-events-none opacity-70" />
 
             <div className="container mx-auto px-3 relative z-10">
-                {/* Título del showcase */}
-                <div className="text-center mb-6 md:mb-12">
-                    <h2 className="text-2xl md:text-3xl font-light text-white tracking-widest mb-4" style={{ letterSpacing: '0.25em' }}>
-                        NOVEDADES
+
+                {/* ── Título rediseñado ── */}
+                <div className="text-center mb-8">
+                    <p style={{
+                        fontFamily: "'Inter', sans-serif",
+                        fontSize: '9px',
+                        fontWeight: '500',
+                        letterSpacing: '0.26em',
+                        textTransform: 'uppercase',
+                        color: '#c8964a',
+                        margin: '0 0 10px',
+                    }}>
+                        Del taller a tus manos
+                    </p>
+                    <h2 style={{
+                        fontFamily: "'Cormorant Garamond', serif",
+                        fontSize: 'clamp(22px, 4vw, 30px)',
+                        fontWeight: '300',
+                        color: '#f5f1ec',
+                        letterSpacing: '0.08em',
+                        margin: '0 0 12px',
+                    }}>
+                        Creaciones del Momento
                     </h2>
-                    <div className="w-16 h-0.5 mx-auto" style={{ backgroundColor: '#c8964a', boxShadow: '0 0 8px rgba(200,150,74,0.8)' }}></div>
+                    <div style={{
+                        width: '20px',
+                        height: '0.5px',
+                        background: '#c8964a',
+                        margin: '0 auto',
+                        opacity: 0.7,
+                        boxShadow: '0 0 8px rgba(200,150,74,0.6)',
+                    }} />
                 </div>
 
-                {/* Carrusel */}
-                {/* Estilos locales para los dots del carrusel */}
+                {/* ── Carrusel — lógica NO TOCADA ── */}
                 <style>{`
-          .slick-slide {
-            height: auto !important;
-          }
-          .slick-dots-custom {
-            margin-top: 1rem;
-            display: flex !important;
-            justify-content: center;
-            align-items: center;
-          }
-          .slick-dots-custom li {
-            margin: 0 4px;
-          }
-          .slick-dots-custom li button {
-            width: 8px !important;
-            height: 8px !important;
-            border-radius: 50% !important;
-            padding: 0 !important;
-            background: #374151 !important; /* gray-700 */
-            border: none !important;
-            box-shadow: none !important;
-            font-size: 0 !important;
-            color: transparent !important;
-            overflow: hidden !important;
-            transition: all 0.3s ease !important;
-          }
-          .slick-dots-custom li.slick-active button {
-            background: #c8964a !important; /* gold */
-            transform: scale(1.3) !important;
-          }
-        `}</style>
+                    .slick-slide { height: auto !important; }
+                    .slick-dots-custom {
+                        margin-top: 1rem;
+                        display: flex !important;
+                        justify-content: center;
+                        align-items: center;
+                    }
+                    .slick-dots-custom li { margin: 0 4px; }
+                    .slick-dots-custom li button {
+                        width: 7px !important;
+                        height: 7px !important;
+                        border-radius: 50% !important;
+                        padding: 0 !important;
+                        background: #374151 !important;
+                        border: none !important;
+                        font-size: 0 !important;
+                        color: transparent !important;
+                        overflow: hidden !important;
+                        transition: all 0.3s ease !important;
+                    }
+                    .slick-dots-custom li.slick-active button {
+                        background: #c8964a !important;
+                        transform: scale(1.3) !important;
+                    }
+                `}</style>
+
                 <div className="overflow-hidden">
                     <Slider {...settings}>
-                        {productos.map((producto) => {
-                            // Lógica para formatear la fecha (ELIMINADA)
+                        {productos.map((producto) => (
+                            <div key={producto.id} className="px-2 md:px-3">
+                                <Link to={`/producto/${producto.id}`} className="block pb-4">
 
-                            return (
-                                <div key={producto.id} className="px-2 md:px-3">
-                                    <Link to={`/producto/${producto.id}`} className="block pb-4">
-                                        {/* Contenedor de producto */}
-                                        <div className="w-full h-[400px] bg-black rounded overflow-hidden flex items-center justify-center" style={{ height: '320px' }}>
-                                            <img
-                                                src={producto.imagen_principal_url}
-                                                alt={producto.titulo}
-                                                className="w-full h-full object-cover"
-                                            />
-                                        </div>
-                                        <div className="mt-4 text-sm text-gray-100 font-medium tracking-wide text-left mb-1">
-                                            {producto.titulo}
-                                        </div>
-                                        <div className="mt-1 text-sm text-left mb-2" style={{ color: '#c8964a' }}>
-                                            Desde S/ {Number(producto.precio)}
-                                        </div>
-                                    </Link>
-                                </div>
-                            );
-                        })}
+                                    {/* Imagen */}
+                                    <div style={{
+                                        width: '100%',
+                                        height: '300px',
+                                        overflow: 'hidden',
+                                        borderRadius: '4px',
+                                        background: '#1a1208',
+                                    }}>
+                                        <img
+                                            src={producto.imagen_principal_url}
+                                            alt={producto.titulo}
+                                            style={{
+                                                width: '100%',
+                                                height: '100%',
+                                                objectFit: 'cover',
+                                                transition: 'transform 0.5s ease',
+                                            }}
+                                            onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.04)'}
+                                            onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+                                        />
+                                    </div>
+
+                                    {/* Nombre */}
+                                    <p style={{
+                                        fontFamily: "'Cormorant Garamond', serif",
+                                        fontSize: '14px',
+                                        fontWeight: '300',
+                                        color: '#f5f1ec',
+                                        letterSpacing: '0.04em',
+                                        margin: '10px 0 3px',
+                                    }}>
+                                        {producto.titulo}
+                                    </p>
+
+                                    {/* Precio — tono más suave, no naranja brillante */}
+                                    <p style={{
+                                        fontFamily: "'Inter', sans-serif",
+                                        fontSize: '11px',
+                                        fontWeight: '300',
+                                        color: 'rgba(200,150,74,0.75)',
+                                        letterSpacing: '0.06em',
+                                        margin: 0,
+                                    }}>
+                                        Desde S/ {Number(producto.precio)}
+                                    </p>
+
+                                </Link>
+                            </div>
+                        ))}
                     </Slider>
                 </div>
+
             </div>
         </section>
     );

@@ -39,12 +39,12 @@ const ColeccionCobre = () => {
         <div className="absolute inset-0 bg-[#1a0e06]/50" />
         <div className="relative z-10 flex flex-col items-center max-w-2xl py-10 md:py-16">
           <p className="text-[#c8964a] uppercase text-[10px] md:text-xs tracking-[0.22em] mb-3 font-medium">Colección</p>
-          <h1 
+          <h1
             className="text-[2.8rem] md:text-[4rem] text-[#faf9f7] mb-3 leading-tight"
             style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: '300', letterSpacing: '0.04em' }}
           >Cobre Artesanal</h1>
           <div className="w-8 h-px bg-[#c8964a] opacity-70 mb-3" />
-          <p 
+          <p
             style={{ fontSize: '11px', fontWeight: '300', letterSpacing: '0.28em', color: 'rgba(250,249,247,0.5)' }}
           >Metal vivo · forjado a mano en Lima</p>
         </div>
@@ -172,14 +172,14 @@ const ColeccionCobre = () => {
                     top: '8px',
                     left: '8px',
                     zIndex: 10,
-                    backgroundColor: '#15803d',
-                    color: 'white',
+                    backgroundColor: '#2a2018',
+                    color: '#c8964a',
                     fontSize: '0.6rem',
                     fontWeight: 500,
                     letterSpacing: '0.06em',
                     padding: '3px 9px',
                     borderRadius: '999px',
-                    border: '1.5px solid rgba(255,255,255,0.3)',
+                    border: '0.5px solid rgba(200,150,74,0.35)',
                   }}>
                     {categoria.badge}
                   </span>

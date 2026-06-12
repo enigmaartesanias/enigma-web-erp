@@ -62,8 +62,7 @@ const MATERIAL_CARDS = [
 // 2. COMPONENTE ACORDEÓN REUTILIZABLE
 // ==========================================
 
-const AccordionCard = ({ card }) => {
-    const [open, setOpen] = useState(false);
+const AccordionCard = ({ card, open, onToggle }) => {
     const [isMobile, setIsMobile] = useState(false);
 
     const { title, key, image, categories, allRoute, allLabel } = card;
@@ -84,7 +83,7 @@ const AccordionCard = ({ card }) => {
             <div
                 className="relative w-full rounded-xl overflow-hidden cursor-pointer shadow-sm"
                 style={{ height: isMobile ? '200px' : '260px' }}
-                onClick={() => setOpen(!open)}
+                onClick={onToggle}
             >
                 <img
                     src={image}
@@ -135,7 +134,7 @@ const AccordionCard = ({ card }) => {
             {/* ── Cabecera de texto ── */}
             <div
                 className="flex items-center px-1 pt-3 pb-1 cursor-pointer"
-                onClick={() => setOpen(!open)}
+                onClick={onToggle}
             >
                 <div>
                     <p style={{
@@ -189,13 +188,14 @@ const AccordionCard = ({ card }) => {
 
             {/* ── Acordeón desplegable ── */}
             <div style={{
-                maxHeight: open ? '380px' : '0px',
+                maxHeight: open ? '400px' : '0px',
                 overflow: 'hidden',
                 transition: 'max-height 0.35s ease-in-out',
             }}>
+                {/* pb-4 añadido para que las categorías inferiores respiren y no queden pegadas al borde */}
                 <div style={{
                     borderTop: '0.5px solid #ede9e4',
-                    padding: '12px 2px 4px',
+                    padding: '12px 2px 16px',
                 }}>
                     <p style={{
                         fontFamily: "'Inter', sans-serif",
@@ -209,7 +209,7 @@ const AccordionCard = ({ card }) => {
                         Explorar por categoría
                     </p>
 
-                    {/* Grid 2 columnas optimizado para clics cómodos */}
+                    {/* Grid 2 columnas */}
                     <div style={{
                         display: 'grid',
                         gridTemplateColumns: '1fr 1fr',
@@ -298,8 +298,16 @@ const AccordionCard = ({ card }) => {
 // ==========================================
 
 const Galeria = () => {
+    // Controlamos de forma centralizada qué tarjeta está abierta para aplicar el espaciado
+    const [activeKey, setActiveKey] = useState(null);
+
+    const toggleCard = (key) => {
+        setActiveKey(activeKey === key ? null : key);
+    };
+
     return (
-        <section className="pt-4 pb-10 lg:py-12 bg-gray-100 font-sans">
+        // Fondo optimizado a un tono hueso/piedra elegante para dar contraste nítido con las tarjetas blancas
+        <section className="pt-6 pb-12 lg:py-12 bg-[#f4f1eb] font-sans">
             <div className="container mx-auto px-3">
 
                 {/* Encabezado de sección */}
@@ -344,16 +352,27 @@ const Galeria = () => {
                     </p>
                 </div>
 
-                {/* Grid de tarjetas */}
-                <div className="flex flex-col gap-6 lg:flex-row lg:justify-between lg:gap-6">
-                    {MATERIAL_CARDS.map((card) => (
-                        <div
-                            key={card.key}
-                            className="flex flex-col bg-white p-4 rounded-xl shadow-md border border-gray-100 transition-all duration-300 hover:shadow-xl w-full lg:w-[32%]"
-                        >
-                            <AccordionCard card={card} />
-                        </div>
-                    ))}
+                {/* Grid de tarjetas con espaciado estructural y dinámico */}
+                <div className="flex flex-col lg:flex-row lg:justify-between lg:gap-6">
+                    {MATERIAL_CARDS.map((card) => {
+                        const isCardOpen = activeKey === card.key;
+                        return (
+                            <div
+                                key={card.key}
+                                // mb-10 inyectado dinámicamente si la tarjeta está abierta para aislarla del bloque inferior
+                                className={`flex flex-col bg-white p-4 rounded-xl shadow-md border border-stone-200/40 transition-all duration-300 w-full lg:w-[32%] ${isCardOpen
+                                        ? 'mb-10 ring-1 ring-amber-500/20 shadow-xl'
+                                        : 'mb-5 lg:mb-0'
+                                    }`}
+                            >
+                                <AccordionCard
+                                    card={card}
+                                    open={isCardOpen}
+                                    onToggle={() => toggleCard(card.key)}
+                                />
+                            </div>
+                        );
+                    })}
                 </div>
 
             </div>

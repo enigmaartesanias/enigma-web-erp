@@ -3,11 +3,10 @@ import andruDonalds from '../assets/images/andru.jpg';
 const CelebrityCollaboration = () => {
     return (
         <section
-            className="relative overflow-hidden flex items-center"
+            className="relative overflow-hidden"
             style={{
                 background: 'linear-gradient(135deg, #2e1a0a 0%, #3d2410 50%, #2e1a0a 100%)',
-                minHeight: '360px',
-                padding: '3rem 1.5rem',
+                padding: '2rem 1.5rem',
             }}
         >
             {/* Textura sutil */}
@@ -26,36 +25,51 @@ const CelebrityCollaboration = () => {
                 style={{ background: 'linear-gradient(to right, transparent, #c8964a, transparent)' }} />
 
             <div className="w-full max-w-3xl mx-auto relative z-10">
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-center">
 
                     {/* ── Imagen ── */}
                     <div className="flex justify-center">
-                        <div className="relative" style={{ width: '160px', flexShrink: 0 }}>
+                        <div className="relative w-full" style={{ maxWidth: '260px' }}>
                             {/* Aro decorativo */}
-                            <div className="absolute inset-0 rounded-full" style={{
-                                border: '1px solid rgba(200,150,74,0.35)',
-                                transform: 'scale(1.08)',
-                            }} />
+                            <div
+                                className="absolute inset-0 pointer-events-none"
+                                style={{
+                                    border: '1px solid rgba(200,150,74,0.3)',
+                                    transform: 'scale(1.025)',
+                                    borderRadius: '10px',
+                                }}
+                            />
                             <img
                                 src={andruDonalds}
                                 alt="Andru Donalds luciendo joyas de Enigma Artesanías"
-                                className="w-full rounded-full object-cover"
+                                className="w-full object-cover object-center"
                                 style={{
-                                    border: '2px solid rgba(200,150,74,0.5)',
-                                    boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
-                                    aspectRatio: '1/1',
+                                    aspectRatio: '4/5',
+                                    borderRadius: '8px',
+                                    border: '1px solid rgba(200,150,74,0.4)',
+                                    boxShadow: '0 12px 40px rgba(0,0,0,0.55)',
+                                    display: 'block',
                                 }}
                             />
-                            {/* Badge Desde 2022 */}
+                            {/* Degradado inferior */}
+                            <div
+                                className="absolute bottom-0 left-0 right-0 pointer-events-none"
+                                style={{
+                                    height: '35%',
+                                    background: 'linear-gradient(to top, rgba(46,26,10,0.72) 0%, transparent 100%)',
+                                    borderRadius: '0 0 8px 8px',
+                                }}
+                            />
+                            {/* Badge Instagram */}
                             <a
                                 href="https://www.instagram.com/andrudonalds/"
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 style={{
                                     position: 'absolute',
-                                    bottom: '-8px',
-                                    right: '-8px',
-                                    background: 'rgba(46,26,10,0.95)',
+                                    bottom: '10px',
+                                    right: '10px',
+                                    background: 'rgba(46,26,10,0.92)',
                                     border: '0.5px solid rgba(200,150,74,0.45)',
                                     color: '#f5f1ec',
                                     padding: '5px 10px',
@@ -83,7 +97,7 @@ const CelebrityCollaboration = () => {
                         display: 'flex',
                         flexDirection: 'column',
                         alignItems: 'center',
-                        gap: '10px',
+                        gap: '8px',
                         textAlign: 'center',
                         padding: '0 8px',
                     }}>
@@ -111,26 +125,26 @@ const CelebrityCollaboration = () => {
                         {/* Título */}
                         <h2 style={{
                             fontFamily: "'Cormorant Garamond', serif",
-                            fontSize: 'clamp(22px, 5vw, 30px)',
+                            fontSize: 'clamp(26px, 5vw, 34px)',
                             fontWeight: '300',
                             color: '#f5f1ec',
                             letterSpacing: '0.04em',
-                            lineHeight: '1.25',
+                            lineHeight: '1.2',
                             margin: 0,
                         }}>
                             Andru Donalds<br />
                             <span style={{ color: '#c8964a', fontStyle: 'italic' }}>&amp; Enigma</span>
                         </h2>
 
-                        {/* Descripción — padding lateral para que respire */}
+                        {/* Descripción */}
                         <p style={{
                             fontFamily: "'Inter', sans-serif",
-                            fontSize: '12px',
+                            fontSize: '15px',
                             fontWeight: '300',
-                            color: 'rgba(245,241,236,0.7)',
-                            lineHeight: '1.8',
+                            color: 'rgba(245,241,236,0.88)',
+                            lineHeight: '1.75',
                             margin: 0,
-                            maxWidth: '280px',
+                            maxWidth: '300px',
                             padding: '0 4px',
                         }}>
                             Desde 2022, cada pieza que luce este artista
@@ -144,28 +158,31 @@ const CelebrityCollaboration = () => {
                             onClick={() => window.location.href = '/andru-donalds'}
                             style={{
                                 fontFamily: "'Inter', sans-serif",
-                                fontSize: '9px',
-                                fontWeight: '500',
-                                letterSpacing: '0.2em',
+                                fontSize: '10px',
+                                fontWeight: '600',
+                                letterSpacing: '0.18em',
                                 textTransform: 'uppercase',
                                 color: '#f5f1ec',
                                 background: 'transparent',
-                                border: '0.5px solid rgba(200,150,74,0.5)',
+                                border: '0.5px solid rgba(200,150,74,0.55)',
                                 borderRadius: '2px',
-                                padding: '10px 20px',
+                                padding: '11px 22px',
                                 cursor: 'pointer',
                                 display: 'inline-flex',
                                 alignItems: 'center',
                                 gap: '8px',
                                 marginTop: '4px',
                                 transition: 'border-color 0.2s, color 0.2s',
+                                width: '100%',
+                                maxWidth: '280px',
+                                justifyContent: 'center',
                             }}
                             onMouseEnter={e => {
                                 e.currentTarget.style.borderColor = '#c8964a';
                                 e.currentTarget.style.color = '#c8964a';
                             }}
                             onMouseLeave={e => {
-                                e.currentTarget.style.borderColor = 'rgba(200,150,74,0.5)';
+                                e.currentTarget.style.borderColor = 'rgba(200,150,74,0.55)';
                                 e.currentTarget.style.color = '#f5f1ec';
                             }}
                         >

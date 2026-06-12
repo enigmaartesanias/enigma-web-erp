@@ -14,7 +14,7 @@ const COBRE_CATEGORIES = [
     { name: "Tobilleras", slug: "TOBILLERA", nuevo: true },
 ];
 
-const ALPACA_CATEGORIES = [
+const ALPAPER_CATEGORIES = [
     { name: "Aretes", slug: "Arete", nuevo: false },
     { name: "Pulseras", slug: "Pulsera", nuevo: false },
     { name: "Anillos", slug: "Anillo", nuevo: false },
@@ -43,7 +43,7 @@ const MATERIAL_CARDS = [
         title: "Alpaca Forjada",
         key: "alpaca",
         image: "/images/collar23.jpg",
-        categories: ALPACA_CATEGORIES,
+        categories: ALPAPER_CATEGORIES,
         allRoute: "/catalogo/Alpaca/all",
         allLabel: "Ver toda la colección",
     },
@@ -82,7 +82,7 @@ const AccordionCard = ({ card }) => {
         <div className="w-full">
             {/* ── Imagen con pill superpuesto ── */}
             <div
-                className="relative w-full rounded-xl overflow-hidden cursor-pointer"
+                className="relative w-full rounded-xl overflow-hidden cursor-pointer shadow-sm"
                 style={{ height: isMobile ? '200px' : '260px' }}
                 onClick={() => setOpen(!open)}
             >
@@ -99,19 +99,19 @@ const AccordionCard = ({ card }) => {
                     position: 'absolute',
                     bottom: '12px',
                     right: '12px',
-                    background: 'rgba(26,14,6,0.72)',
+                    background: 'rgba(26,14,6,0.82)',
                     backdropFilter: 'blur(4px)',
                     borderRadius: '20px',
-                    padding: '6px 12px',
+                    padding: '6px 14px',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '5px',
+                    gap: '6px',
                     pointerEvents: 'none',
                 }}>
                     <span style={{
                         fontFamily: "'Inter', sans-serif",
-                        fontSize: '9px',
-                        fontWeight: '500',
+                        fontSize: '10px',
+                        fontWeight: '600',
                         letterSpacing: '0.18em',
                         textTransform: 'uppercase',
                         color: '#f5f1ec',
@@ -119,12 +119,13 @@ const AccordionCard = ({ card }) => {
                         {open ? 'Cerrar' : 'Explorar'}
                     </span>
                     <span style={{
-                        fontSize: '11px',
+                        fontSize: '12px',
                         color: '#c8964a',
                         transition: 'transform 0.3s ease',
                         transform: open ? 'rotate(180deg)' : 'rotate(0deg)',
                         display: 'inline-block',
                         lineHeight: 1,
+                        fontWeight: 'bold'
                     }}>
                         ⌄
                     </span>
@@ -139,8 +140,8 @@ const AccordionCard = ({ card }) => {
                 <div>
                     <p style={{
                         fontFamily: "'Inter', sans-serif",
-                        fontSize: '9px',
-                        fontWeight: '500',
+                        fontSize: '11px',
+                        fontWeight: '600',
                         letterSpacing: '0.22em',
                         textTransform: 'uppercase',
                         color: '#c8964a',
@@ -150,10 +151,10 @@ const AccordionCard = ({ card }) => {
                     </p>
                     <p style={{
                         fontFamily: "'Cormorant Garamond', serif",
-                        fontSize: '18px',
-                        fontWeight: '300',
-                        color: '#2a2018',
-                        letterSpacing: '0.04em',
+                        fontSize: '22px',
+                        fontWeight: '400',
+                        color: '#1a1008',
+                        letterSpacing: '0.02em',
                         margin: 0,
                     }}>
                         {title}
@@ -168,25 +169,27 @@ const AccordionCard = ({ card }) => {
                     alignItems: 'center',
                     justifyContent: 'center',
                     gap: '6px',
-                    paddingBottom: '4px',
+                    padding: '6px 0 2px',
+                    borderTop: '0.5px solid #f0ede9',
+                    marginTop: '4px'
                 }}>
                     <span style={{
                         fontFamily: "'Inter', sans-serif",
-                        fontSize: '9px',
-                        fontWeight: '400',
-                        letterSpacing: '0.16em',
+                        fontSize: '11px',
+                        fontWeight: '600',
+                        letterSpacing: '0.14em',
                         textTransform: 'uppercase',
-                        color: '#c8964a',
+                        color: '#b07d35',
                     }}>
                         Toca para explorar categorías
                     </span>
-                    <span style={{ color: '#c8964a', fontSize: '11px', lineHeight: 1 }}>⌄</span>
+                    <span style={{ color: '#b07d35', fontSize: '12px', lineHeight: 1, fontWeight: 'bold' }}>⌄</span>
                 </div>
             )}
 
             {/* ── Acordeón desplegable ── */}
             <div style={{
-                maxHeight: open ? '320px' : '0px',
+                maxHeight: open ? '380px' : '0px',
                 overflow: 'hidden',
                 transition: 'max-height 0.35s ease-in-out',
             }}>
@@ -196,21 +199,21 @@ const AccordionCard = ({ card }) => {
                 }}>
                     <p style={{
                         fontFamily: "'Inter', sans-serif",
-                        fontSize: '8px',
-                        fontWeight: '500',
-                        letterSpacing: '0.22em',
+                        fontSize: '11px',
+                        fontWeight: '600',
+                        letterSpacing: '0.18em',
                         textTransform: 'uppercase',
-                        color: '#a8a29e',
+                        color: '#78716c',
                         margin: '0 0 10px',
                     }}>
                         Explorar por categoría
                     </p>
 
-                    {/* Grid 2 columnas */}
+                    {/* Grid 2 columnas optimizado para clics cómodos */}
                     <div style={{
                         display: 'grid',
                         gridTemplateColumns: '1fr 1fr',
-                        gap: '5px',
+                        gap: '6px',
                     }}>
                         {categories.map((cat) => (
                             <Link
@@ -218,25 +221,31 @@ const AccordionCard = ({ card }) => {
                                 to={`/catalogo/${materialCapitalized}/${cat.slug}`}
                                 style={{
                                     fontFamily: "'Inter', sans-serif",
-                                    fontSize: '10px',
-                                    fontWeight: '400',
-                                    letterSpacing: '0.1em',
-                                    color: '#3a2a1a',
-                                    background: '#f7f4f0',
-                                    border: '0.5px solid #e8e2da',
+                                    fontSize: '14px',
+                                    fontWeight: '500',
+                                    letterSpacing: '0.02em',
+                                    color: '#241508',
+                                    background: '#faf8f5',
+                                    border: '0.5px solid #dfd9d0',
                                     borderRadius: '8px',
-                                    padding: '7px 10px',
+                                    padding: '10px 14px',
                                     display: 'flex',
                                     alignItems: 'center',
                                     justifyContent: 'space-between',
                                     textDecoration: 'none',
-                                    transition: 'background 0.18s',
+                                    transition: 'all 0.18s ease',
                                 }}
-                                onMouseEnter={e => e.currentTarget.style.background = '#ede6dc'}
-                                onMouseLeave={e => e.currentTarget.style.background = '#f7f4f0'}
+                                onMouseEnter={e => {
+                                    e.currentTarget.style.background = '#f0eae1';
+                                    e.currentTarget.style.borderColor = '#c8964a';
+                                }}
+                                onMouseLeave={e => {
+                                    e.currentTarget.style.background = '#faf8f5';
+                                    e.currentTarget.style.borderColor = '#dfd9d0';
+                                }}
                             >
-                                <span>{cat.name}</span>
-                                <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                <span className="font-medium">{cat.name}</span>
+                                <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
                                     {cat.nuevo && (
                                         <span style={{
                                             display: 'inline-block',
@@ -247,7 +256,7 @@ const AccordionCard = ({ card }) => {
                                             flexShrink: 0,
                                         }} />
                                     )}
-                                    <span style={{ color: '#c8964a', fontSize: '13px', fontWeight: '300' }}>›</span>
+                                    <span style={{ color: '#c8964a', fontSize: '16px', fontWeight: 'bold', lineHeight: 1 }}>›</span>
                                 </span>
                             </Link>
                         ))}
@@ -260,18 +269,20 @@ const AccordionCard = ({ card }) => {
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            gap: '5px',
-                            marginTop: '12px',
+                            gap: '6px',
+                            marginTop: '14px',
                             paddingTop: '12px',
                             borderTop: '0.5px solid #ede9e4',
                             fontFamily: "'Inter', sans-serif",
-                            fontSize: '9px',
-                            fontWeight: '400',
-                            letterSpacing: '0.18em',
+                            fontSize: '11px',
+                            fontWeight: '600',
+                            letterSpacing: '0.16em',
                             textTransform: 'uppercase',
-                            color: '#a8a29e',
+                            color: '#78716c',
                             textDecoration: 'none',
                         }}
+                        onMouseEnter={e => e.currentTarget.style.color = '#c8964a'}
+                        onMouseLeave={e => e.currentTarget.style.color = '#78716c'}
                     >
                         {allLabel} &nbsp;→
                     </Link>
@@ -288,25 +299,25 @@ const AccordionCard = ({ card }) => {
 
 const Galeria = () => {
     return (
-        <section className="pt-2 pb-8 lg:py-8 bg-gray-100 font-sans">
+        <section className="pt-4 pb-10 lg:py-12 bg-gray-100 font-sans">
             <div className="container mx-auto px-3">
 
                 {/* Encabezado de sección */}
-                <div className="text-center mb-10">
+                <div className="text-center mb-8">
                     <p style={{
                         fontFamily: "'Inter', sans-serif",
-                        fontSize: '9px',
-                        fontWeight: '500',
+                        fontSize: '11px',
+                        fontWeight: '600',
                         letterSpacing: '0.24em',
                         textTransform: 'uppercase',
                         color: '#c8964a',
-                        margin: '0 0 8px',
+                        margin: '0 0 6px',
                     }}>
                         Materiales
                     </p>
                     <h2 style={{
                         fontFamily: "'Cormorant Garamond', serif",
-                        fontSize: 'clamp(24px, 4vw, 34px)',
+                        fontSize: 'clamp(26px, 4.5vw, 36px)',
                         fontWeight: '300',
                         color: '#2a2018',
                         letterSpacing: '0.04em',
@@ -315,7 +326,7 @@ const Galeria = () => {
                         Colecciones Artesanales
                     </h2>
                     <div style={{
-                        width: '24px',
+                        width: '30px',
                         height: '0.5px',
                         background: '#c8964a',
                         opacity: 0.6,
@@ -323,10 +334,10 @@ const Galeria = () => {
                     }} />
                     <p style={{
                         fontFamily: "'Inter', sans-serif",
-                        fontSize: '11px',
+                        fontSize: '13px',
                         fontWeight: '300',
-                        color: '#a8a29e',
-                        letterSpacing: '0.06em',
+                        color: '#78716c',
+                        letterSpacing: '0.04em',
                         margin: 0,
                     }}>
                         Piezas únicas por material y acabado · Hechas a pedido
@@ -334,11 +345,11 @@ const Galeria = () => {
                 </div>
 
                 {/* Grid de tarjetas */}
-                <div className="flex flex-col gap-8 lg:flex-row lg:justify-between lg:gap-6">
+                <div className="flex flex-col gap-6 lg:flex-row lg:justify-between lg:gap-6">
                     {MATERIAL_CARDS.map((card) => (
                         <div
                             key={card.key}
-                            className="flex flex-col bg-white p-4 rounded-xl shadow-xl border border-gray-200 transition-all duration-300 hover:shadow-2xl w-full lg:w-[32%]"
+                            className="flex flex-col bg-white p-4 rounded-xl shadow-md border border-gray-100 transition-all duration-300 hover:shadow-xl w-full lg:w-[32%]"
                         >
                             <AccordionCard card={card} />
                         </div>
@@ -351,4 +362,3 @@ const Galeria = () => {
 };
 
 export default Galeria;
-

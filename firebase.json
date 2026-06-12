@@ -11,6 +11,26 @@
         "source": "/index.html",
         "destination": "/",
         "type": 301
+      },
+      {
+        "source": "/cobreanillos",
+        "destination": "/catalogo/Cobre/Anillo",
+        "type": 301
+      },
+      {
+        "source": "/cobreanillos.html",
+        "destination": "/catalogo/Cobre/Anillo",
+        "type": 301
+      },
+      {
+        "source": "/Enigmaproduct3.html",
+        "destination": "/catalogo/Cobre/Pulsera",
+        "type": 301
+      },
+      {
+        "source": "/contact.html",
+        "destination": "/contacto",
+        "type": 301
       }
     ],
     "rewrites": [

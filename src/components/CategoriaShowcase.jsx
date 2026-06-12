@@ -94,7 +94,7 @@ const CategoriaShowcase = () => {
     if (productos.length === 0) return null;
 
     return (
-        <section className="relative overflow-hidden" style={{ background: '#111009', padding: '2.5rem 0 3rem' }}>
+        <section className="relative overflow-hidden" style={{ background: '#111009', padding: '2rem 0 2.5rem' }}>
 
             {/* Textura de fondo */}
             <div
@@ -110,30 +110,30 @@ const CategoriaShowcase = () => {
             <div className="container mx-auto px-3 relative z-10">
 
                 {/* ── Título rediseñado ── */}
-                <div className="text-center mb-8">
+                <div className="text-center mb-6">
                     <p style={{
                         fontFamily: "'Inter', sans-serif",
-                        fontSize: '9px',
-                        fontWeight: '500',
-                        letterSpacing: '0.26em',
+                        fontSize: '11px',
+                        fontWeight: '600',
+                        letterSpacing: '0.24em',
                         textTransform: 'uppercase',
                         color: '#c8964a',
-                        margin: '0 0 10px',
+                        margin: '0 0 6px',
                     }}>
                         Del taller a tus manos
                     </p>
                     <h2 style={{
                         fontFamily: "'Cormorant Garamond', serif",
-                        fontSize: 'clamp(22px, 4vw, 30px)',
+                        fontSize: 'clamp(24px, 4.5vw, 32px)',
                         fontWeight: '300',
                         color: '#f5f1ec',
-                        letterSpacing: '0.08em',
-                        margin: '0 0 12px',
+                        letterSpacing: '0.06em',
+                        margin: '0 0 10px',
                     }}>
                         Creaciones del Momento
                     </h2>
                     <div style={{
-                        width: '20px',
+                        width: '30px',
                         height: '0.5px',
                         background: '#c8964a',
                         margin: '0 auto',
@@ -142,22 +142,22 @@ const CategoriaShowcase = () => {
                     }} />
                 </div>
 
-                {/* ── Carrusel — lógica NO TOCADA ── */}
+                {/* Estilos del Carrusel */}
                 <style>{`
                     .slick-slide { height: auto !important; }
                     .slick-dots-custom {
-                        margin-top: 1rem;
+                        margin-top: 1.25rem;
                         display: flex !important;
                         justify-content: center;
                         align-items: center;
                     }
-                    .slick-dots-custom li { margin: 0 4px; }
+                    .slick-dots-custom li { margin: 0 5px; }
                     .slick-dots-custom li button {
-                        width: 7px !important;
-                        height: 7px !important;
+                        width: 8px !important;
+                        height: 8px !important;
                         border-radius: 50% !important;
                         padding: 0 !important;
-                        background: #374151 !important;
+                        background: #4b5563 !important;
                         border: none !important;
                         font-size: 0 !important;
                         color: transparent !important;
@@ -170,18 +170,19 @@ const CategoriaShowcase = () => {
                     }
                 `}</style>
 
-                <div className="overflow-hidden">
+                {/* ── Contenedor Padre del Carrusel: Controla el tamaño y lo centra en dispositivos móviles ── */}
+                <div className="w-[85%] max-w-xs md:max-w-full mx-auto overflow-hidden">
                     <Slider {...settings}>
                         {productos.map((producto) => (
                             <div key={producto.id} className="px-2 md:px-3">
-                                <Link to={`/producto/${producto.id}`} className="block pb-4">
+                                <Link to={`/producto/${producto.id}`} className="block pb-2">
 
                                     {/* Imagen */}
                                     <div style={{
                                         width: '100%',
-                                        height: '300px',
+                                        height: '280px',
                                         overflow: 'hidden',
-                                        borderRadius: '4px',
+                                        borderRadius: '6px',
                                         background: '#1a1208',
                                     }}>
                                         <img
@@ -198,25 +199,26 @@ const CategoriaShowcase = () => {
                                         />
                                     </div>
 
-                                    {/* Nombre */}
+                                    {/* Nombre — Mejorado en visibilidad */}
                                     <p style={{
                                         fontFamily: "'Cormorant Garamond', serif",
-                                        fontSize: '14px',
-                                        fontWeight: '300',
+                                        fontSize: '16px',
+                                        fontWeight: '400',
                                         color: '#f5f1ec',
                                         letterSpacing: '0.04em',
-                                        margin: '10px 0 3px',
+                                        margin: '12px 0 4px',
+                                        lineHeight: '1.2'
                                     }}>
                                         {producto.titulo}
                                     </p>
 
-                                    {/* Precio — tono más suave, no naranja brillante */}
+                                    {/* Precio — Mayor contraste y tamaño óptimo */}
                                     <p style={{
                                         fontFamily: "'Inter', sans-serif",
-                                        fontSize: '11px',
-                                        fontWeight: '300',
-                                        color: 'rgba(200,150,74,0.75)',
-                                        letterSpacing: '0.06em',
+                                        fontSize: '13px',
+                                        fontWeight: '600',
+                                        color: '#e2b36e',
+                                        letterSpacing: '0.05em',
                                         margin: 0,
                                     }}>
                                         Desde S/ {Number(producto.precio)}

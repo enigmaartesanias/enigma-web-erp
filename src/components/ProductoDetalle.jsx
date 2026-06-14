@@ -449,8 +449,8 @@ const ProductoDetalle = () => {
                     <h2
                         style={{
                             fontFamily: "'Cormorant Garamond', serif",
-                            fontSize: '26px',
-                            fontWeight: '300',
+                            fontSize: 'clamp(28px, 7vw, 36px)',
+                            fontWeight: '400',
                             color: '#1c1917',
                             textAlign: 'left',
                             lineHeight: '1.2',
@@ -461,7 +461,7 @@ const ProductoDetalle = () => {
                     </h2>
 
                     {/* 1.5. Material Base */}
-                    <p className="text-xs text-gray-500 italic tracking-wide mt-1.5 mb-4 text-left">
+                    <p className="text-sm text-gray-500 italic tracking-wide mt-1.5 mb-4 text-left">
                         Material base: {producto.material_principal || "Cobre puro forjado con pátinas turquesas"}
                     </p>
 
@@ -470,7 +470,7 @@ const ProductoDetalle = () => {
                         {/* Precio PEN destacado */}
                         <div style={{
                             fontFamily: "'Cormorant Garamond', serif",
-                            fontSize: '22px',
+                            fontSize: 'clamp(28px, 7vw, 34px)',
                             fontWeight: '400',
                             color: '#1c1917',
                             letterSpacing: '0.02em',
@@ -479,14 +479,18 @@ const ProductoDetalle = () => {
                                 ? `S/ ${Number(producto.precio).toFixed(2)}`
                                 : 'Precio a consultar'}
                             {producto.precio && (
-                                <span style={{ fontSize: '13px', fontWeight: '300',
-                                    letterSpacing: '0.1em', marginLeft: '4px' }}>PEN</span>
+                                <span style={{
+                                    fontSize: '15px', fontWeight: '300',
+                                    letterSpacing: '0.1em', marginLeft: '4px'
+                                }}>PEN</span>
                             )}
                         </div>
 
                         {/* Nota envío Perú */}
-                        <p style={{ fontSize: '11px', fontWeight: '300', color: '#78716c',
-                            lineHeight: '1.6', margin: '5px 0 0' }}>
+                        <p style={{
+                            fontSize: '13px', fontWeight: '300', color: '#78716c',
+                            lineHeight: '1.6', margin: '5px 0 0'
+                        }}>
                             · Retiro en showroom o envío a nivel nacional<br />
                             · Costo adicional según agencia Olva / Shalom
                         </p>
@@ -494,12 +498,16 @@ const ProductoDetalle = () => {
                         {/* Precios internacionales — solo si tieneIntl */}
                         {tieneIntl && (
                             <>
-                                <div style={{ fontSize: '13px', fontWeight: '300', color: '#57534e',
-                                    marginTop: '14px', letterSpacing: '0.03em' }}>
+                                <div style={{
+                                    fontSize: 'clamp(15px, 4vw, 17px)', fontWeight: '300', color: '#57534e',
+                                    marginTop: '14px', letterSpacing: '0.03em'
+                                }}>
                                     $ {precioUSD} USD &nbsp;/&nbsp; € {precioEUR} EUR
                                 </div>
-                                <p style={{ fontSize: '10px', fontWeight: '300', fontStyle: 'italic',
-                                    color: '#a8a29e', margin: '3px 0 0', lineHeight: '1.5' }}>
+                                <p style={{
+                                    fontSize: '12px', fontWeight: '300', fontStyle: 'italic',
+                                    color: '#a8a29e', margin: '3px 0 0', lineHeight: '1.5'
+                                }}>
                                     · Precio internacional incluye envío certificado prioritario
                                 </p>
                             </>
@@ -539,8 +547,10 @@ const ProductoDetalle = () => {
                         paddingBottom: '4px',
                         marginTop: '0',
                     }}>
-                        <p style={{ fontSize: '11px', fontWeight: '300', fontStyle: 'italic',
-                            color: '#a8a29e', lineHeight: '1.7', margin: '0' }}>
+                        <p style={{
+                            fontSize: '13px', fontWeight: '300', fontStyle: 'italic',
+                            color: '#a8a29e', lineHeight: '1.7', margin: '0'
+                        }}>
                             Cada pieza se forja a mano de manera individual en nuestro taller,
                             haciendo de cada diseño una creación exclusiva con alma propia
                             y ligeras variaciones naturales.
@@ -555,7 +565,7 @@ const ProductoDetalle = () => {
                             aria-expanded={acordeon1}
                         >
                             <span
-                                className="text-xs font-medium text-gray-600 uppercase tracking-wider"
+                                className="text-sm font-medium text-gray-600 uppercase tracking-wider"
                                 style={{ fontFamily: "'Inter', sans-serif", letterSpacing: '0.1em' }}
                             >
                                 CUIDADO DEL METAL
@@ -570,7 +580,7 @@ const ProductoDetalle = () => {
                             }}
                         >
                             <p
-                                className="text-xs text-gray-500 font-light leading-relaxed pb-4 pr-2"
+                                className="text-sm text-gray-500 font-light leading-relaxed pb-4 pr-2"
                                 style={{ fontFamily: "'Inter', sans-serif" }}
                             >
                                 Limpia tu pieza con un paño suave y seco después de cada uso.
@@ -588,7 +598,7 @@ const ProductoDetalle = () => {
                             aria-expanded={acordeon2}
                         >
                             <span
-                                className="text-xs font-medium text-gray-600 uppercase tracking-wider"
+                                className="text-sm font-medium text-gray-600 uppercase tracking-wider"
                                 style={{ fontFamily: "'Inter', sans-serif", letterSpacing: '0.1em' }}
                             >
                                 POLÍTICAS E INTERCAMBIOS
@@ -603,7 +613,7 @@ const ProductoDetalle = () => {
                             }}
                         >
                             <p
-                                className="text-xs text-gray-500 font-light leading-relaxed pb-4 pr-2"
+                                className="text-sm text-gray-500 font-light leading-relaxed pb-4 pr-2"
                                 style={{ fontFamily: "'Inter', sans-serif" }}
                             >
                                 Trabajamos bajo pedido. Cada pieza se fabrica una vez confirmado
@@ -629,9 +639,9 @@ const ProductoDetalle = () => {
                                 borderRadius: '2px',
                                 padding: '14px 20px',
                                 fontFamily: "'Inter', sans-serif",
-                                fontSize: '10px',
+                                fontSize: '12px',
                                 fontWeight: '500',
-                                letterSpacing: '0.22em',
+                                letterSpacing: '0.18em',
                                 textTransform: 'uppercase',
                                 textDecoration: 'none',
                                 cursor: 'pointer',

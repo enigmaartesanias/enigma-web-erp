@@ -460,10 +460,6 @@ const ProductoDetalle = () => {
                         {producto.titulo}
                     </h2>
 
-                    {/* 1.5. Material Base */}
-                    <p className="text-sm text-gray-500 italic tracking-wide mt-1.5 mb-4 text-left">
-                        Material base: {producto.material_principal || "Cobre puro forjado con pátinas turquesas"}
-                    </p>
 
                     {/* 2. Bloque de precios fijo */}
                     <div style={{ padding: '0', marginBottom: '0' }}>
@@ -495,23 +491,6 @@ const ProductoDetalle = () => {
                             · Costo adicional según agencia Olva / Shalom
                         </p>
 
-                        {/* Precios internacionales — solo si tieneIntl */}
-                        {tieneIntl && (
-                            <>
-                                <div style={{
-                                    fontSize: 'clamp(15px, 4vw, 17px)', fontWeight: '300', color: '#57534e',
-                                    marginTop: '14px', letterSpacing: '0.03em'
-                                }}>
-                                    $ {precioUSD} USD &nbsp;/&nbsp; € {precioEUR} EUR
-                                </div>
-                                <p style={{
-                                    fontSize: '12px', fontWeight: '300', fontStyle: 'italic',
-                                    color: '#a8a29e', margin: '3px 0 0', lineHeight: '1.5'
-                                }}>
-                                    · Precio internacional incluye envío certificado prioritario
-                                </p>
-                            </>
-                        )}
                     </div>
 
                     {/* 4. Descripción de la pieza */}
@@ -557,71 +536,6 @@ const ProductoDetalle = () => {
                         </p>
                     </div>
 
-                    {/* 6. Acordeón: Cuidado del metal */}
-                    <div className="border-t border-b border-gray-100">
-                        <button
-                            className="w-full flex justify-between items-center cursor-pointer py-3.5 text-left bg-transparent border-none"
-                            onClick={() => setAcordeon1(!acordeon1)}
-                            aria-expanded={acordeon1}
-                        >
-                            <span
-                                className="text-sm font-medium text-gray-600 uppercase tracking-wider"
-                                style={{ fontFamily: "'Inter', sans-serif", letterSpacing: '0.1em' }}
-                            >
-                                CUIDADO DEL METAL
-                            </span>
-                            <ChevronIcono abierto={acordeon1} />
-                        </button>
-                        <div
-                            style={{
-                                maxHeight: acordeon1 ? '300px' : '0px',
-                                overflow: 'hidden',
-                                transition: 'max-height 300ms ease-in-out',
-                            }}
-                        >
-                            <p
-                                className="text-sm text-gray-500 font-light leading-relaxed pb-4 pr-2"
-                                style={{ fontFamily: "'Inter', sans-serif" }}
-                            >
-                                Limpia tu pieza con un paño suave y seco después de cada uso.
-                                Evita el contacto con agua, perfumes y cremas. Guárdala en la bolsa
-                                de tela incluida para preservar su acabado y pátina original.
-                            </p>
-                        </div>
-                    </div>
-
-                    {/* 7. Acordeón: Políticas e intercambios */}
-                    <div className="border-b border-gray-100">
-                        <button
-                            className="w-full flex justify-between items-center cursor-pointer py-3.5 text-left bg-transparent border-none"
-                            onClick={() => setAcordeon2(!acordeon2)}
-                            aria-expanded={acordeon2}
-                        >
-                            <span
-                                className="text-sm font-medium text-gray-600 uppercase tracking-wider"
-                                style={{ fontFamily: "'Inter', sans-serif", letterSpacing: '0.1em' }}
-                            >
-                                POLÍTICAS E INTERCAMBIOS
-                            </span>
-                            <ChevronIcono abierto={acordeon2} />
-                        </button>
-                        <div
-                            style={{
-                                maxHeight: acordeon2 ? '300px' : '0px',
-                                overflow: 'hidden',
-                                transition: 'max-height 300ms ease-in-out',
-                            }}
-                        >
-                            <p
-                                className="text-sm text-gray-500 font-light leading-relaxed pb-4 pr-2"
-                                style={{ fontFamily: "'Inter', sans-serif" }}
-                            >
-                                Trabajamos bajo pedido. Cada pieza se fabrica una vez confirmado
-                                el encargo vía WhatsApp. Coordinamos el método de pago y los
-                                detalles de envío o retiro de forma personalizada en la conversación.
-                            </p>
-                        </div>
-                    </div>
 
                     {/* 8. Botón CTA */}
                     <div className="pt-3">
@@ -651,15 +565,6 @@ const ProductoDetalle = () => {
                         </a>
                     </div>
 
-                    {/* 9. Botón Compartir */}
-                    <div className="pt-1 pb-2 border-b border-gray-100">
-                        <button
-                            onClick={handleShare}
-                            className="w-full flex items-center justify-center gap-2 text-gray-600 hover:text-gray-900 text-sm font-medium py-2 rounded-lg transition-colors border border-transparent hover:bg-gray-100"
-                        >
-                            <ShareIcono /> {t.compartir}
-                        </button>
-                    </div>
 
                 </div>
 

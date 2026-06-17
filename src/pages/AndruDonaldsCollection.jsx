@@ -1,32 +1,43 @@
 import React, { useState, useEffect } from 'react';
-import { andruDonaldsDB } from '../utils/andruDonaldsClient';
+import { andruDonaldsDB, andruProductosDB } from '../utils/andruDonaldsClient';
 import Slider from 'react-slick';
 import { ArrowLeft, Instagram, Youtube } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import andruHero from '../assets/images/andru-hero.jpg';
 
 import 'slick-carousel/slick/slick.css';
 import 'slick-carousel/slick/slick-theme.css';
 
+const GOLD = '#c8964a';
+const GOLD_DIM = 'rgba(200,150,74,0.18)';
+const CREAM = '#f5f1ec';
+const CREAM_DIM = 'rgba(245,241,236,0.75)';
+const DARK = '#150d05';
+
 const AndruDonaldsCollection = () => {
     const [images, setImages] = useState([]);
+    const [productos, setProductos] = useState([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         window.scrollTo(0, 0);
-        const fetchImages = async () => {
+        const fetchAll = async () => {
             try {
-                const data = await andruDonaldsDB.getActive();
-                setImages(data || []);
+                const [imgs, prods] = await Promise.all([
+                    andruDonaldsDB.getActive(),
+                    andruProductosDB.getActive()
+                ]);
+                setImages([...(imgs || [])].reverse());
+                setProductos(prods || []);
             } catch (error) {
-                console.error("Error al cargar imágenes:", error);
+                console.error('Error al cargar:', error);
             } finally {
                 setLoading(false);
             }
         };
-        fetchImages();
+        fetchAll();
     }, []);
 
-    // Configuración del carrusel (inspirado en el aura enigmática)
     const sliderSettings = {
         dots: true,
         infinite: images.length > 3,
@@ -34,23 +45,22 @@ const AndruDonaldsCollection = () => {
         slidesToShow: Math.min(images.length, 3) || 1,
         slidesToScroll: 1,
         autoplay: images.length > 1,
-        autoplaySpeed: 3000,
+        autoplaySpeed: 3500,
         pauseOnHover: true,
-        cssEase: "cubic-bezier(0.87, 0, 0.13, 1)",
+        cssEase: 'cubic-bezier(0.87, 0, 0.13, 1)',
         responsive: [
             {
                 breakpoint: 1024,
-                settings: { 
+                settings: {
                     slidesToShow: Math.min(images.length, 2) || 1,
                     infinite: images.length > 2
                 }
             },
             {
                 breakpoint: 640,
-                settings: { 
+                settings: {
                     slidesToShow: 1,
-                    centerMode: images.length > 1,
-                    centerPadding: '10px',
+                    centerMode: false,
                     infinite: images.length > 1
                 }
             }
@@ -58,160 +68,268 @@ const AndruDonaldsCollection = () => {
     };
 
     return (
-        <div className="min-h-screen text-white overflow-hidden font-sans" style={{ background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)' }}>
-            
-            {/* Nav transparente */}
-            <nav className="absolute top-0 w-full z-50 p-4 md:p-8 flex items-center justify-between">
-                <Link to="/" className="inline-flex items-center gap-2 text-white hover:text-gray-200 transition-colors uppercase text-xs font-bold bg-black bg-opacity-20 px-4 py-2 rounded-full border border-gray-600 hover:border-gray-400" style={{ backdropFilter: 'blur(12px)' }}>
-                    <ArrowLeft size={16} /> Volver a Enigma
+        <div style={{ minHeight: '100vh', background: DARK, color: CREAM, fontFamily: "'Inter', sans-serif", overflow: 'hidden', WebkitOverflowScrolling: 'touch' }}>
+
+            {/* ── NAV ── */}
+            <nav style={{ padding: '16px 20px', borderBottom: `0.5px solid ${GOLD_DIM}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Link to="/" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', color: CREAM, textDecoration: 'none', fontSize: '13px', letterSpacing: '0.14em', textTransform: 'uppercase', fontWeight: 500 }}>
+                    <ArrowLeft size={16} />
+                    Enigma Artesanías
                 </Link>
+                <span style={{ fontSize: '12px', color: GOLD, letterSpacing: '0.16em', textTransform: 'uppercase', opacity: 0.9, fontWeight: 500 }}>
+                    enigma forever
+                </span>
             </nav>
 
-            {/* Hero Section */}
-            <section className="relative pt-20 pb-8 md:pt-32 md:pb-16 px-6">
-                <div className="absolute top-0 left-0 w-64 h-64 bg-yellow-600 rounded-full pointer-events-none opacity-20" style={{ filter: 'blur(100px)', transform: 'translate(-20%, -20%)' }} />
-                <div className="absolute top-1/4 right-0 w-64 h-64 bg-blue-600 rounded-full pointer-events-none opacity-20" style={{ filter: 'blur(100px)', transform: 'translate(20%, -10%)' }} />
-                
-                <div className="container mx-auto max-w-4xl relative z-10 text-center">
-                    <p className="text-yellow-500 font-medium uppercase text-[10px] md:text-sm mb-3 animate-fade-in" style={{ letterSpacing: '0.3em' }}>
-                        Colaboración Exclusiva
+            {/* ── SECCIÓN 1: HERO ── */}
+            <section style={{ position: 'relative', minHeight: '520px', display: 'flex', alignItems: 'flex-end', overflow: 'hidden' }}>
+                <img
+                    src={andruHero}
+                    alt="Andru Donalds luciendo joyas Enigma Artesanías"
+                    style={{
+                        position: 'absolute',
+                        inset: 0,
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover',
+                        objectPosition: 'center top',
+                        opacity: 0.65, /* Mejorada la opacidad para que no se vea tan oscura */
+                    }}
+                />
+                <div style={{
+                    position: 'absolute', inset: 0,
+                    background: 'linear-gradient(180deg, rgba(21, 13, 5, 0.4) 0%, rgba(21, 13, 5, 0.65) 60%, rgba(21, 13, 5, 0.95) 100%)'
+                }} />
+                <div style={{
+                    position: 'absolute', inset: 0,
+                    backgroundImage: 'radial-gradient(rgba(200,150,74,0.08) 1px, transparent 1px)',
+                    backgroundSize: '24px 24px'
+                }} />
+                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '0.5px', background: `linear-gradient(to right, transparent, ${GOLD}, transparent)`, opacity: 0.4 }} />
+
+                <div style={{ position: 'relative', zIndex: 2, width: '100%', padding: '40px 20px 44px', textAlign: 'center' }}>
+                    <p style={{ fontSize: '13px', letterSpacing: '0.28em', textTransform: 'uppercase', color: GOLD, margin: '0 0 14px', fontWeight: 600 }}>
+                        Dos nombres · una esencia
                     </p>
-                    <h1 className="text-4xl md:text-7xl font-black mb-6 leading-tight tracking-tight">
-                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-gray-100 to-gray-500">
-                            Andru Donalds
-                        </span>
-                        <br />
-                        <span className="text-2xl md:text-5xl font-light italic text-gray-400">
-                            & Enigma
-                        </span>
+                    <div style={{ width: '32px', height: '1px', background: GOLD, opacity: 0.6, margin: '0 auto 18px' }} />
+                    <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 'clamp(38px, 8vw, 56px)', fontWeight: 300, color: CREAM, letterSpacing: '0.04em', lineHeight: 1.1, margin: '0 0 8px' }}>
+                        Andru Donalds
                     </h1>
-                </div>
-            </section>
-
-            {/* Historia / Texto */}
-            <section className="container mx-auto max-w-3xl px-4 md:px-6 relative z-10 mb-16">
-                <div className="border border-gray-700 p-6 md:p-10 rounded-2xl md:rounded-3xl shadow-2xl relative overflow-hidden" style={{ backgroundColor: 'rgba(255,255,255,0.05)', backdropFilter: 'blur(20px)' }}>
-                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-yellow-500 to-transparent opacity-50" />
-                    
-                    <div className="space-y-4 text-gray-300 text-sm md:text-base leading-relaxed font-light">
-                        <p className="text-base md:text-xl text-gray-100 font-medium leading-relaxed">
-                            Andru Donalds (Kingston, Jamaica, 1974) es un reconocido cantante jamaicano y una de las icónicas voces del proyecto musical Enigma.
-                        </p>
-                        
-                        <p>
-                            Desde el 2022 tengo el honor de crear joyería artesanal personalizada para Andru. Hasta la fecha he forjado piezas exclusivas para él, acompañándolo en sesiones fotográficas y giras internacionales.
-                        </p>
-
-                        <p>
-                            Su confianza en mi trabajo ha sido un puente invaluable para llevar la esencia de Enigma Artesanías a escenarios mundiales.
-                        </p>
+                    <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 'clamp(24px, 5vw, 34px)', fontStyle: 'italic', color: GOLD, fontWeight: 300, margin: '0 0 24px' }}>
+                        &amp; Enigma
+                    </p>
+                    <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' }}>
+                        {['Kingston, Jamaica', 'Desde 2022', 'Giras internacionales'].map(b => (
+                            <span className="hero-tag" key={b} style={{ fontSize: '12px', padding: '6px 14px', borderRadius: '20px', background: 'rgba(21, 13, 5, 0.6)', border: `1px solid rgba(200,150,74,0.5)`, color: CREAM, letterSpacing: '0.08em', fontWeight: 500 }}>
+                                {b}
+                            </span>
+                        ))}
                     </div>
                 </div>
             </section>
 
-            {/* Galería */}
-            <section className="pb-16 md:pb-24 relative z-10 w-full overflow-hidden">
-                <div className="container mx-auto px-6 mb-8 text-center">
-                    <h2 className="text-2xl md:text-4xl font-bold mb-2 text-white">Momentos & Capturas</h2>
-                    <p className="text-gray-400 font-light text-xs md:text-sm max-w-xl mx-auto">
-                        Historias, reposteos y momentos donde mis creaciones acompañan a Andru.
+            {/* ── SECCIÓN 2: HISTORIA ── */}
+            <section className="andru-historia" style={{ padding: '40px 20px', maxWidth: '640px', margin: '0 auto' }}>
+                <p style={{ fontSize: '12px', letterSpacing: '0.24em', textTransform: 'uppercase', color: GOLD, margin: '0 0 18px', fontWeight: 600 }}>
+                    Una coincidencia que no lo era
+                </p>
+
+                <p style={{ fontSize: 'clamp(15px, 3.5vw, 16px)', lineHeight: 1.8, color: CREAM, margin: '0 0 16px' }}>
+                    Hace más de treinta años, un proyecto musical llamado Enigma redefinió la música electrónica mundial. Andru Donalds es su voz principal.
+                </p>
+                <p style={{ fontSize: 'clamp(15px, 3.5vw, 16px)', lineHeight: 1.8, color: CREAM, margin: '0 0 16px' }}>
+                    Mi marca lleva el mismo nombre desde sus inicios. No fue una estrategia — fue reconocerse.
+                </p>
+                <p style={{ fontSize: 'clamp(15px, 3.5vw, 16px)', lineHeight: 1.8, color: CREAM, margin: '0 0 28px' }}>
+                    Desde 2022, cada pieza que sale de este taller en Lima llega a sus manos. Anillos, collares y pulseras forjados en cobre, plata y alpaca que hoy acompañan al artista en sesiones fotográficas, giras y escenarios internacionales. Una colaboración entre dos expresiones de la misma identidad: la voz y el metal.
+                </p>
+
+                {/* Cita 1 — WhatsApp */}
+                <div style={{ borderLeft: `3px solid ${GOLD}`, padding: '14px 18px', background: 'rgba(200,150,74,0.08)', borderRadius: '0 8px 8px 0', marginBottom: '16px' }}>
+                    <p style={{ fontSize: 'clamp(14px, 3.5vw, 16px)', fontStyle: 'italic', color: CREAM, margin: '0 0 8px', lineHeight: 1.6 }}>
+                        "what a cool combination of jewellery.. I'll show them to the world"
+                    </p>
+                    <p style={{ fontSize: '11px', color: GOLD, margin: 0, letterSpacing: '0.1em', fontWeight: 500 }}>
+                        — Andru Donalds · mayo 2026
+                    </p>
+                </div>
+
+                {/* Cita 2 — Instagram */}
+                <div style={{ borderLeft: `3px solid rgba(200,150,74,0.5)`, padding: '14px 18px', background: 'rgba(200,150,74,0.05)', borderRadius: '0 8px 8px 0' }}>
+                    <p style={{ fontSize: 'clamp(14px, 3.5vw, 16px)', fontStyle: 'italic', color: CREAM, margin: '0 0 8px', lineHeight: 1.6 }}>
+                        "Details @enigma_artesanias — love his work. Thanks for the lovely jewellery"
+                    </p>
+                    <p style={{ fontSize: '11px', color: 'rgba(200,150,74,0.8)', margin: 0, letterSpacing: '0.1em', fontWeight: 500 }}>
+                        — @andrudonalds · Instagram oficial · 385 likes
+                    </p>
+                </div>
+            </section>
+
+            {/* ── DIVISOR ── */}
+            <div style={{ height: '0.5px', background: `linear-gradient(to right, transparent, ${GOLD}, transparent)`, opacity: 0.3, margin: '0 20px' }} />
+
+            {/* ── SECCIÓN 3: MOMENTOS CARRUSEL ── */}
+            <section style={{ padding: '40px 0 32px' }}>
+                <div style={{ padding: '0 20px', marginBottom: '24px', textAlign: 'center' }}>
+                    <p style={{ fontSize: '12px', letterSpacing: '0.24em', textTransform: 'uppercase', color: GOLD, margin: '0 0 8px', fontWeight: 600 }}>
+                        Momentos &amp; capturas
+                    </p>
+                    <p style={{ fontSize: 'clamp(13px, 3vw, 14px)', color: 'rgba(245,241,236,0.6)', margin: 0 }}>
+                        Reposteos, historias y escenas donde mis creaciones acompañan a Andru
                     </p>
                 </div>
 
                 {loading ? (
-                    <div className="flex justify-center items-center py-10">
-                        <div className="w-8 h-8 border-2 border-t-amber-500 border-white/10 rounded-full animate-spin"></div>
+                    <div style={{ display: 'flex', justifyContent: 'center', padding: '40px 0' }}>
+                        <div style={{ width: '28px', height: '28px', border: `2px solid ${GOLD}`, borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
                     </div>
                 ) : images.length > 0 ? (
-                    <div className="w-full max-w-7xl mx-auto cursor-grab active:cursor-grabbing">
-                        <Slider {...sliderSettings} className="andru-slider w-full">
+                    <div style={{ width: '100%', maxWidth: '1200px', margin: '0 auto' }}>
+                        <Slider {...sliderSettings} className="andru-slider">
                             {images.map((img) => (
-                                <div key={img.id} className="px-2 md:p-4 outline-none">
-                                    <div className={`mx-auto rounded-xl md:rounded-2xl overflow-hidden shadow-xl border border-gray-700 group relative max-w-[240px] md:max-w-none`} style={{ aspectRatio: '4/5', backgroundColor: 'rgba(255,255,255,0.05)', maxWidth: images.length < 3 ? '350px' : undefined }}>
-                                        <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-0 group-hover:opacity-80 transition-opacity duration-500 z-10" />
-                                        <img 
-                                            src={img.image_url} 
-                                            alt="Andru Donalds Historia" 
-                                            className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700 ease-out" 
+                                <div key={img.id} style={{ outline: 'none', padding: '0 8px' }}>
+                                    <div style={{ borderRadius: '10px', overflow: 'hidden', border: `0.5px solid rgba(200,150,74,0.3)`, aspectRatio: '4/5', position: 'relative', maxWidth: '280px', margin: '0 auto' }}>
+                                        <img
+                                            src={img.image_url}
+                                            alt="Andru Donalds con joyas Enigma"
+                                            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
                                         />
+                                        {img.descripcion && (
+                                            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '24px 14px 14px', background: 'linear-gradient(to top, rgba(21,13,5,0.95) 0%, transparent 100%)' }}>
+                                                <p style={{ fontSize: '12px', color: '#fff', margin: 0, lineHeight: 1.4, fontWeight: 400 }}>
+                                                    {img.descripcion}
+                                                </p>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             ))}
                         </Slider>
                     </div>
                 ) : (
-                    <div className="text-center text-gray-500 py-10">
-                        Próximamente más imágenes.
-                    </div>
+                    <p style={{ textAlign: 'center', color: 'rgba(245,241,236,0.5)', fontSize: '13px' }}>Próximamente más imágenes.</p>
                 )}
             </section>
 
-            {/* Sección Final: Video y Redes (Grid en Escritorio) */}
-            <section className="container mx-auto px-6 pt-12 pb-24 relative z-10">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-16 md:gap-8 items-center max-w-4xl mx-auto">
-                    
-                    {/* Columna Izquierda: Video TikTok / Corto */}
-                    <div className="text-center">
-                        <h2 className="text-[10px] md:text-xs text-gray-400 uppercase mb-8" style={{ letterSpacing: '0.2em' }}>Detrás de Cámaras</h2>
-                        
-                        {/* Contenedor Especial tipo "Marco" */}
-                        <div className="mx-auto max-w-[220px] md:max-w-[260px] bg-gradient-to-b from-gray-800 to-[#0f172a] p-3 md:p-4 rounded-[1.5rem] md:rounded-[2rem] shadow-2xl border border-gray-600 relative">
-                            {/* Resplandor suave detrás del marco */}
-                            <div className="absolute inset-0 bg-amber-500/10 rounded-[2rem] blur-lg" />
-                            
-                            {/* Contenedor del video */}
-                            <div className="rounded-2xl overflow-hidden bg-black aspect-[9/16] relative z-10 shadow-inner">
-                                <video 
-                                    src="/video/andru.mp4" 
-                                    className="w-full h-full object-cover"
+            {/* ── DIVISOR ── */}
+            <div style={{ height: '0.5px', background: `linear-gradient(to right, transparent, ${GOLD}, transparent)`, opacity: 0.3, margin: '8px 20px 0' }} />
+
+            {/* ── SECCIÓN 4: PIEZAS FORJADAS ── */}
+            {productos.length > 0 && (
+                <section style={{ padding: '40px 20px', maxWidth: '720px', margin: '0 auto' }}>
+                    <div style={{ textAlign: 'center', marginBottom: '28px' }}>
+                        <p style={{ fontSize: '12px', letterSpacing: '0.24em', textTransform: 'uppercase', color: GOLD, margin: '0 0 8px', fontWeight: 600 }}>
+                            Piezas forjadas para Andru
+                        </p>
+                        <p style={{ fontSize: '13px', color: 'rgba(245,241,236,0.5)', margin: 0 }}>
+                            Anillos · collares · pulseras · cada pieza por encargo exclusivo
+                        </p>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '16px' }}>
+                        {productos.sort((a, b) => (a.order_index || 0) - (b.order_index || 0)).map((prod) => (
+                            <div key={prod.id} style={{ border: `0.5px solid rgba(200,150,74,0.3)`, borderRadius: '10px', overflow: 'hidden', background: 'rgba(200,150,74,0.04)' }}>
+                                <div style={{ aspectRatio: '1/1', overflow: 'hidden' }}>
+                                    <img
+                                        src={prod.image_url}
+                                        alt={prod.descripcion || 'Pieza artesanal Enigma'}
+                                        style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                                    />
+                                </div>
+                                {prod.descripcion && (
+                                    <div style={{ padding: '12px 14px', borderTop: '0.5px solid rgba(200,150,74,0.15)' }}>
+                                        <p style={{ fontSize: 'clamp(12px, 3vw, 14px)', color: CREAM, margin: 0, lineHeight: 1.5, fontWeight: 400 }}>
+                                            {prod.descripcion}
+                                        </p>
+                                    </div>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* Frase de cierre */}
+                    <div style={{ marginTop: '32px', borderLeft: `3px solid ${GOLD}`, padding: '14px 18px', background: 'rgba(200,150,74,0.07)', borderRadius: '0 8px 8px 0' }}>
+                        <p style={{ fontSize: '13px', fontStyle: 'italic', color: CREAM, margin: 0, lineHeight: 1.7 }}>
+                            "Cada pieza toma un día entero de taller y más de 25 años de oficio. Ese es el precio."
+                        </p>
+                    </div>
+                </section>
+            )}
+
+            {/* ── DIVISOR ── */}
+            <div style={{ height: '0.5px', background: `linear-gradient(to right, transparent, ${GOLD}, transparent)`, opacity: 0.3, margin: '0 20px' }} />
+
+            {/* ── SECCIÓN 5: VIDEO + REDES ── */}
+            <section style={{ padding: '40px 20px 56px', maxWidth: '640px', margin: '0 auto' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '36px', alignItems: 'center' }}>
+
+                    {/* Video */}
+                    <div style={{ textAlign: 'center' }}>
+                        <p style={{ fontSize: '11px', letterSpacing: '0.2em', textTransform: 'uppercase', color: 'rgba(245,241,236,0.5)', margin: '0 0 14px', fontWeight: 500 }}>
+                            Detrás de cámaras
+                        </p>
+                        <div style={{ background: 'rgba(200,150,74,0.06)', border: `0.5px solid rgba(200,150,74,0.25)`, borderRadius: '16px', padding: '12px', maxWidth: '180px', margin: '0 auto' }}>
+                            <div style={{ borderRadius: '10px', overflow: 'hidden', aspectRatio: '9/16', background: '#000' }}>
+                                <video
+                                    src="/video/andru.mp4"
+                                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                                     controls
                                     playsInline
                                     preload="metadata"
-                                >
-                                    Tu navegador no soporta videos nativos.
-                                </video>
+                                />
                             </div>
                         </div>
                     </div>
 
-                    {/* Columna Derecha: Redes Oficiales */}
-                    <div className="text-center md:text-left">
-                        <h2 className="text-[10px] md:text-xs text-gray-500 uppercase mb-8" style={{ letterSpacing: '0.2em' }}>
-                            Sigue a Andru Donalds
-                        </h2>
-                        
-                        <div className="flex flex-col sm:flex-row md:flex-col lg:flex-row items-center md:items-start justify-center md:justify-start gap-4">
-                            <a 
-                                href="https://www.instagram.com/andrudonalds/" 
-                                target="_blank" 
+                    {/* Redes */}
+                    <div>
+                        <p style={{ fontSize: '11px', letterSpacing: '0.2em', textTransform: 'uppercase', color: 'rgba(245,241,236,0.5)', margin: '0 0 18px', fontWeight: 500 }}>
+                            Sigue a Andru
+                        </p>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                            <a
+                                href="https://www.instagram.com/andrudonalds/"
+                                target="_blank"
                                 rel="noopener noreferrer"
-                                className="w-full sm:w-auto md:w-full lg:w-auto inline-flex items-center justify-center gap-3 bg-gradient-to-r from-purple-500 via-pink-500 to-orange-500 hover:from-purple-600 hover:via-pink-600 hover:to-orange-600 text-white text-sm font-bold py-3 px-8 rounded-full transition-all transform hover:scale-105 shadow-lg"
+                                style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '10px', padding: '12px 16px', borderRadius: '4px', border: `1px solid ${GOLD}`, color: CREAM, textDecoration: 'none', fontSize: '12px', letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 500, background: 'rgba(200,150,74,0.05)' }}
                             >
-                                <Instagram className="w-5 h-5" />
-                                Instagram Oficial
+                                <Instagram size={16} />
+                                Instagram
                             </a>
-
-                            <a 
-                                href="https://www.youtube.com/results?search_query=Andru+Donalds" 
-                                target="_blank" 
+                            <a
+                                href="https://www.youtube.com/results?search_query=Andru+Donalds"
+                                target="_blank"
                                 rel="noopener noreferrer"
-                                className="w-full sm:w-auto md:w-full lg:w-auto inline-flex items-center justify-center gap-3 bg-red-600 hover:bg-red-700 text-white text-sm font-bold py-3 px-8 rounded-full transition-all transform hover:scale-105 shadow-lg"
+                                style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '10px', padding: '12px 16px', borderRadius: '4px', border: `1px solid ${GOLD}`, color: CREAM, textDecoration: 'none', fontSize: '12px', letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 500, background: 'rgba(200,150,74,0.05)' }}
                             >
-                                <Youtube className="w-5 h-5" />
-                                YouTube Oficial
+                                <Youtube size={16} />
+                                YouTube
                             </a>
                         </div>
                     </div>
-
                 </div>
             </section>
-            
+
+            {/* ── CIERRE ENIGMA FOREVER ── */}
+            <div style={{ textAlign: 'center', padding: '24px 20px 48px', borderTop: `0.5px solid ${GOLD_DIM}` }}>
+                <p style={{ fontSize: '12px', letterSpacing: '0.3em', textTransform: 'uppercase', color: 'rgba(200,150,74,0.6)', margin: 0, fontWeight: 500 }}>
+                    Enigma forever
+                </p>
+            </div>
+
             <style>{`
-                .andru-slider .slick-dots li button:before {
-                    color: rgba(255, 255, 255, 0.3);
-                }
-                .andru-slider .slick-dots li.slick-active button:before {
-                    color: #f59e0b;
+                @keyframes spin { to { transform: rotate(360deg); } }
+                .andru-slider .slick-dots li button:before { color: rgba(200,150,74,0.4); font-size: 8px; }
+                .andru-slider .slick-dots li.slick-active button:before { color: #c8964a; }
+                .andru-slider .slick-track { display: flex; align-items: center; }
+                
+                @media (max-width: 640px) {
+                    .andru-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+                    .andru-nav-link { font-size: 13px !important; }
+                    .andru-historia p { font-size: 15px !important; line-height: 1.8 !important; }
+                    .andru-historia .cita p { font-size: 14px !important; }
+                    .andru-slider-wrap .slick-slide img { max-width: 100% !important; }
+                    .hero-tag { font-size: 11px !important; padding: 5px 10px !important; }
                 }
             `}</style>
         </div>

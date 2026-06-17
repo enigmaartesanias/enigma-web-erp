@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { andruDonaldsDB } from '../utils/andruDonaldsClient';
+import { andruDonaldsDB, andruProductosDB } from '../utils/andruDonaldsClient';
 import { storage } from '../firebaseConfig';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { v4 as uuidv4 } from 'uuid';
@@ -14,10 +14,13 @@ const AndruDonaldsAdmin = () => {
     const [loading, setLoading] = useState(true);
     const [uploading, setUploading] = useState(false);
     const [error, setError] = useState(null);
+    const [productos, setProductos] = useState([]);
+    const [uploadingProducto, setUploadingProducto] = useState(false);
 
     useEffect(() => {
         if (user) {
             fetchImages();
+            fetchProductos();
         }
     }, [user]);
 
@@ -31,6 +34,15 @@ const AndruDonaldsAdmin = () => {
             setError('Error al cargar imágenes.');
         } finally {
             setLoading(false);
+        }
+    };
+
+    const fetchProductos = async () => {
+        try {
+            const data = await andruProductosDB.getAll();
+            setProductos(data || []);
+        } catch (err) {
+            console.error(err);
         }
     };
 
@@ -71,6 +83,76 @@ const AndruDonaldsAdmin = () => {
         } finally {
             setUploading(false);
             e.target.value = ''; // Reset input
+        }
+    };
+
+    const handleProductoUpload = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        setUploadingProducto(true);
+        setError(null);
+        try {
+            const compressedBlob = await imageCompression(file, {
+                maxSizeMB: 1,
+                useWebWorker: true
+            });
+            const ext = file.name.split('.').pop();
+            const fileName = `producto_${uuidv4()}.${ext}`;
+            const storageRef = ref(storage, `andru-productos/${fileName}`);
+            await uploadBytes(storageRef, compressedBlob);
+            const downloadUrl = await getDownloadURL(storageRef);
+            const order_index = productos.length > 0
+                ? Math.max(...productos.map(p => p.order_index || 0)) + 1
+                : 0;
+            await andruProductosDB.create({
+                image_url: downloadUrl,
+                descripcion: '',
+                order_index,
+                is_active: true
+            });
+            await fetchProductos();
+            alert('Imagen de producto subida con éxito');
+        } catch (err) {
+            setError(`Error al subir producto: ${err.message}`);
+        } finally {
+            setUploadingProducto(false);
+            e.target.value = '';
+        }
+    };
+
+    const handleProductoDescripcion = async (id, descripcion) => {
+        try {
+            const producto = productos.find(p => p.id === id);
+            if (!producto) return;
+            await andruProductosDB.update(id, {
+                ...producto,
+                descripcion
+            });
+            setProductos(prev => prev.map(p =>
+                p.id === id ? { ...p, descripcion } : p
+            ));
+        } catch (err) {
+            console.error(err);
+        }
+    };
+
+    const handleProductoDelete = async (id, url) => {
+        if (!window.confirm('¿Eliminar esta imagen de producto?')) return;
+        try {
+            await andruProductosDB.delete(id);
+            try {
+                const pathParts = url.split('?')[0].split('%2F');
+                if (pathParts.length > 1) {
+                    const fileName = pathParts[pathParts.length - 1];
+                    const storageRef = ref(storage, `andru-productos/${fileName}`);
+                    await deleteObject(storageRef);
+                }
+            } catch (fbErr) {
+                console.warn('Firebase delete error:', fbErr);
+            }
+            await fetchProductos();
+        } catch (err) {
+            setError(`Error al eliminar: ${err.message}`);
         }
     };
 
@@ -191,6 +273,27 @@ const AndruDonaldsAdmin = () => {
                                             >
                                                 {img.is_active ? 'Visible' : 'Oculto'}
                                             </button>
+                                            <input
+                                                type="text"
+                                                placeholder="Descripción breve (lugar, año, pieza...)"
+                                                defaultValue={img.descripcion || ''}
+                                                onBlur={async (e) => {
+                                                    await andruDonaldsDB.update(img.id, {
+                                                        ...img,
+                                                        descripcion: e.target.value
+                                                    });
+                                                }}
+                                                style={{
+                                                    fontSize: '11px',
+                                                    padding: '4px 8px',
+                                                    border: '0.5px solid #e5e7eb',
+                                                    borderRadius: '6px',
+                                                    width: '100%',
+                                                    marginTop: '4px',
+                                                    color: '#374151',
+                                                    background: '#f9fafb'
+                                                }}
+                                            />
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-2">
@@ -202,6 +305,76 @@ const AndruDonaldsAdmin = () => {
                             ))}
                         </div>
                     )}
+                </div>
+
+                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden mt-6">
+                    <div className="p-4 bg-gray-50 border-b border-gray-100">
+                        <h3 className="font-semibold text-gray-700 text-sm">
+                            Piezas forjadas para Andru ({productos.length})
+                        </h3>
+                        <p className="text-xs text-gray-400 mt-0.5">
+                            Fotos de tus productos enviados — máximo 8 imágenes
+                        </p>
+                    </div>
+
+                    <div className="p-4 border-b border-gray-100 text-center">
+                        <label className={`inline-flex items-center gap-2 px-6 py-3 rounded-xl font-medium cursor-pointer transition-colors ${uploadingProducto ? 'bg-gray-100 text-gray-400' : 'bg-teal-50 text-teal-700 hover:bg-teal-100'}`}>
+                            {uploadingProducto
+                                ? <div className="w-5 h-5 border-2 border-teal-500 border-t-transparent rounded-full animate-spin" />
+                                : <Upload size={18} />}
+                            {uploadingProducto ? 'Subiendo...' : 'Agregar pieza'}
+                            <input
+                                type="file"
+                                className="hidden"
+                                accept="image/*"
+                                onChange={handleProductoUpload}
+                                disabled={uploadingProducto}
+                            />
+                        </label>
+                    </div>
+
+                    <div className="divide-y divide-gray-100">
+                        {productos.length === 0 ? (
+                            <div className="p-8 text-center text-gray-400 text-sm">
+                                Aún no hay piezas. Sube la primera foto de producto.
+                            </div>
+                        ) : (
+                            productos.sort((a, b) => (a.order_index || 0) - (b.order_index || 0)).map((prod) => (
+                                <div key={prod.id} className="p-4 flex gap-3 items-start">
+                                    <div className="w-16 h-16 rounded-lg overflow-hidden border border-gray-200 flex-shrink-0">
+                                        <img src={prod.image_url} alt="Pieza" className="w-full h-full object-cover" />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <textarea
+                                            placeholder="Nombre y descripción de la pieza (ej: Collar turquesa · plata · enviado mar 2025)"
+                                            defaultValue={prod.descripcion || ''}
+                                            onBlur={async (e) => {
+                                                await handleProductoDescripcion(prod.id, e.target.value);
+                                            }}
+                                            rows={2}
+                                            style={{
+                                                fontSize: '11px',
+                                                padding: '6px 8px',
+                                                border: '0.5px solid #e5e7eb',
+                                                borderRadius: '6px',
+                                                width: '100%',
+                                                resize: 'none',
+                                                color: '#374151',
+                                                background: '#f9fafb',
+                                                fontFamily: 'inherit'
+                                            }}
+                                        />
+                                    </div>
+                                    <button
+                                        onClick={() => handleProductoDelete(prod.id, prod.image_url)}
+                                        className="p-2 text-rose-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg flex-shrink-0"
+                                    >
+                                        <Trash2 size={16} />
+                                    </button>
+                                </div>
+                            ))
+                        )}
+                    </div>
                 </div>
             </main>
         </div>

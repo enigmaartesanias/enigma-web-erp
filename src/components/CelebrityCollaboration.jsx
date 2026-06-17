@@ -147,10 +147,7 @@ const CelebrityCollaboration = () => {
                             maxWidth: '300px',
                             padding: '0 4px',
                         }}>
-                            Desde 2022, cada pieza que luce este artista
-                            internacional nace del mismo taller en Lima donde
-                            forjamos el cobre vivo. Una colaboración de dos
-                            nombres que comparten alma.
+                            "Andru Donalds, la voz icónica de los grandes éxitos de Enigma. Desde 2022, cada pieza que luce en sus giras internacionales nace en este mismo taller en Lima. Dos nombres, una misma identidad."
                         </p>
 
                         {/* Botón */}
@@ -186,7 +183,7 @@ const CelebrityCollaboration = () => {
                                 e.currentTarget.style.color = '#f5f1ec';
                             }}
                         >
-                            Explorar la Colección Privada
+                            VER PIEZAS DE COLECCIÓN
                             <span style={{ fontSize: '11px' }}>›</span>
                         </button>
                     </div>

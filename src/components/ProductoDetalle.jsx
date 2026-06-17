@@ -179,30 +179,40 @@ const ProductoDetalle = () => {
         fetchProducto();
     }, [id]);
 
-    // ── useEffect: fetchRelacionados — NO TOCAR ──
+    // ── useEffect: fetchRelacionados (shuffle aleatorio cross-categoría, ejecuta 1 sola vez) ──
     useEffect(() => {
-        if (producto) {
-            const fetchRelacionados = async () => {
-                try {
-                    const { data, error } = await supabase
-                        .from('productos')
-                        .select('*')
-                        .eq('categoria_id', producto.categoria_id)
-                        .eq('activo', true)
-                        .neq('id', id)
-                        .order('created_at', { ascending: false })
-                        .limit(4);
+        if (!producto?.id || !producto?.categoria_id) return;
 
-                    if (error) throw error;
-                    setRelacionados(data || []);
-                } catch (err) {
-                    console.error('Error al cargar productos relacionados:', err.message);
+        let cancelled = false;
+        const fetchRelacionados = async () => {
+            try {
+                const { data, error } = await supabase
+                    .from('productos')
+                    .select('id, titulo, imagen_principal_url, categoria_id')
+                    .eq('activo', true)
+                    .neq('id', producto.id)
+                    .neq('categoria_id', producto.categoria_id)
+                    .limit(40);
+
+                if (error) throw error;
+                if (cancelled) return;
+
+                // Fisher-Yates shuffle — se ejecuta SOLO al montar
+                const pool = [...(data || [])];
+                for (let i = pool.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [pool[i], pool[j]] = [pool[j], pool[i]];
                 }
-            };
+                setRelacionados(pool.slice(0, 4));
+            } catch (err) {
+                console.error('Error al cargar productos relacionados:', err.message);
+            }
+        };
 
-            fetchRelacionados();
-        }
-    }, [producto, id]);
+        fetchRelacionados();
+        return () => { cancelled = true; };
+    // Dependencias estables: solo IDs primitivos, nunca el objeto producto completo
+    }, [producto?.id, producto?.categoria_id]);
 
     // ── useEffect: fetchMateriales + fetchCategoria — NO TOCAR ──
     useEffect(() => {
@@ -481,16 +491,6 @@ const ProductoDetalle = () => {
                                 }}>PEN</span>
                             )}
                         </div>
-
-                        {/* Nota envío Perú */}
-                        <p style={{
-                            fontSize: '13px', fontWeight: '300', color: '#78716c',
-                            lineHeight: '1.6', margin: '5px 0 0'
-                        }}>
-                            · Retiro en showroom o envío a nivel nacional<br />
-                            · Costo adicional según agencia Olva / Shalom
-                        </p>
-
                     </div>
 
                     {/* 4. Descripción de la pieza */}
@@ -499,7 +499,7 @@ const ProductoDetalle = () => {
                             <h3 className="text-xs font-bold tracking-widest text-zinc-500 uppercase mb-3">
                                 {t.detallesPieza}
                             </h3>
-                            <div className={`text-zinc-700 font-light leading-relaxed text-sm space-y-2 ${!isExpanded ? 'line-clamp-4' : ''}`}>
+                            <div className="text-zinc-700 font-light leading-relaxed text-base space-y-2">
                                 {getDescripcion().split(/(?:\r?\n)+|(?=Realizado en )/i).map((part, index) => {
                                     if (!part || part.trim() === '') return null;
                                     return (
@@ -509,33 +509,64 @@ const ProductoDetalle = () => {
                                     );
                                 })}
                             </div>
-                            <button
-                                onClick={() => setIsExpanded(!isExpanded)}
-                                className="text-xs text-gray-500 font-medium mt-2 hover:text-gray-800 underline transition-colors"
-                            >
-                                {isExpanded ? t.leerMenos : t.leerMas}
-                            </button>
                         </div>
                     )}
 
-                    {/* 5. Nota artesanal */}
-                    <div style={{
-                        borderLeft: '1.5px solid #e7e5e4',
-                        paddingLeft: '14px',
-                        paddingTop: '4px',
-                        paddingBottom: '4px',
-                        marginTop: '0',
-                    }}>
-                        <p style={{
-                            fontSize: '13px', fontWeight: '300', fontStyle: 'italic',
-                            color: '#a8a29e', lineHeight: '1.7', margin: '0'
+                    {/* 6. Sección: Proceso de Taller — layout vertical full-width */}
+                    {(producto.workshop_image || producto.workshop_desc) && (
+                        <div style={{
+                            borderTop: '1px solid #f0ede8',
+                            paddingTop: '20px',
+                            marginTop: '24px',
                         }}>
-                            Cada pieza se forja a mano de manera individual en nuestro taller,
-                            haciendo de cada diseño una creación exclusiva con alma propia
-                            y ligeras variaciones naturales.
-                        </p>
-                    </div>
+                            {/* Eyebrow centrado */}
+                            <p style={{
+                                fontFamily: "'Inter', sans-serif",
+                                fontSize: '10px',
+                                fontWeight: '600',
+                                letterSpacing: '0.2em',
+                                textTransform: 'uppercase',
+                                color: '#a8a29e',
+                                margin: '0',
+                                textAlign: 'center',
+                            }}>
+                                Del taller a tus manos
+                            </p>
 
+                            {/* Imagen full-width */}
+                            {producto.workshop_image && (
+                                <img
+                                    src={producto.workshop_image}
+                                    alt="Proceso de elaboración en taller"
+                                    className="w-full object-cover block rounded-lg mt-3 shadow-lg"
+                                    style={{
+                                        height: 'clamp(180px, 45vw, 260px)',
+                                        border: '1px solid rgba(200,150,74,0.20)',
+                                    }}
+                                />
+                            )}
+
+                            {/* Texto como pie de foto — 13px, zinc-600 */}
+                            {producto.workshop_desc && (
+                                <p style={{
+                                    fontFamily: "'Inter', sans-serif",
+                                    fontSize: '13px',
+                                    fontWeight: '300',
+                                    fontStyle: 'italic',
+                                    color: '#52525b',
+                                    lineHeight: '1.7',
+                                    textAlign: 'center',
+                                    marginTop: '10px',
+                                    padding: '0 8px',
+                                    maxWidth: '380px',
+                                    marginLeft: 'auto',
+                                    marginRight: 'auto',
+                                }}>
+                                    {producto.workshop_desc}
+                                </p>
+                            )}
+                        </div>
+                    )}
 
                     {/* 8. Botón CTA */}
                     <div className="pt-3">
@@ -568,27 +599,46 @@ const ProductoDetalle = () => {
 
                 </div>
 
-                {/* 10. Productos relacionados — NO TOCAR ── */}
+                {/* 10. Otras Piezas de Autor */}
                 <div className="py-6 mb-2">
-                    <h2 className="text-1xl font-bold mb-4 text-left">
-                        {t.relacionados}
+                    <h2 style={{
+                        fontFamily: "'Cormorant Garamond', serif",
+                        fontSize: 'clamp(18px, 4.5vw, 22px)',
+                        fontWeight: '400',
+                        color: '#1c1917',
+                        letterSpacing: '0.02em',
+                        marginBottom: '16px',
+                        textAlign: 'left',
+                    }}>
+                        Otras Piezas de Autor
                     </h2>
-                    <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-2 md:gap-3">
+                    <div className="grid grid-cols-2 gap-4">
                         {relacionados.length > 0 ? (
                             relacionados.map((relatedProducto) => (
-                                <div key={relatedProducto.id} className="text-center">
-                                    <Link to={`/producto/${relatedProducto.id}`}>
+                                <div key={relatedProducto.id}>
+                                    <Link to={`/producto/${relatedProducto.id}`} onClick={() => window.scrollTo(0,0)}>
                                         <img
                                             src={relatedProducto.imagen_principal_url}
                                             alt={relatedProducto.titulo}
-                                            className="w-full h-48 sm:h-56 object-cover rounded hover:shadow-lg transition-shadow"
+                                            className="w-full h-44 sm:h-52 object-cover rounded-lg hover:opacity-90 transition-opacity"
+                                            style={{ border: '1px solid #f0ede8' }}
                                         />
-                                        <h3 className="mt-2 text-sm font-semibold text-gray-800">{relatedProducto.titulo}</h3>
+                                        <p style={{
+                                            fontFamily: "'Inter', sans-serif",
+                                            fontSize: '11px',
+                                            fontWeight: '400',
+                                            color: '#78716c',
+                                            marginTop: '6px',
+                                            lineHeight: '1.4',
+                                            letterSpacing: '0.01em',
+                                        }}>
+                                            {relatedProducto.titulo}
+                                        </p>
                                     </Link>
                                 </div>
                             ))
                         ) : (
-                            <p className="text-center text-gray-500">
+                            <p className="col-span-2 text-center text-gray-400 text-sm">
                                 {t.sinRelacionados}
                             </p>
                         )}

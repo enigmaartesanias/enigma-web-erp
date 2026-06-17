@@ -47,7 +47,9 @@ const ProductoAdmin = () => {
         is_novedoso: false,
         meta_descripcion: '',
         palabras_clave: '',
-        moneda: 'USD'
+        moneda: 'USD',
+        workshop_desc: '',
+        workshop_image: ''
     });
 
     if (!user) {
@@ -264,7 +266,9 @@ const ProductoAdmin = () => {
             meta_descripcion: '',
             palabras_clave: '',
             moneda: 'USD',
-            material_id: ''
+            material_id: '',
+            workshop_desc: '',
+            workshop_image: ''
         });
         setEditingProducto(null);
         setError(null);
@@ -487,6 +491,60 @@ const ProductoAdmin = () => {
                             </div>
                         </div>
 
+                        {/* ── BLOQUE DE TALLER ── */}
+                        <div className="mt-4 border-t pt-4">
+                            <h4 className="text-sm font-semibold mb-3 text-gray-600 flex items-center gap-2">
+                                <span>🔨</span> Proceso de Taller
+                                <span className="text-xs font-normal text-gray-400">(Opcional)</span>
+                            </h4>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {/* Textarea workshop_desc */}
+                                <div>
+                                    <label className="block text-xs font-bold mb-1 text-gray-600">
+                                        Descripción del Proceso en Taller
+                                    </label>
+                                    <textarea
+                                        name="workshop_desc"
+                                        value={formData.workshop_desc || ''}
+                                        onChange={handleInputChange}
+                                        rows="4"
+                                        placeholder="Ej: Forjado manual del cobre en bruto antes del pulido..."
+                                        className="w-full p-2 text-sm border border-dashed border-amber-300 rounded focus:ring-2 focus:ring-amber-400 bg-amber-50 placeholder-gray-400"
+                                    />
+                                </div>
+                                {/* Uploader workshop_image */}
+                                <div>
+                                    <label className="block text-xs font-bold mb-1 text-gray-600">
+                                        Imagen del Taller
+                                    </label>
+                                    <div className="flex items-start gap-2">
+                                        <div className="flex-grow">
+                                            <ImageUploader
+                                                bucketName="producto-images"
+                                                onUploadSuccess={(url) => handleImageUpload('workshop_image', url)}
+                                            />
+                                        </div>
+                                        {formData.workshop_image && (
+                                            <div className="flex flex-col items-center gap-1 flex-shrink-0">
+                                                <img
+                                                    src={formData.workshop_image}
+                                                    alt="Taller"
+                                                    className="w-14 h-14 object-cover rounded border-2 border-amber-300"
+                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleImageUpload('workshop_image', '')}
+                                                    className="text-xs text-red-500 hover:text-red-700"
+                                                >
+                                                    Quitar
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
                         {/* Imágenes Compactas */}
                         <div className="mt-4 border-t pt-4">
                             <h4 className="text-sm font-semibold mb-2 text-gray-600">Imágenes</h4>
@@ -607,7 +665,7 @@ const ProductoAdmin = () => {
                                 <th scope="col" className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Título</th>
                                 <th scope="col" className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider hidden md:table-cell">Material</th>
                                 <th scope="col" className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider hidden lg:table-cell">Categoría</th>
-                                <th scope="col" className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider w-24">Precio</th>
+                                <th scope="col" className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider w-36">Precio</th>
                                 <th scope="col" className="px-4 py-3 text-center text-xs font-bold text-gray-600 uppercase tracking-wider w-20">Novedoso</th>
                                 <th scope="col" className="px-4 py-3 text-center text-xs font-bold text-gray-600 uppercase tracking-wider w-24">Estado</th>
                                 <th scope="col" className="px-4 py-3 text-center text-xs font-bold text-gray-600 uppercase tracking-wider w-24">Acciones</th>
@@ -619,16 +677,30 @@ const ProductoAdmin = () => {
                                     <tr key={producto.id} className="hover:bg-gray-50 transition-colors">
                                         {/* Imagen Thumbnail */}
                                         <td className="px-4 py-3 whitespace-nowrap">
-                                            <div className="flex-shrink-0 h-12 w-12">
-                                                {producto.imagen_principal_url ? (
-                                                    <img
-                                                        className="h-12 w-12 rounded object-cover border-2 border-gray-200"
-                                                        src={producto.imagen_principal_url}
-                                                        alt={producto.titulo}
-                                                    />
-                                                ) : (
-                                                    <div className="h-12 w-12 rounded bg-gray-200 flex items-center justify-center text-gray-400 text-xs border-2 border-gray-300">
-                                                        Sin img
+                                            <div className="flex items-start gap-1.5">
+                                                {/* Miniatura principal */}
+                                                <div className="flex-shrink-0 h-12 w-12">
+                                                    {producto.imagen_principal_url ? (
+                                                        <img
+                                                            className="h-12 w-12 rounded object-cover border-2 border-gray-200"
+                                                            src={producto.imagen_principal_url}
+                                                            alt={producto.titulo}
+                                                        />
+                                                    ) : (
+                                                        <div className="h-12 w-12 rounded bg-gray-200 flex items-center justify-center text-gray-400 text-xs border-2 border-gray-300">
+                                                            Sin img
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                {/* Miniatura de taller (solo si existe) */}
+                                                {producto.workshop_image && (
+                                                    <div className="flex flex-col items-center gap-0.5" title="Tiene foto de taller">
+                                                        <img
+                                                            src={producto.workshop_image}
+                                                            alt="Taller"
+                                                            className="w-8 h-8 object-cover rounded border border-zinc-700"
+                                                        />
+                                                        <span className="text-[9px] text-amber-500 font-semibold leading-none">taller</span>
                                                     </div>
                                                 )}
                                             </div>
@@ -655,9 +727,21 @@ const ProductoAdmin = () => {
                                             </span>
                                         </td>
 
-                                        {/* Precio */}
-                                        <td className="px-4 py-3 whitespace-nowrap text-sm font-semibold text-gray-700">
-                                            {producto.precio ? `S/ ${producto.precio.toFixed(2)}` : <span className="text-gray-400 italic text-xs">A pedido</span>}
+                                        {/* Precio PEN + internacionales */}
+                                        <td className="px-4 py-3 whitespace-nowrap">
+                                            <div className="text-sm font-semibold text-gray-700">
+                                                {producto.precio ? `S/ ${producto.precio.toFixed(2)}` : <span className="text-gray-400 italic text-xs">A pedido</span>}
+                                            </div>
+                                            {producto.precio_internacional_base > 0 && (
+                                                <div className="grid grid-cols-2 gap-1 mt-1">
+                                                    <span className="text-[10px] text-blue-600 font-medium bg-blue-50 rounded px-1 py-0.5 text-center">
+                                                        $ {Math.round(producto.precio_internacional_base * 0.45)}
+                                                    </span>
+                                                    <span className="text-[10px] text-green-600 font-medium bg-green-50 rounded px-1 py-0.5 text-center">
+                                                        € {Math.round(producto.precio_internacional_base * 0.4063)}
+                                                    </span>
+                                                </div>
+                                            )}
                                         </td>
 
                                         {/* Novedoso - Estrella */}

@@ -4,6 +4,7 @@ import Slider from 'react-slick';
 import { ArrowLeft, Instagram, Youtube } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import andruHero from '../assets/images/andru-hero.jpg';
+import ProductDetailModal from '../components/ProductDetailModal';
 
 import 'slick-carousel/slick/slick.css';
 import 'slick-carousel/slick/slick-theme.css';
@@ -18,6 +19,7 @@ const AndruDonaldsCollection = () => {
     const [images, setImages] = useState([]);
     const [productos, setProductos] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [selectedProduct, setSelectedProduct] = useState(null);
 
     useEffect(() => {
         window.scrollTo(0, 0);
@@ -141,7 +143,7 @@ const AndruDonaldsCollection = () => {
                     Mi marca lleva el mismo nombre desde sus inicios. No fue una estrategia — fue reconocerse.
                 </p>
                 <p style={{ fontSize: 'clamp(15px, 3.5vw, 16px)', lineHeight: 1.8, color: CREAM, margin: '0 0 28px' }}>
-                    Desde 2022, cada pieza que sale de este taller en Lima llega a sus manos. Anillos, collares y pulseras forjados en cobre, plata y alpaca que hoy acompañan al artista en sesiones fotográficas, giras y escenarios internacionales. Una colaboración entre dos expresiones de la misma identidad: la voz y el metal.
+                    Desde 2022, cada pieza que sale de este taller en Lima llega a sus manos. Anillos, collares y pulseras que hoy acompañan al artista en sesiones fotográficas, giras y escenarios internacionales. Una colaboración entre dos expresiones de la misma identidad: la voz y el metal.
                 </p>
 
                 {/* Cita 1 — WhatsApp */}
@@ -228,21 +230,72 @@ const AndruDonaldsCollection = () => {
 
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '16px' }}>
                         {productos.sort((a, b) => (a.order_index || 0) - (b.order_index || 0)).map((prod) => (
-                            <div key={prod.id} style={{ border: `0.5px solid rgba(200,150,74,0.3)`, borderRadius: '10px', overflow: 'hidden', background: 'rgba(200,150,74,0.04)' }}>
+                            <div
+                                key={prod.id}
+                                onClick={() => setSelectedProduct({
+                                    title: prod.titulo || prod.descripcion?.split('.')[0] || 'Pieza Única',
+                                    description: prod.descripcion || '',
+                                    image: prod.image_url,
+                                    tag: prod.tag || 'Pieza Única',
+                                })}
+                                style={{
+                                    border: '0.5px solid rgba(200,150,74,0.3)',
+                                    borderRadius: '10px',
+                                    overflow: 'hidden',
+                                    background: 'rgba(200,150,74,0.04)',
+                                    cursor: 'pointer',
+                                    position: 'relative',
+                                }}
+                                className="andru-prod-card"
+                            >
                                 <div style={{ aspectRatio: '1/1', overflow: 'hidden' }}>
                                     <img
                                         src={prod.image_url}
                                         alt={prod.descripcion || 'Pieza artesanal Enigma'}
-                                        style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                                        className="andru-prod-img"
+                                        style={{
+                                            width: '100%',
+                                            height: '100%',
+                                            objectFit: 'cover',
+                                            display: 'block',
+                                            transition: 'transform 0.45s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+                                        }}
                                     />
                                 </div>
-                                {prod.descripcion && (
-                                    <div style={{ padding: '12px 14px', borderTop: '0.5px solid rgba(200,150,74,0.15)' }}>
-                                        <p style={{ fontSize: 'clamp(12px, 3vw, 14px)', color: CREAM, margin: 0, lineHeight: 1.5, fontWeight: 400 }}>
-                                            {prod.descripcion}
-                                        </p>
-                                    </div>
-                                )}
+                                {/* Overlay al hover */}
+                                <div
+                                    className="andru-prod-overlay"
+                                    style={{
+                                        position: 'absolute',
+                                        inset: 0,
+                                        background: 'rgba(13,13,13,0)',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        transition: 'background 0.3s',
+                                        borderRadius: '10px',
+                                    }}
+                                >
+                                    <span
+                                        className="andru-prod-zoom"
+                                        style={{
+                                            fontFamily: "'Inter', sans-serif",
+                                            fontSize: '9px',
+                                            fontWeight: 600,
+                                            letterSpacing: '0.2em',
+                                            textTransform: 'uppercase',
+                                            color: '#f5f1ec',
+                                            background: 'rgba(13,13,13,0.72)',
+                                            border: '0.5px solid rgba(200,150,74,0.5)',
+                                            borderRadius: '2px',
+                                            padding: '7px 14px',
+                                            opacity: 0,
+                                            transition: 'opacity 0.3s',
+                                        }}
+                                    >
+                                        Ver detalle
+                                    </span>
+                                </div>
                             </div>
                         ))}
                     </div>
@@ -322,6 +375,17 @@ const AndruDonaldsCollection = () => {
                 .andru-slider .slick-dots li button:before { color: rgba(200,150,74,0.4); font-size: 8px; }
                 .andru-slider .slick-dots li.slick-active button:before { color: #c8964a; }
                 .andru-slider .slick-track { display: flex; align-items: center; }
+
+                /* Zoom en grid de piezas */
+                .andru-prod-card:hover .andru-prod-img {
+                    transform: scale(1.07);
+                }
+                .andru-prod-card:hover .andru-prod-overlay {
+                    background: rgba(13,13,13,0.42) !important;
+                }
+                .andru-prod-card:hover .andru-prod-zoom {
+                    opacity: 1 !important;
+                }
                 
                 @media (max-width: 640px) {
                     .andru-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
@@ -332,6 +396,12 @@ const AndruDonaldsCollection = () => {
                     .hero-tag { font-size: 11px !important; padding: 5px 10px !important; }
                 }
             `}</style>
+            {/* ── MODAL DE DETALLE ── */}
+            <ProductDetailModal
+                isOpen={!!selectedProduct}
+                onClose={() => setSelectedProduct(null)}
+                product={selectedProduct}
+            />
         </div>
     );
 };

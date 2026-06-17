@@ -157,10 +157,7 @@ const ImageUploader = ({ onUploadSuccess, bucketName = 'carousel-images' }) => {
     return (
         <div className="border p-4 rounded-lg shadow-sm">
             <h3 className="text-lg font-semibold mb-3">Subir Nueva Imagen</h3>
-            <p className="text-xs text-gray-600 mb-3">
-                💡 Las imágenes se redimensionarán manteniendo sus proporciones. 
-                Máximo: 1200x1200px. Se recomienda formato vertical para mejor visualización.
-            </p>
+
             <input
                 type="file"
                 accept="image/*"

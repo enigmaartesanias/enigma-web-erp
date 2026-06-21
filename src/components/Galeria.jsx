@@ -10,8 +10,8 @@ const COBRE_CATEGORIES = [
     { name: "Pulseras", slug: "Pulsera", nuevo: false },
     { name: "Anillos", slug: "Anillo", nuevo: false },
     { name: "Collares", slug: "Collar", nuevo: false },
-    { name: "Vinchas", slug: "VINCHA_TIARA", nuevo: true },
-    { name: "Tobilleras", slug: "TOBILLERA", nuevo: true },
+    { name: "Vinchas", slug: "VINCHA_TIARA", nuevo: false },
+    { name: "Tobilleras", slug: "TOBILLERA", nuevo: false },
 ];
 
 const ALPAPER_CATEGORIES = [
@@ -67,7 +67,7 @@ const MATERIAL_CARDS = [
 const IMAGE_OVERLAY_STYLE = {
     position: 'absolute',
     inset: 0,
-    background: 'linear-gradient(180deg, rgba(42,32,24,0.32) 0%, rgba(42,32,24,0.05) 35%, rgba(42,32,24,0.05) 65%, rgba(42,32,24,0.38) 100%)',
+    background: 'linear-gradient(180deg, rgba(42,32,24,0.55) 0%, rgba(42,32,24,0.18) 35%, rgba(42,32,24,0.18) 65%, rgba(42,32,24,0.6) 100%)',
     pointerEvents: 'none',
 };
 
@@ -108,10 +108,10 @@ const CategoryList = ({ categories, materialCapitalized, allRoute, allLabel }) =
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
-                    padding: '10px 2px',
+                    padding: '12px 2px',
                     borderBottom: idx === categories.length - 1 ? 'none' : '0.5px solid #ede9e4',
                     fontFamily: "'Inter', sans-serif",
-                    fontSize: '14px',
+                    fontSize: '16px',
                     fontWeight: '500',
                     letterSpacing: '0.01em',
                     color: '#241508',
@@ -138,29 +138,31 @@ const CategoryList = ({ categories, materialCapitalized, allRoute, allLabel }) =
             </Link>
         ))}
 
-        <Link
-            to={allRoute}
-            style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '6px',
-                marginTop: '14px',
-                paddingTop: '12px',
-                borderTop: '0.5px solid #ede9e4',
-                fontFamily: "'Inter', sans-serif",
-                fontSize: '11px',
-                fontWeight: '600',
-                letterSpacing: '0.16em',
-                textTransform: 'uppercase',
-                color: '#78716c',
-                textDecoration: 'none',
-            }}
-            onMouseEnter={e => e.currentTarget.style.color = '#c8964a'}
-            onMouseLeave={e => e.currentTarget.style.color = '#78716c'}
-        >
-            {allLabel} &nbsp;→
-        </Link>
+        {allLabel && (
+            <Link
+                to={allRoute}
+                style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px',
+                    marginTop: '14px',
+                    paddingTop: '12px',
+                    borderTop: '0.5px solid #ede9e4',
+                    fontFamily: "'Inter', sans-serif",
+                    fontSize: '11px',
+                    fontWeight: '600',
+                    letterSpacing: '0.16em',
+                    textTransform: 'uppercase',
+                    color: '#78716c',
+                    textDecoration: 'none',
+                }}
+                onMouseEnter={e => e.currentTarget.style.color = '#c8964a'}
+                onMouseLeave={e => e.currentTarget.style.color = '#78716c'}
+            >
+                {allLabel} &nbsp;→
+            </Link>
+        )}
     </div>
 );
 
@@ -181,13 +183,13 @@ const AccordionCard = ({ card, open, onToggle }) => {
         return () => mq.removeEventListener("change", listener);
     }, []);
 
-    // Altura base del collage/panel mobile. Se calcula según el número de
-    // categorías para que el salto al abrir sea sutil: cada fila de categoría
-    // ocupa ~41px (10px padding arriba+abajo + 14px texto + 0.5px borde),
-    // más ~46px para el header "Explorar" y el link final "Ver historia".
-    // Con 4 categorías (Alpaca/Plata) ≈ 210px. Con 6 (Cobre) ≈ 292px.
-    const categoryRowHeight = 41;
-    const panelChrome = 46; // header "Explorar" + link "Ver historia" + paddings
+    // Altura base del panel mobile. Se calcula según el número de categorías
+    // para que el salto al abrir sea sutil: cada fila ocupa ~45px (12px
+    // padding arriba+abajo + 16px texto + 0.5px borde), más ~94px para el
+    // header "Explorar"+botón cerrar y el pie compacto (título + "ver historia").
+    // Con 4 categorías (Alpaca/Plata) ≈ 274px. Con 6 (Cobre) ≈ 364px.
+    const categoryRowHeight = 45;
+    const panelChrome = 94; // header "Explorar"+cerrar + pie título/historia + paddings
     const calculatedPanelHeight = categories.length * categoryRowHeight + panelChrome;
     const mobileBaseHeight = Math.max(200, calculatedPanelHeight);
 
@@ -272,17 +274,54 @@ const AccordionCard = ({ card, open, onToggle }) => {
                         }}
                     >
                         {open && (
-                            <p style={{
-                                fontFamily: "'Inter', sans-serif",
-                                fontSize: '10px',
-                                fontWeight: '600',
-                                letterSpacing: '0.16em',
-                                textTransform: 'uppercase',
-                                color: '#78716c',
-                                margin: '0 0 8px',
+                            <div style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                marginBottom: '10px',
                             }}>
-                                Explorar
-                            </p>
+                                <p style={{
+                                    fontFamily: "'Inter', sans-serif",
+                                    fontSize: '11px',
+                                    fontWeight: '600',
+                                    letterSpacing: '0.16em',
+                                    textTransform: 'uppercase',
+                                    color: '#78716c',
+                                    margin: 0,
+                                }}>
+                                    Explorar
+                                </p>
+                                {/* Botón de cierre explícito: el usuario debe poder
+                                    ver claramente cómo cerrar el panel, sin depender
+                                    de adivinar que la franja de imagen es clickeable. */}
+                                <button
+                                    type="button"
+                                    onClick={(e) => { e.stopPropagation(); onToggle(); }}
+                                    aria-label="Cerrar categorías"
+                                    style={{
+                                        width: '30px',
+                                        height: '30px',
+                                        borderRadius: '50%',
+                                        background: '#f0eae1',
+                                        border: 'none',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        cursor: 'pointer',
+                                        flexShrink: 0,
+                                        padding: 0,
+                                    }}
+                                >
+                                    <span style={{
+                                        fontSize: '35px',
+                                        fontWeight: '700',
+                                        color: '#5f5e5a',
+                                        lineHeight: 20,
+                                    }}>
+                                        ×
+                                    </span>
+                                </button>
+                            </div>
                         )}
                         <div onClick={(e) => e.stopPropagation()}>
                             {open && (
@@ -290,39 +329,90 @@ const AccordionCard = ({ card, open, onToggle }) => {
                                     categories={categories}
                                     materialCapitalized={materialCapitalized}
                                     allRoute={allRoute}
-                                    allLabel={allLabel}
+                                    allLabel={null}
                                 />
                             )}
                         </div>
+
+                        {/* Pie compacto del panel abierto: título de colección y
+                            "ver historia" en una sola fila, en vez de 3 bloques
+                            apilados (link / "Colección" / título), que generaba
+                            demasiada altura y se sentía desordenado. */}
+                        {open && (
+                            <div
+                                onClick={(e) => e.stopPropagation()}
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'baseline',
+                                    justifyContent: 'space-between',
+                                    gap: '8px',
+                                    marginTop: '10px',
+                                    paddingTop: '10px',
+                                    borderTop: '0.5px solid #ede9e4',
+                                }}
+                            >
+                                <p style={{
+                                    fontFamily: "'Cormorant Garamond', serif",
+                                    fontSize: '20px',
+                                    fontWeight: '400',
+                                    color: '#1a1008',
+                                    letterSpacing: '0.02em',
+                                    margin: 0,
+                                }}>
+                                    {title}
+                                </p>
+                                <Link
+                                    to={allRoute}
+                                    style={{
+                                        fontFamily: "'Inter', sans-serif",
+                                        fontSize: '11px',
+                                        fontWeight: '600',
+                                        letterSpacing: '0.1em',
+                                        textTransform: 'uppercase',
+                                        color: '#78716c',
+                                        textDecoration: 'none',
+                                        whiteSpace: 'nowrap',
+                                        flexShrink: 0,
+                                    }}
+                                >
+                                    {allLabel} →
+                                </Link>
+                            </div>
+                        )}
                     </div>
                 </div>
 
-                {/* Cabecera de texto */}
-                <div className="flex items-center px-1 pt-3 pb-1 cursor-pointer" onClick={onToggle}>
-                    <div>
-                        <p style={{
-                            fontFamily: "'Inter', sans-serif",
-                            fontSize: '11px',
-                            fontWeight: '600',
-                            letterSpacing: '0.22em',
-                            textTransform: 'uppercase',
-                            color: '#c8964a',
-                            margin: '0 0 2px',
-                        }}>
-                            Colección
-                        </p>
-                        <p style={{
-                            fontFamily: "'Cormorant Garamond', serif",
-                            fontSize: '22px',
-                            fontWeight: '400',
-                            color: '#1a1008',
-                            letterSpacing: '0.02em',
-                            margin: 0,
-                        }}>
-                            {title}
-                        </p>
+                {/* Cabecera de texto: solo visible cuando el panel está cerrado.
+                    Cuando está abierto, el título ya se muestra dentro del
+                    panel (pie compacto junto al link "ver historia"), para
+                    no apilar 3 bloques de texto y reducir la altura total. */}
+                {!open && (
+                    <div className="flex items-center px-1 pt-3 pb-1 cursor-pointer" onClick={onToggle}>
+                        <div>
+                            <p style={{
+                                fontFamily: "'Inter', sans-serif",
+                                fontSize: '11px',
+                                fontWeight: '600',
+                                letterSpacing: '0.22em',
+                                textTransform: 'uppercase',
+                                color: '#c8964a',
+                                margin: '0 0 2px',
+                            }}>
+                                Colección
+                            </p>
+                            <p style={{
+                                fontFamily: "'Cormorant Garamond', serif",
+                                fontSize: '22px',
+                                fontWeight: '400',
+                                color: '#1a1008',
+                                letterSpacing: '0.02em',
+                                margin: 0,
+                            }}>
+                                {title}
+                            </p>
+                        </div>
                     </div>
-                </div>
+                )}
 
                 {/* Texto invitación cuando está cerrado */}
                 {!open && (
@@ -341,7 +431,7 @@ const AccordionCard = ({ card, open, onToggle }) => {
                     >
                         <span style={{
                             fontFamily: "'Inter', sans-serif",
-                            fontSize: '11px',
+                            fontSize: '13px',
                             fontWeight: '600',
                             letterSpacing: '0.14em',
                             textTransform: 'uppercase',
@@ -521,7 +611,7 @@ const Galeria = () => {
                 <div className="text-center mb-8">
                     <p style={{
                         fontFamily: "'Inter', sans-serif",
-                        fontSize: '11px',
+                        fontSize: '14px',
                         fontWeight: '600',
                         letterSpacing: '0.24em',
                         textTransform: 'uppercase',
@@ -532,7 +622,7 @@ const Galeria = () => {
                     </p>
                     <h2 style={{
                         fontFamily: "'Cormorant Garamond', serif",
-                        fontSize: 'clamp(26px, 4.5vw, 36px)',
+                        fontSize: 'clamp(36px, 4.5vw, 36px)',
                         fontWeight: '300',
                         color: '#2a2018',
                         letterSpacing: '0.04em',
@@ -547,16 +637,7 @@ const Galeria = () => {
                         opacity: 0.6,
                         margin: '0 auto 10px',
                     }} />
-                    <p style={{
-                        fontFamily: "'Inter', sans-serif",
-                        fontSize: '13px',
-                        fontWeight: '300',
-                        color: '#78716c',
-                        letterSpacing: '0.04em',
-                        margin: 0,
-                    }}>
-                        Piezas únicas por material y acabado · Hechas a pedido
-                    </p>
+
                 </div>
 
                 {/* Grid de tarjetas con espaciado estructural y dinámico */}

@@ -115,7 +115,7 @@ const Footer = () => {
 
         {/* Copyright - más compacto */}
         <div className="pt-4 text-center text-xs text-gray-500">
-          <p>© 2025 Enigma Artesanías y Accesorios. Todos los derechos reservados.</p>
+          <p>© 2007 - 2026 Enigma artesanías y accesorios. Todos los derechos reservados.</p>
           <p className="mt-1">Diseñado por Aldo Magallanes</p>
         </div>
       </div>

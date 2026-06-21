@@ -37,7 +37,7 @@ const Hero3 = () => {
               <div className="w-12 h-0.5 mb-4 mx-auo md:mx-0" style={{ backgroundColor: '#c8964a', boxShadow: '0 0 8px rgba(200,150,74,0.8)' }}></div>
 
               {/* Cita */}
-              <blockquote className="text-center md:text-left text-sm md:text-base lg:text-lg text-gray-300 pl-0 mb-4 leading-relaxed font-light">
+              <blockquote className="text-center md:text-left text-base md:text-base lg:text-lg text-gray-300 pl-0 mb-4 leading-relaxed font-light">
                 En Enigma joyas de autor, combinamos técnicas ancestrales como el alambrismo y el martillado con acabados envejecidos que otorgan carácter y autenticidad.
               </blockquote>
 

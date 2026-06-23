@@ -152,9 +152,9 @@ const NuevaVenta = () => {
 
         setProcessing(true);
         try {
-            // Calcular saldo pendiente inicial
-            const adelanto = datosCredito.a_cuenta || 0;
-            const saldoPendiente = totals.total - adelanto;
+            // Calcular saldo pendiente inicial antes del pago
+            const adelanto = Number(datosCredito.a_cuenta) || 0;
+            const saldoPendienteInicial = totals.total;
 
             // Calcular costo de reposición de materiales
             const costoReposicion = cart.reduce((sum, item) => sum + ((item.costo || 0) * item.cantidad), 0);
@@ -173,7 +173,7 @@ const NuevaVenta = () => {
                 costo_material_reposicion: costoReposicion,
                 // Campos de crédito
                 es_credito: true,
-                saldo_pendiente: saldoPendiente,
+                saldo_pendiente: saldoPendienteInicial,
                 fecha_vencimiento: datosCredito.fecha_vencimiento,
                 detalles: cart.map(item => ({
                     producto_id: item.id,
@@ -271,7 +271,7 @@ const NuevaVenta = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 flex flex-col h-screen overflow-hidden">
+        <div className="h-screen flex flex-col overflow-hidden bg-gray-100">
             <Toaster />
 
             {/* Header / Nav de Regreso */}
@@ -317,8 +317,8 @@ const NuevaVenta = () => {
             <main className="flex-1 overflow-hidden flex flex-col md:flex-row">
 
                 {/* Columna Izquierda (Desktop): Buscador y Lista de Items */}
-                <section className="hidden md:flex flex-1 flex-col h-full bg-white relative overflow-hidden order-2 md:order-1 border-r border-gray-100">
-                    <div className="p-4 bg-white border-b border-gray-100 z-20 flex-shrink-0">
+                <section className="hidden md:flex flex-1 flex-col h-full bg-gray-50 relative overflow-hidden order-2 md:order-1 border-r border-gray-200">
+                    <div className="p-4 bg-gray-50 border-b border-gray-200 z-20 flex-shrink-0 shadow-sm">
                         <BuscadorProducto
                             onScan={handleScan}
                             onSelect={handleSelectProduct}
@@ -326,14 +326,14 @@ const NuevaVenta = () => {
                         />
                     </div>
 
-                    <div className="flex-1 overflow-y-auto bg-gray-50/10">
+                    <div className="flex-1 overflow-y-auto bg-gray-50">
                         {cart.length === 0 ? (
-                            <div className="h-full flex flex-col items-center justify-center text-gray-200 opacity-50">
-                                <FaShoppingCart size={48} className="mb-3 opacity-10" />
-                                <p className="text-[11px] uppercase tracking-[0.2em] font-light">Esperando productos...</p>
+                            <div className="h-full flex flex-col items-center justify-center text-gray-300">
+                                <FaShoppingCart size={48} className="mb-4 opacity-20" />
+                                <p className="text-[11px] uppercase tracking-[0.2em] font-medium text-gray-400 italic">Esperando productos...</p>
                             </div>
                         ) : (
-                            <div className="divide-y divide-gray-50">
+                            <div className="divide-y divide-gray-200">
                                 {cart.map(item => (
                                     <ItemVenta
                                         key={item.id}

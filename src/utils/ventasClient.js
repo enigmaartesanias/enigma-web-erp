@@ -338,7 +338,7 @@ export const ventasDB = {
     async deleteByPedidoId(pedidoId) {
         try {
             const codigoPed = `PED-${String(pedidoId).padStart(4, '0')}`;
-            
+
             // Buscar la venta que tenga este código de pedido en sus detalles
             const ventas = await sql`
                 SELECT v.id 
@@ -352,7 +352,7 @@ export const ventasDB = {
                 await sql`DELETE FROM detalles_venta WHERE venta_id = ${v.id}`;
                 await sql`DELETE FROM ventas WHERE id = ${v.id}`;
             }
-            
+
             return true;
         } catch (error) {
             console.error("Error al eliminar venta por pedido ID:", error);
@@ -434,7 +434,7 @@ export const ventasDB = {
             for (const row of rows) {
                 const tipo = row.tipo;
                 const metal = cleanMetal(row.metal);
-                
+
                 if (!mapaTipos[tipo]) {
                     mapaTipos[tipo] = {
                         tipo_producto: tipo,
@@ -447,17 +447,17 @@ export const ventasDB = {
 
                 const t = mapaTipos[tipo];
                 t.unidades += Number(row.unidades) || 0;
-                t.ingreso  += Number(row.ingreso)  || 0;
-                t.costo    += Number(row.costo)    || 0;
+                t.ingreso += Number(row.ingreso) || 0;
+                t.costo += Number(row.costo) || 0;
 
                 if (!t.detalles[metal]) {
                     t.detalles[metal] = { metal: metal, unidades: 0, ingreso: 0, und_pedido: 0, und_stock: 0 };
                 }
                 const d = t.detalles[metal];
                 d.unidades += Number(row.unidades) || 0;
-                d.ingreso  += Number(row.ingreso)  || 0;
+                d.ingreso += Number(row.ingreso) || 0;
                 if (row.origen === 'pedido') d.und_pedido += Number(row.unidades) || 0;
-                if (row.origen === 'stock')  d.und_stock  += Number(row.unidades) || 0;
+                if (row.origen === 'stock') d.und_stock += Number(row.unidades) || 0;
             }
 
             // Convertir a array y ordenar

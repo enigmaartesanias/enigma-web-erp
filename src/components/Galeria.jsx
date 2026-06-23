@@ -111,7 +111,7 @@ const CategoryList = ({ categories, materialCapitalized, allRoute, allLabel }) =
                     padding: '12px 2px',
                     borderBottom: idx === categories.length - 1 ? 'none' : '0.5px solid #ede9e4',
                     fontFamily: "'Inter', sans-serif",
-                    fontSize: '16px',
+                    fontSize: '15px',
                     fontWeight: '500',
                     letterSpacing: '0.01em',
                     color: '#241508',
@@ -133,7 +133,7 @@ const CategoryList = ({ categories, materialCapitalized, allRoute, allLabel }) =
                             flexShrink: 0,
                         }} />
                     )}
-                    <span style={{ color: '#c8964a', fontSize: '16px', fontWeight: 'bold', lineHeight: 1 }}>›</span>
+                    <span style={{ color: '#c8964a', fontSize: '15px', fontWeight: 'bold', lineHeight: 1 }}>›</span>
                 </span>
             </Link>
         ))}
@@ -150,7 +150,7 @@ const CategoryList = ({ categories, materialCapitalized, allRoute, allLabel }) =
                     paddingTop: '12px',
                     borderTop: '0.5px solid #ede9e4',
                     fontFamily: "'Inter', sans-serif",
-                    fontSize: '11px',
+                    fontSize: '10px',
                     fontWeight: '600',
                     letterSpacing: '0.16em',
                     textTransform: 'uppercase',
@@ -266,6 +266,7 @@ const AccordionCard = ({ card, open, onToggle }) => {
                         onClick={onToggle}
                         style={{
                             flex: open ? '1 1 auto' : '0 0 0px',
+                            minWidth: 0,
                             opacity: open ? 1 : 0,
                             transition: 'opacity 0.28s ease-in-out 0.06s',
                             padding: open ? '4px 4px 4px 14px' : '0',
@@ -282,7 +283,7 @@ const AccordionCard = ({ card, open, onToggle }) => {
                             }}>
                                 <p style={{
                                     fontFamily: "'Inter', sans-serif",
-                                    fontSize: '11px',
+                                    fontSize: '10px',
                                     fontWeight: '600',
                                     letterSpacing: '0.16em',
                                     textTransform: 'uppercase',
@@ -345,6 +346,7 @@ const AccordionCard = ({ card, open, onToggle }) => {
                                     display: 'flex',
                                     alignItems: 'baseline',
                                     justifyContent: 'space-between',
+                                    flexWrap: 'wrap',
                                     gap: '8px',
                                     marginTop: '10px',
                                     paddingTop: '10px',
@@ -353,7 +355,7 @@ const AccordionCard = ({ card, open, onToggle }) => {
                             >
                                 <p style={{
                                     fontFamily: "'Cormorant Garamond', serif",
-                                    fontSize: '20px',
+                                    fontSize: '18px',
                                     fontWeight: '400',
                                     color: '#1a1008',
                                     letterSpacing: '0.02em',
@@ -365,7 +367,7 @@ const AccordionCard = ({ card, open, onToggle }) => {
                                     to={allRoute}
                                     style={{
                                         fontFamily: "'Inter', sans-serif",
-                                        fontSize: '11px',
+                                        fontSize: '10px',
                                         fontWeight: '600',
                                         letterSpacing: '0.1em',
                                         textTransform: 'uppercase',
@@ -391,7 +393,7 @@ const AccordionCard = ({ card, open, onToggle }) => {
                         <div>
                             <p style={{
                                 fontFamily: "'Inter', sans-serif",
-                                fontSize: '11px',
+                                fontSize: '10px',
                                 fontWeight: '600',
                                 letterSpacing: '0.22em',
                                 textTransform: 'uppercase',
@@ -402,7 +404,7 @@ const AccordionCard = ({ card, open, onToggle }) => {
                             </p>
                             <p style={{
                                 fontFamily: "'Cormorant Garamond', serif",
-                                fontSize: '22px',
+                                fontSize: '20px',
                                 fontWeight: '400',
                                 color: '#1a1008',
                                 letterSpacing: '0.02em',
@@ -431,7 +433,7 @@ const AccordionCard = ({ card, open, onToggle }) => {
                     >
                         <span style={{
                             fontFamily: "'Inter', sans-serif",
-                            fontSize: '13px',
+                            fontSize: '12px',
                             fontWeight: '600',
                             letterSpacing: '0.14em',
                             textTransform: 'uppercase',
@@ -439,7 +441,7 @@ const AccordionCard = ({ card, open, onToggle }) => {
                         }}>
                             Desliza para explorar categorías
                         </span>
-                        <span style={{ color: '#b07d35', fontSize: '12px', lineHeight: 1, fontWeight: 'bold' }}>‹</span>
+                        <span style={{ color: '#b07d35', fontSize: '11px', lineHeight: 1, fontWeight: 'bold' }}>‹</span>
                     </div>
                 )}
             </div>
@@ -478,7 +480,7 @@ const AccordionCard = ({ card, open, onToggle }) => {
                 }}>
                     <span style={{
                         fontFamily: "'Inter', sans-serif",
-                        fontSize: '10px',
+                        fontSize: '9px',
                         fontWeight: '600',
                         letterSpacing: '0.18em',
                         textTransform: 'uppercase',
@@ -487,7 +489,7 @@ const AccordionCard = ({ card, open, onToggle }) => {
                         {open ? 'Cerrar' : 'Explorar'}
                     </span>
                     <span style={{
-                        fontSize: '12px',
+                        fontSize: '11px',
                         color: '#c8964a',
                         transition: 'transform 0.3s ease',
                         transform: open ? 'rotate(180deg)' : 'rotate(0deg)',
@@ -505,7 +507,7 @@ const AccordionCard = ({ card, open, onToggle }) => {
                 <div>
                     <p style={{
                         fontFamily: "'Inter', sans-serif",
-                        fontSize: '11px',
+                        fontSize: '10px',
                         fontWeight: '600',
                         letterSpacing: '0.22em',
                         textTransform: 'uppercase',
@@ -516,7 +518,7 @@ const AccordionCard = ({ card, open, onToggle }) => {
                     </p>
                     <p style={{
                         fontFamily: "'Cormorant Garamond', serif",
-                        fontSize: '22px',
+                        fontSize: '20px',
                         fontWeight: '400',
                         color: '#1a1008',
                         letterSpacing: '0.02em',
@@ -544,7 +546,7 @@ const AccordionCard = ({ card, open, onToggle }) => {
                 >
                     <span style={{
                         fontFamily: "'Inter', sans-serif",
-                        fontSize: '11px',
+                        fontSize: '10px',
                         fontWeight: '600',
                         letterSpacing: '0.14em',
                         textTransform: 'uppercase',
@@ -552,7 +554,7 @@ const AccordionCard = ({ card, open, onToggle }) => {
                     }}>
                         Toca para explorar categorías
                     </span>
-                    <span style={{ color: '#b07d35', fontSize: '12px', lineHeight: 1, fontWeight: 'bold' }}>⌄</span>
+                    <span style={{ color: '#b07d35', fontSize: '11px', lineHeight: 1, fontWeight: 'bold' }}>⌄</span>
                 </div>
             )}
 
@@ -568,7 +570,7 @@ const AccordionCard = ({ card, open, onToggle }) => {
                 }}>
                     <p style={{
                         fontFamily: "'Inter', sans-serif",
-                        fontSize: '11px',
+                        fontSize: '10px',
                         fontWeight: '600',
                         letterSpacing: '0.18em',
                         textTransform: 'uppercase',
@@ -611,7 +613,7 @@ const Galeria = () => {
                 <div className="text-center mb-8">
                     <p style={{
                         fontFamily: "'Inter', sans-serif",
-                        fontSize: '14px',
+                        fontSize: '13px',
                         fontWeight: '600',
                         letterSpacing: '0.24em',
                         textTransform: 'uppercase',
@@ -622,7 +624,7 @@ const Galeria = () => {
                     </p>
                     <h2 style={{
                         fontFamily: "'Cormorant Garamond', serif",
-                        fontSize: 'clamp(36px, 4.5vw, 36px)',
+                        fontSize: 'clamp(34px, 4.5vw, 34px)',
                         fontWeight: '300',
                         color: '#2a2018',
                         letterSpacing: '0.04em',

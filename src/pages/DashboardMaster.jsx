@@ -137,6 +137,18 @@ const DashboardMaster = () => {
                         <span className="font-bold text-xs tracking-tight">Sistema ERP</span>
                         <Package size={18} className="stroke-[1.8] text-indigo-200" />
                     </button>
+
+                    <button
+                        onClick={() => navigate('/compartir-precios')}
+                        style={{ background: '#059669', color: '#fff', border: 'none', borderRadius: '12px', padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', boxShadow: '0 1px 3px rgba(0,0,0,.12)', transition: 'opacity .15s' }}
+                        onMouseDown={e => e.currentTarget.style.opacity = '.85'}
+                        onMouseUp={e => e.currentTarget.style.opacity = '1'}
+                        onTouchStart={e => e.currentTarget.style.opacity = '.85'}
+                        onTouchEnd={e => e.currentTarget.style.opacity = '1'}
+                    >
+                        <span style={{ fontWeight: 700, fontSize: '12px', letterSpacing: '-0.01em' }}>Compartir Precios</span>
+                        <Share2 size={18} style={{ color: '#a7f3d0' }} />
+                    </button>
                 </div>
 
                 {/* Instalar PWA - Más compacto */}

@@ -13,6 +13,7 @@ import VideoShorts from './pages/VideoShorts';
 import ElTaller from './pages/ElTaller/ElTaller';
 import ProductGridPage from './pages/ProductGridPage';
 import DashboardMaster from './pages/DashboardMaster';
+import CompartirPrecios from './pages/CompartirPrecios';
 import ColeccionCobre from './pages/ColeccionCobre';
 import AndruDonaldsCollection from './pages/AndruDonaldsCollection';
 import ElOficioEditorial from './views/ElOficioEditorial';
@@ -95,6 +96,7 @@ const MainContent = () => {
         location.pathname.startsWith('/producto-form') ||
         location.pathname.startsWith('/cotizador') ||
         location.pathname.startsWith('/stock-inicial') ||
+        location.pathname.startsWith('/compartir-precios') ||
         location.pathname.startsWith('/dashboard-master') ||
         location.pathname.startsWith('/dashboard');
 
@@ -123,6 +125,7 @@ const MainContent = () => {
                 <Route path="/login" element={<Login />} />
 
                 <Route path="/dashboard-master" element={<PrivateRoute><DashboardMaster /></PrivateRoute>} />
+                <Route path="/compartir-precios" element={<PrivateRoute><CompartirPrecios /></PrivateRoute>} />
 
                 <Route path="/admin" element={<PrivateRoute><AdminPanel /></PrivateRoute>} />
                 <Route path="/admin/carrusel" element={<PrivateRoute><CarouselAdmin /></PrivateRoute>} />

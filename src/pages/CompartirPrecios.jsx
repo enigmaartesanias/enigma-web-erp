@@ -78,8 +78,8 @@ const CompartirPrecios = () => {
         }
 
         const titleText = `✨ ${producto.titulo} — ${priceText} (no incluye envío)`;
-        // In some cases they might use id or slug. Using id as in the example screenshot
-        const urlText = `https://artesaniasenigma.com/producto/${producto.slug || producto.id}`;
+        // Use product.id to ensure OpenGraph tags work exactly as they do from the product page
+        const urlText = `https://artesaniasenigma.com/producto/${producto.id}`;
         const fullText = `${titleText}\n${urlText}`;
 
         try {
@@ -148,60 +148,60 @@ const CompartirPrecios = () => {
             )}
 
             {/* BARRA DE FILTROS SUPERIOR */}
-            <div className="bg-gray-800 text-white p-4 rounded-lg shadow-lg mb-4">
-                <div className="flex flex-col lg:flex-row gap-3 items-center">
-                    {/* Búsqueda */}
-                    <div className="relative w-full lg:w-1/3">
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <FaSearch className="text-gray-400" />
+            <div className="bg-gray-800 text-white p-3 rounded-lg shadow-lg mb-4">
+                <div className="flex flex-col gap-3">
+                    {/* Búsqueda y Contador */}
+                    <div className="flex items-center gap-3">
+                        <div className="relative flex-1">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <FaSearch className="text-gray-400" />
+                            </div>
+                            <input
+                                type="text"
+                                placeholder="Buscar producto..."
+                                className="pl-10 w-full p-2 border border-gray-600 bg-gray-700 text-white rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm placeholder-gray-400"
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                            />
                         </div>
-                        <input
-                            type="text"
-                            placeholder="Buscar producto..."
-                            className="pl-10 w-full p-2 border border-gray-600 bg-gray-700 text-white rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm placeholder-gray-400"
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                        />
+                        <div className="text-xs text-gray-300 whitespace-nowrap">
+                            {currentProducts.length} de {filteredProducts.length}
+                        </div>
                     </div>
 
                     {/* Filtros */}
-                    <div className="flex gap-2 w-full lg:w-auto flex-wrap">
+                    <div className="grid grid-cols-3 gap-2">
                         <select
-                            className="p-2 border border-gray-600 bg-gray-700 text-white rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
+                            className="w-full p-2 border border-gray-600 bg-gray-700 text-white rounded-md text-xs focus:ring-blue-500 focus:border-blue-500 truncate"
                             value={filterCategory}
                             onChange={(e) => setFilterCategory(e.target.value)}
                         >
-                            <option value="">Todas las Categorías</option>
+                            <option value="">Categorías</option>
                             {categorias.map(cat => (
                                 <option key={cat.id} value={cat.id}>{cat.nombre}</option>
                             ))}
                         </select>
 
                         <select
-                            className="p-2 border border-gray-600 bg-gray-700 text-white rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
+                            className="w-full p-2 border border-gray-600 bg-gray-700 text-white rounded-md text-xs focus:ring-blue-500 focus:border-blue-500 truncate"
                             value={filterMaterial}
                             onChange={(e) => setFilterMaterial(e.target.value)}
                         >
-                            <option value="">Todos los Materiales</option>
+                            <option value="">Materiales</option>
                             {materiales.map(mat => (
                                 <option key={mat.id} value={mat.id}>{mat.nombre}</option>
                             ))}
                         </select>
 
                         <select
-                            className="p-2 border border-gray-600 bg-gray-700 text-white rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
+                            className="w-full p-2 border border-gray-600 bg-gray-700 text-white rounded-md text-xs focus:ring-blue-500 focus:border-blue-500 truncate"
                             value={filterStatus}
                             onChange={(e) => setFilterStatus(e.target.value)}
                         >
-                            <option value="active">Solo Activos</option>
-                            <option value="all">Todos los Estados</option>
+                            <option value="active">Activos</option>
+                            <option value="all">Todos</option>
                             <option value="inactive">Inactivos</option>
                         </select>
-                    </div>
-
-                    {/* Contador de resultados */}
-                    <div className="text-sm text-gray-300 ml-auto">
-                        {currentProducts.length} de {filteredProducts.length} productos
                     </div>
                 </div>
             </div>
@@ -260,13 +260,13 @@ const CompartirPrecios = () => {
                                             {producto.precio ? (
                                                 <button
                                                     onClick={() => handleSharePrice(producto, 'PEN')}
-                                                    className="w-full text-xs font-bold px-2 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors shadow-sm active:scale-95 text-center"
+                                                    className="w-full text-xs font-bold px-2 py-2 rounded-lg bg-gray-200 text-gray-900 hover:bg-gray-300 transition-colors shadow-sm active:scale-95 text-center"
                                                     title="Compartir en Soles"
                                                 >
                                                     S/ {Math.round(producto.precio)}
                                                 </button>
                                             ) : (
-                                                <button disabled className="w-full h-8 rounded-lg bg-slate-50 border border-slate-100 cursor-not-allowed"></button>
+                                                <button disabled className="w-full text-xs font-bold px-2 py-2 rounded-lg bg-gray-100 text-gray-400 cursor-not-allowed">-</button>
                                             )}
                                         </td>
 
@@ -275,13 +275,13 @@ const CompartirPrecios = () => {
                                             {producto.precio_internacional_base > 0 ? (
                                                 <button
                                                     onClick={() => handleSharePrice(producto, 'USD')}
-                                                    className="w-full text-xs font-bold px-2 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors shadow-sm active:scale-95 text-center"
+                                                    className="w-full text-xs font-bold px-2 py-2 rounded-lg bg-gray-200 text-gray-900 hover:bg-gray-300 transition-colors shadow-sm active:scale-95 text-center"
                                                     title="Compartir en Dólares"
                                                 >
                                                     $ {Math.round(producto.precio_internacional_base * 0.45)}
                                                 </button>
                                             ) : (
-                                                <button disabled className="w-full h-8 rounded-lg bg-slate-50 border border-slate-100 cursor-not-allowed"></button>
+                                                <button disabled className="w-full text-xs font-bold px-2 py-2 rounded-lg bg-gray-100 text-gray-400 cursor-not-allowed">-</button>
                                             )}
                                         </td>
 
@@ -290,13 +290,13 @@ const CompartirPrecios = () => {
                                             {producto.precio_internacional_base > 0 ? (
                                                 <button
                                                     onClick={() => handleSharePrice(producto, 'EUR')}
-                                                    className="w-full text-xs font-bold px-2 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 transition-colors shadow-sm active:scale-95 text-center"
+                                                    className="w-full text-xs font-bold px-2 py-2 rounded-lg bg-gray-200 text-gray-900 hover:bg-gray-300 transition-colors shadow-sm active:scale-95 text-center"
                                                     title="Compartir en Euros"
                                                 >
                                                     € {Math.round(producto.precio_internacional_base * 0.4063)}
                                                 </button>
                                             ) : (
-                                                <button disabled className="w-full h-8 rounded-lg bg-slate-50 border border-slate-100 cursor-not-allowed"></button>
+                                                <button disabled className="w-full text-xs font-bold px-2 py-2 rounded-lg bg-gray-100 text-gray-400 cursor-not-allowed">-</button>
                                             )}
                                         </td>
                                     </tr>

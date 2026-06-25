@@ -16,6 +16,7 @@ const Footer = () => {
   const handleCompartir = async (e) => {
     e.preventDefault();
     const isProductPage = window.location.pathname.startsWith('/producto/');
+    const isCatalogoPage = window.location.pathname.startsWith('/catalogo/');
     let shareUrl = window.location.href;
 
     if (isProductPage) {
@@ -23,8 +24,9 @@ const Footer = () => {
       shareUrl = `https://artesaniasenigma.com/producto/${productId}`;
     }
 
-    // Construir texto con precio si estamos en página de producto
+    let shareTitle = document.title || 'Enigma Artesanías';
     let shareText = 'Mira esta página de artesanías y accesorios increíbles.';
+
     if (isProductPage) {
       const { precio, titulo, region } = precioRef.current;
       if (precio) {
@@ -35,10 +37,47 @@ const Footer = () => {
       } else {
         shareText = 'Hecha a pedido.';
       }
+    } else if (isCatalogoPage) {
+      const parts = decodeURIComponent(window.location.pathname).split('/');
+      const materialUrl = parts[2] || 'all';
+      const categoriaUrl = parts[3] || 'all';
+
+      const toTitleCase = (str) => str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+      
+      const CATEGORY_PLURALS = {
+        'collar': 'Collares',
+        'anillo': 'Anillos',
+        'arete': 'Aretes',
+        'pulsera': 'Pulseras',
+        'personalizado': 'Diseños personalizados',
+        'vincha_tiara': 'Vinchas y Tiaras',
+        'tobillera': 'Tobilleras'
+      };
+
+      const matDisplay = materialUrl === 'all' ? 'diversos materiales' : materialUrl.toLowerCase();
+      
+      let catDisplay = 'Joyas';
+      let catLower = 'joyas';
+      if (categoriaUrl !== 'all') {
+         catDisplay = CATEGORY_PLURALS[categoriaUrl.toLowerCase()] || toTitleCase(categoriaUrl);
+         catLower = catDisplay.toLowerCase();
+      }
+
+      if (materialUrl !== 'all' && categoriaUrl !== 'all') {
+         shareTitle = `${catDisplay} en ${toTitleCase(materialUrl)} | Orfebrería Enigma`;
+      } else if (materialUrl !== 'all') {
+         shareTitle = `Colección ${toTitleCase(materialUrl)} | Orfebrería Enigma`;
+      } else if (categoriaUrl !== 'all') {
+         shareTitle = `${catDisplay} | Orfebrería Enigma`;
+      } else {
+         shareTitle = `Catálogo de Joyas | Orfebrería Enigma`;
+      }
+
+      shareText = `Colección de ${catLower} de diseño forjadas a mano en ${matDisplay}. Explora nuestro portafolio de piezas de autor hechas a pedido.`;
     }
 
     const shareData = {
-      title: document.title || 'Enigma Artesanías',
+      title: shareTitle,
       text: shareText,
       url: shareUrl,
     };

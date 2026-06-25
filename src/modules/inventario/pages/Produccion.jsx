@@ -1871,7 +1871,7 @@ const Produccion = () => {
 
                 return (
                     <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-                        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-[380px] overflow-hidden flex flex-col border border-gray-100">
+                        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-[380px] max-h-[90vh] overflow-hidden flex flex-col border border-gray-100">
                             {/* Header Gradiente Elegante */}
                             <div className="bg-slate-900 px-5 py-4 text-white flex justify-between items-center">
                                 <div>
@@ -1889,8 +1889,8 @@ const Produccion = () => {
                             </div>
 
                             {/* Contenido del Formulario */}
-                            <div className="p-5 space-y-4 overflow-y-auto max-h-[70vh]">
-                                <div className="bg-blue-50/50 rounded-xl p-3.5 border border-blue-100/50 space-y-3">
+                            <div className="p-4 space-y-3 overflow-y-auto custom-scrollbar">
+                                <div className="bg-blue-50/50 rounded-xl p-3 border border-blue-100/50 space-y-2">
                                     <div className="flex justify-between items-center text-xs">
                                         <span className="text-gray-500 font-medium">Complejidad:</span>
                                         <span className="px-2 py-0.5 bg-blue-100 text-blue-800 rounded-md font-bold uppercase tracking-wider text-[10px]">
@@ -1908,7 +1908,7 @@ const Produccion = () => {
                                 </div>
 
                                 {/* Form Inputs */}
-                                <div className="space-y-3">
+                                <div className="space-y-2">
                                     {itemToFinish.metal !== 'BISUTERIA' && (
                                         <>
                                             <div>
@@ -1921,7 +1921,7 @@ const Produccion = () => {
                                                     placeholder="0.00"
                                                     value={costosFormData.peso_material_gramos}
                                                     onChange={(e) => setCostosFormData({ ...costosFormData, peso_material_gramos: e.target.value })}
-                                                    className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
+                                                    className="w-full rounded-xl border border-gray-200 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
                                                     required
                                                 />
                                             </div>
@@ -1936,7 +1936,7 @@ const Produccion = () => {
                                                     placeholder="0.0"
                                                     value={costosFormData.horas_trabajo_real}
                                                     onChange={(e) => setCostosFormData({ ...costosFormData, horas_trabajo_real: e.target.value })}
-                                                    className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
+                                                    className="w-full rounded-xl border border-gray-200 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
                                                     required
                                                 />
                                             </div>
@@ -1953,14 +1953,14 @@ const Produccion = () => {
                                             placeholder="0.00"
                                             value={costosFormData.costo_insumos_extra}
                                             onChange={(e) => setCostosFormData({ ...costosFormData, costo_insumos_extra: e.target.value })}
-                                            className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
+                                            className="w-full rounded-xl border border-gray-200 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
                                         />
                                         <p className="text-[9px] text-gray-400 mt-1">Piedras, gemas, soldadura o insumos adicionales.</p>
                                     </div>
                                 </div>
 
                                 {/* Cálculos en tiempo real */}
-                                <div className="border-t border-gray-100 pt-4 space-y-2.5">
+                                <div className="border-t border-gray-100 pt-3 space-y-2">
                                     <div className="flex justify-between items-center text-xs">
                                         <span className="text-gray-400">Costo Material (Metal):</span>
                                         <span className="font-mono text-gray-700">S/ {costoMetalTotal.toFixed(2)}</span>

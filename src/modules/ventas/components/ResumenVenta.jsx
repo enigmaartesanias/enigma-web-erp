@@ -36,40 +36,41 @@ const ResumenVenta = ({
         <div className="bg-gray-50 h-full flex flex-col overflow-hidden text-gray-800 font-sans">
 
             {/* Header POS Elegante */}
-            <div className="bg-gray-900 border-b border-gray-800 px-5 py-4 flex-shrink-0 flex flex-col gap-4">
-                <div className="flex justify-between items-center">
-                    <h2 className="text-xs font-semibold text-white flex items-center gap-2 uppercase tracking-widest">
-                        <FaShoppingCart size={14} className="text-gray-400" />
+            <div className="bg-gray-900 border-b border-gray-800 px-3 py-3 flex-shrink-0 flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                    <FaShoppingCart size={14} className="text-gray-400" />
+                    <h2 className="hidden md:block text-xs font-semibold text-white uppercase tracking-widest">
                         Punto de Venta
                     </h2>
-                    <div className="flex items-center gap-3">
-                        <button
-                            onClick={onPreview}
-                            className="p-2 rounded-full hover:bg-gray-100 text-gray-500 transition-colors"
-                            title="Vista Previa"
-                        >
-                            <FaEye size={14} />
-                        </button>
-                        <button
-                            onClick={onClienteClick}
-                            className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all text-[11px] font-semibold tracking-wider uppercase border ${config.cliente ? 'bg-blue-600 text-white border-blue-600 shadow-md' : 'bg-gray-800 text-gray-300 border-gray-700 hover:bg-gray-700'}`}
-                        >
-                            <FaUser size={10} />
-                            <span>{config.cliente ? (config.cliente.nombre || config.cliente).toString().split(' ')[0] : 'AÑADIR CLIENTE'}</span>
-                            {!config.cliente && <FaPlus size={8} />}
-                        </button>
-                    </div>
                 </div>
+                
+                <div className="flex items-center gap-2 flex-1 justify-end">
+                    <button
+                        onClick={onPreview}
+                        className="p-1.5 rounded-full hover:bg-gray-800 text-gray-400 transition-colors"
+                        title="Vista Previa"
+                    >
+                        <FaEye size={14} />
+                    </button>
+                    
+                    {/* Selector de Fecha Compacto */}
+                    <div className="bg-gray-800 border border-gray-700 rounded-full px-2.5 py-1.5 flex items-center gap-1.5 w-[115px] flex-shrink-0">
+                        <FaCalendarAlt size={10} className="text-gray-400" />
+                        <input
+                            type="date"
+                            value={fechaVenta}
+                            onChange={(e) => setFechaVenta(e.target.value)}
+                            className="bg-transparent border-none outline-none w-full cursor-pointer text-gray-200 text-[9px] font-medium tracking-widest [color-scheme:dark]"
+                        />
+                    </div>
 
-                {/* Selector de Fecha Estilizado */}
-                <div className="bg-gray-800/50 border border-gray-700/50 rounded-xl px-4 py-2.5 flex items-center gap-3">
-                    <FaCalendarAlt size={12} className="text-gray-400 flex-shrink-0" />
-                    <input
-                        type="date"
-                        value={fechaVenta}
-                        onChange={(e) => setFechaVenta(e.target.value)}
-                        className="bg-transparent border-none outline-none w-full cursor-pointer text-gray-200 text-xs font-medium uppercase tracking-widest [color-scheme:dark]"
-                    />
+                    <button
+                        onClick={onClienteClick}
+                        className={`flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-full transition-all text-[9px] font-semibold tracking-wider uppercase border flex-shrink-0 max-w-[100px] ${config.cliente ? 'bg-blue-600 text-white border-blue-600 shadow-md' : 'bg-gray-800 text-gray-300 border-gray-700 hover:bg-gray-700'}`}
+                    >
+                        <FaUser size={9} />
+                        <span className="truncate">{config.cliente ? (config.cliente.nombre || config.cliente).toString().split(' ')[0] : 'CLIENTE'}</span>
+                    </button>
                 </div>
             </div>
 
@@ -106,9 +107,9 @@ const ResumenVenta = ({
             </div>
 
             {/* Panel Inferior - Resumen Premium */}
-            <div className="bg-gray-50 border-t border-gray-200 p-4 md:p-5 pb-6 md:pb-4 flex-shrink-0 rounded-t-3xl md:rounded-none shadow-[0_-4px_20px_-10px_rgba(0,0,0,0.05)]">
+            <div className="bg-gray-50 border-t border-gray-200 p-3 md:p-4 pb-4 md:pb-3 flex-shrink-0 rounded-t-3xl md:rounded-none shadow-[0_-4px_20px_-10px_rgba(0,0,0,0.05)]">
                 
-                <div className="space-y-2 mb-3">
+                <div className="space-y-1 mb-2">
                     {/* Fila Subtotal/IGV */}
                     <div className="flex items-center justify-between gap-4">
                         <label className="flex items-center gap-3 cursor-pointer group">
@@ -157,29 +158,27 @@ const ResumenVenta = ({
                 </div>
 
                 {/* TOTAL GRANDE ELEGANTE */}
-                <div className="flex justify-between items-end py-2.5 border-t border-gray-100 mb-3">
+                <div className="flex justify-between items-end py-1.5 border-t border-gray-100 mb-2 mt-1">
                     <span className="text-xs font-semibold uppercase text-gray-500 tracking-[0.15em] mb-1">Total a Pagar</span>
-                    <span className="text-3xl font-light tracking-tight text-gray-900">
-                        <span className="text-lg font-medium text-gray-400 mr-1">S/</span>
+                    <span className="text-2xl font-light tracking-tight text-gray-900">
+                        <span className="text-base font-medium text-gray-400 mr-1">S/</span>
                         {totals.total.toFixed(2)}
                     </span>
                 </div>
 
                 {/* Formas de Pago */}
-                <div className="mb-4">
-                    <span className="block text-[9px] font-semibold uppercase text-gray-400 tracking-widest mb-2">Método de Pago</span>
+                <div className="mb-3">
+                    <span className="block text-[9px] font-semibold uppercase text-gray-400 tracking-widest mb-1.5">Método de Pago</span>
                     <div className="grid grid-cols-3 gap-2">
                         {paymentOptions.map((opt) => {
-                            const Icon = opt.icon;
                             const isSelected = formaPago === opt.id;
                             return (
                                 <button
                                     key={opt.id}
                                     onClick={() => handlePaymentSelect(opt.id)}
-                                    className={`flex flex-col items-center justify-center py-2.5 px-2 rounded-xl transition-all duration-300 border ${isSelected ? 'bg-gray-900 border-gray-900 shadow-lg shadow-gray-900/20 transform scale-[1.02]' : 'bg-white border-gray-200 hover:bg-gray-50 hover:border-gray-300 text-gray-500'}`}
+                                    className={`flex items-center justify-center py-2 px-1 rounded-lg transition-all duration-300 border ${isSelected ? 'bg-gray-900 border-gray-900 shadow-lg shadow-gray-900/20 transform scale-[1.02]' : 'bg-white border-gray-200 hover:bg-gray-50 hover:border-gray-300'}`}
                                 >
-                                    <Icon className={isSelected ? 'text-blue-400' : 'text-gray-400'} size={18} />
-                                    <span className={`text-[8.5px] font-bold mt-1.5 tracking-widest ${isSelected ? 'text-white' : 'text-gray-500'}`}>
+                                    <span className={`text-[10px] font-bold tracking-widest ${isSelected ? 'text-white' : 'text-gray-500'}`}>
                                         {opt.label}
                                     </span>
                                 </button>

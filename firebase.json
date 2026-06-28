@@ -55,7 +55,7 @@
         "function": "shareCatalog"
       },
       {
-        "source": "**", 
+        "source": "**",
         "destination": "/index.html"
       }
     ],

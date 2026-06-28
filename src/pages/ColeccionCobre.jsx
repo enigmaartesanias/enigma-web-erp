@@ -1,247 +1,171 @@
-import React, { useEffect } from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 
 const ColeccionCobre = () => {
-  const categories = [
-    { nombre: 'Aretes', imagen: '/images/aretecobre.png', ruta: '/catalogo/Cobre/ARETE', badge: null },
-    { nombre: 'Pulseras', imagen: '/images/pulseracobre.png', ruta: '/catalogo/Cobre/PULSERA', badge: null },
-    { nombre: 'Anillos', imagen: '/images/anillocobre.png', ruta: '/catalogo/Cobre/ANILLO', badge: null },
-    { nombre: 'Collares', imagen: '/images/collarcobre.png', ruta: '/catalogo/Cobre/COLLAR', badge: null },
-    { nombre: 'Vinchas', imagen: '/images/vinchacobre.png', ruta: '/catalogo/Cobre/VINCHA_TIARA', badge: 'NUEVO' },
-    { nombre: 'Tobilleras', imagen: '/images/tobilleracobre.png', ruta: '/catalogo/Cobre/TOBILLERA', badge: 'NUEVOS' },
+  const [activeTab, setActiveTab] = useState(0);
+
+  const chapters = [
+    {
+      numero: 'I',
+      nombre: 'El Fuego',
+      subtitulo: 'El dominio térmico del artesano',
+      titulo: 'El Velo del Fuego: Domar lo Indomable',
+      texto1:
+        'El cobre es un metal noble pero indomable. Posee una conductividad térmica tan sublime que desafía al fuego mismo, disipando el calor casi tan rápido como el soplete intenta acariciarlo. Dominar su soldadura exige una llama voraz, un fundente líquido invisible y una paciencia templada en el taller.',
+      texto2:
+        'No es un oficio mecánico; es un duelo de precisión absoluta donde un milímetro de soldadura delgada define la eternidad de la pieza. Donde otros metales ceden de inmediato, el cobre exige meses de obsesión y maestría.',
+      rutaFutura: '/assets/images/cobre/fuego-soldadura.mp4',
+      tipoMedia: 'video',
+    },
+    {
+      numero: 'II',
+      nombre: 'Texturas',
+      subtitulo: 'Forjado, pliegues y texturas fundidas',
+      titulo: 'La Piel del Metal: Relieves e Identidad',
+      texto1:
+        'Cada relieve que refracta la luz en nuestras piezas es un diálogo honesto entre el metal y el martillo. Forjamos el cobre directamente o mediante técnicas complejas sobre tubo para generar pliegues orgánicos y texturas semi-fundidas que parecen extraídas de la tierra.',
+      texto2:
+        'Es la identidad esculpida enteramente a mano: una topografía de accidentes perfectos que asegura que ninguna joya sea igual a otra. Su superficie cuenta la historia de su propia transformación física.',
+      rutaFutura: '/assets/images/cobre/texturas-forjado.jpg',
+      tipoMedia: 'imagen',
+    },
+    {
+      numero: 'III',
+      nombre: 'Alquimia',
+      subtitulo: 'El tiempo controlado y el grabado profundo',
+      titulo: 'Alquimia Ancestral: Pátinas y Ácido',
+      texto1:
+        "No buscamos el brillo efímero. Mediante la preparación artesanal de pátinas de azufre, aceleramos el susurro del tiempo sobre el metal para vestirlo con matices oscuros y profundos. Complementamos este misticismo con el 'etching' o grabado al ácido férrico.",
+      texto2:
+        'Esta técnica muerde el metal de manera irreversible, dibujando patrones ancestrales en su superficie. Es el encanto de lo antiguo, una joya que parece rescatada de la historia para adaptarse a tu presente.',
+      rutaFutura: '/assets/images/cobre/patinas-etching.jpg',
+      tipoMedia: 'imagen',
+    },
+    {
+      numero: 'IV',
+      nombre: 'Armado',
+      subtitulo: 'Estructuras tejidas y encapsulados minerales',
+      titulo: 'Arquitectura Textil: Alambrismo y Resina',
+      texto1:
+        'El armado de nuestras piezas desafía lo convencional. Tejemos filamentos de alambre artesanalmente para estructurar el alma de la joya, creando un encaje metálico rígido. Sobre este lienzo, diseñamos cajas caladas en formas icónicas como lunas o corazones.',
+      texto2:
+        'En su interior, trituramos minerales de cuarzo y piedras naturales, encapsulándolos con resina UV para fusionar el color eterno y la luz directamente sobre el metal. Una ingeniería artesanal única.',
+      rutaFutura: '/assets/images/cobre/alambrismo-resina.jpg',
+      tipoMedia: 'imagen',
+    },
+    {
+      numero: 'V',
+      nombre: 'El Acabado',
+      subtitulo: 'La misma alma, las mismas herramientas',
+      titulo: 'El Rigor de la Joyería: Pulido y Engaste',
+      texto1:
+        'Una pieza de cobre de autor no tiene nada que envidiarle a la plata o al oro. En nuestro taller, el cobre se trabaja bajo los estándares más estrictos de la alta joyería. Usamos las mismas herramientas de precisión para lograr acabados espejo impecables.',
+      texto2:
+        'Cada piedra preciosa o mineral es engastado con el rigor técnico necesario para asegurar su permanencia. El valor real no reside en la etiqueta del metal, sino en la destreza técnica de la mano que lo consagra.',
+      rutaFutura: '/assets/images/cobre/joya-final-pulido.jpg',
+      tipoMedia: 'imagen',
+    },
   ];
 
-  useEffect(() => {
-    if (window.location.hash === '#coleccion') {
-      const el = document.getElementById('coleccion');
-      if (el) {
-        // Calcular offset manual: posición del elemento - header (64px) - margen extra (16px)
-        setTimeout(() => {
-          const top = el.getBoundingClientRect().top + window.scrollY - 80;
-          window.scrollTo({ top, behavior: 'smooth' });
-        }, 100);
-      }
-    } else {
-      window.scrollTo({ top: 0, behavior: 'instant' });
-    }
-  }, []);
+  const activeChapter = chapters[activeTab];
+  const isEven = activeTab % 2 === 0;
 
   return (
-    <div className="bg-[#f2eeea] font-sans min-h-screen text-[#2a2018] pt-[64px] md:pt-[72px]">
+    <div className="bg-stone-950 min-h-screen pt-[64px] md:pt-[72px]">
+      <div className="max-w-6xl mx-auto py-20 px-4 sm:px-6 lg:px-8 text-stone-200 font-sans">
 
-      {/* [1] HERO COMPACTO */}
-      <div className="relative w-full bg-[#2a2018] flex flex-col items-center justify-center text-center px-6 min-h-[220px] md:min-h-[320px] overflow-hidden">
-        <img
-          src="/images/tecnica.jpg"
-          alt="Taller trabajando cobre"
-          className="absolute inset-0 w-full h-full object-cover object-center opacity-50 mix-blend-luminosity"
-        />
-        <div className="absolute inset-0 bg-[#1a0e06]/50" />
-        <div className="relative z-10 flex flex-col items-center max-w-2xl py-10 md:py-16">
-          <p className="text-[#c8964a] uppercase text-[10px] md:text-xs tracking-[0.22em] mb-3 font-medium">Colección</p>
-          <h1
-            className="text-[2.8rem] md:text-[4rem] text-[#faf9f7] mb-3 leading-tight"
-            style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: '300', letterSpacing: '0.04em' }}
-          >Cobre Artesanal</h1>
-          <div className="w-8 h-px bg-[#c8964a] opacity-70 mb-3" />
-          <p
-            style={{ fontSize: '11px', fontWeight: '300', letterSpacing: '0.28em', color: 'rgba(250,249,247,0.5)' }}
-          >Metal vivo · forjado a mano en Lima</p>
+        {/* ENCABEZADO */}
+        <div className="text-center mb-12">
+          <p className="font-serif italic text-amber-600/80 text-sm md:text-base mb-2">
+            El Manifiesto del Artesano
+          </p>
+          <h1 className="font-serif text-stone-100 tracking-wide text-4xl md:text-6xl">
+            El Universo del Cobre
+          </h1>
         </div>
-      </div>
 
-      {/* CONTENEDOR PRINCIPAL */}
-      <div className="container mx-auto px-4 md:px-6 max-w-4xl py-10 space-y-12">
-
-        {/* [2] HISTORIA */}
-        <section className="space-y-4">
-          <div className="text-center mb-4">
-            <p style={{ fontSize: '9px', fontWeight: '500', letterSpacing: '0.22em', color: '#c8964a', textTransform: 'uppercase' }}>Historia del Cobre</p>
-          </div>
-          <div className="flex flex-col md:flex-row gap-6 items-center bg-white border border-[#e8e4de] rounded-lg p-5 shadow-sm">
-            <p className="flex-1" style={{ textAlign: 'left', fontFamily: "'Cormorant Garamond', serif", fontSize: '16px', fontWeight: '300', fontStyle: 'italic', color: '#6a5a4a', lineHeight: '1.85' }}>
-              El cobre ha sido parte de la humanidad desde los albores de la civilización. En Enigma, retomamos esta herencia milenaria para forjar joyas que no solo adornan, sino que conectan con nuestras raíces. Cada martillazo y cada doblez es un tributo a las técnicas ancestrales que mantenemos vivas en nuestro taller.
-            </p>
-            <div className="w-full md:w-1/3 h-48 md:h-64 rounded-xl overflow-hidden shadow-sm flex-shrink-0 bg-gray-100 border border-[#e8e4de]">
-              <img src="/images/historia.png" alt="Pieza de cobre terminada" className="w-full h-full object-cover hover:scale-105 transition-transform duration-700" />
-            </div>
-          </div>
-        </section>
-
-        {/* [3] ACORDEONES */}
-        <section className="space-y-3">
-          <details className="group border border-[#e8e4de] bg-white rounded-lg p-4 shadow-sm">
-            <summary className="flex justify-between items-center cursor-pointer hover:text-[#c8964a] list-none select-none [&::-webkit-details-marker]:hidden">
-              <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '11px', fontWeight: '400', letterSpacing: '0.18em', textTransform: 'uppercase', color: '#2a2018' }}>Mística y Propiedades</span>
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 transform group-open:rotate-180 transition-transform duration-300 text-[#c8964a]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 9l-7 7-7-7" />
-              </svg>
-            </summary>
-            <div className="mt-4 border-t border-[#e8e4de]/40 pt-4">
-              <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', fontWeight: '300', color: '#6a5a4a', lineHeight: '1.75' }}>
-                Más allá de su belleza cálida, el cobre es conocido como un excelente conductor de energía. Históricamente se le atribuyen propiedades sanadoras, ayudando a equilibrar las energías del cuerpo, aliviar dolencias articulares y fomentar la vitalidad física y espiritual de quien lo porta.
-              </p>
-            </div>
-          </details>
-
-          <details className="group border border-[#e8e4de] bg-white rounded-lg p-4 shadow-sm">
-            <summary className="flex justify-between items-center cursor-pointer hover:text-[#c8964a] list-none select-none [&::-webkit-details-marker]:hidden">
-              <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '11px', fontWeight: '400', letterSpacing: '0.18em', textTransform: 'uppercase', color: '#2a2018' }}>Proceso de Creación</span>
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 transform group-open:rotate-180 transition-transform duration-300 text-[#c8964a]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 9l-7 7-7-7" />
-              </svg>
-            </summary>
-            <div className="mt-4 border-t border-[#e8e4de]/40 pt-4">
-              <div className="flex flex-col md:flex-row-reverse gap-6 items-center">
-                <p className="flex-1" style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', fontWeight: '300', color: '#6a5a4a', lineHeight: '1.75' }}>
-                  Todo comienza con un trozo de cobre crudo. Mediante el fuego, el martillo y la paciencia, moldeamos cada curva. No usamos moldes; cada pieza es esculpida a mano, garantizando que tu joya sea única.
-                </p>
-                <div className="w-full md:w-1/3 h-48 md:h-64 rounded-xl overflow-hidden shadow-sm flex-shrink-0 bg-gray-100 border border-[#e8e4de]">
-                  <img src="https://qwvhrtdddpmaovnyarhr.supabase.co/storage/v1/object/public/producto-images/8eac9868-28b7-4fed-9fd7-8c9c8c0dcf6d.jpg" alt="Proceso de trabajo" className="w-full h-full object-cover hover:scale-105 transition-transform duration-700" />
-                </div>
-              </div>
-            </div>
-          </details>
-        </section>
-
-        {/* [4] GRID DE CATEGORÍAS — botones separados, fondo transparente, banda cobre */}
-        <section id="coleccion" className="scroll-mt-24">
-          <div className="text-center mb-6">
-            <p style={{ fontSize: '9px', fontWeight: '500', letterSpacing: '0.24em', color: '#c8964a', textTransform: 'uppercase' }}>Colección</p>
-            <div style={{ width: '20px', height: '0.5px', background: '#c8964a', opacity: 0.6, margin: '6px auto 10px' }} />
-            <h2 className="text-[26px] md:text-[32px]" style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: '300', color: '#2a2018', letterSpacing: '0.05em' }}>Explora piezas en cobre</h2>
-          </div>
-
-          {/* Grid sin marco contenedor — cada botón flota separado */}
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: '1fr 1fr',
-            gap: '16px',
-          }}>
-            {categories.map(categoria => (
-              <Link
-                key={categoria.nombre}
-                to={categoria.ruta}
-                style={{
-                  position: 'relative',
-                  display: 'block',
-                  width: '100%',
-                  aspectRatio: '1 / 1',
-                  borderRadius: '16px',
-                  overflow: 'hidden',
-                  textDecoration: 'none',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.13)',
-                  background: '#e8e0d8',
-                  transition: 'transform 0.18s ease, box-shadow 0.18s ease',
-                }}
-                onMouseEnter={e => {
-                  e.currentTarget.style.transform = 'scale(1.02)';
-                  e.currentTarget.style.boxShadow = '0 6px 18px rgba(0,0,0,0.18)';
-                }}
-                onMouseLeave={e => {
-                  e.currentTarget.style.transform = 'scale(1)';
-                  e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.13)';
-                }}
-                onTouchStart={e => {
-                  e.currentTarget.style.transform = 'scale(0.97)';
-                }}
-                onTouchEnd={e => {
-                  e.currentTarget.style.transform = 'scale(1)';
-                }}
+        {/* NAVEGACIÓN POR PESTAÑAS — móvil: columna apilada / escritorio: línea horizontal */}
+        <div className="flex flex-col gap-2 w-full sm:flex-row sm:justify-center sm:gap-4 sm:border-b sm:border-stone-900 sm:pb-4 mb-12">
+          {chapters.map((chapter, index) => {
+            const isActive = activeTab === index;
+            return (
+              <button
+                key={chapter.numero}
+                onClick={() => setActiveTab(index)}
+                className={`w-full sm:w-auto text-center px-4 py-3 sm:py-2 border transition-colors duration-300 ${
+                  isActive
+                    ? 'text-amber-500 font-medium border-amber-500 bg-stone-900/40 sm:bg-transparent sm:border-transparent sm:border-b-2'
+                    : 'text-stone-500 hover:text-stone-300 border-transparent'
+                }`}
               >
-                {/* Imagen ocupa todo el botón menos la banda */}
-                <img
-                  src={categoria.imagen}
-                  alt={categoria.nombre}
-                  style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    width: '100%',
-                    height: '100%',
-                    objectFit: 'cover',
-                    objectPosition: 'center',
-                    display: 'block',
-                  }}
+                <span className="font-serif text-xs sm:text-sm tracking-wide">
+                  Capítulo {chapter.numero}. {chapter.nombre}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* CONTENIDO DEL CAPÍTULO ACTIVO — ZIG-ZAG */}
+        <section
+          key={activeTab}
+          className={`flex flex-col gap-10 items-center lg:gap-16 lg:items-stretch ${
+            isEven ? 'lg:flex-row' : 'lg:flex-row-reverse'
+          }`}
+        >
+          {/* COLUMNA DE TEXTO */}
+          <div className="w-full lg:w-1/2 flex flex-col justify-center">
+            <p className="font-serif italic text-amber-600/80 text-sm md:text-base mb-2">
+              {activeChapter.subtitulo}
+            </p>
+            <h2 className="font-serif text-stone-100 tracking-wide text-3xl md:text-4xl mb-6">
+              {activeChapter.titulo}
+            </h2>
+            <p className="font-sans text-stone-400 font-light leading-relaxed text-base md:text-lg mb-5">
+              {activeChapter.texto1}
+            </p>
+            <p className="font-sans text-stone-400 font-light leading-relaxed text-base md:text-lg">
+              {activeChapter.texto2}
+            </p>
+          </div>
+
+          {/* COLUMNA MULTIMEDIA — PLACEHOLDER TEMPORAL */}
+          <div className="w-full lg:w-1/2 flex items-center justify-center">
+            {/*
+              TODO: Reemplazar este div placeholder por la etiqueta real
+              cuando el archivo exista en /public${activeChapter.rutaFutura}:
+
+              Si tipoMedia === 'video':
+                <video
+                  src={activeChapter.rutaFutura}
+                  className="aspect-[4/5] sm:aspect-[16/10] lg:aspect-[4/5] w-full object-cover rounded-sm shadow-2xl"
+                  autoPlay loop muted playsInline
                 />
 
-                {/* Badge NUEVO/NUEVOS */}
-                {categoria.badge && (
-                  <span style={{
-                    position: 'absolute',
-                    top: '8px',
-                    left: '8px',
-                    zIndex: 10,
-                    backgroundColor: '#2a2018',
-                    color: '#c8964a',
-                    fontSize: '0.6rem',
-                    fontWeight: 500,
-                    letterSpacing: '0.06em',
-                    padding: '3px 9px',
-                    borderRadius: '999px',
-                    border: '0.5px solid rgba(200,150,74,0.35)',
-                  }}>
-                    {categoria.badge}
-                  </span>
-                )}
-
-                {/* Banda inferior refinada */}
-                <div style={{
-                  position: 'absolute',
-                  bottom: 0, left: 0, right: 0, zIndex: 10,
-                  background: 'rgba(242,238,234,0.93)',
-                  borderTop: '0.5px solid rgba(200,150,74,0.25)',
-                  padding: '9px 12px 10px',
-                  display: 'flex',
-                  alignItems: 'baseline',
-                  justifyContent: 'space-between',
-                }}>
-                  <span style={{
-                    fontFamily: "'Cormorant Garamond', serif",
-                    fontSize: '14px',
-                    fontWeight: '300',
-                    color: '#2a2018',
-                    letterSpacing: '0.08em',
-                  }}>
-                    {categoria.nombre}
-                  </span>
-                  <span style={{
-                    fontFamily: "'Inter', sans-serif",
-                    fontSize: '10px',
-                    fontWeight: '300',
-                    color: '#c8964a',
-                    letterSpacing: '0.05em',
-                  }}>
-                    ver →
-                  </span>
-                </div>
-              </Link>
-            ))}
+              Si tipoMedia === 'imagen':
+                <img
+                  src={activeChapter.rutaFutura}
+                  alt={activeChapter.titulo}
+                  className="aspect-[4/5] sm:aspect-[16/10] lg:aspect-[4/5] w-full object-cover rounded-sm shadow-2xl"
+                />
+            */}
+            <div className="aspect-[4/5] sm:aspect-[16/10] lg:aspect-[4/5] w-full bg-stone-900 rounded-sm border border-stone-800/60 shadow-2xl flex flex-col items-center justify-center p-6 animate-pulse">
+              <span className="font-serif text-xs uppercase tracking-widest text-stone-500 text-center">
+                [ Marcador: /public{activeChapter.rutaFutura} ]
+              </span>
+            </div>
           </div>
         </section>
 
-        {/* [5] CUIDADO DEL COBRE */}
-        <section className="pt-4">
-          <details className="group border border-[#e8e4de] bg-white rounded-lg p-4 shadow-sm">
-            <summary className="flex justify-between items-center cursor-pointer hover:text-[#c8964a] list-none select-none [&::-webkit-details-marker]:hidden">
-              <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '11px', fontWeight: '400', letterSpacing: '0.18em', textTransform: 'uppercase', color: '#2a2018' }}>Cuidado y Limpieza</span>
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 transform group-open:rotate-180 transition-transform duration-300 text-[#c8964a]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 9l-7 7-7-7" />
-              </svg>
-            </summary>
-            <div className="mt-4 border-t border-[#e8e4de]/40 pt-4 space-y-2">
-              <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', fontWeight: '300', color: '#6a5a4a', lineHeight: '1.75' }}>
-                — Limpieza natural. Limón y sal devuelven el brillo; frota suave y enjuaga.
-              </p>
-              <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', fontWeight: '300', color: '#6a5a4a', lineHeight: '1.75' }}>
-                — Evita la humedad. Retírala antes de bañarte o nadar.
-              </p>
-              <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', fontWeight: '300', color: '#6a5a4a', lineHeight: '1.75' }}>
-                — Almacenamiento. Guárdala en bolsita de tela individual en lugar seco.
-              </p>
-            </div>
-          </details>
-        </section>
+        {/* CTA FINAL */}
+        <div className="text-center mt-20">
+          <Link
+            to="/catalogo/Cobre"
+            className="inline-block font-serif text-sm uppercase tracking-widest text-amber-500 border border-amber-600/40 px-8 py-3 hover:bg-amber-600/10 hover:border-amber-500 transition-colors duration-300"
+          >
+            Descubrir Joyas de Autor en Cobre
+          </Link>
+        </div>
 
       </div>
     </div>

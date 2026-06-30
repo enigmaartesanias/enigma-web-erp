@@ -97,6 +97,14 @@ const CollageThumb = ({ src, alt }) => (
 // 3. LISTA DE CATEGORÍAS (texto plano, sin cajas)
 // Compartida entre el modo mobile (panel lateral) y el modo
 // desktop (acordeón inferior refinado).
+//
+// Ajuste de compactación (menú deslizante mobile):
+// - padding vertical reducido 12px -> 9px (menos separación entre enlaces)
+// - fontSize subido 15px -> 16px (enlaces directos, más presencia)
+// - lineHeight agregado (1.4) para que el texto más grande no se vea
+//   apretado pese al padding reducido
+// - borderBottom más sutil (opacidad), funciona como divisor fino
+// - chevron reducido y en gris neutro para no competir con el texto
 // ==========================================
 const CategoryList = ({ categories, materialCapitalized, allRoute, allLabel }) => (
     <div style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
@@ -108,11 +116,12 @@ const CategoryList = ({ categories, materialCapitalized, allRoute, allLabel }) =
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
-                    padding: '12px 2px',
-                    borderBottom: idx === categories.length - 1 ? 'none' : '0.5px solid #ede9e4',
+                    padding: '9px 2px',
+                    borderBottom: idx === categories.length - 1 ? 'none' : '0.5px solid rgba(237,233,228,0.7)',
                     fontFamily: "'Inter', sans-serif",
-                    fontSize: '15px',
+                    fontSize: '16px',
                     fontWeight: '500',
+                    lineHeight: '1.4',
                     letterSpacing: '0.01em',
                     color: '#241508',
                     textDecoration: 'none',
@@ -133,7 +142,7 @@ const CategoryList = ({ categories, materialCapitalized, allRoute, allLabel }) =
                             flexShrink: 0,
                         }} />
                     )}
-                    <span style={{ color: '#c8964a', fontSize: '15px', fontWeight: 'bold', lineHeight: 1 }}>›</span>
+                    <span style={{ color: '#a8a29e', fontSize: '13px', fontWeight: 'bold', lineHeight: 1 }}>›</span>
                 </span>
             </Link>
         ))}
@@ -146,9 +155,9 @@ const CategoryList = ({ categories, materialCapitalized, allRoute, allLabel }) =
                     alignItems: 'center',
                     justifyContent: 'center',
                     gap: '6px',
-                    marginTop: '14px',
-                    paddingTop: '12px',
-                    borderTop: '0.5px solid #ede9e4',
+                    marginTop: '12px',
+                    paddingTop: '10px',
+                    borderTop: '0.5px solid rgba(237,233,228,0.7)',
                     fontFamily: "'Inter', sans-serif",
                     fontSize: '10px',
                     fontWeight: '600',
@@ -184,11 +193,12 @@ const AccordionCard = ({ card, open, onToggle }) => {
     }, []);
 
     // Altura base del panel mobile. Se calcula según el número de categorías
-    // para que el salto al abrir sea sutil: cada fila ocupa ~45px (12px
-    // padding arriba+abajo + 16px texto + 0.5px borde), más ~94px para el
-    // header "Explorar"+botón cerrar y el pie compacto (título + "ver historia").
-    // Con 4 categorías (Alpaca/Plata) ≈ 274px. Con 6 (Cobre) ≈ 364px.
-    const categoryRowHeight = 45;
+    // para que el salto al abrir sea sutil. Cada fila ahora ocupa ~39px
+    // (9px padding arriba+abajo + ~22px texto a 16px/1.4 + 0.5px borde),
+    // más ~94px para el header "Explorar"+botón cerrar y el pie compacto
+    // (título + "ver historia"). Con 4 categorías (Alpaca/Plata) ≈ 250px.
+    // Con 6 (Cobre) ≈ 328px.
+    const categoryRowHeight = 39;
     const panelChrome = 94; // header "Explorar"+cerrar + pie título/historia + paddings
     const calculatedPanelHeight = categories.length * categoryRowHeight + panelChrome;
     const mobileBaseHeight = Math.max(200, calculatedPanelHeight);
@@ -279,7 +289,7 @@ const AccordionCard = ({ card, open, onToggle }) => {
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'space-between',
-                                marginBottom: '10px',
+                                marginBottom: '8px',
                             }}>
                                 <p style={{
                                     fontFamily: "'Inter', sans-serif",
@@ -348,7 +358,7 @@ const AccordionCard = ({ card, open, onToggle }) => {
                                     justifyContent: 'space-between',
                                     flexWrap: 'wrap',
                                     gap: '8px',
-                                    marginTop: '10px',
+                                    marginTop: '8px',
                                     paddingTop: '10px',
                                     borderTop: '0.5px solid #ede9e4',
                                 }}

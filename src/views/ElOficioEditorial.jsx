@@ -42,7 +42,7 @@ const ElOficioEditorial = () => {
           className="text-[11px] tracking-[0.18em] uppercase mt-1"
           style={{ fontFamily: FONT_BODY, color: COLOR_TEXT_SOFT }}
         >
-          Enigma Joyas de Autor
+          Enigma Orfebreria de Autor
         </p>
         <div className="flex items-center justify-center gap-3 mt-5">
           <span className="block h-px w-10" style={{ background: '#e4ddd1' }} />

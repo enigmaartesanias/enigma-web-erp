@@ -140,7 +140,7 @@ const ReporteCodigosQR = () => {
         selectedProductsData.forEach(prod => {
             let labelsLeft = printQuantities[prod.id] || 10;
             while (labelsLeft > 0) {
-                const labelsInThisRow = Math.min(labelsLeft, 4);
+                const labelsInThisRow = Math.min(labelsLeft, 8);
                 rows.push({ data: prod, labelCount: labelsInThisRow });
                 labelsLeft -= labelsInThisRow;
             }
@@ -256,7 +256,7 @@ const ReporteCodigosQR = () => {
                     {generateRows().map((row, idx) => (
                         <div key={idx} className="label-row">
 
-                            {/* ZONA DE REFERENCIA — nombre + código */}
+                            {/* ZONA DE REFERENCIA — nombre + código (Orientación visual a la izquierda) */}
                             <div className="reference-box">
                                 <div className="ref-text-container-full">
                                     <span className="ref-text-name">{row.data.nombre}</span>
@@ -264,28 +264,19 @@ const ReporteCodigosQR = () => {
                                 </div>
                             </div>
 
-                            {/* ETIQUETAS DE RECORTE (Horizontal: QR izquierda, Textos derecha) */}
+                            {/* ETIQUETAS DE RECORTE (Contenedores Cuadrados: QR + Código) */}
                             {Array.from({ length: row.labelCount }).map((_, i) => (
                                 <div key={i} className="label-box">
-                                    {/* Lado Izquierdo: QR Code */}
                                     <div className="label-qr-section">
                                         <QRCode
                                             value={row.data.codigo_usuario || String(row.data.id)}
-                                            size={42}
+                                            size={36}
                                             level="L"
                                             style={{ width: '100%', height: '100%' }}
                                             viewBox="0 0 256 256"
                                         />
                                     </div>
-
-                                    {/* Lado Derecho: Información de Marca e Iniciales */}
-                                    <div className="label-text-section">
-                                        <div className="label-brand">ENIGMA</div>
-                                        <div className="label-code">{row.data.codigo_usuario}</div>
-                                        <div className="label-sub">
-                                            {row.data.categoria ? row.data.categoria.toUpperCase() : 'ARTESANÍA'}
-                                        </div>
-                                    </div>
+                                    <div className="label-code">{row.data.codigo_usuario}</div>
                                 </div>
                             ))}
                         </div>
@@ -383,19 +374,19 @@ const ReporteCodigosQR = () => {
                 .label-row {
                     display: flex;
                     flex-direction: row;
-                    gap: 2mm;
+                    gap: 1.5mm;
                     page-break-inside: avoid;
                     align-items: center;
                 }
 
                 /* Zona de referencia lateral izquierda */
                 .reference-box {
-                    width: 30mm;
+                    width: 28mm;
                     height: 15mm;
                     display: flex;
                     align-items: center;
                     box-sizing: border-box;
-                    padding: 1mm 2mm;
+                    padding: 1mm;
                     background-color: white !important;
                 }
 
@@ -408,7 +399,7 @@ const ReporteCodigosQR = () => {
                 }
 
                 .ref-text-name {
-                    font-size: 5pt;
+                    font-size: 5.5pt;
                     font-family: sans-serif;
                     font-weight: bold;
                     text-transform: uppercase;
@@ -421,82 +412,52 @@ const ReporteCodigosQR = () => {
                 }
 
                 .ref-text-code {
-                    font-size: 5pt;
+                    font-size: 5.5pt;
                     font-family: monospace;
-                    color: #4b5563;
+                    font-weight: bold;
+                    color: #374151;
                     letter-spacing: 0.02em;
                 }
 
-                /* Etiqueta de recorte 38x15mm Reestructurada */
+                /* Etiqueta de recorte CUADRADA 15x15mm */
                 .label-box {
-                    width: 38mm;
+                    width: 15mm;
                     height: 15mm;
                     border: 0.5px solid #d1d5db;
                     box-sizing: border-box;
                     display: flex;
-                    flex-direction: row; /* Cambio a horizontal */
+                    flex-direction: column;
                     align-items: center;
-                    justify-content: flex-start;
-                    padding: 1mm 1.5mm;
-                    gap: 2.5mm; /* Espacio entre QR y sección de textos */
+                    justify-content: center;
+                    padding: 0.5mm 0.4mm;
+                    gap: 0.8mm;
                     background-color: white !important;
                     overflow: hidden;
                 }
 
-                /* Sección de QR a la izquierda */
+                /* Sección de QR */
                 .label-qr-section {
-                    width: 11mm;
-                    height: 11mm;
+                    width: 10mm;
+                    height: 10mm;
                     display: flex;
                     align-items: center;
                     justify-content: center;
                     flex-shrink: 0;
                 }
 
-                /* Sección de texto a la derecha */
-                .label-text-section {
-                    display: flex;
-                    flex-direction: column;
-                    justify-content: space-between;
-                    height: 11.5mm; /* Alineado con la altura interna del QR */
-                    flex-grow: 1;
-                    min-width: 0; /* Previene desbordamiento en textos largos */
-                    text-align: left;
-                }
-
-                .label-brand {
-                    font-size: 5.5pt;
-                    font-family: Georgia, serif;
-                    font-weight: bold;
-                    letter-spacing: 0.12em;
-                    text-transform: uppercase;
-                    color: #111827;
-                    line-height: 1;
-                }
-
                 .label-code {
-                    font-size: 5pt;
+                    font-size: 4.5pt;
                     font-family: monospace;
                     font-weight: bold;
-                    color: #1f2937;
-                    letter-spacing: 0.01em;
-                    line-height: 1.1;
-                    white-space: nowrap;
-                    overflow: hidden;
-                    text-overflow: ellipsis;
-                }
-
-                .label-sub {
-                    font-size: 3.5pt;
-                    font-family: sans-serif;
-                    font-weight: 600;
-                    color: #6b7280;
-                    letter-spacing: 0.05em;
-                    text-transform: uppercase;
+                    color: #111827;
+                    letter-spacing: -0.01em;
                     line-height: 1;
+                    margin-top: 0.4mm;
                     white-space: nowrap;
                     overflow: hidden;
                     text-overflow: ellipsis;
+                    text-align: center;
+                    max-width: 100%;
                 }
             `}</style>
         </div>

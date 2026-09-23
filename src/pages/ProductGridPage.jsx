@@ -25,6 +25,16 @@ const ProductGridPage = () => {
             const isViewingAll = material === 'all' && categoria === 'all';
             let productsData = [];
 
+            // Función para normalizar nombres de categoría de la URL al formato de la Base de Datos
+            const normalizeCategory = (catStr) => {
+                if (!catStr) return catStr;
+                const lower = catStr.toLowerCase();
+                if (lower === 'personalizados') return 'PERSONALIZADO';
+                if (lower === 'vincha_tiara' || lower === 'tiara' || lower === 'vinchas' || lower === 'tiaras') return 'Vincha';
+                if (lower === 'tobilleras') return 'Tobillera';
+                return catStr;
+            };
+
             try {
                 if (isViewingAll) {
                     // CASO 1: Cargar TODOS los productos activos (vista de catálogo total)
@@ -39,10 +49,7 @@ const ProductGridPage = () => {
 
                 } else if (material === 'all' && categoria !== 'all') {
                     // CASO 3: Filtrado SOLO por Categoría (ignorando material)
-                    // Útil para "Personalizados" o cualquier categoría global
-
-                    // Normalizar "Personalizados" (plural) a "PERSONALIZADO" (singular de la BD)
-                    const categoriaBusqueda = categoria.toLowerCase() === 'personalizados' ? 'PERSONALIZADO' : categoria;
+                    const categoriaBusqueda = normalizeCategory(categoria);
 
                     // 1. Obtener ID de la categoría (búsqueda insensible a mayúsculas/minúsculas)
                     const { data: categoriaData, error: categoriaError } = await supabase
@@ -144,10 +151,11 @@ const ProductGridPage = () => {
                     const materialId = materialData.id;
 
                     // 2. Obtener ID de la categoría (búsqueda insensible a mayúsculas/minúsculas)
+                    const categoriaBusqueda = normalizeCategory(categoria);
                     const { data: categoriaData, error: categoriaError } = await supabase
                         .from('categorias')
                         .select('id')
-                        .ilike('nombre', categoria)
+                        .ilike('nombre', categoriaBusqueda)
                         .maybeSingle();
 
                     if (categoriaError) throw categoriaError;

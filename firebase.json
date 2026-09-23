@@ -51,10 +51,6 @@
         "function": "shareProduct"
       },
       {
-        "source": "/catalogo/**",
-        "function": "shareCatalog"
-      },
-      {
         "source": "**",
         "destination": "/index.html"
       }

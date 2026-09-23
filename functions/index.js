@@ -12,6 +12,92 @@ const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 
+// Helper function to build absolute URLs
+const getAbsoluteUrl = (urlPath) => {
+  if (!urlPath) return 'https://artesaniasenigma.com/logo2.png';
+  if (urlPath.startsWith('http')) return urlPath;
+  return `https://artesaniasenigma.com${urlPath.startsWith('/') ? '' : '/'}${urlPath}`;
+};
+
+// Helper function to get the base template
+const getTemplate = () => {
+  try {
+    const templatePath = path.join(__dirname, 'index.html');
+    if (fs.existsSync(templatePath)) {
+      return fs.readFileSync(templatePath, 'utf8');
+    }
+  } catch (e) {
+    console.warn("No se pudo leer index.html local:", e);
+  }
+  return null;
+};
+
+// Helper function to inject OG tags into HTML
+const injectMetaTags = (html, meta) => {
+  let modifiedHtml = html;
+  
+  // 1. Título
+  modifiedHtml = modifiedHtml.replace(/<title>.*?<\/title>/is, `<title>${meta.title}</title>`);
+  
+  // 2. Metas de descripción
+  modifiedHtml = modifiedHtml.replace(/<meta[^>]*?name="description"[^>]*?>/is, `<meta name="description" content="${meta.description}" />`);
+  modifiedHtml = modifiedHtml.replace(/<meta[^>]*?property="og:description"[^>]*?>/is, `<meta property="og:description" content="${meta.description}" />`);
+  modifiedHtml = modifiedHtml.replace(/<meta[^>]*?name="twitter:description"[^>]*?>/is, `<meta name="twitter:description" content="${meta.description}" />`);
+  
+  // 3. Metas de título
+  modifiedHtml = modifiedHtml.replace(/<meta[^>]*?property="og:title"[^>]*?>/is, `<meta property="og:title" content="${meta.title}" />`);
+  modifiedHtml = modifiedHtml.replace(/<meta[^>]*?name="twitter:title"[^>]*?>/is, `<meta name="twitter:title" content="${meta.title}" />`);
+
+  // 4. Metas de imagen
+  modifiedHtml = modifiedHtml.replace(/<meta[^>]*?property="og:image"[^>]*?>/is, `<meta property="og:image" content="${meta.image}" />`);
+  
+  // Metadatos adicionales para WhatsApp/FB
+  if (!modifiedHtml.includes('property="og:image:width"')) {
+    modifiedHtml = modifiedHtml.replace('</head>', `<meta property="og:image:width" content="800" />\n<meta property="og:image:height" content="800" />\n<meta property="og:image:secure_url" content="${meta.image}" />\n</head>`);
+  }
+  
+  if (modifiedHtml.includes('name="twitter:image"')) {
+    modifiedHtml = modifiedHtml.replace(/<meta[^>]*?name="twitter:image"[^>]*?>/is, `<meta name="twitter:image" content="${meta.image}" />`);
+  } else {
+    modifiedHtml = modifiedHtml.replace('</head>', `<meta name="twitter:image" content="${meta.image}" />\n</head>`);
+  }
+
+  // 5. Meta de URL
+  modifiedHtml = modifiedHtml.replace(/<meta[^>]*?property="og:url"[^>]*?>/is, `<meta property="og:url" content="${meta.url}" />`);
+
+  return modifiedHtml;
+};
+
+// Fallback HTML if template fails
+const generateFallbackHtml = (meta) => `
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${meta.title}</title>
+    <meta name="description" content="${meta.description}" />
+    <meta property="og:type" content="product" />
+    <meta property="og:title" content="${meta.title}" />
+    <meta property="og:description" content="${meta.description}" />
+    <meta property="og:image" content="${meta.image}" />
+    <meta property="og:image:width" content="800" />
+    <meta property="og:image:height" content="800" />
+    <meta property="og:image:secure_url" content="${meta.image}" />
+    <meta property="og:url" content="${meta.url}" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="${meta.title}" />
+    <meta name="twitter:description" content="${meta.description}" />
+    <meta name="twitter:image" content="${meta.image}" />
+</head>
+<body>
+    <script>
+        window.location.replace("${meta.url}");
+    </script>
+    <p>Redirigiendo...</p>
+</body>
+</html>`;
+
 export const shareProduct = onRequest({ cors: true, invoker: "public" }, async (req, res) => {
   try {
     // Extraer el ID desde query o desde el path
@@ -38,90 +124,26 @@ export const shareProduct = onRequest({ cors: true, invoker: "public" }, async (
     }
 
     const descRaw = producto.descripcion || '';
-    const descripcion = descRaw
+    const description = descRaw
       .replace(/Desde\s+S\/\.?\s*[\d.,]+\s*PEN\.?/gi, '')
       .replace(/\s{2,}/g, ' ')
       .trim()
       .substring(0, 150) || 'Pieza personalizada hecha a pedido. Joyería de autor | Enigma Artesanías.';
-    const urlRedirect = `https://artesaniasenigma.com/producto/${producto.id}`;
-
-    // Intentar leer la plantilla index.html compilada local
-    let template = '';
-    try {
-      const templatePath = path.join(__dirname, 'index.html');
-      if (fs.existsSync(templatePath)) {
-        template = fs.readFileSync(templatePath, 'utf8');
-      }
-    } catch (e) {
-      console.warn("No se pudo leer index.html local:", e);
-    }
-
-    if (!template) {
-      // Plantilla de respaldo si no existe index.html
-      template = `
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{TITULO}}</title>
-    <meta name="description" content="{{DESCRIPCION}}" />
-    <meta property="og:type" content="product" />
-    <meta property="og:title" content="{{TITULO}}" />
-    <meta property="og:description" content="{{DESCRIPCION}}" />
-    <meta property="og:image" content="{{IMAGEN}}" />
-    <meta property="og:url" content="{{URL}}" />
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="{{TITULO}}" />
-    <meta name="twitter:description" content="{{DESCRIPCION}}" />
-    <meta name="twitter:image" content="{{IMAGEN}}" />
-</head>
-<body>
-    <script>
-        window.location.replace("{{URL}}");
-    </script>
-    <p>Redirigiendo...</p>
-</body>
-</html>`;
-      let html = template
-        .replaceAll('{{TITULO}}', `${producto.titulo} | Enigma Joyería de Autor`)
-        .replaceAll('{{DESCRIPCION}}', descripcion)
-        .replaceAll('{{IMAGEN}}', producto.imagen_principal_url)
-        .replaceAll('{{URL}}', urlRedirect);
-      
-      res.setHeader("Content-Type", "text/html; charset=utf-8");
-      res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-      return res.status(200).send(html);
-    }
-
-    // Si existe la plantilla index.html, reemplazamos las metaetiquetas usando regex robusto
-    let html = template;
-
-    // 1. Título
-    html = html.replace(/<title>.*?<\/title>/is, `<title>${producto.titulo} | Enigma Joyería de Autor</title>`);
     
-    // 2. Metas de descripción
-    html = html.replace(/<meta[^>]*?name="description"[^>]*?>/is, `<meta name="description" content="${descripcion}" />`);
-    html = html.replace(/<meta[^>]*?property="og:description"[^>]*?>/is, `<meta property="og:description" content="${descripcion}" />`);
-    html = html.replace(/<meta[^>]*?name="twitter:description"[^>]*?>/is, `<meta name="twitter:description" content="${descripcion}" />`);
-    
-    // 3. Metas de título
-    html = html.replace(/<meta[^>]*?property="og:title"[^>]*?>/is, `<meta property="og:title" content="${producto.titulo} | Enigma Joyería de Autor" />`);
-    html = html.replace(/<meta[^>]*?name="twitter:title"[^>]*?>/is, `<meta name="twitter:title" content="${producto.titulo} | Enigma Joyería de Autor" />`);
+    const meta = {
+      title: `${producto.titulo} | Enigma Joyería de Autor`,
+      description,
+      image: getAbsoluteUrl(producto.imagen_principal_url),
+      url: `https://artesaniasenigma.com/producto/${producto.id}`
+    };
 
-    // 4. Metas de imagen
-    html = html.replace(/<meta[^>]*?property="og:image"[^>]*?>/is, `<meta property="og:image" content="${producto.imagen_principal_url}" />`);
-    if (html.includes('name="twitter:image"')) {
-      html = html.replace(/<meta[^>]*?name="twitter:image"[^>]*?>/is, `<meta name="twitter:image" content="${producto.imagen_principal_url}" />`);
-    } else {
-      html = html.replace('</head>', `<meta name="twitter:image" content="${producto.imagen_principal_url}" />\n</head>`);
-    }
-
-    // 5. Meta de URL
-    html = html.replace(/<meta[^>]*?property="og:url"[^>]*?>/is, `<meta property="og:url" content="${urlRedirect}" />`);
+    let template = getTemplate();
+    let html = template ? injectMetaTags(template, meta) : generateFallbackHtml(meta);
 
     res.setHeader("Content-Type", "text/html; charset=utf-8");
-    res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+    // Permitir cache público para acelerar la carga en redes sociales (WhatsApp/FB), 
+    // pero con s-maxage para refrescar si cambia.
+    res.setHeader("Cache-Control", "public, max-age=3600, s-maxage=86400");
     return res.status(200).send(html);
 
   } catch (err) {
@@ -133,7 +155,6 @@ export const shareProduct = onRequest({ cors: true, invoker: "public" }, async (
 export const shareCatalog = onRequest({ cors: true, invoker: "public" }, async (req, res) => {
   try {
     const pathParts = req.path.split('/').filter(Boolean);
-    // Path looks like /catalogo/Cobre/Pulsera
     const materialUrl = pathParts.length > 1 ? pathParts[1] : 'all';
     const categoriaUrl = pathParts.length > 2 ? pathParts[2] : 'all';
 
@@ -169,75 +190,18 @@ export const shareCatalog = onRequest({ cors: true, invoker: "public" }, async (
        tituloOG = `Catálogo de Joyas | Orfebrería Enigma`;
     }
 
-    const descripcion = `Colección de ${catLower} de diseño forjadas a mano en ${matDisplay}. Explora nuestro portafolio de piezas de autor hechas a pedido.`;
-    const urlRedirect = `https://artesaniasenigma.com${req.path}`;
-    const imagen = "https://artesaniasenigma.com/logo2.png"; // Puedes cambiar a una imagen específica de catálogo
+    const meta = {
+      title: tituloOG,
+      description: `Colección de ${catLower} de diseño forjadas a mano en ${matDisplay}. Explora nuestro portafolio de piezas de autor hechas a pedido.`,
+      image: 'https://artesaniasenigma.com/logo2.png',
+      url: `https://artesaniasenigma.com${req.path}`
+    };
 
-    // Leer la plantilla
-    let template = '';
-    try {
-      const templatePath = path.join(__dirname, 'index.html');
-      if (fs.existsSync(templatePath)) {
-        template = fs.readFileSync(templatePath, 'utf8');
-      }
-    } catch (e) {
-      console.warn("No se pudo leer index.html local:", e);
-    }
-
-    if (!template) {
-      template = `
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{TITULO}}</title>
-    <meta name="description" content="{{DESCRIPCION}}" />
-    <meta property="og:type" content="website" />
-    <meta property="og:title" content="{{TITULO}}" />
-    <meta property="og:description" content="{{DESCRIPCION}}" />
-    <meta property="og:image" content="{{IMAGEN}}" />
-    <meta property="og:url" content="{{URL}}" />
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="{{TITULO}}" />
-    <meta name="twitter:description" content="{{DESCRIPCION}}" />
-    <meta name="twitter:image" content="{{IMAGEN}}" />
-</head>
-<body>
-    <script>window.location.replace("{{URL}}");</script>
-</body>
-</html>`;
-      let html = template
-        .replaceAll('{{TITULO}}', tituloOG)
-        .replaceAll('{{DESCRIPCION}}', descripcion)
-        .replaceAll('{{IMAGEN}}', imagen)
-        .replaceAll('{{URL}}', urlRedirect);
-      
-      res.setHeader("Content-Type", "text/html; charset=utf-8");
-      res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-      return res.status(200).send(html);
-    }
-
-    let html = template;
-    html = html.replace(/<title>.*?<\/title>/is, `<title>${tituloOG}</title>`);
-    html = html.replace(/<meta[^>]*?name="description"[^>]*?>/is, `<meta name="description" content="${descripcion}" />`);
-    html = html.replace(/<meta[^>]*?property="og:description"[^>]*?>/is, `<meta property="og:description" content="${descripcion}" />`);
-    html = html.replace(/<meta[^>]*?name="twitter:description"[^>]*?>/is, `<meta name="twitter:description" content="${descripcion}" />`);
-    
-    html = html.replace(/<meta[^>]*?property="og:title"[^>]*?>/is, `<meta property="og:title" content="${tituloOG}" />`);
-    html = html.replace(/<meta[^>]*?name="twitter:title"[^>]*?>/is, `<meta name="twitter:title" content="${tituloOG}" />`);
-
-    html = html.replace(/<meta[^>]*?property="og:image"[^>]*?>/is, `<meta property="og:image" content="${imagen}" />`);
-    if (html.includes('name="twitter:image"')) {
-      html = html.replace(/<meta[^>]*?name="twitter:image"[^>]*?>/is, `<meta name="twitter:image" content="${imagen}" />`);
-    } else {
-      html = html.replace('</head>', `<meta name="twitter:image" content="${imagen}" />\n</head>`);
-    }
-
-    html = html.replace(/<meta[^>]*?property="og:url"[^>]*?>/is, `<meta property="og:url" content="${urlRedirect}" />`);
+    let template = getTemplate();
+    let html = template ? injectMetaTags(template, meta) : generateFallbackHtml(meta);
 
     res.setHeader("Content-Type", "text/html; charset=utf-8");
-    res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+    res.setHeader("Cache-Control", "public, max-age=3600, s-maxage=86400");
     return res.status(200).send(html);
 
   } catch (err) {

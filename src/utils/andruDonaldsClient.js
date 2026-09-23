@@ -1,71 +1,67 @@
-import sql from './neonClient';
+import { supabase } from '../supabaseClient';
 
-export const andruDonaldsDB = {
+// Misma API que antes (getAll, getActive, create, update, delete),
+// así que AndruDonaldsCollection.jsx no necesita cambios.
+const makeTable = (table) => ({
     async getAll() {
-        return await sql`SELECT * FROM andru_donalds_images ORDER BY order_index, created_at DESC`;
+        const { data, error } = await supabase
+            .from(table)
+            .select('*')
+            .order('order_index', { ascending: true })
+            .order('created_at', { ascending: false });
+        if (error) throw error;
+        return data;
     },
 
     async getActive() {
-        return await sql`SELECT * FROM andru_donalds_images WHERE is_active = true ORDER BY order_index, created_at DESC`;
+        const { data, error } = await supabase
+            .from(table)
+            .select('*')
+            .eq('is_active', true)
+            .order('order_index', { ascending: true })
+            .order('created_at', { ascending: false });
+        if (error) throw error;
+        return data;
     },
 
-    async create(data) {
-        const [item] = await sql`
-      INSERT INTO andru_donalds_images (image_url, descripcion, order_index, is_active)
-      VALUES (${data.image_url}, ${data.descripcion || null}, ${data.order_index || 0}, ${data.is_active !== undefined ? data.is_active : true})
-      RETURNING *
-    `;
-        return item;
+    async create(d) {
+        const { data, error } = await supabase
+            .from(table)
+            .insert({
+                image_url: d.image_url,
+                descripcion: d.descripcion || null,
+                order_index: d.order_index || 0,
+                is_active: d.is_active !== undefined ? d.is_active : true,
+            })
+            .select()
+            .single();
+        if (error) throw error;
+        return data;
     },
 
-    async update(id, data) {
-        const [item] = await sql`
-      UPDATE andru_donalds_images SET
-        descripcion = ${data.descripcion},
-        order_index = ${data.order_index},
-        is_active = ${data.is_active}
-      WHERE id = ${id}
-      RETURNING *
-    `;
-        return item;
-    },
+    // Solo actualiza los campos que realmente se envían
+    // (antes, un update sin "descripcion" la dejaba en null).
+    async update(id, d) {
+        const changes = {};
+        if (d.descripcion !== undefined) changes.descripcion = d.descripcion;
+        if (d.order_index !== undefined) changes.order_index = d.order_index;
+        if (d.is_active !== undefined) changes.is_active = d.is_active;
 
-    async delete(id) {
-        await sql`DELETE FROM andru_donalds_images WHERE id = ${id}`;
-    }
-};
-
-export const andruProductosDB = {
-    async getAll() {
-        return await sql`SELECT * FROM andru_productos_images ORDER BY order_index, created_at DESC`;
-    },
-
-    async getActive() {
-        return await sql`SELECT * FROM andru_productos_images WHERE is_active = true ORDER BY order_index, created_at DESC`;
-    },
-
-    async create(data) {
-        const [item] = await sql`
-            INSERT INTO andru_productos_images (image_url, descripcion, order_index, is_active)
-            VALUES (${data.image_url}, ${data.descripcion || null}, ${data.order_index || 0}, ${data.is_active !== undefined ? data.is_active : true})
-            RETURNING *
-        `;
-        return item;
-    },
-
-    async update(id, data) {
-        const [item] = await sql`
-            UPDATE andru_productos_images SET
-                descripcion = ${data.descripcion},
-                order_index = ${data.order_index},
-                is_active = ${data.is_active}
-            WHERE id = ${id}
-            RETURNING *
-        `;
-        return item;
+        const { data, error } = await supabase
+            .from(table)
+            .update(changes)
+            .eq('id', id)
+            .select()
+            .single();
+        if (error) throw error;
+        return data;
     },
 
     async delete(id) {
-        await sql`DELETE FROM andru_productos_images WHERE id = ${id}`;
-    }
-};
+        const { error } = await supabase.from(table).delete().eq('id', id);
+        if (error) throw error;
+    },
+});
+
+export const andruDonaldsDB = makeTable('andru_donalds_images');
+export const andruProductosDB = makeTable('andru_productos_images');

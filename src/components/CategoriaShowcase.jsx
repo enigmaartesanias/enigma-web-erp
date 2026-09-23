@@ -171,59 +171,29 @@ const CategoriaShowcase = () => {
                 `}</style>
 
                 {/* ── Contenedor Padre del Carrusel: Controla el tamaño y lo centra en dispositivos móviles ── */}
-                <div className="w-[85%] max-w-xs md:max-w-full mx-auto overflow-hidden">
+                <div className="w-[92%] max-w-[360px] md:max-w-full mx-auto overflow-hidden">
                     <Slider {...settings}>
                         {productos.map((producto) => (
                             <div key={producto.id} className="px-2 md:px-3">
-                                <Link to={`/producto/${producto.id}`} className="block pb-2">
-
+                                <Link to={`/producto/${producto.id}`} className="block pb-2 text-center md:text-left">
                                     {/* Imagen */}
-                                    <div style={{
-                                        width: '100%',
-                                        height: '280px',
-                                        overflow: 'hidden',
-                                        borderRadius: '6px',
-                                        background: '#1a1208',
-                                    }}>
+                                    <div className="w-full h-[340px] md:h-[280px] overflow-hidden rounded-[8px] bg-white flex items-center justify-center p-3 shadow-sm">
                                         <img
                                             src={producto.imagen_principal_url}
                                             alt={producto.titulo}
-                                            style={{
-                                                width: '100%',
-                                                height: '100%',
-                                                objectFit: 'cover',
-                                                transition: 'transform 0.5s ease',
-                                            }}
-                                            onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.04)'}
-                                            onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+                                            className="w-full h-full object-contain transition-transform duration-500 ease-out hover:scale-105"
                                         />
                                     </div>
 
-                                    {/* Nombre — Mejorado en visibilidad */}
-                                    <p style={{
-                                        fontFamily: "'Cormorant Garamond', serif",
-                                        fontSize: '16px',
-                                        fontWeight: '400',
-                                        color: '#f5f1ec',
-                                        letterSpacing: '0.04em',
-                                        margin: '12px 0 4px',
-                                        lineHeight: '1.2'
-                                    }}>
+                                    {/* Nombre */}
+                                    <p className="font-serif text-[18px] md:text-[17px] font-normal text-[#f5f1ec] tracking-wide mt-4 mb-1 leading-tight" style={{ fontFamily: "'Cormorant Garamond', serif" }}>
                                         {producto.titulo}
                                     </p>
 
-                                    {/* Precio — Mayor contraste y tamaño óptimo */}
-                                    <p style={{
-                                        fontFamily: "'Inter', sans-serif",
-                                        fontSize: '13px',
-                                        fontWeight: '600',
-                                        color: '#e2b36e',
-                                        letterSpacing: '0.05em',
-                                        margin: 0,
-                                    }}>
+                                    {/* Precio */}
+                                    <p className="font-sans text-[13px] font-normal text-white tracking-wider mt-2 opacity-90" style={{ fontFamily: "'Inter', sans-serif" }}>
                                         Desde S/ {Number(producto.precio)}
                                     </p>
-
                                 </Link>
                             </div>
                         ))}

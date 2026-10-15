@@ -43,7 +43,7 @@ const Footer = () => {
       const categoriaUrl = parts[3] || 'all';
 
       const toTitleCase = (str) => str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
-      
+
       const CATEGORY_PLURALS = {
         'collar': 'Collares',
         'anillo': 'Anillos',
@@ -55,22 +55,22 @@ const Footer = () => {
       };
 
       const matDisplay = materialUrl === 'all' ? 'diversos materiales' : materialUrl.toLowerCase();
-      
+
       let catDisplay = 'Joyas';
       let catLower = 'joyas';
       if (categoriaUrl !== 'all') {
-         catDisplay = CATEGORY_PLURALS[categoriaUrl.toLowerCase()] || toTitleCase(categoriaUrl);
-         catLower = catDisplay.toLowerCase();
+        catDisplay = CATEGORY_PLURALS[categoriaUrl.toLowerCase()] || toTitleCase(categoriaUrl);
+        catLower = catDisplay.toLowerCase();
       }
 
       if (materialUrl !== 'all' && categoriaUrl !== 'all') {
-         shareTitle = `${catDisplay} en ${toTitleCase(materialUrl)} | Orfebrería Enigma`;
+        shareTitle = `${catDisplay} en ${toTitleCase(materialUrl)} | Orfebrería Enigma`;
       } else if (materialUrl !== 'all') {
-         shareTitle = `Colección ${toTitleCase(materialUrl)} | Orfebrería Enigma`;
+        shareTitle = `Colección ${toTitleCase(materialUrl)} | Orfebrería Enigma`;
       } else if (categoriaUrl !== 'all') {
-         shareTitle = `${catDisplay} | Orfebrería Enigma`;
+        shareTitle = `${catDisplay} | Orfebrería Enigma`;
       } else {
-         shareTitle = `Catálogo de Joyas | Orfebrería Enigma`;
+        shareTitle = `Catálogo de Joyas | Orfebrería Enigma`;
       }
 
       shareText = `Colección de ${catLower} de diseño forjadas a mano en ${matDisplay}. Explora nuestro portafolio de piezas de autor hechas a pedido.`;
@@ -101,16 +101,48 @@ const Footer = () => {
   };
 
   return (
-    <footer className="bg-black text-white py-8 w-full">
-      <div className="container mx-auto px-8">
+    <footer className="footer-container py-10 w-full">
+      {/* Reglas CSS Forzadas para Garantizar Máxima Legibilidad en Celular */}
+      <style jsx="true">{`
+        .footer-container {
+          background-color: #1a1816 !important;
+        }
+        .footer-title {
+          color: #ffffff !important;
+          font-weight: 600 !important;
+          letter-spacing: 0.12em !important;
+        }
+        .footer-text, .footer-link {
+          color: #f0eae1 !important;
+          font-weight: 300 !important;
+        }
+        .footer-link:hover {
+          color: #ffffff !important;
+          text-decoration: underline !important;
+        }
+        .footer-[#38322e] {
+          border-color: #3d3630 !important;
+        }
+        .footer-share-btn {
+          color: #eaf2f1ff !important;
+          font-weight: 500 !important;
+        }
+        .footer-copy {
+          color: #b5aba0 !important;
+        }
+      `}</style>
 
-        {/* Contenido principal - más compacto */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pb-6 border-b border-gray-800">
+      <div className="container mx-auto px-6">
+
+        {/* Contenido principal — Centrado en móvil / Alineado a la izquierda en desktop */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 pb-8 border-b footer-[#38322e]">
 
           {/* Columna 1: Información */}
           <div className="text-center md:text-left">
-            <h3 className="text-base font-semibold mb-2">Enigma Artesanías</h3>
-            <p className="text-sm text-gray-400 leading-relaxed">
+            <h3 className="text-sm uppercase mb-3 footer-title">
+              Enigma Artesanías
+            </h3>
+            <p className="text-xs leading-relaxed footer-text">
               Jr. Madre Selva 544 Tda. 02<br />
               Urb. Santa Isabel - Carabayllo<br />
               Lima - Perú
@@ -119,44 +151,50 @@ const Footer = () => {
 
           {/* Columna 2: Contacto */}
           <div className="text-center md:text-left">
-            <h3 className="text-base font-semibold mb-2">Contacto</h3>
-            <p className="text-sm text-gray-400">
-              <a href="mailto:artesaniasenigma@gmail.com" className="hover:text-white transition-colors">
+            <h3 className="text-sm uppercase mb-3 footer-title">
+              Contacto
+            </h3>
+            <p className="text-xs mb-1">
+              <a href="mailto:artesaniasenigma@gmail.com" className="footer-link transition-colors">
                 artesaniasenigma@gmail.com
               </a>
             </p>
-            <p className="text-sm text-gray-400">
-              <a href="https://wa.me/51960282376" className="hover:text-white transition-colors">
+            <p className="text-xs">
+              <a href="https://wa.me/51960282376" className="footer-link transition-colors">
                 WhatsApp: +51 960 282 376
               </a>
             </p>
           </div>
 
-          {/* Columna 3: Enlaces */}
+          {/* Columna 3: Enlaces e Información (Totalmente centrado en celular) */}
           <div className="text-center md:text-left">
-            <h3 className="text-base font-semibold mb-2">Información</h3>
-            <div className="flex flex-col space-y-1 text-sm text-gray-400">
-              <Link to="/politicasenvios" className="hover:text-white transition-colors">
+            <h3 className="text-sm uppercase mb-3 footer-title">
+              Información
+            </h3>
+            <div className="flex flex-col items-center md:items-start space-y-2 text-xs">
+              <Link to="/politicasenvios" className="footer-link transition-colors">
                 Políticas de envío
               </Link>
-              <Link to="/shippingpolicies" className="hover:text-white transition-colors">
+              <Link to="/shippingpolicies" className="footer-link transition-colors">
                 Shipping Policies
               </Link>
               <button
                 onClick={handleCompartir}
-                className="hover:text-teal-400 text-teal-600 font-medium transition-colors focus:outline-none mt-2 md:mt-0"
+                className="mt-2 text-xs footer-share-btn transition-colors focus:outline-none cursor-pointer"
               >
                 Compartir Página
               </button>
             </div>
           </div>
+
         </div>
 
-        {/* Copyright - más compacto */}
-        <div className="pt-4 text-center text-xs text-gray-500">
+        {/* Copyright centrado */}
+        <div className="pt-6 text-center text-xs footer-copy">
           <p>© 2007 - 2026 Enigma artesanías y accesorios. Todos los derechos reservados.</p>
           <p className="mt-1">Diseñado por Aldo Magallanes</p>
         </div>
+
       </div>
     </footer>
   );

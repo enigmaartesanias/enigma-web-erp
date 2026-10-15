@@ -615,8 +615,8 @@ const Galeria = () => {
     };
 
     return (
-        // Fondo optimizado a un tono hueso/piedra elegante para dar contraste nítido con las tarjetas blancas
-        <section className="pt-6 pb-12 lg:py-12 bg-[#f4f1eb] font-sans">
+        // Zona marfil/taller — resalta las galerías fotográficas de colecciones de materiales
+        <section className="pt-6 pb-12 lg:py-12 bg-[#fdfbf7] font-sans">
             <div className="container mx-auto px-3">
 
                 {/* Encabezado de sección */}

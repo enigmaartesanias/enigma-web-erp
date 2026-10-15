@@ -26,24 +26,21 @@ const SocialProof = () => {
     ];
 
     return (
-        // Fondo claro (crema, igual que Galeria.jsx) en vez de oscuro.
-        // Esta sección queda entre "Joyas con Historia" (oscuro) y el Footer
-        // (oscuro) — necesita ser clara para romper el bloque negro apilado
-        // y darle ritmo a la página en vez de fundirse con lo de arriba/abajo.
+        // Fondo crema/marfil suave #e4dacb
         <section
             className="py-14 md:py-16 w-full"
-            style={{ background: '#f5f1ec', display: 'block', clear: 'both' }}
+            style={{ background: '#e4dacb', display: 'block', clear: 'both' }}
         >
             <div className="container mx-auto px-4">
 
                 <div className="flex flex-col items-center mx-auto text-center" style={{ maxWidth: '420px' }}>
 
-                    {/* Línea dorada superior — mismo detalle que el resto del sitio */}
+                    {/* Línea decorativa superior — adaptada para fondo claro */}
                     <div style={{
                         width: '30px',
-                        height: '0.5px',
-                        background: '#c8964a',
-                        opacity: 0.7,
+                        height: '1px',
+                        background: '#9a6b27',
+                        opacity: 0.6,
                         marginBottom: '18px',
                     }} />
 
@@ -53,7 +50,7 @@ const SocialProof = () => {
                         fontWeight: '600',
                         letterSpacing: '0.28em',
                         textTransform: 'uppercase',
-                        color: '#c8964a',
+                        color: '#9a6b27',
                         margin: '0 0 10px',
                     }}>
                         Nuestra Comunidad
@@ -62,8 +59,8 @@ const SocialProof = () => {
                     <h2 style={{
                         fontFamily: "'Cormorant Garamond', serif",
                         fontSize: 'clamp(26px, 4vw, 30px)',
-                        fontWeight: '300',
-                        color: '#2a2018',
+                        fontWeight: '400',
+                        color: '#1c1917',
                         letterSpacing: '0.02em',
                         margin: '0 0 14px',
                         lineHeight: '1.3',
@@ -76,16 +73,14 @@ const SocialProof = () => {
                         fontSize: '14px',
                         fontWeight: '300',
                         lineHeight: '1.7',
-                        color: '#5c5346',
+                        color: '#57534e',
                         margin: '0 0 36px',
                         maxWidth: '300px',
                     }}>
                         Donde compartimos el proceso artesanal y la vida de cada pieza, directo desde el banco de trabajo.
                     </p>
 
-                    {/* Iconos sociales: círculos individuales con borde fino dorado
-                        sobre fondo claro. Mismo tratamiento que la versión oscura,
-                        invertido en color para mantener contraste y elegancia. */}
+                    {/* Iconos sociales adaptados para fondo claro */}
                     <div className="flex items-center justify-center gap-4">
                         {socialStats.map((social) => {
                             const Icon = social.icon;
@@ -104,21 +99,21 @@ const SocialProof = () => {
                                         width: '48px',
                                         height: '48px',
                                         borderRadius: '50%',
-                                        border: '0.5px solid rgba(200,150,74,0.45)',
+                                        border: '1px solid rgba(154,107,39,0.35)',
                                         transition: 'border-color 0.25s ease, background-color 0.25s ease',
                                     }}
                                     onMouseEnter={e => {
-                                        e.currentTarget.style.borderColor = '#c8964a';
-                                        e.currentTarget.style.backgroundColor = 'rgba(200,150,74,0.10)';
+                                        e.currentTarget.style.borderColor = '#9a6b27';
+                                        e.currentTarget.style.backgroundColor = 'rgba(154,107,39,0.12)';
                                     }}
                                     onMouseLeave={e => {
-                                        e.currentTarget.style.borderColor = 'rgba(200,150,74,0.45)';
+                                        e.currentTarget.style.borderColor = 'rgba(154,107,39,0.35)';
                                         e.currentTarget.style.backgroundColor = 'transparent';
                                     }}
                                 >
                                     <Icon
                                         className="transition-colors duration-200"
-                                        style={{ width: '20px', height: '20px', color: '#2a2018' }}
+                                        style={{ width: '20px', height: '20px', color: '#1c1917' }}
                                         strokeWidth={1.3}
                                     />
                                 </a>

@@ -1,204 +1,130 @@
 import React, { useState } from 'react';
 import { supabase } from '../supabaseClient';
 import { v4 as uuidv4 } from 'uuid';
-import imageCompression from 'browser-image-compression';
 
-const ImageUploader = ({ onUploadSuccess, bucketName = 'carousel-images' }) => {
+/**
+ * ImageUploader: Subida directa de imágenes a Supabase Storage
+ * - Sin canvas ni scripts de re-codificación que aumenten el peso.
+ * - Validación estricta: Máximo 2 MB. Si pesa más, detiene y alerta.
+ * - Si pesa <= 2 MB: Se sube DIRECTAMENTE en su formato original al seleccionarla.
+ * - Asigna la URL pública de forma inmediata mediante onUploadSuccess.
+ */
+const ImageUploader = ({ 
+    onUploadSuccess, 
+    bucketName = 'producto-images',
+    compact = false,
+    hideTitle = false
+}) => {
     const [uploading, setUploading] = useState(false);
-    const [imageFile, setImageFile] = useState(null);
-    const [compressedFile, setCompressedFile] = useState(null);
     const [uploadError, setUploadError] = useState(null);
-    const [processing, setProcessing] = useState(false);
-
-    // Opciones de compresión inicial
-    const compressionOptions = {
-        maxSizeMB: 1, // Máximo 1 MB
-        useWebWorker: true,
-        maxIteration: 10,
-    };
-
-    // Dimensiones máximas (mantiene proporciones)
-    const MAX_WIDTH = 1200;
-    const MAX_HEIGHT = 1200;
 
     const handleFileChange = async (event) => {
-        const file = event.target.files[0];
-        if (!file) {
-            setImageFile(null);
-            setCompressedFile(null);
-            setUploadError(null);
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        // 1. Validación estricta de peso: Máximo 2 MB (2,097,152 bytes)
+        const MAX_SIZE_BYTES = 2 * 1024 * 1024;
+        if (file.size > MAX_SIZE_BYTES) {
+            setUploadError('El archivo supera el límite de 2 MB permitidos');
+            event.target.value = '';
             return;
         }
 
-        setImageFile(file);
+        // 2. Preparar subida
         setUploadError(null);
-        setCompressedFile(null);
-        setProcessing(true);
-
-        try {
-            // Paso 1: Comprimir el archivo para reducir su tamaño (peso)
-            const compressedBlob = await imageCompression(file, compressionOptions);
-
-            // Paso 2: Procesar la imagen manteniendo proporciones
-            const processedFile = await processImageWithCanvas(compressedBlob, MAX_WIDTH, MAX_HEIGHT);
-
-            setCompressedFile(processedFile);
-            console.log('Imagen original:', (file.size / 1024).toFixed(2), 'KB');
-            console.log('Imagen procesada (final):', (processedFile.size / 1024).toFixed(2), 'KB');
-        } catch (err) {
-            console.error('Error durante el procesamiento de la imagen:', err.message);
-            setUploadError(`Error al procesar la imagen. Asegúrate de que es un archivo de imagen válido. Detalle: ${err.message}`);
-            setCompressedFile(null);
-        } finally {
-            setProcessing(false);
-        }
-    };
-
-    // Función para procesar la imagen con Canvas (redimensiona SIN recortar)
-    const processImageWithCanvas = (imageBlob, maxWidth, maxHeight) => {
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                const img = new Image();
-                img.onload = () => {
-                    // Calcular nuevas dimensiones manteniendo proporciones
-                    let newWidth = img.width;
-                    let newHeight = img.height;
-
-                    if (newWidth > maxWidth) {
-                        newHeight = (newHeight * maxWidth) / newWidth;
-                        newWidth = maxWidth;
-                    }
-
-                    if (newHeight > maxHeight) {
-                        newWidth = (newWidth * maxHeight) / newHeight;
-                        newHeight = maxHeight;
-                    }
-
-                    const canvas = document.createElement('canvas');
-                    const ctx = canvas.getContext('2d');
-                    canvas.width = newWidth;
-                    canvas.height = newHeight;
-
-                    // Dibujar sin recortar
-                    ctx.drawImage(img, 0, 0, newWidth, newHeight);
-
-                    canvas.toBlob((blob) => {
-                        if (blob) {
-                            const processedFile = new File([blob], imageBlob.name, {
-                                type: 'image/jpeg',
-                                lastModified: Date.now(),
-                            });
-                            resolve(processedFile);
-                        } else {
-                            reject(new Error('No se pudo convertir el canvas a Blob.'));
-                        }
-                    }, 'image/jpeg', 0.95);
-                };
-                img.onerror = () => {
-                    reject(new Error('No se pudo cargar la imagen para procesamiento Canvas.'));
-                };
-                img.src = e.target.result;
-            };
-            reader.readAsDataURL(imageBlob);
-        });
-    };
-
-    const uploadImage = async () => {
-        if (!compressedFile) {
-            setUploadError('Por favor, selecciona una imagen para subir.');
-            return;
-        }
-
         setUploading(true);
-        setUploadError(null);
-
-        const fileExtension = imageFile.name.split('.').pop();
-        const filePath = `${uuidv4()}.${fileExtension}`;
 
         try {
-            const { error: uploadError } = await supabase.storage
+            // 3. Extensión y nombre seguro para Supabase Storage
+            const fileExt = file.name.split('.').pop()?.toLowerCase() || 'jpg';
+            const cleanName = file.name
+                .replace(/\.[^/.]+$/, "")
+                .replace(/[^a-zA-Z0-9]/g, "_")
+                .slice(0, 30);
+            const filePath = `${uuidv4()}-${cleanName}.${fileExt}`;
+
+            // 4. Subida directa del archivo original sin re-compresión
+            const { error: uploadErr } = await supabase.storage
                 .from(bucketName)
-                .upload(filePath, compressedFile, {
+                .upload(filePath, file, {
                     cacheControl: '3600',
                     upsert: false,
+                    contentType: file.type || 'image/jpeg'
                 });
 
-            if (uploadError) {
-                throw uploadError;
+            if (uploadErr) {
+                throw uploadErr;
             }
 
-            const { data: { publicUrl }, error: urlError } = supabase.storage
+            // 5. Obtener URL pública directa
+            const { data: { publicUrl } } = supabase.storage
                 .from(bucketName)
                 .getPublicUrl(filePath);
 
-            if (urlError) {
-                throw urlError;
-            }
-
-            if (publicUrl) {
-                console.log('Imagen subida exitosamente:', publicUrl);
-                if (onUploadSuccess) {
-                    onUploadSuccess(publicUrl);
-                }
-                setImageFile(null);
-                setCompressedFile(null);
-            } else {
+            if (!publicUrl) {
                 throw new Error('No se pudo obtener la URL pública de la imagen.');
             }
+
+            console.log('✅ Imagen subida con éxito:', publicUrl);
+
+            // 6. Asignación inmediata al estado del formulario
+            if (onUploadSuccess) {
+                onUploadSuccess(publicUrl);
+            }
         } catch (err) {
-            console.error('Error al subir la imagen:', err.message);
-            setUploadError(`Error al subir la imagen: ${err.message}`);
+            console.error('Error al subir imagen a Supabase Storage:', err);
+            setUploadError(`Error al subir imagen: ${err.message || 'Verifica permisos de almacenamiento'}`);
         } finally {
             setUploading(false);
+            if (event.target) {
+                event.target.value = '';
+            }
         }
     };
 
     return (
-        <div className="border p-4 rounded-lg shadow-sm">
-            <h3 className="text-lg font-semibold mb-3">Subir Nueva Imagen</h3>
+        <div className={compact ? "border border-stone-200 rounded-lg p-2.5 bg-stone-50/50" : "border border-stone-200 p-3.5 rounded-xl shadow-xs bg-white"}>
+            {!hideTitle && !compact && (
+                <p className="text-xs font-medium text-stone-600 mb-2">Subir Imagen (máx. 2 MB)</p>
+            )}
 
-            <input
-                type="file"
-                accept="image/*"
-                onChange={handleFileChange}
-                className="mb-3 block w-full text-sm text-gray-500
-                file:mr-4 file:py-2 file:px-4
-                file:rounded-full file:border-0
-                file:text-sm file:font-semibold
-                file:bg-violet-50 file:text-violet-700
-                hover:file:bg-violet-100"
-                disabled={uploading || processing}
-            />
-            {imageFile && (
-                <p className="text-sm text-gray-600 mb-2">Archivo seleccionado: {imageFile.name}</p>
-            )}
-            {processing && (
-                <div className="flex items-center text-blue-500 text-sm mb-2">
-                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    Procesando imagen...
-                </div>
-            )}
-            {compressedFile && !processing && (
-                <p className="text-green-600 text-sm mb-2">
-                    Imagen lista para subir. Tamaño final: {(compressedFile.size / 1024).toFixed(2)} KB.
-                </p>
-            )}
-            {uploadError && (
-                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-2 rounded mb-4">
-                    {uploadError}
-                </div>
-            )}
-            <button
-                onClick={uploadImage}
-                disabled={uploading || processing || !compressedFile}
-                className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded disabled:opacity-50"
-            >
-                {uploading ? 'Subiendo...' : 'Subir Imagen'}
-            </button>
+            <div className="flex flex-col gap-2">
+                {uploading ? (
+                    <div className="flex items-center text-stone-700 text-xs gap-2 py-2">
+                        <svg className="animate-spin h-4 w-4 text-stone-800" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <span className="font-medium">Subiendo foto a Supabase...</span>
+                    </div>
+                ) : (
+                    <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleFileChange}
+                        disabled={uploading}
+                        className="block w-full text-xs text-stone-500
+                        file:mr-2.5 file:py-1 file:px-2.5
+                        file:rounded-md file:border-0
+                        file:text-xs file:font-medium
+                        file:bg-stone-200/70 file:text-stone-700
+                        hover:file:bg-stone-300 transition-colors cursor-pointer"
+                    />
+                )}
+
+                {uploadError && (
+                    <div className="bg-red-50 border border-red-200 text-red-600 text-xs px-2.5 py-1.5 rounded-md flex items-center justify-between">
+                        <span>{uploadError}</span>
+                        <button 
+                            type="button" 
+                            onClick={() => setUploadError(null)} 
+                            className="text-red-400 hover:text-red-600 ml-2"
+                        >
+                            ×
+                        </button>
+                    </div>
+                )}
+            </div>
         </div>
     );
 };

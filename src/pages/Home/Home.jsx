@@ -4,6 +4,7 @@ import CategoriaShowcase from '../../components/CategoriaShowcase';
 import Galeria from '../../components/Galeria';
 import Hero3 from '../../components/Hero/Hero3';
 import CelebrityCollaboration from '../../components/CelebrityCollaboration';
+import StockGrid from '../../components/StockGrid';
 import SocialProof from '../../components/SocialProof';
 import PublicCarousel from '../../components/PublicCarousel';
 
@@ -19,6 +20,10 @@ const Home = () => {
         <div className="md:hidden">
           <SimpleImageHero />
         </div>
+
+        {/* Sección Stock Inmediato — Ubicada arriba de Andru Donalds */}
+        <StockGrid />
+
         <CelebrityCollaboration />
 
         {/* Aquí está tu sección principal de la técnica (foto labradorita) */}

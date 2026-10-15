@@ -4,7 +4,7 @@ import video from '../../assets/images/video.mp4';
 
 const SimpleImageHero = () => {
   return (
-    <div className="w-full bg-white">
+    <div className="w-full bg-black">
       <div className="relative w-full flex items-center justify-center overflow-hidden">
         {/* Video de fondo que dicta la altura (sin cortes) */}
         <video

@@ -64,13 +64,13 @@ const CategoriaShowcase = () => {
 
     if (loading) {
         return (
-            <section className="py-16 bg-gray-900">
+            <section className="py-16" style={{ background: '#efe8dc' }}>
                 <div className="container mx-auto px-4">
                     <div className="animate-pulse text-center">
-                        <div className="h-6 bg-gray-700 rounded w-48 mx-auto mb-4"></div>
+                        <div className="h-6 bg-stone-300 rounded w-48 mx-auto mb-4"></div>
                         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                             {[1, 2, 3, 4].map(i => (
-                                <div key={i} className="bg-gray-800 rounded h-56"></div>
+                                <div key={i} className="bg-stone-200 rounded h-56"></div>
                             ))}
                         </div>
                     </div>
@@ -81,9 +81,9 @@ const CategoriaShowcase = () => {
 
     if (error) {
         return (
-            <section className="py-16 bg-gray-900">
+            <section className="py-16" style={{ background: '#efe8dc' }}>
                 <div className="container mx-auto px-4 text-center">
-                    <p style={{ color: '#a8a29e', fontFamily: "'Inter', sans-serif", fontSize: '12px' }}>
+                    <p style={{ color: '#78716c', fontFamily: "'Inter', sans-serif", fontSize: '12px' }}>
                         {error}
                     </p>
                 </div>
@@ -94,22 +94,20 @@ const CategoriaShowcase = () => {
     if (productos.length === 0) return null;
 
     return (
-        <section className="relative overflow-hidden" style={{ background: '#111009', padding: '2rem 0 2.5rem' }}>
+        <section className="relative overflow-hidden" style={{ background: '#efe8dc', padding: '2.5rem 0 3rem' }}>
 
-            {/* Textura de fondo */}
+            {/* Sutil textura de puntos oscuros para fondo claro */}
             <div
-                className="absolute inset-0 opacity-10 pointer-events-none"
+                className="absolute inset-0 opacity-5 pointer-events-none"
                 style={{
-                    backgroundImage: 'radial-gradient(rgba(255,255,255,0.12) 1px, transparent 1px)',
+                    backgroundImage: 'radial-gradient(rgba(0,0,0,0.2) 1px, transparent 1px)',
                     backgroundSize: '24px 24px',
                 }}
             />
-            {/* Degradado superior e inferior */}
-            <div className="absolute inset-0 bg-gradient-to-b from-black via-transparent to-black pointer-events-none opacity-70" />
 
             <div className="container mx-auto px-3 relative z-10">
 
-                {/* ── Título rediseñado ── */}
+                {/* ── Título rediseñado para fondo claro ── */}
                 <div className="text-center mb-6">
                     <p style={{
                         fontFamily: "'Inter', sans-serif",
@@ -117,7 +115,7 @@ const CategoriaShowcase = () => {
                         fontWeight: '600',
                         letterSpacing: '0.24em',
                         textTransform: 'uppercase',
-                        color: '#c8964a',
+                        color: '#9a6b27',
                         margin: '0 0 6px',
                     }}>
                         Del taller a tus manos
@@ -125,8 +123,8 @@ const CategoriaShowcase = () => {
                     <h2 style={{
                         fontFamily: "'Cormorant Garamond', serif",
                         fontSize: 'clamp(24px, 4.5vw, 32px)',
-                        fontWeight: '300',
-                        color: '#f5f1ec',
+                        fontWeight: '400',
+                        color: '#1c1917',
                         letterSpacing: '0.06em',
                         margin: '0 0 10px',
                     }}>
@@ -134,15 +132,14 @@ const CategoriaShowcase = () => {
                     </h2>
                     <div style={{
                         width: '30px',
-                        height: '0.5px',
-                        background: '#c8964a',
+                        height: '1px',
+                        background: '#9a6b27',
                         margin: '0 auto',
-                        opacity: 0.7,
-                        boxShadow: '0 0 8px rgba(200,150,74,0.6)',
+                        opacity: 0.6,
                     }} />
                 </div>
 
-                {/* Estilos del Carrusel */}
+                {/* Estilos del Carrusel para fondo claro */}
                 <style>{`
                     .slick-slide { height: auto !important; }
                     .slick-dots-custom {
@@ -157,7 +154,7 @@ const CategoriaShowcase = () => {
                         height: 8px !important;
                         border-radius: 50% !important;
                         padding: 0 !important;
-                        background: #4b5563 !important;
+                        background: #a8a29e !important;
                         border: none !important;
                         font-size: 0 !important;
                         color: transparent !important;
@@ -165,24 +162,25 @@ const CategoriaShowcase = () => {
                         transition: all 0.3s ease !important;
                     }
                     .slick-dots-custom li.slick-active button {
-                        background: #c8964a !important;
+                        background: #9a6b27 !important;
                         transform: scale(1.3) !important;
                     }
                 `}</style>
 
-                {/* ── Contenedor Padre del Carrusel: Controla el tamaño y lo centra en dispositivos móviles ── */}
+                {/* ── Contenedor Padre del Carrusel ── */}
                 <div className="w-[92%] md:max-w-full mx-auto overflow-hidden">
                     <Slider {...settings}>
                         {productos.map((producto) => (
                             <div key={producto.id} className="px-2 md:px-3">
                                 <Link to={`/producto/${producto.id}`} className="block pb-2 text-center md:text-left">
-                                    {/* Imagen (Mismo tamaño fijo para todas) */}
+                                    {/* Imagen */}
                                     <div style={{
                                         width: '100%',
                                         height: '340px',
                                         overflow: 'hidden',
                                         borderRadius: '8px',
-                                        background: '#1a1208',
+                                        background: '#dfd7c9',
+                                        boxShadow: '0 4px 15px rgba(0,0,0,0.05)',
                                     }}>
                                         <img
                                             src={producto.imagen_principal_url}
@@ -198,11 +196,11 @@ const CategoriaShowcase = () => {
                                         />
                                     </div>
 
-                                    {/* Nombre — Más grande y legible */}
-                                    <p style={{ 
-                                        fontFamily: "'Cormorant Garamond', serif", 
+                                    {/* Nombre — Oscuro y legible sobre #efe8dc */}
+                                    <p style={{
+                                        fontFamily: "'Cormorant Garamond', serif",
                                         fontSize: '20px',
-                                        color: '#f5f1ec', 
+                                        color: '#1c1917',
                                         fontWeight: '400',
                                         margin: '14px 0 4px',
                                         lineHeight: '1.2',
@@ -211,12 +209,12 @@ const CategoriaShowcase = () => {
                                         {producto.titulo}
                                     </p>
 
-                                    {/* Precio — Delgado, elegante y no opaca al título */}
-                                    <p style={{ 
-                                        fontFamily: "'Inter', sans-serif", 
+                                    {/* Precio — Tono sobrio */}
+                                    <p style={{
+                                        fontFamily: "'Inter', sans-serif",
                                         fontSize: '13px',
-                                        color: '#d1d5db', 
-                                        fontWeight: '300',
+                                        color: '#57534e',
+                                        fontWeight: '400',
                                         margin: '0',
                                         letterSpacing: '0.06em'
                                     }}>

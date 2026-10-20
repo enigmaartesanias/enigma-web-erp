@@ -22,6 +22,7 @@ const UI_TEXT = {
         relacionados: 'Otras Piezas de Autor',
         sinRelacionados: 'No hay productos relacionados para mostrar.',
         precioConsultar: 'Precio a consultar',
+        oferta: 'Oferta especial',
     },
 };
 
@@ -67,7 +68,8 @@ const ProductoDetalle = () => {
 
     const emitirPrecioRegion = (reg, prod) => {
         if (!prod) return;
-        const precioStr = prod.precio ? `S/ ${Number(prod.precio).toFixed(2)} PEN` : '';
+        const precioEfectivo = prod.price_offer ? prod.price_offer : prod.precio;
+        const precioStr = precioEfectivo ? `S/ ${Number(precioEfectivo).toFixed(2)} PEN` : '';
         window.dispatchEvent(new CustomEvent('enigma:region-precio', {
             detail: { region: 'peru', precio: precioStr, titulo: prod.titulo }
         }));
@@ -257,12 +259,21 @@ const ProductoDetalle = () => {
 
     const getDescripcion = () => producto.descripcion;
 
+    const tieneOferta = Boolean(
+        producto.price_offer &&
+        parseFloat(producto.price_offer) > 0 &&
+        (!producto.precio || parseFloat(producto.price_offer) < parseFloat(producto.precio))
+    );
+
     const buildWhatsAppMessage = () => {
         const nombre = producto.titulo;
         const url = window.location.href;
-        const precioLocal = producto.precio
-            ? `S/. ${Number(producto.precio).toFixed(2)} PEN`
-            : 'precio por consultar';
+        let precioLocal = 'precio por consultar';
+        if (tieneOferta) {
+            precioLocal = `S/. ${Number(producto.price_offer).toFixed(2)} PEN (en oferta)`;
+        } else if (producto.precio) {
+            precioLocal = `S/. ${Number(producto.precio).toFixed(2)} PEN`;
+        }
         return `Hola Enigma, vi la *${nombre}* (${precioLocal}) en tu web y me gustaría cotizarla.\n\n🔗 ${url}`;
     };
 
@@ -351,34 +362,78 @@ const ProductoDetalle = () => {
                         {producto.titulo}
                     </h1>
 
-                    {/* 2. Bloque de Precio (Limpio y alineado a la izquierda) */}
+                    {/* 2. Bloque de Precio con soporte de Oferta (Oferta arriba destacada, precio regular abajo tachado) */}
                     <div className="space-y-1">
-                        <div className="flex items-baseline gap-2">
-                            {producto.precio && (
-                                <span className="text-xs font-light text-stone-500">
-                                    {t.desde}
+                        {tieneOferta ? (
+                            <div className="space-y-1">
+                                {/* Fila Superior: Precio de Oferta con el tamaño principal */}
+                                <div className="flex items-baseline gap-2">
+                                    <span className="text-xs font-light text-stone-500">
+                                        {t.desde}
+                                    </span>
+                                    <span
+                                        style={{
+                                            fontFamily: "'Cormorant Garamond', serif",
+                                            fontSize: 'clamp(30px, 7vw, 36px)',
+                                            fontWeight: '400',
+                                            color: '#1c1917',
+                                            letterSpacing: '0.01em',
+                                            lineHeight: '1',
+                                        }}
+                                    >
+                                        S/ {Number(producto.price_offer).toFixed(2)}
+                                    </span>
+                                    <span className="text-[11px] font-light text-stone-400 uppercase tracking-widest ml-0.5">
+                                        PEN
+                                    </span>
+                                </div>
+
+                                {/* Fila Inferior: Precio original más pequeño y sutilmente tachado */}
+                                {producto.precio && (
+                                    <div className="flex items-center gap-1.5 pt-0.5">
+                                        <span className="text-xs text-stone-400 font-light">Antes:</span>
+                                        <span
+                                            style={{
+                                                fontFamily: "'Cormorant Garamond', serif",
+                                                fontSize: '18px',
+                                                letterSpacing: '0.02em',
+                                            }}
+                                            className="line-through text-stone-400 decoration-stone-300 font-light"
+                                        >
+                                            S/ {Number(producto.precio).toFixed(2)}
+                                        </span>
+                                    </div>
+                                )}
+                            </div>
+                        ) : (
+                            /* Modo normal cuando NO hay oferta */
+                            <div className="flex items-baseline gap-2">
+                                {producto.precio && (
+                                    <span className="text-xs font-light text-stone-500">
+                                        {t.desde}
+                                    </span>
+                                )}
+                                <span
+                                    style={{
+                                        fontFamily: "'Cormorant Garamond', serif",
+                                        fontSize: 'clamp(28px, 6.5vw, 34px)',
+                                        fontWeight: '400',
+                                        color: '#1c1917',
+                                        letterSpacing: '0.01em',
+                                        lineHeight: '1',
+                                    }}
+                                >
+                                    {producto.precio
+                                        ? `S/ ${Number(producto.precio).toFixed(2)}`
+                                        : t.precioConsultar}
                                 </span>
-                            )}
-                            <span
-                                style={{
-                                    fontFamily: "'Cormorant Garamond', serif",
-                                    fontSize: 'clamp(28px, 6.5vw, 34px)',
-                                    fontWeight: '400',
-                                    color: '#1c1917',
-                                    letterSpacing: '0.01em',
-                                    lineHeight: '1',
-                                }}
-                            >
-                                {producto.precio
-                                    ? `S/ ${Number(producto.precio).toFixed(2)}`
-                                    : t.precioConsultar}
-                            </span>
-                            {producto.precio && (
-                                <span className="text-[11px] font-light text-stone-400 uppercase tracking-widest ml-0.5">
-                                    PEN
-                                </span>
-                            )}
-                        </div>
+                                {producto.precio && (
+                                    <span className="text-[11px] font-light text-stone-400 uppercase tracking-widest ml-0.5">
+                                        PEN
+                                    </span>
+                                )}
+                            </div>
+                        )}
 
                         {/* Texto aclaratorio pequeño y no invasivo */}
                         <p className="text-[10px] text-stone-400 font-light tracking-wide">

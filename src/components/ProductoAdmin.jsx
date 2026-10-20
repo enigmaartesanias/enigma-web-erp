@@ -4,18 +4,18 @@ import { supabase } from '../supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
 import ImageUploader from './ImageUploader';
 import { generateSlug } from '../utils';
-import { 
-    FaEdit, 
-    FaTrash, 
-    FaSearch, 
-    FaPlus, 
-    FaCheck, 
-    FaStar, 
-    FaArrowLeft, 
-    FaBoxOpen, 
-    FaClipboardList, 
-    FaChevronDown, 
-    FaChevronUp 
+import {
+    FaEdit,
+    FaTrash,
+    FaSearch,
+    FaPlus,
+    FaCheck,
+    FaStar,
+    FaArrowLeft,
+    FaBoxOpen,
+    FaClipboardList,
+    FaChevronDown,
+    FaChevronUp
 } from 'react-icons/fa';
 
 const DEFAULT_FORM_DATA = {
@@ -160,7 +160,7 @@ const ProductoAdmin = () => {
 
     const handleInputChange = (e) => {
         const { name, value, type, checked } = e.target;
-        
+
         setFormData(prev => {
             const updated = {
                 ...prev,
@@ -216,8 +216,8 @@ const ProductoAdmin = () => {
                 slug = generateSlug(formData.titulo) + '-' + timestamp;
             }
 
-            const stockQty = formData.stock_quantity !== '' && formData.stock_quantity !== null 
-                ? Math.max(0, parseInt(formData.stock_quantity, 10)) 
+            const stockQty = formData.stock_quantity !== '' && formData.stock_quantity !== null
+                ? Math.max(0, parseInt(formData.stock_quantity, 10))
                 : 0;
             // Solo cuando el usuario lo active conscientemente y asigne stock_quantity > 0 se guarda como stock inmediato
             const isReadyToShip = Boolean(formData.is_ready_to_ship) && stockQty > 0;
@@ -309,7 +309,7 @@ const ProductoAdmin = () => {
             imagen_principal_url: producto.imagen_principal_url || '',
             imagen2_url: producto.imagen2_url || '',
             precio: (producto.precio_local !== null && producto.precio_local !== undefined && producto.precio_local !== '')
-                ? producto.precio_local 
+                ? producto.precio_local
                 : (producto.precio !== null && producto.precio !== undefined ? producto.precio : ''),
             price_offer: producto.price_offer !== null && producto.price_offer !== undefined ? producto.price_offer : '',
             precio_internacional_base: producto.precio_internacional_base !== null && producto.precio_internacional_base !== undefined ? producto.precio_internacional_base : '',
@@ -422,8 +422,8 @@ const ProductoAdmin = () => {
         <div className="container mx-auto px-3 sm:px-6 max-w-6xl py-6">
             {/* Navegación y Encabezado Minimalista */}
             <div className="flex items-center justify-between mb-5">
-                <Link 
-                    to="/admin" 
+                <Link
+                    to="/admin"
                     className="inline-flex items-center gap-1.5 text-xs text-stone-500 hover:text-stone-900 transition-colors"
                 >
                     <FaArrowLeft className="text-[10px]" />
@@ -463,9 +463,9 @@ const ProductoAdmin = () => {
                     </div>
 
                     {editingProducto && (
-                        <button 
-                            type="button" 
-                            onClick={resetForm} 
+                        <button
+                            type="button"
+                            onClick={resetForm}
                             className="text-xs text-stone-500 hover:text-stone-800 bg-stone-100 hover:bg-stone-200 px-2.5 py-1 rounded-md transition-colors"
                         >
                             Cancelar edición
@@ -606,9 +606,9 @@ const ProductoAdmin = () => {
                                         </span>
                                     </div>
                                     <p className="text-[11px] text-stone-400">
-                                        {formData.is_ready_to_ship 
-                                            ? (parseInt(formData.stock_quantity, 10) > 0 
-                                                ? 'Visible en la sección de entrega inmediata con despacho prioritario.' 
+                                        {formData.is_ready_to_ship
+                                            ? (parseInt(formData.stock_quantity, 10) > 0
+                                                ? 'Visible en la sección de entrega inmediata con despacho prioritario.'
                                                 : 'Debes asignar al menos 1 unidad disponible para que sea visible.')
                                             : 'Pieza elaborada bajo encargo en taller (4-6 días hábiles).'}
                                     </p>
@@ -809,10 +809,10 @@ const ProductoAdmin = () => {
 
                                     {formData[field] ? (
                                         <div className="flex items-center gap-3">
-                                            <img 
-                                                src={formData[field]} 
-                                                alt={label} 
-                                                className="w-14 h-14 object-cover rounded-lg border border-stone-200" 
+                                            <img
+                                                src={formData[field]}
+                                                alt={label}
+                                                className="w-14 h-14 object-cover rounded-lg border border-stone-200"
                                             />
                                             <div className="text-[11px] text-stone-500 truncate flex-1">
                                                 Cargada correctamente

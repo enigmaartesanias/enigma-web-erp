@@ -29,6 +29,36 @@ const css = `
 .sg-card:hover .sg-img{transform:scale(1.04);}
 .sg-noimg{position:absolute;top:0;left:0;right:0;bottom:0;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:300;color:#a3a3a3;}
 
+/* ── Badge de Oferta de Alta Gama (Fondo Obsidiana + Oro Fino) ── */
+.sg-badge-oferta {
+  position: absolute;
+  top: 9px;
+  left: 9px;
+  z-index: 2;
+  background: rgba(18, 14, 11, 0.94);
+  color: #e5c378;
+  border: 1px solid rgba(212, 175, 55, 0.7);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 8.5px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 2px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.28);
+  pointer-events: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.sg-badge-oferta::before {
+  content: '◆';
+  font-size: 6px;
+  color: #dfb76c;
+  line-height: 1;
+}
+
 .sg-body{display:flex;flex-direction:column;flex:1;padding-top:12px;text-align:center;}
 /* Título ajustado: fuente limpia (sin serif rígida), tamaño equilibrado y capitalización natural */
 .sg-title{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-family:inherit;font-size:13px;font-weight:400;letter-spacing:.05em;line-height:1.4;color:#1a1a1a;text-decoration:none;transition:color .2s;}
@@ -53,6 +83,7 @@ const css = `
   .sg-grid{gap:30px 20px;}
   .sg-title{font-size:14px;}
   .sg-price-now{font-size:14px;}
+  .sg-badge-oferta{top:11px;left:11px;font-size:9px;padding:4px 9px;}
 }
 @media (min-width:768px){
   .sg-section{padding:56px 0 64px;}
@@ -148,6 +179,13 @@ const StockGrid = () => {
 
                                 {/* ── Imagen ── */}
                                 <div className="sg-media" style={{ paddingBottom: IMAGE_PADDING }}>
+                                    {/* Badge elegante condicional */}
+                                    {tieneOferta && (
+                                        <div className="sg-badge-oferta">
+                                            Oferta
+                                        </div>
+                                    )}
+
                                     <Link
                                         to={`/producto/${producto.id}`}
                                         title={`Ver ficha de ${producto.titulo}`}

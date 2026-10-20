@@ -53,7 +53,7 @@ const CelebrityCollaboration = () => {
                         "
                     >
                         Desde 2022
-                        <Instagram size={12} className="text-[#0f766e]" aria-hidden="true" />
+                        <Instagram size={12} className="text-[#ffffff]" aria-hidden="true" />
                     </a>
                 </div>
 

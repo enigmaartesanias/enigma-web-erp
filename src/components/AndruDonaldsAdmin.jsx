@@ -1,28 +1,35 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { andruDonaldsDB, andruProductosDB } from '../utils/andruDonaldsClient';
-import { supabase, SUPABASE_BUCKET, storagePathFromUrl } from '../supabaseClient';
+import { supabase, storagePathFromUrl } from '../supabaseClient';
 import { v4 as uuidv4 } from 'uuid';
 import imageCompression from 'browser-image-compression';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, Upload, Trash2, MoveUp, MoveDown } from 'lucide-react';
 
+// Bucket dedicado que creaste en Supabase Storage
+const ANDRU_BUCKET = 'andru-images';
+
 // Sube un archivo comprimido a Supabase Storage y devuelve su URL pública
 const uploadToSupabase = async (folder, prefix, file) => {
-    const compressed = await imageCompression(file, { maxSizeMB: 1, useWebWorker: true });
+    const compressed = await imageCompression(file, {
+        maxSizeMB: 0.8,
+        maxWidthOrHeight: 1200,
+        useWebWorker: true
+    });
     const ext = file.name.split('.').pop();
     const path = `${folder}/${prefix}_${uuidv4()}.${ext}`;
 
     const { error } = await supabase.storage
-        .from(SUPABASE_BUCKET)
-        .upload(path, compressed, { 
+        .from(ANDRU_BUCKET)
+        .upload(path, compressed, {
             contentType: compressed.type || file.type,
             cacheControl: '3600',
             upsert: false
         });
     if (error) throw error;
 
-    const { data } = supabase.storage.from(SUPABASE_BUCKET).getPublicUrl(path);
+    const { data } = supabase.storage.from(ANDRU_BUCKET).getPublicUrl(path);
     return data.publicUrl;
 };
 
@@ -30,7 +37,7 @@ const uploadToSupabase = async (folder, prefix, file) => {
 const removeFromSupabase = async (url) => {
     const path = storagePathFromUrl(url);
     if (!path) return;
-    const { error } = await supabase.storage.from(SUPABASE_BUCKET).remove([path]);
+    const { error } = await supabase.storage.from(ANDRU_BUCKET).remove([path]);
     if (error) console.warn('No se pudo borrar del storage:', error);
 };
 
@@ -358,4 +365,3 @@ const AndruDonaldsAdmin = () => {
 };
 
 export default AndruDonaldsAdmin;
-

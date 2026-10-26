@@ -15,6 +15,7 @@ import ProductGridPage from './pages/ProductGridPage';
 import DashboardMaster from './pages/DashboardMaster';
 import CompartirPrecios from './pages/CompartirPrecios';
 import ColeccionCobre from './pages/ColeccionCobre';
+import StockPage from './pages/StockPage';
 import AndruDonaldsCollection from './pages/AndruDonaldsCollection';
 import ElOficioEditorial from './views/ElOficioEditorial';
 
@@ -116,6 +117,7 @@ const MainContent = () => {
                 <Route path="/el-taller" element={<ElTaller />} />
                 <Route path="/el-oficio" element={<ElOficioEditorial />} />
                 <Route path="/cobre" element={<ColeccionCobre />} />
+                <Route path="/stock" element={<StockPage />} />
                 <Route path="/carrusel" element={<PublicCarousel />} />
                 <Route path="/andru-donalds" element={<AndruDonaldsCollection />} />
                 <Route path="/producto/:id" element={<ProductoDetalle />} />

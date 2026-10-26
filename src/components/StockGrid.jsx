@@ -4,9 +4,10 @@ import { supabase } from '../supabaseClient';
 
 /**
  * StockGrid: Piezas en taller con entrega inmediata — minimalista / joyería de autor
- * - Grid 2 col móvil / 4 col desktop
- * - Oculto totalmente si no hay stock disponible (retorna null)
- * - Estilos propios (.sg-*) independientes de Tailwind
+ * - Muestra un bloque fijo de 4 productos como máximo en el Index
+ * - Sin botones de compra directos en las tarjetas (diseño tipo vitrina/galería)
+ * - Grid 2 col en móvil (2x2) / 4 col en desktop (1x4)
+ * - Se oculta automáticamente si no hay stock disponible (retorna null)
  */
 
 // Proporción de la foto: '100%' = cuadrada 1:1 | '125%' = vertical 4:5
@@ -60,7 +61,6 @@ const css = `
 }
 
 .sg-body{display:flex;flex-direction:column;flex:1;padding-top:12px;text-align:center;}
-/* Título ajustado: fuente limpia (sin serif rígida), tamaño equilibrado y capitalización natural */
 .sg-title{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-family:inherit;font-size:13px;font-weight:400;letter-spacing:.05em;line-height:1.4;color:#1a1a1a;text-decoration:none;transition:color .2s;}
 .sg-title:hover{color:#777777;}
 .sg-material{margin:4px 0 0;font-size:10px;font-weight:400;letter-spacing:.15em;text-transform:uppercase;color:#777777;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
@@ -69,14 +69,15 @@ const css = `
 .sg-foot{margin-top:auto;padding-top:8px;}
 .sg-price{display:flex;align-items:baseline;justify-content:center;gap:6px;line-height:1;}
 .sg-price-now{font-size:13px;font-weight:400;color:#222222;}
-/* Tachado más sutil: gris discreto y línea fina en lugar de rojo invasivo */
 .sg-price-old{font-size:11px;font-weight:300;color:#a3a3a3;text-decoration-line:line-through;text-decoration-color:#b0b0b0;text-decoration-thickness:1px;}
 .sg-price-ask{font-size:12px;font-weight:300;color:#8a8a8a;}
 
-/* Botón más corto, delicado, con borde gris suave */
-.sg-btn{display:block;width:100%;max-width:105px;margin:12px auto 0;padding:5px 0;border:1px solid #d4d4d4;border-radius:0;background:transparent;color:#444444;font-size:9px;font-weight:400;letter-spacing:.2em;text-indent:.2em;text-transform:uppercase;text-align:center;text-decoration:none;transition:border-color .3s,color .3s,background-color .3s;}
-.sg-btn:hover{border-color:#555555;background:#555555;color:#ffffff;}
-.sg-btn:focus-visible{outline:1px solid #555555;outline-offset:2px;}
+/* Botón / enlace sutil para explorar todo el stock */
+.sg-more-wrap{text-align:center;margin-top:32px;}
+.sg-more-link{display:inline-flex;align-items:center;gap:8px;padding:9px 24px;border:1px solid #d4d4d4;border-radius:0;background:transparent;color:#333333;font-size:10px;font-weight:400;letter-spacing:.22em;text-indent:.1em;text-transform:uppercase;text-decoration:none;transition:all .3s ease;}
+.sg-more-link:hover{border-color:#1a1a1a;background:#1a1a1a;color:#ffffff;}
+.sg-more-link svg{transition:transform .3s ease;}
+.sg-more-link:hover svg{transform:translateX(3px);}
 
 @media (min-width:640px){
   .sg-wrap{padding:0 24px;}
@@ -89,6 +90,7 @@ const css = `
   .sg-section{padding:56px 0 64px;}
   .sg-head{margin-bottom:36px;}
   .sg-grid{grid-template-columns:repeat(4,minmax(0,1fr));}
+  .sg-more-wrap{margin-top:42px;}
 }
 `;
 
@@ -106,10 +108,11 @@ const StockGrid = () => {
                     .eq('activo', true)
                     .eq('is_ready_to_ship', true)
                     .gt('stock_quantity', 0)
-                    .order('orden', { ascending: true });
+                    .order('id', { ascending: false })
+                    .limit(4);
 
                 if (error) throw error;
-                setProductos(data || []);
+                setProductos((data || []).slice(0, 4));
             } catch (err) {
                 console.error('Error al cargar productos en stock inmediato:', err.message);
                 setProductos([]);
@@ -121,17 +124,7 @@ const StockGrid = () => {
         fetchStockProducts();
     }, []);
 
-    // 100% oculto si no hay piezas disponibles
     if (loading || productos.length === 0) return null;
-
-    // Helper WhatsApp con mensaje prellenado
-    const getWhatsAppUrl = (prod) => {
-        const whatsappNumber = import.meta.env.VITE_WHATSAPP_PHONE || '51960282376';
-        const precio = prod.price_offer && Number(prod.price_offer) > 0 ? prod.price_offer : prod.precio;
-        const precioStr = precio ? Number(precio).toFixed(2) : 'Consultar';
-        const mensaje = `Hola Enigma, deseo comprar la pieza "${prod.titulo}" en Stock Inmediato (S/ ${precioStr}).`;
-        return `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(mensaje)}`;
-    };
 
     // Helper material visible
     const getMaterialText = (prod) => {
@@ -142,7 +135,7 @@ const StockGrid = () => {
         return prod.categorias?.nombre || '';
     };
 
-    // Helper stock visible: "Stock: 1 UND" / "Stock: 6 UND"
+    // Helper stock visible
     const getStockText = (prod) => {
         const qty = Number(prod.stock_quantity);
         if (!Number.isFinite(qty) || qty <= 0) return null;
@@ -154,7 +147,6 @@ const StockGrid = () => {
             <style>{css}</style>
 
             <div className="sg-wrap">
-
                 {/* ── Encabezado ── */}
                 <div className="sg-head">
                     <p className="sg-eyebrow">Disponibilidad Inmediata</p>
@@ -164,7 +156,7 @@ const StockGrid = () => {
                     </p>
                 </div>
 
-                {/* ── Grid 2 col móvil / 4 col desktop ── */}
+                {/* ── Grid ── */}
                 <div className="sg-grid">
                     {productos.map((producto) => {
                         const precioRegular = producto.precio !== null ? Number(producto.precio) : null;
@@ -176,10 +168,8 @@ const StockGrid = () => {
 
                         return (
                             <article key={producto.id} className="sg-card">
-
-                                {/* ── Imagen ── */}
+                                {/* ── Imagen con enlace al detalle ── */}
                                 <div className="sg-media" style={{ paddingBottom: IMAGE_PADDING }}>
-                                    {/* Badge elegante condicional */}
                                     {tieneOferta && (
                                         <div className="sg-badge-oferta">
                                             Oferta
@@ -230,22 +220,22 @@ const StockGrid = () => {
                                                 <span className="sg-price-ask">A pedido</span>
                                             )}
                                         </div>
-
-                                        <a
-                                            href={getWhatsAppUrl(producto)}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            title={`Comprar ${producto.titulo} por WhatsApp`}
-                                            aria-label={`Comprar ${producto.titulo} por WhatsApp`}
-                                            className="sg-btn"
-                                        >
-                                            Comprar
-                                        </a>
                                     </div>
                                 </div>
                             </article>
                         );
                     })}
+                </div>
+
+                {/* ── Enlace sutil minimalista para ver todo el stock ── */}
+                <div className="sg-more-wrap">
+                    <Link to="/stock" className="sg-more-link" title="Ver catálogo completo de piezas en stock">
+                        <span>Ver todas las piezas en stock</span>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                            <polyline points="12 5 19 12 12 19"></polyline>
+                        </svg>
+                    </Link>
                 </div>
             </div>
         </section>

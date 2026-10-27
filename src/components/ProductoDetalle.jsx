@@ -542,7 +542,53 @@ const ProductoDetalle = () => {
                         </div>
                     )}
 
-                    {/* 5. Botón CTA */}
+                    {/* 5. Nota: Sobre tu Encargo */}
+                    <div
+                        style={{
+                            backgroundColor: '#faf8f5',
+                            border: '1px solid #ede8e1',
+                            borderRadius: '3px',
+                            padding: '16px 18px',
+                        }}
+                        className="space-y-2"
+                    >
+                        <p
+                            style={{
+                                fontFamily: "'Inter', sans-serif",
+                                fontSize: '11px',
+                                fontWeight: '600',
+                                letterSpacing: '0.14em',
+                                textTransform: 'uppercase',
+                                color: '#78716c',
+                                margin: 0,
+                            }}
+                        >
+                            Sobre tu Encargo
+                        </p>
+                        <p
+                            style={{
+                                fontFamily: "'Inter', sans-serif",
+                                fontSize: '12.5px',
+                                fontWeight: '350',
+                                lineHeight: '1.65',
+                                color: '#57534e',
+                                margin: 0,
+                            }}
+                        >
+                            Cada pieza se elabora a mano y por encargo exclusivamente para ti; el plazo de entrega se confirma al solicitarla. El trabajo inicia con un adelanto del 50% y el saldo se cancela antes del envío. Realizamos despachos a todo el Perú únicamente por courier. ¿Tienes dudas o buscas una pieza con un diseño personalizado?{' '}
+                            <a
+                                href={`https://wa.me/51960282376?text=${encodeURIComponent(`Hola Enigma, tengo una consulta sobre la pieza *${producto.titulo}* o un diseño personalizado.`)}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="underline underline-offset-2 text-stone-800 hover:text-stone-950 font-medium transition-colors"
+                            >
+                                Escríbenos por WhatsApp
+                            </a>{' '}
+                            y lo conversamos.
+                        </p>
+                    </div>
+
+                    {/* 6. Botón CTA */}
                     <div className="pt-2">
                         <a
                             href={`https://wa.me/51960282376?text=${encodeURIComponent(buildWhatsAppMessage())}`}

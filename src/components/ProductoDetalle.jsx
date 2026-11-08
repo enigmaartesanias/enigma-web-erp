@@ -575,7 +575,7 @@ const ProductoDetalle = () => {
                                 margin: 0,
                             }}
                         >
-                            Cada pieza se elabora a mano y por encargo exclusivamente para ti; el plazo de entrega se confirma al solicitarla. El trabajo inicia con un adelanto del 50% y el saldo se cancela antes del envío. Realizamos despachos a todo el Perú únicamente por courier. ¿Tienes dudas o buscas una pieza con un diseño personalizado?{' '}
+                            Cada pieza se forja a mano, a tu medida y exclusivamente para ti. Iniciamos con un adelanto y coordinamos contigo el plazo de entrega. Para cualquier variación o diseño personalizado,{' '}
                             <a
                                 href={`https://wa.me/51960282376?text=${encodeURIComponent(`Hola Enigma, tengo una consulta sobre la pieza *${producto.titulo}* o un diseño personalizado.`)}`}
                                 target="_blank"

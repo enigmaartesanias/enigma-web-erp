@@ -5,6 +5,59 @@ import 'slick-carousel/slick/slick-theme.css';
 import { supabase } from '../supabaseClient';
 import { Link } from 'react-router-dom';
 
+// ── Flechas finas (solo escritorio): chevron delgado, sin círculo ni fondo ──
+const Arrow = ({ direction, onClick }) => (
+    <button
+        type="button"
+        onClick={onClick}
+        aria-label={direction === 'prev' ? 'Anterior' : 'Siguiente'}
+        className={`cs-arrow cs-arrow-${direction}`}
+    >
+        <svg width="14" height="26" viewBox="0 0 14 26" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            {direction === 'prev' ? <path d="M12 2L2 13l10 11" /> : <path d="M2 2l10 11L2 24" />}
+        </svg>
+    </button>
+);
+
+const css = `
+.cs-section{position:relative;overflow:hidden;background:#efe8dc;padding:28px 0 32px;}
+
+/* Carrusel */
+.cs-slider{position:relative;}
+.cs-slider .slick-slide{height:auto !important;transition:opacity .4s ease;}
+.cs-slider .slick-list{overflow:hidden;}
+
+/* Foto: más rectangular (referencial; la imagen completa está en el detalle) */
+.cs-img-wrap{width:100%;aspect-ratio:4 / 3;overflow:hidden;border-radius:8px;background:#dfd7c9;box-shadow:0 4px 15px rgba(0,0,0,0.05);}
+.cs-img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .5s ease;}
+.cs-card:hover .cs-img{transform:scale(1.04);}
+
+/* Texto bajo la foto: alineado a la izquierda */
+.cs-title{margin:12px 0 2px;font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:400;line-height:1.25;letter-spacing:.02em;color:#2a2018;text-align:left;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.cs-price{margin:0;font-family:'Inter',sans-serif;font-size:13px;font-weight:300;letter-spacing:.04em;color:#6b625a;text-align:left;}
+
+/* Flechas: ocultas en móvil */
+.cs-arrow{display:none;}
+
+/* Mobile: la foto central destaca y se asoman las vecinas más tenues */
+@media (max-width:768px){
+  .cs-slider .slick-slide:not(.slick-center){opacity:.55;}
+}
+
+@media (min-width:769px){
+  .cs-section{padding:48px 0 52px;}
+  .cs-img-wrap{aspect-ratio:5 / 4;}
+  /* Se reserva el alto de 2 líneas para alinear precios entre las 4 tarjetas */
+  .cs-title{min-height:2.5em;}
+  .cs-slider-wrap{padding:0 40px;}
+  .cs-arrow{display:flex;align-items:center;justify-content:center;position:absolute;top:38%;transform:translateY(-50%);width:32px;height:48px;padding:0;background:transparent;border:0;cursor:pointer;color:#5f5247;transition:color .2s ease;z-index:5;}
+  .cs-arrow:hover{color:#c8964a;}
+  .cs-arrow-prev{left:-36px;}
+  .cs-arrow-next{right:-36px;}
+}
+`;
+
 const CategoriaShowcase = () => {
     const [productos, setProductos] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -40,11 +93,13 @@ const CategoriaShowcase = () => {
         slidesToShow: 4,
         slidesToScroll: 1,
         autoplay: true,
-        autoplaySpeed: 3000,
+        autoplaySpeed: 4000,
         draggable: true,
         swipe: true,
-        dots: true,
-        dotsClass: "slick-dots-custom",
+        dots: false,
+        arrows: true,
+        prevArrow: <Arrow direction="prev" />,
+        nextArrow: <Arrow direction="next" />,
         responsive: [
             {
                 breakpoint: 768,
@@ -54,9 +109,13 @@ const CategoriaShowcase = () => {
                     infinite: true,
                     draggable: true,
                     swipe: true,
-                    dots: true,
+                    arrows: false,
+                    dots: false,
+                    // Foto central con un pedazo de la anterior y la siguiente
+                    centerMode: true,
+                    centerPadding: '34px',
                     autoplay: true,
-                    autoplaySpeed: 3000,
+                    autoplaySpeed: 4000,
                 },
             },
         ],
@@ -94,7 +153,8 @@ const CategoriaShowcase = () => {
     if (productos.length === 0) return null;
 
     return (
-        <section className="relative overflow-hidden" style={{ background: '#efe8dc', padding: '2.5rem 0 3rem' }}>
+        <section className="cs-section">
+            <style>{css}</style>
 
             {/* Sutil textura de puntos oscuros para fondo claro */}
             <div
@@ -107,123 +167,52 @@ const CategoriaShowcase = () => {
 
             <div className="container mx-auto px-3 relative z-10">
 
-                {/* ── Título rediseñado para fondo claro ── */}
-                <div className="text-center mb-6">
-                    <p style={{
-                        fontFamily: "'Inter', sans-serif",
-                        fontSize: '11px',
-                        fontWeight: '600',
-                        letterSpacing: '0.24em',
-                        textTransform: 'uppercase',
-                        color: '#9a6b27',
-                        margin: '0 0 6px',
-                    }}>
-                        Del taller a tus manos
-                    </p>
+                {/* ── Título (mismo estilo que Colecciones Artesanales / Piezas Disponibles) ── */}
+                <div className="text-center" style={{ marginBottom: '20px' }}>
                     <h2 style={{
                         fontFamily: "'Cormorant Garamond', serif",
-                        fontSize: 'clamp(24px, 4.5vw, 32px)',
-                        fontWeight: '400',
-                        color: '#1c1917',
-                        letterSpacing: '0.06em',
-                        margin: '0 0 10px',
+                        fontSize: 'clamp(34px, 4.5vw, 34px)',
+                        fontWeight: '300',
+                        color: '#2a2018',
+                        letterSpacing: '0.04em',
+                        margin: '0 0 8px',
                     }}>
                         Creaciones del Momento
                     </h2>
                     <div style={{
                         width: '30px',
                         height: '1px',
-                        background: '#9a6b27',
-                        margin: '0 auto',
+                        background: '#c8964a',
                         opacity: 0.6,
+                        margin: '0 auto',
                     }} />
                 </div>
 
-                {/* Estilos del Carrusel para fondo claro */}
-                <style>{`
-                    .slick-slide { height: auto !important; }
-                    .slick-dots-custom {
-                        margin-top: 1.25rem;
-                        display: flex !important;
-                        justify-content: center;
-                        align-items: center;
-                    }
-                    .slick-dots-custom li { margin: 0 5px; }
-                    .slick-dots-custom li button {
-                        width: 8px !important;
-                        height: 8px !important;
-                        border-radius: 50% !important;
-                        padding: 0 !important;
-                        background: #a8a29e !important;
-                        border: none !important;
-                        font-size: 0 !important;
-                        color: transparent !important;
-                        overflow: hidden !important;
-                        transition: all 0.3s ease !important;
-                    }
-                    .slick-dots-custom li.slick-active button {
-                        background: #9a6b27 !important;
-                        transform: scale(1.3) !important;
-                    }
-                `}</style>
+                {/* ── Carrusel ── */}
+                <div className="cs-slider-wrap w-full mx-auto">
+                    <div className="cs-slider">
+                        <Slider {...settings}>
+                            {productos.map((producto) => (
+                                <div key={producto.id} className="px-1.5 md:px-3">
+                                    <Link to={`/producto/${producto.id}`} className="cs-card block pb-1">
+                                        <div className="cs-img-wrap">
+                                            <img
+                                                src={producto.imagen_principal_url}
+                                                alt={producto.titulo}
+                                                className="cs-img"
+                                            />
+                                        </div>
 
-                {/* ── Contenedor Padre del Carrusel ── */}
-                <div className="w-[92%] md:max-w-full mx-auto overflow-hidden">
-                    <Slider {...settings}>
-                        {productos.map((producto) => (
-                            <div key={producto.id} className="px-2 md:px-3">
-                                <Link to={`/producto/${producto.id}`} className="block pb-2 text-center md:text-left">
-                                    {/* Imagen */}
-                                    <div style={{
-                                        width: '100%',
-                                        height: '340px',
-                                        overflow: 'hidden',
-                                        borderRadius: '8px',
-                                        background: '#dfd7c9',
-                                        boxShadow: '0 4px 15px rgba(0,0,0,0.05)',
-                                    }}>
-                                        <img
-                                            src={producto.imagen_principal_url}
-                                            alt={producto.titulo}
-                                            style={{
-                                                width: '100%',
-                                                height: '100%',
-                                                objectFit: 'cover',
-                                                transition: 'transform 0.5s ease',
-                                            }}
-                                            onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.04)'}
-                                            onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
-                                        />
-                                    </div>
+                                        <p className="cs-title">{producto.titulo}</p>
 
-                                    {/* Nombre — Oscuro y legible sobre #efe8dc */}
-                                    <p style={{
-                                        fontFamily: "'Cormorant Garamond', serif",
-                                        fontSize: '20px',
-                                        color: '#1c1917',
-                                        fontWeight: '400',
-                                        margin: '14px 0 4px',
-                                        lineHeight: '1.2',
-                                        letterSpacing: '0.02em'
-                                    }}>
-                                        {producto.titulo}
-                                    </p>
-
-                                    {/* Precio — Tono sobrio */}
-                                    <p style={{
-                                        fontFamily: "'Inter', sans-serif",
-                                        fontSize: '13px',
-                                        color: '#57534e',
-                                        fontWeight: '400',
-                                        margin: '0',
-                                        letterSpacing: '0.06em'
-                                    }}>
-                                        Desde S/ {Number(producto.precio)}
-                                    </p>
-                                </Link>
-                            </div>
-                        ))}
-                    </Slider>
+                                        <p className="cs-price">
+                                            Desde S/ {Number(producto.precio)}
+                                        </p>
+                                    </Link>
+                                </div>
+                            ))}
+                        </Slider>
+                    </div>
                 </div>
 
             </div>

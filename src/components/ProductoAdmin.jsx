@@ -68,11 +68,11 @@ const ProductoAdmin = () => {
     const [filterMaterial, setFilterMaterial] = useState('');
     const [filterStatus, setFilterStatus] = useState('all');
 
-    // Paginación y ordenamiento
+    // Paginación y ordenamiento (por defecto: último producto ingresado arriba)
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage] = useState(20);
-    const [sortBy, setSortBy] = useState('orden');
-    const [sortOrder, setSortOrder] = useState('asc');
+    const [sortBy, setSortBy] = useState('recientes');
+    const [sortOrder, setSortOrder] = useState('desc');
 
     // Estado del formulario
     const [formData, setFormData] = useState(DEFAULT_FORM_DATA);
@@ -98,7 +98,8 @@ const ProductoAdmin = () => {
             const { data, error } = await supabase
                 .from('productos')
                 .select('*, categorias(nombre), producto_material(material_id)')
-                .order('orden', { ascending: true });
+                .order('created_at', { ascending: false })
+                .order('id', { ascending: false });
 
             if (error) throw error;
             setProductos(data || []);
@@ -308,6 +309,7 @@ const ProductoAdmin = () => {
             short_description: producto.short_description || '',
             imagen_principal_url: producto.imagen_principal_url || '',
             imagen2_url: producto.imagen2_url || '',
+            imagen3_url: producto.imagen3_url || '',
             precio: (producto.precio_local !== null && producto.precio_local !== undefined && producto.precio_local !== '')
                 ? producto.precio_local
                 : (producto.precio !== null && producto.precio !== undefined ? producto.precio : ''),
@@ -377,28 +379,40 @@ const ProductoAdmin = () => {
 
     // Ordenamiento
     const sortedProducts = [...filteredProducts].sort((a, b) => {
-        let aValue, bValue;
+        let comparison = 0;
+
         switch (sortBy) {
-            case 'titulo':
-                aValue = a.titulo.toLowerCase();
-                bValue = b.titulo.toLowerCase();
+            case 'titulo': {
+                const aTitle = (a.titulo || '').toLowerCase();
+                const bTitle = (b.titulo || '').toLowerCase();
+                comparison = aTitle.localeCompare(bTitle);
                 break;
-            case 'precio':
-                aValue = a.precio || 0;
-                bValue = b.precio || 0;
+            }
+            case 'precio': {
+                const aPrice = parseFloat(a.precio) || 0;
+                const bPrice = parseFloat(b.precio) || 0;
+                comparison = aPrice - bPrice;
                 break;
-            case 'orden':
-            default:
-                aValue = a.orden || 0;
-                bValue = b.orden || 0;
+            }
+            case 'orden': {
+                const aOrden = a.orden || 0;
+                const bOrden = b.orden || 0;
+                comparison = aOrden - bOrden;
                 break;
+            }
+            case 'recientes':
+            default: {
+                const aDate = a.created_at ? new Date(a.created_at).getTime() : 0;
+                const bDate = b.created_at ? new Date(b.created_at).getTime() : 0;
+                comparison = aDate - bDate;
+                if (comparison === 0) {
+                    comparison = (a.id || 0) - (b.id || 0);
+                }
+                break;
+            }
         }
 
-        if (sortOrder === 'asc') {
-            return aValue > bValue ? 1 : -1;
-        } else {
-            return aValue < bValue ? 1 : -1;
-        }
+        return sortOrder === 'asc' ? comparison : -comparison;
     });
 
     const indexOfLastItem = currentPage * itemsPerPage;
@@ -792,7 +806,7 @@ const ProductoAdmin = () => {
                                 { field: 'imagen_principal_url', label: 'Foto Principal (Obligatoria)' },
                                 { field: 'imagen2_url', label: 'Vista Secundaria' },
                                 { field: 'imagen3_url', label: 'Detalle Cercano' }
-                            ].map(({ field, label }, idx) => (
+                            ].map(({ field, label }) => (
                                 <div key={field} className="border border-stone-200/80 rounded-xl p-3 bg-stone-50/30 flex flex-col justify-between">
                                     <div className="flex items-center justify-between mb-2">
                                         <span className="text-xs font-medium text-stone-600">{label}</span>
@@ -938,13 +952,14 @@ const ProductoAdmin = () => {
                         )}
                     </div>
 
-                    {/* BOTONES DE ACCIÓN: MINIMALISTAS Y PROPORCIONADOS */}
-                    <div className="pt-2 flex items-center justify-end gap-2.5">
+                    {/* BOTONES DE ACCIÓN */}
+                    <div className="pt-3 border-t border-gray-100 flex items-center justify-end gap-3">
                         {editingProducto && (
                             <button
                                 type="button"
                                 onClick={resetForm}
-                                className="px-4 py-2 rounded-lg text-xs font-medium text-stone-600 bg-stone-100 hover:bg-stone-200 transition-colors"
+                                style={{ backgroundColor: '#f3f4f6', color: '#374151', border: '1px solid #d1d5db' }}
+                                className="px-4 py-2.5 rounded-lg text-xs font-medium hover:opacity-85 transition-opacity cursor-pointer"
                             >
                                 Descartar
                             </button>
@@ -953,13 +968,14 @@ const ProductoAdmin = () => {
                         <button
                             type="submit"
                             disabled={saving}
-                            className="px-5 py-2 rounded-lg text-xs font-medium text-stone-100 bg-stone-900 hover:bg-black transition-colors flex items-center gap-1.5 shadow-xs disabled:opacity-50"
+                            style={{ backgroundColor: '#1c1917', color: '#ffffff' }}
+                            className="px-6 py-2.5 rounded-lg text-xs sm:text-sm font-medium shadow-md hover:opacity-90 transition-opacity flex items-center gap-2 cursor-pointer disabled:opacity-50"
                         >
                             {saving ? (
                                 <span>Guardando...</span>
                             ) : (
                                 <>
-                                    {editingProducto ? <FaEdit className="text-[11px]" /> : <FaPlus className="text-[11px]" />}
+                                    {editingProducto ? <FaEdit className="text-xs" /> : <FaPlus className="text-xs" />}
                                     <span>{editingProducto ? 'Actualizar Producto' : 'Guardar Producto'}</span>
                                 </>
                             )}
@@ -1017,9 +1033,14 @@ const ProductoAdmin = () => {
 
                         <select
                             value={sortBy}
-                            onChange={(e) => setSortBy(e.target.value)}
+                            onChange={(e) => {
+                                const value = e.target.value;
+                                setSortBy(value);
+                                setSortOrder(value === 'recientes' ? 'desc' : 'asc');
+                            }}
                             className="bg-stone-800 border border-stone-700 text-stone-200 text-xs rounded-lg px-2.5 py-1.5 focus:outline-none"
                         >
+                            <option value="recientes">Más recientes</option>
                             <option value="orden">Orden</option>
                             <option value="titulo">Título</option>
                             <option value="precio">Precio</option>
@@ -1067,8 +1088,8 @@ const ProductoAdmin = () => {
                                             </div>
                                         </td>
 
-                                        {/* Título & Novedad */}
-                                        <td className="px-3.5 py-2.5">
+                                        {/* Título & Novedad (sin descripción para mantener columna compacta) */}
+                                        <td className="px-3.5 py-2.5 text-left">
                                             <div className="flex items-center gap-1.5">
                                                 <span className="text-xs font-medium text-stone-800 max-w-xs truncate" title={producto.titulo}>
                                                     {producto.titulo}
@@ -1077,29 +1098,24 @@ const ProductoAdmin = () => {
                                                     <FaStar className="text-amber-400 text-[10px] flex-shrink-0" title="Novedad" />
                                                 )}
                                             </div>
-                                            {(producto.short_description || producto.descripcion) && (
-                                                <p className="text-[10px] text-stone-400 truncate max-w-xs" title={producto.short_description || producto.descripcion}>
-                                                    {producto.short_description || producto.descripcion}
-                                                </p>
-                                            )}
                                         </td>
 
                                         {/* Material */}
-                                        <td className="px-3.5 py-2.5 whitespace-nowrap hidden md:table-cell">
+                                        <td className="px-3.5 py-2.5 whitespace-nowrap hidden md:table-cell text-left">
                                             <span className="px-2 py-0.5 text-[11px] rounded-md bg-stone-100 text-stone-600">
                                                 {getMaterialNombre(producto)}
                                             </span>
                                         </td>
 
                                         {/* Categoría */}
-                                        <td className="px-3.5 py-2.5 whitespace-nowrap hidden lg:table-cell">
+                                        <td className="px-3.5 py-2.5 whitespace-nowrap hidden lg:table-cell text-left">
                                             <span className="text-xs text-stone-500">
                                                 {producto.categorias?.nombre || '—'}
                                             </span>
                                         </td>
 
                                         {/* Precios (precio_local / precio y price_offer) */}
-                                        <td className="px-3.5 py-2.5 whitespace-nowrap">
+                                        <td className="px-3.5 py-2.5 whitespace-nowrap text-left">
                                             <div className="flex items-baseline gap-1.5">
                                                 <span className="text-xs font-medium text-stone-800">
                                                     {producto.precio_local !== null && producto.precio_local !== undefined

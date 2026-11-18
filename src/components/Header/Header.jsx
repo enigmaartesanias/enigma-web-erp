@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import logo from '../../assets/logo.png';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import logo from '../../assets/logo-blanco.png'; // PNG blanco con fondo transparente (ajusta el nombre si es otro)
 
 /* ─────────────────────────────────────────
    Paleta Enigma — inline para evitar purge
@@ -17,7 +17,12 @@ const C = {
     icAlpaca: '#eef4f0',
     textCobre: '#a07030',
     textAlp: '#4a7a5a',
+    marron: '#2a2018', // mismo tono de la sección Andru Donalds
 };
+
+/* Altura del header. Si en el celular lo ves muy pegado, sube a 76 u 80.
+   Debe coincidir con la constante del hero si lo cambias. */
+const HEADER_H = 76;
 
 const groupLabel = {
     fontSize: 10, letterSpacing: '0.2em', fontWeight: 700,
@@ -54,10 +59,13 @@ const jewelryByMaterial = {
 ───────────────────────────────────────── */
 const Header = () => {
     const navigate = useNavigate();
+    const { pathname } = useLocation();
     const [menuOpen, setMenuOpen] = useState(false);
     const [activeDropdown, setActiveDropdown] = useState(null);
+    const [scrolled, setScrolled] = useState(false);
 
-    const openMenu = () => setMenuOpen(true);
+    const isHome = pathname === '/';
+
     const closeAll = () => { setMenuOpen(false); setActiveDropdown(null); };
     const toggleMenu = () => setMenuOpen(o => !o);
     const toggleDropdown = (m) => setActiveDropdown(d => d === m ? null : m);
@@ -66,6 +74,19 @@ const Header = () => {
         closeAll();
         navigate(path);
     };
+
+    /* Transparente solo en el inicio, arriba del todo y con el menú cerrado.
+       En cualquier otro caso, fondo marrón fijo. */
+    const solid = !isHome || scrolled || menuOpen;
+
+    /* Detectar scroll (solo importa en el inicio) */
+    useEffect(() => {
+        if (!isHome) { setScrolled(false); return; }
+        const onScroll = () => setScrolled(window.scrollY > 60);
+        onScroll();
+        window.addEventListener('scroll', onScroll, { passive: true });
+        return () => window.removeEventListener('scroll', onScroll);
+    }, [isHome]);
 
     /* Cerrar al hacer clic fuera del header + drawer */
     useEffect(() => {
@@ -104,7 +125,7 @@ const Header = () => {
                 <button
                     onClick={() => toggleDropdown(metal)}
                     style={{
-                        display: 'flex', alignItems: 'center', justifyBetween: 'space-between',
+                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                         width: '100%', padding: '12px 0', background: 'none', border: 'none',
                         cursor: 'pointer', textAlign: 'left',
                     }}
@@ -210,6 +231,12 @@ const Header = () => {
         </div>
     );
 
+    /* Estilo común de los enlaces del menú de escritorio (blancos sobre fondo transparente o marrón) */
+    const navLink = {
+        display: 'block', padding: '8px 12px', fontSize: 14,
+        fontWeight: 500, color: '#ffffff', textDecoration: 'none',
+    };
+
     return (
         <>
             <style>{`
@@ -228,16 +255,17 @@ const Header = () => {
                 id="main-header"
                 style={{
                     position: 'fixed', top: 0, left: 0, right: 0,
-                    height: 64, zIndex: 100,
-                    backgroundColor: '#ffffff',
-                    boxShadow: '0 1px 8px rgba(0,0,0,0.04)',
+                    height: HEADER_H, zIndex: 100,
+                    backgroundColor: solid ? C.marron : 'transparent',
+                    boxShadow: solid ? '0 1px 8px rgba(0,0,0,0.25)' : 'none',
+                    transition: 'background-color 0.3s ease, box-shadow 0.3s ease',
                     display: 'flex', alignItems: 'center',
                     justifyContent: 'space-between',
                     padding: '0 24px',
                 }}
             >
                 <button onClick={() => goTo('/')} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center' }}>
-                    <img src={logo} alt="Enigma artesanías" style={{ height: 40, display: 'block' }} />
+                    <img src={logo} alt="Enigma artesanías" style={{ height: 54, display: 'block' }} />
                 </button>
 
                 <button
@@ -248,7 +276,7 @@ const Header = () => {
                         display: 'flex', flexDirection: 'column',
                         justifyContent: 'center', alignItems: 'center',
                         width: 40, height: 40,
-                        backgroundColor: '#111111',
+                        backgroundColor: 'rgba(255,255,255,0.14)',
                         borderRadius: 8, border: 'none',
                         cursor: 'pointer', gap: 5, padding: '10px 8px',
                     }}
@@ -278,7 +306,7 @@ const Header = () => {
                 {/* Nav Desktop */}
                 <ul id="desktop-nav" style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 4, listStyle: 'none', margin: 0, padding: 0 }}>
                     <li>
-                        <Link to="/el-oficio" style={{ display: 'block', padding: '8px 12px', fontSize: 14, fontWeight: 500, color: '#1a1a1a', textDecoration: 'none' }}>
+                        <Link to="/el-oficio" style={navLink}>
                             El Oficio
                         </Link>
                     </li>
@@ -287,7 +315,7 @@ const Header = () => {
                             onMouseEnter={() => setActiveDropdown(material)}
                             onMouseLeave={() => setActiveDropdown(null)}
                         >
-                            <button style={{ padding: '8px 12px', fontSize: 14, fontMedium: 500, color: '#1a1a1a', background: 'none', border: 'none', cursor: 'pointer' }}>
+                            <button style={{ padding: '8px 12px', fontSize: 14, fontWeight: 500, color: '#ffffff', background: 'none', border: 'none', cursor: 'pointer' }}>
                                 {material}
                             </button>
                             {activeDropdown === material && (
@@ -310,12 +338,12 @@ const Header = () => {
                         </li>
                     ))}
                     <li>
-                        <Link to="/catalogo/all/PERSONALIZADO" style={{ display: 'block', padding: '8px 12px', fontSize: 14, fontWeight: 500, color: '#1a1a1a', textDecoration: 'none' }}>
+                        <Link to="/catalogo/all/PERSONALIZADO" style={navLink}>
                             Personalizados
                         </Link>
                     </li>
                     <li>
-                        <Link to="/contacto" style={{ display: 'block', padding: '8px 12px', fontSize: 14, fontWeight: 500, color: '#1a1a1a', textDecoration: 'none' }}>
+                        <Link to="/contacto" style={navLink}>
                             Contacto
                         </Link>
                     </li>
@@ -328,7 +356,7 @@ const Header = () => {
             <nav
                 id="mobile-menu-nav"
                 style={{
-                    position: 'fixed', top: 64, left: 0, right: 0, bottom: 0, zIndex: 99,
+                    position: 'fixed', top: HEADER_H, left: 0, right: 0, bottom: 0, zIndex: 99,
                     display: 'flex', flexDirection: 'column', backgroundColor: '#ffffff',
                     transform: menuOpen ? 'translateX(0)' : 'translateX(-100%)',
                     transition: 'transform 0.3s ease-in-out',
@@ -355,7 +383,7 @@ const Header = () => {
                         <NavRow path="/catalogo/all/PERSONALIZADO" iconBg="#e8f0f8" iconColor="#4a6b82" iconContent="+" label="Personalizados" sub="Diseña tu pieza única" hasDivider={false} />
                     </div>
 
-                    {/* NOSOTROS (Unificado y Corregido) */}
+                    {/* NOSOTROS */}
                     <div style={{ borderTop: `1px solid ${C.bordes}`, paddingTop: 16, marginBottom: 8 }}>
                         <span style={groupLabel}>Nosotros</span>
                         <NavRow path="/el-oficio" iconBg="#f0ece8" iconColor={C.dorado} iconContent="—" label="El Oficio" sub="Orfebre · Joyería de Autor" />

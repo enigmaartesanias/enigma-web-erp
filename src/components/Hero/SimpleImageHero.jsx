@@ -1,5 +1,4 @@
 // src/components/Hero/SimpleImageHero.jsx
-import { Link } from 'react-router-dom';
 import video from '../../assets/images/heroindex.mp4';
 
 /* Espacio que hoy deja tu layout arriba para el header fijo (antes 64 px).
@@ -72,17 +71,7 @@ const SimpleImageHero = () => (
       >
         De Aldo Magallanes
       </p>
-      <Link
-        to="/cobre#coleccion"
-        style={{
-          display: 'inline-block', marginTop: 14, paddingBottom: 6,
-          color: '#fff', fontSize: 12, letterSpacing: '0.25em',
-          textTransform: 'uppercase', textDecoration: 'none',
-          borderBottom: '1px solid rgba(255,255,255,0.8)',
-        }}
-      >
-        Ver colección
-      </Link>
+
     </div>
 
     <style>{`

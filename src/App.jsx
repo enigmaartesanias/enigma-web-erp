@@ -25,7 +25,6 @@ import Footer from './components/Footer';
 import PublicCarousel from './components/PublicCarousel';
 import ProductoDetalle from './components/ProductoDetalle';
 import Tienda from './components/Tienda';
-import WhatsAppButton from './components/WhatsAppButton';
 
 // Autenticación
 import SignUp from './components/SignUp';
@@ -167,7 +166,6 @@ const MainContent = () => {
             </Routes>
             {!hideHeaderFooter && (
                 <>
-                    <WhatsAppButton />
                     <Footer />
                 </>
             )}

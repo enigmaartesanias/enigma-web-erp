@@ -138,12 +138,12 @@ const StockPage = () => {
                 <div className="text-xs md:text-sm text-gray-500 font-sans tracking-wide">
                     <Link to="/" className="hover:text-black transition-colors uppercase">INICIO</Link>
                     <span className="mx-2">/</span>
-                    <span className="uppercase text-gray-900 font-medium">DISPONIBILIDAD INMEDIATA</span>
+                    <span className="uppercase text-gray-900 font-medium">DISPONIBILIDAD</span>
                 </div>
 
                 <div className="flex items-center">
                     <span className="text-xs md:text-sm text-gray-500 font-sans uppercase tracking-wider">
-                        {filteredProducts.length} {filteredProducts.length === 1 ? 'Pieza disponible' : 'Piezas disponibles'}
+                        {filteredProducts.length} {filteredProducts.length === 1 ? 'Modelo disponible' : 'Modelos disponibles'}
                     </span>
                 </div>
             </div>
@@ -187,103 +187,114 @@ const StockPage = () => {
 
             {/* ── Cuadrícula de Productos ── */}
             {filteredProducts.length > 0 ? (
-                <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
+                <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-4 gap-y-8 md:gap-x-6 md:gap-y-10">
                     {filteredProducts.map((producto) => {
                         const precioRegular = producto.precio !== null ? Number(producto.precio) : null;
                         const precioOferta = producto.price_offer !== null ? Number(producto.price_offer) : null;
                         const tieneOferta = precioOferta !== null && precioOferta > 0 && precioRegular !== null && precioOferta < precioRegular;
                         const precioVisible = tieneOferta ? precioOferta : precioRegular;
-                        const material = getMaterialText(producto);
-                        const stockQty = getStockQty(producto);
 
                         return (
-                            <article
+                            <Link
                                 key={producto.id}
-                                className="group bg-white border border-gray-200 hover:border-stone-400 shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden flex flex-col h-full"
+                                to={`/producto/${producto.id}`}
+                                title={`Ver ficha de ${producto.titulo}`}
+                                className="group block"
                             >
                                 {/* ── Imagen del Producto ── */}
-                                <div className="aspect-[4/5] w-full overflow-hidden relative bg-[#f7f6f4]">
-                                    {/* Badge Oferta idéntico al Index */}
+                                <div
+                                    className="aspect-[4/5] w-full overflow-hidden relative bg-[#f7f6f4]"
+                                    style={{ aspectRatio: '4 / 5' }}
+                                >
                                     {tieneOferta && (
                                         <div className="sp-badge-oferta">
                                             Oferta
                                         </div>
                                     )}
 
-                                    <Link
-                                        to={`/producto/${producto.id}`}
-                                        title={`Ver ficha de ${producto.titulo}`}
-                                        className="block w-full h-full"
-                                    >
-                                        {producto.imagen_principal_url ? (
-                                            <img
-                                                src={producto.imagen_principal_url}
-                                                alt={producto.titulo}
-                                                loading="lazy"
-                                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
-                                            />
-                                        ) : (
-                                            <div className="w-full h-full flex items-center justify-center text-xs text-gray-400 font-light">
-                                                Sin fotografía
-                                            </div>
-                                        )}
-                                    </Link>
+                                    {producto.imagen_principal_url ? (
+                                        <img
+                                            src={producto.imagen_principal_url}
+                                            alt={producto.titulo}
+                                            loading="lazy"
+                                            className="group-hover:scale-105 transition-transform duration-700 ease-out"
+                                            style={{
+                                                position: 'absolute',
+                                                inset: 0,
+                                                width: '100%',
+                                                height: '100%',
+                                                objectFit: 'cover',
+                                                display: 'block',
+                                            }}
+                                        />
+                                    ) : (
+                                        <div className="w-full h-full flex items-center justify-center text-xs text-gray-400 font-light">
+                                            Sin fotografía
+                                        </div>
+                                    )}
                                 </div>
 
-                                {/* ── Ficha del Producto ── */}
-                                <div className="p-4 sm:p-5 flex flex-col flex-grow text-center">
-                                    <Link
-                                        to={`/producto/${producto.id}`}
-                                        className="text-sm sm:text-base md:text-lg font-semibold text-gray-900 hover:text-stone-600 transition-colors line-clamp-2 min-h-[44px] sm:min-h-[52px] tracking-wide leading-tight"
-                                        title={producto.titulo}
+                                {/* ── Título y precio ── */}
+                                <div className="pt-3 text-left">
+                                    <h2
+                                        className="line-clamp-2 text-stone-800 group-hover:text-[#c8964a] transition-colors duration-300"
+                                        style={{
+                                            fontFamily: "'Cormorant Garamond', serif",
+                                            fontSize: '17px',
+                                            fontWeight: '400',
+                                            lineHeight: '1.3',
+                                            letterSpacing: '0.01em',
+                                            margin: 0,
+                                        }}
                                     >
                                         {producto.titulo}
-                                    </Link>
+                                    </h2>
 
-                                    {material && (
-                                        <p className="mt-2 text-xs sm:text-sm uppercase tracking-widest text-stone-600 font-medium truncate">
-                                            {material}
-                                        </p>
-                                    )}
-
-                                    {stockQty && (
-                                        <p className="mt-1 text-xs sm:text-sm uppercase tracking-wider text-stone-500 font-normal">
-                                            Stock: {stockQty} UND
-                                        </p>
-                                    )}
-
-                                    <div className="mt-auto pt-4">
-                                        <div className="flex items-baseline justify-center gap-2.5 mb-3">
-                                            {precioVisible ? (
-                                                <>
-                                                    <span className="text-base sm:text-lg md:text-xl font-bold text-stone-900">
-                                                        S/ {precioVisible.toFixed(2)}
+                                    <div
+                                        className="flex items-baseline gap-2"
+                                        style={{ marginTop: '6px', fontFamily: "'Inter', sans-serif" }}
+                                    >
+                                        {precioVisible ? (
+                                            <>
+                                                <span
+                                                    style={{
+                                                        fontSize: '12px',
+                                                        fontWeight: '400',
+                                                        letterSpacing: '0.04em',
+                                                        color: '#57534e',
+                                                    }}
+                                                >
+                                                    S/ {precioVisible.toFixed(2)}
+                                                </span>
+                                                {tieneOferta && (
+                                                    <span
+                                                        className="line-through"
+                                                        style={{
+                                                            fontSize: '11px',
+                                                            fontWeight: '300',
+                                                            letterSpacing: '0.04em',
+                                                            color: '#a8a29e',
+                                                        }}
+                                                    >
+                                                        S/ {precioRegular.toFixed(2)}
                                                     </span>
-                                                    {tieneOferta && (
-                                                        <span className="text-xs sm:text-sm text-gray-400 line-through">
-                                                            S/ {precioRegular.toFixed(2)}
-                                                        </span>
-                                                    )}
-                                                </>
-                                            ) : (
-                                                <span className="text-xs sm:text-sm text-gray-500 font-light">A pedido</span>
-                                            )}
-                                        </div>
-
-                                        <div className="flex flex-col gap-1.5 pt-1">
-                                            <a
-                                                href={getWhatsAppUrl(producto)}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                title={`Comprar ${producto.titulo} por WhatsApp`}
-                                                className="block w-full py-2 sm:py-2.5 text-xs sm:text-sm font-semibold uppercase tracking-widest text-stone-800 hover:text-white border border-stone-400 hover:border-stone-900 hover:bg-stone-900 transition-all duration-200 text-center"
+                                                )}
+                                            </>
+                                        ) : (
+                                            <span
+                                                style={{
+                                                    fontSize: '12px',
+                                                    fontWeight: '300',
+                                                    letterSpacing: '0.04em',
+                                                    color: '#78716c',
+                                                }}
                                             >
-                                                Comprar
-                                            </a>
-                                        </div>
+                                                A pedido
+                                            </span>
+                                        )}
                                     </div>
                                 </div>
-                            </article>
+                            </Link>
                         );
                     })}
                 </div>
@@ -301,6 +312,9 @@ const StockPage = () => {
                     </button>
                 </div>
             )}
+
+            {/* ── Contacto general ── */}
+
         </div>
     );
 };

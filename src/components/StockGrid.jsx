@@ -3,26 +3,26 @@ import { Link } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 
 /**
- * StockGrid: Piezas en taller con entrega inmediata — minimalista / joyería de autor
- * - Muestra 2 productos en móvil (1 sola fila de 2 columnas) y 4 en escritorio (1x4)
- * - Cada tarjeta muestra solo foto, título (hasta 2 líneas) y precio, alineados a la izquierda
- * - El material y el stock se ven en el detalle del producto, no en el index
- * - Sin botones de compra directos en las tarjetas (diseño tipo vitrina/galería)
- * - Se oculta automáticamente si no hay stock disponible (retorna null)
+- StockGrid: Piezas en taller con entrega inmediata — minimalista / joyería de autor
+- - Muestra 2 productos en móvil (1 sola fila de 2 columnas) y 4 en escritorio (1x4)
+- - Cada tarjeta muestra solo foto, título (hasta 2 líneas) y precio, alineados a la izquierda
+- - El material y el stock se ven en el detalle del producto, no en el index
+- - Sin botones de compra directos en las tarjetas (diseño tipo vitrina/galería)
+- - Se oculta automáticamente si no hay stock disponible (retorna null)
  */
 
 // Proporción de la foto: '100%' = cuadrada 1:1 | '125%' = vertical 4:5
 const IMAGE_PADDING = '100%';
 
 const css = `
-.sg-section{width:100%;padding:28px 0 32px;}
+.sg-section{width:100%;padding:40px 0 32px;}
 .sg-wrap{max-width:1024px;margin:0 auto;padding:0 16px;}
 
 /* Encabezado: mismo estilo que "Colecciones Artesanales" */
 .sg-head{text-align:center;margin-bottom:22px;}
 .sg-heading{margin:0 0 8px;font-family:'Cormorant Garamond',serif;font-size:34px;font-weight:300;letter-spacing:.04em;line-height:1.15;color:#2a2018;}
 .sg-rule{display:block;width:30px;height:1px;background:#c8964a;opacity:.6;margin:0 auto 12px;}
-.sg-sub{margin:0 auto;max-width:320px;font-family:'Inter',sans-serif;font-size:13px;font-weight:300;line-height:1.6;color:#8a8a8a;}
+.sg-sub{margin:0 auto;max-width:320px;font-family:'Inter',sans-serif;font-size:13px;font-weight:300;line-height:1.6;color:#6b625a;}
 
 .sg-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px 12px;align-items:stretch;}
 .sg-card{display:flex;flex-direction:column;height:100%;background:transparent;border:0;box-shadow:none;}
@@ -78,9 +78,9 @@ const css = `
 
 .sg-foot{margin-top:auto;padding-top:4px;}
 .sg-price{display:flex;align-items:baseline;justify-content:flex-start;gap:8px;line-height:1.2;font-family:'Inter',sans-serif;}
-.sg-price-now{font-size:13px;font-weight:300;letter-spacing:.04em;color:#6b625a;}
+.sg-price-now{font-size:13px;font-weight:300;letter-spacing:.04em;color:#4f453d;}
 .sg-price-old{font-size:11px;font-weight:300;color:#b5aca3;text-decoration-line:line-through;text-decoration-color:#c4bcb3;text-decoration-thickness:1px;}
-.sg-price-ask{font-size:12px;font-weight:300;letter-spacing:.04em;color:#8a8a8a;}
+.sg-price-ask{font-size:12px;font-weight:300;letter-spacing:.04em;color:#6b625a;}
 
 /* Botón / enlace sutil para explorar todo el stock */
 .sg-more-wrap{text-align:center;margin-top:28px;}

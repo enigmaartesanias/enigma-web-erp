@@ -12,7 +12,7 @@ const TEMAS = {
         '--cc-bg': '#f4ede2',
         '--cc-title': '#2a2018',
         '--cc-accent': '#9a6b27',
-        '--cc-quote': '#57534e',
+        '--cc-quote': '#3d352e',
         '--cc-btn-text': '#2a2018',
         '--cc-btn-border': '#9a6b27',
         '--cc-btn-hover-bg': '#2a2018',

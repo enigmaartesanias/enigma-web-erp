@@ -7,18 +7,18 @@ import { Link } from 'react-router-dom';
 // Historia sea el único bloque oscuro de esa zona.
 
 const css = `
-.h3-section{position:relative;overflow:hidden;background:#f5f1ec;padding:28px 0 32px;}
-.h3-wrap{max-width:880px;margin:0 auto;padding:0 16px;display:flex;flex-direction:row;align-items:center;gap:18px;}
+.h3-section{position:relative;overflow:hidden;background:#f5f1ec;padding:40px 0 32px;}
+.h3-wrap{max-width:880px;margin:0 auto;padding:0 16px;display:flex;flex-direction:row;align-items:center;gap:16px;}
 
-/* Foto: vertical en mobile, apaisada en escritorio */
-.h3-photo{flex:0 0 42%;min-width:0;}
-.h3-img{display:block;width:100%;aspect-ratio:4 / 5;object-fit:cover;border-radius:10px;box-shadow:0 2px 10px rgba(42,32,24,0.10);}
+/* Foto: proporción equilibrada en mobile, apaisada en escritorio */
+.h3-photo{flex:0 0 45%;min-width:0;}
+.h3-img{display:block;width:100%;aspect-ratio:1 / 1;object-fit:cover;border-radius:10px;box-shadow:0 2px 10px rgba(42,32,24,0.10);}
 
 /* Texto: alineado a la izquierda */
 .h3-content{flex:1;min-width:0;text-align:left;}
 .h3-title{margin:0 0 8px;font-family:'Cormorant Garamond',serif;font-size:28px;font-weight:300;line-height:1.15;letter-spacing:.04em;color:#2a2018;}
 .h3-rule{display:block;width:30px;height:1px;background:#c8964a;opacity:.6;margin:0 0 12px;}
-.h3-text{margin:0;font-family:'Inter',sans-serif;font-size:13px;font-weight:300;line-height:1.7;color:#6b625a;}
+.h3-text{margin:0;font-family:'Inter',sans-serif;font-size:13px;font-weight:300;line-height:1.65;color:#6b625a;}
 .h3-link{display:inline-block;margin-top:14px;font-family:'Inter',sans-serif;font-size:10px;font-weight:400;letter-spacing:.22em;text-transform:uppercase;text-decoration:none;color:#b07d35;transition:color .2s ease;}
 .h3-link:hover{color:#c8964a;}
 

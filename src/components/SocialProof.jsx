@@ -2,13 +2,13 @@ import React from 'react';
 import { TbBrandInstagram, TbBrandTiktok, TbBrandFacebook, TbBrandYoutube } from 'react-icons/tb';
 
 const css = `
-.sp-section{display:block;clear:both;width:100%;background:#e4dacb;padding:36px 0 40px;}
+.sp-section{display:block;clear:both;width:100%;background:#e4dacb;padding:44px 0 40px;}
 .sp-wrap{max-width:420px;margin:0 auto;padding:0 16px;display:flex;flex-direction:column;align-items:center;text-align:center;}
 
 /* Encabezado: mismo estilo que Colecciones Artesanales / Piezas Disponibles */
 .sp-title{margin:0 0 8px;font-family:'Cormorant Garamond',serif;font-size:34px;font-weight:300;line-height:1.15;letter-spacing:.04em;color:#2a2018;}
 .sp-rule{display:block;width:30px;height:1px;background:#c8964a;opacity:.6;margin:0 auto 12px;}
-.sp-text{margin:0 auto 24px;max-width:300px;font-family:'Inter',sans-serif;font-size:13px;font-weight:300;line-height:1.6;color:#6b625a;}
+.sp-text{margin:0 auto 24px;max-width:300px;font-family:'Inter',sans-serif;font-size:13px;font-weight:300;line-height:1.6;color:#4f453d;}
 
 /* Iconos: círculos de 46px con icono de 22px */
 .sp-icons{display:flex;align-items:center;justify-content:center;gap:20px;}

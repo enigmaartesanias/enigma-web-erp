@@ -503,7 +503,7 @@ const Galeria = () => {
 
     return (
         // Zona marfil/taller — resalta las galerías fotográficas de colecciones de materiales
-        <section className="pt-6 pb-10 lg:py-10 bg-[#fdfbf7] font-sans">
+        <section className="pt-10 pb-10 lg:py-10 bg-[#fdfbf7] font-sans">
             <div className="container mx-auto px-3">
 
                 {/* Encabezado de sección (se eliminó "MATERIALES") */}
@@ -537,7 +537,7 @@ const Galeria = () => {
                                 // mb-8 solo si la tarjeta está abierta para aislarla del bloque inferior
                                 className={`flex flex-col bg-white p-3 rounded-xl shadow-md border border-stone-200/40 transition-all duration-300 w-full lg:w-[32%] ${isCardOpen
                                     ? 'mb-8 ring-1 ring-amber-500/20 shadow-xl'
-                                    : 'mb-4 lg:mb-0'
+                                    : 'mb-6 lg:mb-0'
                                     }`}
                             >
                                 <AccordionCard

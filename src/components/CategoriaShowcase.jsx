@@ -20,7 +20,7 @@ const Arrow = ({ direction, onClick }) => (
 );
 
 const css = `
-.cs-section{position:relative;overflow:hidden;background:#efe8dc;padding:28px 0 32px;}
+.cs-section{position:relative;overflow:hidden;background:#efe8dc;padding:40px 0 32px;}
 
 /* Carrusel */
 .cs-slider{position:relative;}

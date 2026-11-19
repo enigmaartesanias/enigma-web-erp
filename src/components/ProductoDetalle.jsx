@@ -389,17 +389,18 @@ const ProductoDetalle = () => {
                 </div>
 
                 {/* ── Información del producto ── */}
-                <div className="py-2 mb-8 space-y-6 text-left">
+                <div className="py-2 mb-8 space-y-8 text-left">
 
                     {/* 1. Título + Compartir */}
                     <div className="flex items-start justify-between gap-3">
                         <h1
                             style={{
                                 fontFamily: "'Cormorant Garamond', serif",
-                                fontSize: 'clamp(28px, 6vw, 36px)',
+                                fontSize: 'clamp(26px, 5.5vw, 33px)',
                                 fontWeight: '400',
                                 color: '#1c1917',
-                                lineHeight: '1.2',
+                                lineHeight: '1.25',
+                                letterSpacing: '0.01em',
                                 margin: '0',
                             }}
                         >
@@ -420,7 +421,7 @@ const ProductoDetalle = () => {
                                 fontFamily: "'Inter', sans-serif",
                                 fontSize: '10px',
                                 fontWeight: '400',
-                                letterSpacing: '0.18em',
+                                letterSpacing: '0.2em',
                                 textTransform: 'uppercase',
                             }}
                         >
@@ -439,39 +440,67 @@ const ProductoDetalle = () => {
                     </div>
 
                     {/* 2. Bloque de Precio con soporte de Oferta (Oferta arriba destacada, precio regular abajo tachado) */}
-                    <div className="space-y-1">
+                    <div className="space-y-2">
                         {tieneOferta ? (
-                            <div className="space-y-1">
+                            <div className="space-y-1.5">
                                 {/* Fila Superior: Precio de Oferta con el tamaño principal */}
-                                <div className="flex items-baseline gap-2">
-                                    <span className="text-xs font-light text-stone-500">
+                                <div className="flex items-baseline gap-2.5">
+                                    <span
+                                        style={{
+                                            fontFamily: "'Inter', sans-serif",
+                                            fontSize: '11px',
+                                            fontWeight: '300',
+                                            letterSpacing: '0.08em',
+                                            color: '#78716c',
+                                        }}
+                                    >
                                         {t.desde}
                                     </span>
                                     <span
                                         style={{
                                             fontFamily: "'Cormorant Garamond', serif",
-                                            fontSize: 'clamp(30px, 7vw, 36px)',
+                                            fontSize: 'clamp(28px, 6.5vw, 34px)',
                                             fontWeight: '400',
                                             color: '#1c1917',
-                                            letterSpacing: '0.01em',
+                                            letterSpacing: '0.02em',
                                             lineHeight: '1',
                                         }}
                                     >
                                         S/ {Number(producto.price_offer).toFixed(2)}
                                     </span>
-                                    <span className="text-[11px] font-light text-stone-400 uppercase tracking-widest ml-0.5">
+                                    <span
+                                        style={{
+                                            fontFamily: "'Inter', sans-serif",
+                                            fontSize: '10px',
+                                            fontWeight: '300',
+                                            letterSpacing: '0.2em',
+                                            textTransform: 'uppercase',
+                                            color: '#a8a29e',
+                                            marginLeft: '2px',
+                                        }}
+                                    >
                                         PEN
                                     </span>
                                 </div>
 
                                 {/* Fila Inferior: Precio original más pequeño y sutilmente tachado */}
                                 {producto.precio && (
-                                    <div className="flex items-center gap-1.5 pt-0.5">
-                                        <span className="text-xs text-stone-400 font-light">Antes:</span>
+                                    <div className="flex items-center gap-2 pt-0.5">
+                                        <span
+                                            style={{
+                                                fontFamily: "'Inter', sans-serif",
+                                                fontSize: '11px',
+                                                fontWeight: '300',
+                                                letterSpacing: '0.04em',
+                                                color: '#a8a29e',
+                                            }}
+                                        >
+                                            Antes:
+                                        </span>
                                         <span
                                             style={{
                                                 fontFamily: "'Cormorant Garamond', serif",
-                                                fontSize: '18px',
+                                                fontSize: '17px',
                                                 letterSpacing: '0.02em',
                                             }}
                                             className="line-through text-stone-400 decoration-stone-300 font-light"
@@ -483,19 +512,27 @@ const ProductoDetalle = () => {
                             </div>
                         ) : (
                             /* Modo normal cuando NO hay oferta */
-                            <div className="flex items-baseline gap-2">
+                            <div className="flex items-baseline gap-2.5">
                                 {producto.precio && (
-                                    <span className="text-xs font-light text-stone-500">
+                                    <span
+                                        style={{
+                                            fontFamily: "'Inter', sans-serif",
+                                            fontSize: '11px',
+                                            fontWeight: '300',
+                                            letterSpacing: '0.08em',
+                                            color: '#78716c',
+                                        }}
+                                    >
                                         {t.desde}
                                     </span>
                                 )}
                                 <span
                                     style={{
                                         fontFamily: "'Cormorant Garamond', serif",
-                                        fontSize: 'clamp(28px, 6.5vw, 34px)',
+                                        fontSize: 'clamp(26px, 6vw, 32px)',
                                         fontWeight: '400',
                                         color: '#1c1917',
-                                        letterSpacing: '0.01em',
+                                        letterSpacing: '0.02em',
                                         lineHeight: '1',
                                     }}
                                 >
@@ -504,7 +541,17 @@ const ProductoDetalle = () => {
                                         : t.precioConsultar}
                                 </span>
                                 {producto.precio && (
-                                    <span className="text-[11px] font-light text-stone-400 uppercase tracking-widest ml-0.5">
+                                    <span
+                                        style={{
+                                            fontFamily: "'Inter', sans-serif",
+                                            fontSize: '10px',
+                                            fontWeight: '300',
+                                            letterSpacing: '0.2em',
+                                            textTransform: 'uppercase',
+                                            color: '#a8a29e',
+                                            marginLeft: '2px',
+                                        }}
+                                    >
                                         PEN
                                     </span>
                                 )}
@@ -512,24 +559,55 @@ const ProductoDetalle = () => {
                         )}
 
                         {/* Texto aclaratorio pequeño y no invasivo */}
-                        <p className="text-[10px] text-stone-400 font-light tracking-wide">
+                        <p
+                            style={{
+                                fontFamily: "'Inter', sans-serif",
+                                fontSize: '11px',
+                                fontWeight: '300',
+                                letterSpacing: '0.04em',
+                                lineHeight: '1.5',
+                                color: '#a8a29e',
+                                margin: 0,
+                                paddingTop: '6px',
+                            }}
+                        >
                             {t.notaIgv}
                         </p>
                     </div>
 
                     {/* 3. Detalles de la pieza y Ficha Técnica */}
                     {getDescripcion() && (
-                        <div className="space-y-3.5">
-                            <h3 className="text-xs font-bold tracking-widest text-zinc-500 uppercase">
+                        <div className="space-y-4">
+                            <h3
+                                style={{
+                                    fontFamily: "'Inter', sans-serif",
+                                    fontSize: '11px',
+                                    fontWeight: '600',
+                                    letterSpacing: '0.22em',
+                                    textTransform: 'uppercase',
+                                    color: '#78716c',
+                                    margin: 0,
+                                }}
+                            >
                                 {t.detallesPieza}
                             </h3>
 
                             {/* Párrafo narrativo */}
-                            <div className="text-zinc-700 font-light leading-relaxed text-sm md:text-base space-y-2">
+                            <div
+                                className="space-y-3"
+                                style={{
+                                    fontFamily: "'Inter', sans-serif",
+                                    fontSize: '14px',
+                                    fontWeight: '300',
+                                    lineHeight: '1.85',
+                                    letterSpacing: '0.01em',
+                                    color: '#57534e',
+                                }}
+                            >
                                 {getDescripcion().split(/(?:\r?\n)+|(?=Realizado en )/i).map((part, index) => {
                                     if (!part || part.trim() === '') return null;
                                     return (
-                                        <p key={index}>
+                                        <p key={index} style={{ margin: 0 }}>
                                             {part.trim()}
                                         </p>
                                     );
@@ -538,13 +616,23 @@ const ProductoDetalle = () => {
 
                             {/* Ficha Técnica: Tamaño y Peso en una sola columna sutil */}
                             {tieneEspecificaciones && (
-                                <div className="pt-3 border-t border-stone-100 space-y-1 text-xs font-light">
+                                <div
+                                    className="border-t border-stone-100 space-y-2"
+                                    style={{
+                                        paddingTop: '16px',
+                                        fontFamily: "'Inter', sans-serif",
+                                        fontSize: '12.5px',
+                                        fontWeight: '300',
+                                        lineHeight: '1.6',
+                                        letterSpacing: '0.01em',
+                                    }}
+                                >
                                     {producto.dimensions && (
                                         <div className="flex items-center gap-2">
-                                            <span className="text-[11px] text-stone-400">
+                                            <span style={{ fontSize: '11px', letterSpacing: '0.06em', color: '#a8a29e' }}>
                                                 Dimensiones:
                                             </span>
-                                            <span className="text-stone-600">
+                                            <span style={{ color: '#57534e' }}>
                                                 {producto.dimensions}
                                             </span>
                                         </div>
@@ -552,10 +640,10 @@ const ProductoDetalle = () => {
 
                                     {producto.weight_grams && Number(producto.weight_grams) > 0 && (
                                         <div className="flex items-center gap-2">
-                                            <span className="text-[11px] text-stone-400">
+                                            <span style={{ fontSize: '11px', letterSpacing: '0.06em', color: '#a8a29e' }}>
                                                 Peso aprox.:
                                             </span>
-                                            <span className="text-stone-600">
+                                            <span style={{ color: '#57534e' }}>
                                                 {Number(producto.weight_grams)} gr.
                                             </span>
                                         </div>
@@ -569,14 +657,14 @@ const ProductoDetalle = () => {
                     {(producto.workshop_image || producto.workshop_desc) && (
                         <div style={{
                             borderTop: '1px solid #f0ede8',
-                            paddingTop: '20px',
+                            paddingTop: '24px',
                             marginTop: '24px',
                         }}>
                             <p style={{
                                 fontFamily: "'Inter', sans-serif",
                                 fontSize: '10px',
                                 fontWeight: '600',
-                                letterSpacing: '0.2em',
+                                letterSpacing: '0.22em',
                                 textTransform: 'uppercase',
                                 color: '#a8a29e',
                                 margin: '0',
@@ -603,10 +691,11 @@ const ProductoDetalle = () => {
                                     fontSize: '13px',
                                     fontWeight: '300',
                                     fontStyle: 'italic',
-                                    color: '#52525b',
-                                    lineHeight: '1.7',
+                                    color: '#57534e',
+                                    lineHeight: '1.85',
+                                    letterSpacing: '0.01em',
                                     textAlign: 'center',
-                                    marginTop: '10px',
+                                    marginTop: '14px',
                                     padding: '0 8px',
                                     maxWidth: '380px',
                                     marginLeft: 'auto',
@@ -624,16 +713,16 @@ const ProductoDetalle = () => {
                             backgroundColor: '#faf8f5',
                             border: '1px solid #ede8e1',
                             borderRadius: '3px',
-                            padding: '16px 18px',
+                            padding: '22px 22px',
                         }}
-                        className="space-y-2"
+                        className="space-y-3"
                     >
                         <p
                             style={{
                                 fontFamily: "'Inter', sans-serif",
-                                fontSize: '11px',
+                                fontSize: '10.5px',
                                 fontWeight: '600',
-                                letterSpacing: '0.14em',
+                                letterSpacing: '0.2em',
                                 textTransform: 'uppercase',
                                 color: '#78716c',
                                 margin: 0,
@@ -644,9 +733,10 @@ const ProductoDetalle = () => {
                         <p
                             style={{
                                 fontFamily: "'Inter', sans-serif",
-                                fontSize: '12.5px',
-                                fontWeight: '350',
-                                lineHeight: '1.65',
+                                fontSize: '13px',
+                                fontWeight: '300',
+                                lineHeight: '1.85',
+                                letterSpacing: '0.01em',
                                 color: '#57534e',
                                 margin: 0,
                             }}

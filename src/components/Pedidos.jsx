@@ -142,6 +142,10 @@ const Pedidos = () => {
     const [showSugerencias, setShowSugerencias] = useState(false);
     const [nombreBusqueda, setNombreBusqueda] = useState('');
     const searchRef = useRef(null);
+    const [clienteSeleccionado, setClienteSeleccionado] = useState(false);
+    const [showModalNuevoCliente, setShowModalNuevoCliente] = useState(false);
+    const [nuevoClienteForm, setNuevoClienteForm] = useState({ nombre: '', telefono: '' });
+    const [savingCliente, setSavingCliente] = useState(false);
 
     useEffect(() => {
         const handleClickOutside = (event) => {
@@ -176,6 +180,7 @@ const Pedidos = () => {
 
     const handleSearchCliente = async (query) => {
         setNombreBusqueda(query);
+        setClienteSeleccionado(false);
         setFormData(prev => ({ ...prev, nombre_cliente: query, telefono: '', dni_ruc: '', direccion_cliente_db: '' }));
         if (query.trim().length > 1) {
             try {
@@ -199,7 +204,41 @@ const Pedidos = () => {
             direccion_entrega: cliente.direccion || prev.direccion_entrega
         }));
         setNombreBusqueda(cliente.nombre);
+        setClienteSeleccionado(true);
         setShowSugerencias(false);
+    };
+
+    const abrirModalNuevoCliente = (nombrePrecargado = '') => {
+        setNuevoClienteForm({ nombre: nombrePrecargado || '', telefono: '' });
+        setShowSugerencias(false);
+        setShowModalNuevoCliente(true);
+    };
+
+    const cerrarModalNuevoCliente = () => {
+        setShowModalNuevoCliente(false);
+        setNuevoClienteForm({ nombre: '', telefono: '' });
+        setSavingCliente(false);
+    };
+
+    const handleGuardarNuevoCliente = async () => {
+        if (!nuevoClienteForm.nombre.trim()) { toast.error('El nombre es obligatorio'); return; }
+        if (!nuevoClienteForm.telefono.trim()) { toast.error('El teléfono es obligatorio'); return; }
+        setSavingCliente(true);
+        try {
+            const nuevoCliente = await clientesDB.create({
+                nombre: nuevoClienteForm.nombre.trim(),
+                telefono: nuevoClienteForm.telefono.trim(),
+                dni: null,
+                direccion: null
+            });
+            handleSelectCliente(nuevoCliente);
+            cerrarModalNuevoCliente();
+            toast.success(`Cliente "${nuevoCliente.nombre}" creado y seleccionado`);
+        } catch (err) {
+            toast.error('Error al crear cliente: ' + err.message);
+        } finally {
+            setSavingCliente(false);
+        }
     };
 
     const fetchPedidos = async () => {
@@ -345,12 +384,15 @@ const Pedidos = () => {
         });
         setProductoActual({ nombre_producto: '', cantidad: '', precio_unitario: '', metal: '', tipo_producto: '' });
         setListaProductos([]); setEditingId(null);
+        setClienteSeleccionado(false);
+        setNombreBusqueda('');
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (listaProductos.length === 0) { toast.error("Agregue al menos un producto."); return; }
         if (!formData.nombre_cliente || !formData.telefono) { toast.error("Nombre y Teléfono obligatorios."); return; }
+        if (!clienteSeleccionado && !editingId) { toast.error("Selecciona un cliente de la lista o crea uno nuevo con el botón +Nuevo."); return; }
 
         setLoading(true);
 
@@ -536,13 +578,14 @@ const Pedidos = () => {
                         <div className="flex items-center gap-3">
                             <label className="text-sm font-bold text-gray-700 uppercase tracking-widest text-[10px]">Cliente *</label>
                             {/* BOTON "+ NUEVO CLIENTE" SUTIL */}
-                            <Link
-                                to="/clientes"
+                            <button
+                                type="button"
+                                onClick={() => abrirModalNuevoCliente(nombreBusqueda)}
                                 className="flex items-center gap-1 text-[10px] text-blue-600 hover:text-blue-800 font-bold bg-blue-50/50 hover:bg-blue-100 px-2 py-0.5 rounded transition-colors"
-                                title="Ir a registrar un nuevo cliente"
+                                title="Crear nuevo cliente rápido"
                             >
                                 <FaPlus size={8} /> Nuevo
-                            </Link>
+                            </button>
                         </div>
                         <div className="relative" ref={searchRef}>
                             <input
@@ -554,7 +597,7 @@ const Pedidos = () => {
                                 className="w-full h-12 bg-gray-50 rounded-xl px-4 text-sm font-medium text-gray-900 border-none ring-1 ring-gray-200 focus:ring-2 focus:ring-blue-500 transition-all placeholder:text-gray-400"
                                 placeholder="Buscar o ingresar nombre..."
                             />
-                            {showSugerencias && clientesSugeridos.length > 0 && (
+                            {showSugerencias && (clientesSugeridos.length > 0 || nombreBusqueda.trim().length > 1) && (
                                 <div className="absolute z-50 w-full mt-2 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden">
                                     {clientesSugeridos.map(c => (
                                         <button key={c.id} type="button" onClick={() => handleSelectCliente(c)} className="w-full text-left px-4 py-3 hover:bg-gray-50 border-b border-gray-50 last:border-0 flex justify-between items-center">
@@ -562,28 +605,30 @@ const Pedidos = () => {
                                             <span className="text-xs text-gray-400">{c.telefono}</span>
                                         </button>
                                     ))}
+                                    {nombreBusqueda.trim().length > 1 && (
+                                        <button
+                                            type="button"
+                                            onClick={() => abrirModalNuevoCliente(nombreBusqueda)}
+                                            className="w-full text-left px-4 py-3 bg-blue-50 hover:bg-blue-100 flex items-center gap-2 text-blue-700 font-semibold text-sm border-t border-blue-100"
+                                        >
+                                            <FaPlus size={10} />
+                                            <span>Crear "{nombreBusqueda}"</span>
+                                        </button>
+                                    )}
                                 </div>
                             )}
                         </div>
 
-                        <div className="grid grid-cols-2 gap-3">
-                            <div>
-                                <label className="text-sm font-bold text-gray-700 uppercase tracking-widest text-[10px] block mb-1">Teléfono *</label>
-                                <input
-                                    type="tel" inputMode="numeric" name="telefono"
-                                    value={formData.telefono} onChange={handleChange}
-                                    className="w-full h-12 bg-gray-50 rounded-xl px-4 text-sm font-medium text-gray-900 border-none ring-1 ring-gray-200 focus:ring-2 focus:ring-blue-500"
-                                    placeholder="Celular"
-                                />
-                            </div>
-                            <div>
-                                <label className="text-sm font-bold text-gray-400 uppercase tracking-widest text-[10px] block mb-1">DNI / RUC (Opcional)</label>
-                                <input
-                                    type="text" inputMode="numeric" name="dni_ruc"
-                                    value={formData.dni_ruc} onChange={handleChange}
-                                    className="w-full h-12 bg-gray-50 rounded-xl px-4 text-sm font-medium text-gray-900 border-none ring-1 ring-gray-200 focus:ring-2 focus:ring-blue-500"
-                                />
-                            </div>
+                        <div>
+                            <label className="text-sm font-bold text-gray-700 uppercase tracking-widest text-[10px] block mb-1">Teléfono *</label>
+                            <input
+                                type="tel" inputMode="numeric" name="telefono"
+                                value={formData.telefono}
+                                onChange={clienteSeleccionado ? undefined : handleChange}
+                                readOnly={clienteSeleccionado}
+                                className={`w-full h-12 rounded-xl px-4 text-sm font-medium text-gray-900 border-none ring-1 transition-all ${clienteSeleccionado ? 'bg-gray-100 ring-gray-100 text-gray-500 cursor-not-allowed' : 'bg-gray-50 ring-gray-200 focus:ring-2 focus:ring-blue-500'}`}
+                                placeholder="Celular"
+                            />
                         </div>
                     </div>
 
@@ -1383,6 +1428,63 @@ const Pedidos = () => {
                         </div>
                         <h2 className="text-2xl font-bold text-gray-800 mb-2">PEDIDO INGRESADO</h2>
                         <p className="text-gray-600">El pedido ha sido registrado exitosamente</p>
+                    </div>
+                </div>
+            )}
+
+            {/* MODAL RÁPIDO: NUEVO CLIENTE */}
+            {showModalNuevoCliente && (
+                <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-5 space-y-4 animate-in zoom-in-95 duration-200">
+                        <div className="flex justify-between items-center">
+                            <h3 className="text-base font-bold text-gray-800">Nuevo Cliente</h3>
+                            <button type="button" onClick={cerrarModalNuevoCliente} className="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-100">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+                        <div className="space-y-3">
+                            <div>
+                                <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block mb-1">Nombre *</label>
+                                <input
+                                    type="text"
+                                    value={nuevoClienteForm.nombre}
+                                    onChange={e => setNuevoClienteForm(prev => ({ ...prev, nombre: e.target.value }))}
+                                    className="w-full h-12 bg-gray-50 rounded-xl px-4 text-sm font-medium text-gray-900 ring-1 ring-gray-200 border-none focus:ring-2 focus:ring-blue-500 outline-none"
+                                    placeholder="Nombre completo"
+                                    autoFocus
+                                />
+                            </div>
+                            <div>
+                                <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block mb-1">Teléfono *</label>
+                                <input
+                                    type="tel"
+                                    inputMode="numeric"
+                                    value={nuevoClienteForm.telefono}
+                                    onChange={e => setNuevoClienteForm(prev => ({ ...prev, telefono: e.target.value }))}
+                                    className="w-full h-12 bg-gray-50 rounded-xl px-4 text-sm font-medium text-gray-900 ring-1 ring-gray-200 border-none focus:ring-2 focus:ring-blue-500 outline-none"
+                                    placeholder="Número de celular"
+                                />
+                            </div>
+                        </div>
+                        <div className="flex gap-3 pt-1">
+                            <button
+                                type="button"
+                                onClick={cerrarModalNuevoCliente}
+                                className="flex-1 h-11 rounded-xl border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors"
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleGuardarNuevoCliente}
+                                disabled={savingCliente}
+                                className="flex-1 h-11 rounded-xl bg-blue-600 text-white text-sm font-bold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
+                            >
+                                {savingCliente ? 'Guardando...' : 'Guardar'}
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

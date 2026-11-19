@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import { Share2, Check } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 
 import ImageModal from './ImageModal';
@@ -23,6 +24,8 @@ const UI_TEXT = {
         sinRelacionados: 'No hay productos relacionados para mostrar.',
         precioConsultar: 'Precio a consultar',
         oferta: 'Oferta especial',
+        compartir: 'Compartir',
+        enlaceCopiado: 'Enlace copiado',
     },
 };
 
@@ -54,6 +57,7 @@ const ProductoDetalle = () => {
     const [currentSlide, setCurrentSlide] = useState(0);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [modalImageUrl, setModalImageUrl] = useState('');
+    const [copiado, setCopiado] = useState(false);
 
     const t = UI_TEXT.es;
 
@@ -64,6 +68,42 @@ const ProductoDetalle = () => {
     const closeModal = () => {
         setIsModalOpen(false);
         setModalImageUrl('');
+    };
+
+    // ── Compartir producto ──
+    // Móvil: abre el menú nativo de compartir. Escritorio: copia el enlace.
+    const handleCompartir = async () => {
+        const url = window.location.href;
+        const shareData = {
+            title: producto?.titulo || 'Enigma Artesanías',
+            text: `${producto?.titulo || 'Pieza'} | Enigma Artesanías`,
+            url,
+        };
+
+        if (navigator.share) {
+            try {
+                await navigator.share(shareData);
+                return;
+            } catch (err) {
+                if (err.name === 'AbortError') return; // el usuario cerró el menú
+            }
+        }
+
+        try {
+            await navigator.clipboard.writeText(url);
+        } catch {
+            const temp = document.createElement('textarea');
+            temp.value = url;
+            temp.style.position = 'fixed';
+            temp.style.opacity = '0';
+            document.body.appendChild(temp);
+            temp.select();
+            document.execCommand('copy');
+            document.body.removeChild(temp);
+        }
+
+        setCopiado(true);
+        setTimeout(() => setCopiado(false), 2200);
     };
 
     const emitirPrecioRegion = (reg, prod) => {
@@ -136,60 +176,62 @@ const ProductoDetalle = () => {
     }, [producto?.id, producto?.categoria_id]);
 
     // ── Fetch Materiales y Categoría ──
+    // Depende solo de id y categoria_id para evitar el bucle de consultas
     useEffect(() => {
-        if (producto) {
-            const fetchMateriales = async () => {
-                try {
-                    const { data: materialsData, error: materialsError } = await supabase
-                        .from('producto_material')
-                        .select('material_id')
-                        .eq('producto_id', id);
+        if (!producto?.id) return;
 
-                    if (materialsError) throw materialsError;
+        const fetchMateriales = async () => {
+            try {
+                const { data: materialsData, error: materialsError } = await supabase
+                    .from('producto_material')
+                    .select('material_id')
+                    .eq('producto_id', id);
 
-                    const materialsPromises = materialsData.map(async (materialData) => {
-                        const { data: materialName, error: materialError } = await supabase
-                            .from('materiales')
-                            .select('nombre')
-                            .eq('id', materialData.material_id)
-                            .single();
+                if (materialsError) throw materialsError;
 
-                        if (materialError) throw materialError;
-
-                        return materialName.nombre;
-                    });
-
-                    const materiales = await Promise.all(materialsPromises);
-                    const materialPrincipal = materiales[0] || 'No especificado';
-
-                    setProducto((prevProducto) => ({
-                        ...prevProducto,
-                        material_principal: materialPrincipal,
-                    }));
-                } catch (err) {
-                    console.error('Error al cargar materiales:', err.message);
-                }
-            };
-
-            const fetchCategoria = async () => {
-                try {
-                    const { data, error } = await supabase
-                        .from('categorias')
+                const materialsPromises = materialsData.map(async (materialData) => {
+                    const { data: materialName, error: materialError } = await supabase
+                        .from('materiales')
                         .select('nombre')
-                        .eq('id', producto.categoria_id)
+                        .eq('id', materialData.material_id)
                         .single();
 
-                    if (error) throw error;
-                    if (data) setCategoriaNombre(data.nombre);
-                } catch (err) {
-                    console.error('Error al cargar categoría:', err.message);
-                }
-            };
+                    if (materialError) throw materialError;
 
-            fetchCategoria();
-            fetchMateriales();
-        }
-    }, [producto, id]);
+                    return materialName.nombre;
+                });
+
+                const materiales = await Promise.all(materialsPromises);
+                const materialPrincipal = materiales[0] || 'No especificado';
+
+                setProducto((prevProducto) => ({
+                    ...prevProducto,
+                    material_principal: materialPrincipal,
+                }));
+            } catch (err) {
+                console.error('Error al cargar materiales:', err.message);
+            }
+        };
+
+        const fetchCategoria = async () => {
+            try {
+                const { data, error } = await supabase
+                    .from('categorias')
+                    .select('nombre')
+                    .eq('id', producto.categoria_id)
+                    .single();
+
+                if (error) throw error;
+                if (data) setCategoriaNombre(data.nombre);
+            } catch (err) {
+                console.error('Error al cargar categoría:', err.message);
+            }
+        };
+
+        fetchCategoria();
+        fetchMateriales();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [producto?.id, producto?.categoria_id]);
 
     // ── Open Graph ──
     useEffect(() => {
@@ -243,7 +285,8 @@ const ProductoDetalle = () => {
                 });
             };
         }
-    }, [producto, id]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [producto?.id, producto?.titulo, producto?.descripcion, producto?.imagen_principal_url]);
 
     if (loading) return <div className="p-8 text-center">{UI_TEXT.es.cargando}</div>;
     if (error) return <div className="p-8 text-center text-red-500">{error}</div>;
@@ -348,19 +391,52 @@ const ProductoDetalle = () => {
                 {/* ── Información del producto ── */}
                 <div className="py-2 mb-8 space-y-6 text-left">
 
-                    {/* 1. Título */}
-                    <h1
-                        style={{
-                            fontFamily: "'Cormorant Garamond', serif",
-                            fontSize: 'clamp(28px, 6vw, 36px)',
-                            fontWeight: '400',
-                            color: '#1c1917',
-                            lineHeight: '1.2',
-                            margin: '0',
-                        }}
-                    >
-                        {producto.titulo}
-                    </h1>
+                    {/* 1. Título + Compartir */}
+                    <div className="flex items-start justify-between gap-3">
+                        <h1
+                            style={{
+                                fontFamily: "'Cormorant Garamond', serif",
+                                fontSize: 'clamp(28px, 6vw, 36px)',
+                                fontWeight: '400',
+                                color: '#1c1917',
+                                lineHeight: '1.2',
+                                margin: '0',
+                            }}
+                        >
+                            {producto.titulo}
+                        </h1>
+
+                        <button
+                            type="button"
+                            onClick={handleCompartir}
+                            aria-label="Compartir este producto"
+                            aria-live="polite"
+                            className="shrink-0 inline-flex items-center gap-1.5 mt-2 text-stone-400 hover:text-stone-800 transition-colors"
+                            style={{
+                                background: 'transparent',
+                                border: 'none',
+                                padding: '4px 0',
+                                cursor: 'pointer',
+                                fontFamily: "'Inter', sans-serif",
+                                fontSize: '10px',
+                                fontWeight: '400',
+                                letterSpacing: '0.18em',
+                                textTransform: 'uppercase',
+                            }}
+                        >
+                            {copiado ? (
+                                <>
+                                    <Check size={14} strokeWidth={1.5} aria-hidden="true" />
+                                    {t.enlaceCopiado}
+                                </>
+                            ) : (
+                                <>
+                                    <Share2 size={14} strokeWidth={1.5} aria-hidden="true" />
+                                    {t.compartir}
+                                </>
+                            )}
+                        </button>
+                    </div>
 
                     {/* 2. Bloque de Precio con soporte de Oferta (Oferta arriba destacada, precio regular abajo tachado) */}
                     <div className="space-y-1">
@@ -542,7 +618,7 @@ const ProductoDetalle = () => {
                         </div>
                     )}
 
-                    {/* 5. Nota: Sobre tu Encargo */}
+                    {/* 5. Nota: Sobre tu Encargo (sin enlace; el botón de abajo es la vía de contacto) */}
                     <div
                         style={{
                             backgroundColor: '#faf8f5',
@@ -575,16 +651,7 @@ const ProductoDetalle = () => {
                                 margin: 0,
                             }}
                         >
-                            Cada pieza se forja a mano, a tu medida y exclusivamente para ti. Iniciamos con un adelanto y coordinamos contigo el plazo de entrega. Para cualquier variación o diseño personalizado,{' '}
-                            <a
-                                href={`https://wa.me/51960282376?text=${encodeURIComponent(`Hola Enigma, tengo una consulta sobre la pieza *${producto.titulo}* o un diseño personalizado.`)}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="underline underline-offset-2 text-stone-800 hover:text-stone-950 font-medium transition-colors"
-                            >
-                                Escríbenos por WhatsApp
-                            </a>{' '}
-                            y lo conversamos.
+                            Cada pieza se forja a mano, a tu medida y exclusivamente para ti. Iniciamos con un adelanto y coordinamos contigo el plazo de entrega. Para cualquier variación o diseño personalizado, escríbenos desde el botón de abajo y lo conversamos.
                         </p>
                     </div>
 
@@ -618,7 +685,7 @@ const ProductoDetalle = () => {
 
                 </div>
 
-                {/* 6. Otras Piezas de Autor */}
+                {/* 7. Otras Piezas de Autor */}
                 <div className="py-6 mb-2 text-left">
                     <h2 style={{
                         fontFamily: "'Cormorant Garamond', serif",

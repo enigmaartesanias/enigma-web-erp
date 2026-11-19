@@ -3,10 +3,22 @@ import { ChevronRight } from 'lucide-react';
 import andruDonalds from '../assets/images/andru.jpg';
 
 // ── Tema de la sección ──
-// 'oscuro' = café cálido con dorado (recomendado) | 'crema' = fondo crema claro
-const TEMA = 'oscuro';
+// 'crema' = fondo claro cálido (recomendado, contrasta con el hero oscuro)
+// 'oscuro' = café cálido con dorado
+const TEMA = 'crema';
 
 const TEMAS = {
+    crema: {
+        '--cc-bg': '#f4ede2',
+        '--cc-title': '#2a2018',
+        '--cc-accent': '#9a6b27',
+        '--cc-quote': '#57534e',
+        '--cc-btn-text': '#2a2018',
+        '--cc-btn-border': '#9a6b27',
+        '--cc-btn-hover-bg': '#2a2018',
+        '--cc-btn-hover-text': '#f5f1ec',
+        '--cc-shadow': 'rgba(42,32,24,0.18)',
+    },
     oscuro: {
         '--cc-bg': '#2a2018',
         '--cc-title': '#f5f1ec',
@@ -16,32 +28,26 @@ const TEMAS = {
         '--cc-btn-border': '#c8964a',
         '--cc-btn-hover-bg': '#c8964a',
         '--cc-btn-hover-text': '#2a2018',
-    },
-    crema: {
-        '--cc-bg': '#efe8dc',
-        '--cc-title': '#2a2018',
-        '--cc-accent': '#9a6b27',
-        '--cc-quote': '#57534e',
-        '--cc-btn-text': '#2a2018',
-        '--cc-btn-border': '#9a6b27',
-        '--cc-btn-hover-bg': '#2a2018',
-        '--cc-btn-hover-text': '#f5f1ec',
+        '--cc-shadow': 'rgba(0,0,0,0.35)',
     },
 };
 
 const css = `
-.cc-section{position:relative;overflow:hidden;background:var(--cc-bg);padding:44px 20px 48px;}
-.cc-inner{max-width:820px;margin:0 auto;display:flex;flex-direction:column;align-items:center;text-align:center;gap:22px;}
+.cc-section{position:relative;overflow:hidden;background:var(--cc-bg);padding:48px 20px 52px;}
+.cc-inner{max-width:820px;margin:0 auto;display:flex;flex-direction:column;align-items:center;text-align:center;gap:24px;}
 
 /* Foto circular con aro dorado separado, como marco de joyería */
-.cc-ring{flex-shrink:0;padding:5px;border:1px solid var(--cc-accent);border-radius:50%;}
-.cc-photo{display:block;width:120px;height:120px;border-radius:50%;object-fit:cover;object-position:center top;}
+.cc-ring{flex-shrink:0;padding:6px;border:1px solid var(--cc-accent);border-radius:50%;}
+.cc-photo{display:block;width:150px;height:150px;border-radius:50%;object-fit:cover;object-position:center top;box-shadow:0 8px 22px var(--cc-shadow);}
 
 .cc-content{min-width:0;}
-.cc-title{margin:0;font-family:'Cormorant Garamond',serif;font-size:32px;font-weight:300;line-height:1.1;letter-spacing:.04em;color:var(--cc-title);}
+.cc-title{margin:0;font-family:'Cormorant Garamond',serif;font-size:34px;font-weight:400;line-height:1.1;letter-spacing:.04em;color:var(--cc-title);}
 .cc-title-sub{display:block;margin-top:2px;font-style:italic;color:var(--cc-accent);}
 
-.cc-quote{margin:14px auto 0;max-width:310px;font-family:'Cormorant Garamond',serif;font-size:20px;font-style:italic;font-weight:400;line-height:1.4;color:var(--cc-quote);}
+/* Divisor dorado, igual que en las otras secciones */
+.cc-divider{display:block;width:36px;height:1px;margin:14px auto 0;background:var(--cc-accent);opacity:.8;}
+
+.cc-quote{margin:16px auto 0;max-width:330px;font-family:'Cormorant Garamond',serif;font-size:20px;font-style:italic;font-weight:400;line-height:1.4;color:var(--cc-quote);}
 .cc-quote-desktop{display:none;}
 
 .cc-btn{margin-top:22px;display:inline-flex;align-items:center;gap:8px;padding:10px 24px;border:1px solid var(--cc-btn-border);border-radius:0;background:transparent;color:var(--cc-btn-text);font-family:'Inter',sans-serif;font-size:10px;font-weight:400;letter-spacing:.22em;text-indent:.1em;text-transform:uppercase;text-decoration:none;transition:background .3s ease,color .3s ease;}
@@ -49,10 +55,11 @@ const css = `
 .cc-btn:focus-visible{outline:2px solid var(--cc-accent);outline-offset:3px;}
 
 @media (min-width:768px){
-  .cc-section{padding:64px 32px;}
-  .cc-inner{flex-direction:row;text-align:left;gap:56px;}
-  .cc-photo{width:160px;height:160px;}
+  .cc-section{padding:72px 32px;}
+  .cc-inner{flex-direction:row;text-align:left;gap:60px;}
+  .cc-photo{width:200px;height:200px;}
   .cc-title{font-size:46px;}
+  .cc-divider{margin:16px 0 0;}
   .cc-quote-mobile{display:none;}
   .cc-quote-desktop{display:block;margin:18px 0 0;max-width:440px;font-size:21px;}
   .cc-btn{margin-top:26px;}
@@ -86,6 +93,7 @@ const CelebrityCollaboration = () => {
                         Andru Donalds
                         <span className="cc-title-sub">&amp; Enigma</span>
                     </h2>
+                    <span className="cc-divider" aria-hidden="true" />
 
                     {/* Cita en móvil */}
                     <p className="cc-quote cc-quote-mobile">

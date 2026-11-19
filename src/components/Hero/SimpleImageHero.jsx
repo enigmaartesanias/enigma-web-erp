@@ -65,8 +65,13 @@ const SimpleImageHero = () => (
     >
       <p
         style={{
-          margin: 0, color: '#fff', fontFamily: 'Georgia, serif',
-          fontSize: 13, letterSpacing: '0.3em', textTransform: 'uppercase',
+          margin: 0,
+          color: '#c8c2ba',
+          fontFamily: 'Georgia, serif',
+          fontWeight: 300,
+          fontSize: 12,
+          letterSpacing: '0.3em',
+          textTransform: 'uppercase',
         }}
       >
         De Aldo Magallanes

@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { pedidosDB } from '../utils/pedidosNeonClient';
 import { clientesDB } from '../utils/clientesNeonClient';
 import { produccionDB, METALES, TIPOS_PRODUCTO } from '../utils/produccionNeonClient';
@@ -6,6 +6,9 @@ import { tiposProductoDB } from '../utils/tiposProductoDB';
 import { materialesDB } from '../utils/materialesNeonClient'; // <-- IMPORT NUEVO
 import { getLocalDate } from '../utils/dateUtils';
 import { ventasDB } from '../utils/ventasClient';
+import { TOLERANCIA_SALDO, METODOS_PAGO, calcularSaldo } from '../utils/pedidosUtils';
+import PagoModal from './pedidos/PagoModal';
+import NotaPedido from './pedidos/NotaPedido';
 import { Link, useNavigate } from 'react-router-dom';
 import { FaEdit, FaTrash, FaCheckCircle, FaTimesCircle, FaPlus, FaWhatsapp, FaPrint, FaSearch, FaMoneyBillWave, FaShareAlt, FaImage, FaPhone, FaArrowLeft, FaHammer, FaCar, FaExclamationTriangle, FaCheck, FaEye, FaUser, FaBox, FaTruck, FaMapMarkerAlt, FaChevronRight } from 'react-icons/fa';
 import html2canvas from 'html2canvas';
@@ -82,11 +85,11 @@ const Pedidos = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [showPrintModal, setShowPrintModal] = useState(false);
     const [printPedido, setPrintPedido] = useState(null);
+    const [ultimoPagoRealizado, setUltimoPagoRealizado] = useState(null);
 
     // Quick Pay Modal State
     const [showPayModal, setShowPayModal] = useState(false);
     const [payPedido, setPayPedido] = useState(null);
-    const [payData, setPayData] = useState({ monto: '', fecha: getLocalDate(), metodo: 'Efectivo' });
 
     const [showCancelAlert, setShowCancelAlert] = useState(false);
     const [showSuccessModal, setShowSuccessModal] = useState(false);
@@ -125,7 +128,7 @@ const Pedidos = () => {
         origen_pedido: 'INTERNET',
     });
 
-    const [productoActual, setProductoActual] = useState({ nombre_producto: '', cantidad: '', precio_unitario: '' });
+    const [productoActual, setProductoActual] = useState({ nombre_producto: '', cantidad: '1', precio_unitario: '', metal: '', tipo_producto: '' });
     const [listaProductos, setListaProductos] = useState([]);
     const [calculos, setCalculos] = useState({ precio_total_sin_igv: 0, monto_igv: 0, precio_total: 0, monto_saldo: 0, cancelado: false });
 
@@ -255,32 +258,29 @@ const Pedidos = () => {
         const subtotalProductos = listaProductos.reduce((acc, item) => acc + (item.cantidad * item.precio_unitario), 0);
 
         let envioParaTotal = 0;
-        if (formData.requiere_envio && (formData.tipo_envio === 'pagado' || formData.tipo_envio === 'pendiente')) {
+        if (formData.requiere_envio && formData.tipo_envio === 'cobro') {
             envioParaTotal = parseFloat(formData.costo_envio) || 0;
         }
 
         const precio_total_sin_igv = subtotalProductos;
-        let monto_igv = formData.incluye_igv ? precio_total_sin_igv * 0.18 : 0;
-
-        const precio_total = precio_total_sin_igv + monto_igv + envioParaTotal;
+        const precio_total = parseFloat((precio_total_sin_igv + envioParaTotal).toFixed(2));
         const monto_a_cuenta = parseFloat(formData.monto_a_cuenta) || 0;
 
-        const monto_saldo_raw = precio_total - monto_a_cuenta;
-        const monto_saldo = monto_saldo_raw < 0.10 ? 0 : monto_saldo_raw;
-        const cancelado = precio_total > 0 && monto_saldo <= 0.001;
+        const monto_saldo = calcularSaldo(precio_total, monto_a_cuenta);
+        const cancelado = precio_total > 0 && monto_saldo <= TOLERANCIA_SALDO;
 
         setCalculos({
             precio_total_sin_igv: parseFloat(precio_total_sin_igv.toFixed(2)),
-            monto_igv: parseFloat(monto_igv.toFixed(2)),
-            precio_total: parseFloat(precio_total.toFixed(2)),
-            monto_saldo: parseFloat(monto_saldo.toFixed(2)),
+            monto_igv: 0,
+            precio_total,
+            monto_saldo,
             cancelado
         });
 
         if (cancelado) setShowCancelAlert(true);
         else setShowCancelAlert(false);
 
-    }, [formData.requiere_envio, formData.tipo_envio, formData.costo_envio, formData.monto_a_cuenta, formData.incluye_igv, listaProductos]);
+    }, [formData.requiere_envio, formData.tipo_envio, formData.costo_envio, formData.monto_a_cuenta, listaProductos]);
 
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target;
@@ -300,12 +300,12 @@ const Pedidos = () => {
             toast.error('Complete nombre, cantidad y precio'); return;
         }
         if (!productoActual.metal || !productoActual.tipo_producto) {
-            toast.warning('Seleccione Metal y Tipo'); return;
+            toast.error('Seleccione Metal y Tipo'); return;
         }
         setListaProductos(prev => [...prev, {
             ...productoActual, cantidad: parseFloat(productoActual.cantidad), precio_unitario: parseFloat(productoActual.precio_unitario)
         }]);
-        setProductoActual({ nombre_producto: '', cantidad: '', precio_unitario: '', metal: '', tipo_producto: '' });
+        setProductoActual({ nombre_producto: '', cantidad: '1', precio_unitario: '', metal: '', tipo_producto: '' });
     };
 
     const eliminarProductoLista = (index) => setListaProductos(prev => prev.filter((_, i) => i !== index));
@@ -317,8 +317,7 @@ const Pedidos = () => {
         let mappedTipoEnvio = 'destino';
         if (pedido.requiere_envio) {
             if (pedido.modalidad_envio === 'Por Pagar') mappedTipoEnvio = 'destino';
-            else if (pedido.envio_pago_pendiente) mappedTipoEnvio = 'pendiente';
-            else mappedTipoEnvio = 'pagado';
+            else mappedTipoEnvio = 'cobro';
         }
 
         setFormData({
@@ -329,15 +328,18 @@ const Pedidos = () => {
             metal: pedido.metal || 'Plata',
             tipo_producto: pedido.tipo_producto || 'Anillo',
             forma_pago: pedido.forma_pago || 'Efectivo',
-            requiere_envio: pedido.requiere_envio,
+            requiere_envio: !!pedido.requiere_envio,
             tipo_envio: mappedTipoEnvio,
             costo_envio: pedido.envio_cobrado_al_cliente || '',
             monto_a_cuenta: pedido.monto_a_cuenta || 0,
-            incluye_igv: pedido.incluye_igv,
+            incluye_igv: false,
             estado_pedido: pedido.estado_pedido || 'aceptado',
             estado_produccion: pedido.estado_produccion || 'no_iniciado',
             origen_pedido: pedido.origen_pedido || 'INTERNET',
         });
+
+        setClienteSeleccionado(true);
+        setNombreBusqueda(pedido.nombre_cliente || '');
 
         if (pedido.detalles_pedido?.length > 0) {
             setListaProductos(pedido.detalles_pedido.map(d => ({ ...d })));
@@ -348,6 +350,12 @@ const Pedidos = () => {
     };
 
     const handleDelete = async (id) => {
+        const pedidoObj = pedidos.find(p => p.id_pedido === id);
+        if (pedidoObj && pedidoObj.pagos && pedidoObj.pagos.length > 0) {
+            toast.error('Tiene pagos registrados. No se puede eliminar.');
+            return;
+        }
+
         setConfirmModal({
             isOpen: true, title: 'Eliminar Pedido', message: '¿Estás seguro? Esta acción no se puede deshacer.',
             icon: <FaTrash />, confirmText: 'Sí, eliminar', confirmColor: 'red',
@@ -382,7 +390,7 @@ const Pedidos = () => {
             forma_pago: 'Efectivo', requiere_envio: false, tipo_envio: 'destino', costo_envio: '', monto_a_cuenta: '',
             incluye_igv: false, estado_pedido: 'aceptado', estado_produccion: 'no_iniciado', direccion_cliente_db: '', origen_pedido: 'INTERNET'
         });
-        setProductoActual({ nombre_producto: '', cantidad: '', precio_unitario: '', metal: '', tipo_producto: '' });
+        setProductoActual({ nombre_producto: '', cantidad: '1', precio_unitario: '', metal: '', tipo_producto: '' });
         setListaProductos([]); setEditingId(null);
         setClienteSeleccionado(false);
         setNombreBusqueda('');
@@ -405,18 +413,32 @@ const Pedidos = () => {
                 dbModalidadEnvio = 'Por Pagar';
                 dbEnvioPagoPendiente = true;
                 dbCostoEnvio = 0;
-            } else if (formData.tipo_envio === 'pagado') {
+            } else { // 'cobro'
                 dbModalidadEnvio = 'Fijo';
                 dbEnvioPagoPendiente = false;
-                dbCostoEnvio = parseFloat(formData.costo_envio) || 0;
-            } else if (formData.tipo_envio === 'pendiente') {
-                dbModalidadEnvio = 'Fijo';
-                dbEnvioPagoPendiente = true;
                 dbCostoEnvio = parseFloat(formData.costo_envio) || 0;
             }
         }
 
         try {
+            // Actualizar DNI / dirección en cliente si aplica
+            if (formData.nombre_cliente && (formData.dni_ruc || formData.direccion_entrega)) {
+                try {
+                    const clientes = await clientesDB.search(formData.nombre_cliente);
+                    const cMatch = clientes.find(c => c.nombre.trim().toLowerCase() === formData.nombre_cliente.trim().toLowerCase());
+                    if (cMatch && cMatch.id) {
+                        await clientesDB.update(cMatch.id, {
+                            nombre: cMatch.nombre,
+                            telefono: cMatch.telefono,
+                            dni: formData.dni_ruc || cMatch.dni,
+                            direccion: formData.direccion_entrega || cMatch.direccion
+                        });
+                    }
+                } catch (errC) {
+                    console.warn('No se pudo actualizar datos del cliente:', errC);
+                }
+            }
+
             const pedidoData = {
                 ...formData,
                 metal: formData.metal || listaProductos[0].metal,
@@ -428,7 +450,8 @@ const Pedidos = () => {
                 precio_total_sin_igv: calculos.precio_total_sin_igv,
                 precio_total: calculos.precio_total,
                 monto_a_cuenta: parseFloat(formData.monto_a_cuenta) || 0,
-                monto_igv: calculos.monto_igv,
+                monto_igv: 0,
+                incluye_igv: false,
                 monto_saldo: calculos.monto_saldo,
                 cancelado: calculos.cancelado,
                 entregado: false,
@@ -440,12 +463,19 @@ const Pedidos = () => {
                 await pedidosDB.update(editingId, pedidoData);
                 await pedidosDB.deleteDetalles(editingId);
                 await pedidosDB.createDetalles(editingId, listaProductos);
+                toast.success('Pedido actualizado');
             } else {
                 const pedido = await pedidosDB.create(pedidoData);
                 pedidoId = pedido.id_pedido;
                 await pedidosDB.createDetalles(pedidoId, listaProductos);
                 if (pedidoData.monto_a_cuenta > 0) {
-                    await pedidosDB.createPago({ id_pedido: pedidoId, monto: pedidoData.monto_a_cuenta, fecha_pago: getLocalDate(), metodo_pago: formData.forma_pago, referencia: '' });
+                    await pedidosDB.createPago({
+                        id_pedido: pedidoId,
+                        monto: pedidoData.monto_a_cuenta,
+                        fecha_pago: getLocalDate(),
+                        metodo_pago: formData.forma_pago,
+                        referencia: ''
+                    });
                 }
                 setShowSuccessModal(true);
                 setTimeout(() => setShowSuccessModal(false), 3000);
@@ -466,6 +496,7 @@ const Pedidos = () => {
                         total: calculos.precio_total,
                         formaPago: formData.forma_pago,
                         costo_materiales: 0,
+                        detalles: listaProductos,
                         observaciones: `Cobro pedido #${pedidoId}`,
                         fecha_venta: new Date().toISOString()
                     });
@@ -479,50 +510,33 @@ const Pedidos = () => {
         finally { setLoading(false); }
     };
 
-    const handlePrint = (pedido) => { setPrintPedido(pedido); setShowPrintModal(true); };
-    const closePrintModal = () => { setShowPrintModal(false); setPrintPedido(null); };
+    const handlePrint = (pedido) => {
+        setPrintPedido(pedido);
+        setUltimoPagoRealizado(null);
+        setShowPrintModal(true);
+    };
+    const closePrintModal = () => {
+        setShowPrintModal(false);
+        setPrintPedido(null);
+        setUltimoPagoRealizado(null);
+    };
 
     const handleOpenPayModal = (pedido) => {
         setPayPedido(pedido);
-        setPayData({ monto: pedido.monto_saldo, fecha: getLocalDate(), metodo: 'Efectivo' });
         setShowPayModal(true);
     };
-    const handleClosePayModal = () => { setShowPayModal(false); setPayPedido(null); };
+    const handleClosePayModal = () => {
+        setShowPayModal(false);
+        setPayPedido(null);
+    };
 
-    const handleQuickPay = async () => {
-        if (!payPedido || !payData.monto) return;
-        try {
-            const montoPago = parseFloat(payData.monto);
-            const nuevoAcuenta = (payPedido.monto_a_cuenta || 0) + montoPago;
-            const nuevoSaldo = payPedido.precio_total - nuevoAcuenta;
-            const pedidoActualizado = { ...payPedido, monto_a_cuenta: nuevoAcuenta, monto_saldo: Math.max(0, nuevoSaldo), cancelado: nuevoSaldo <= 0.05 };
-            await pedidosDB.update(payPedido.id_pedido, pedidoActualizado);
-            await pedidosDB.createPago({ id_pedido: payPedido.id_pedido, monto: montoPago, fecha_pago: payData.fecha, metodo_pago: payData.metodo, referencia: '' });
-
-            // ── Si el saldo queda en cero → registrar ingreso en Ventas ──
-            if (nuevoSaldo <= 0.05) {
-                const codigoPed = `PED-${String(payPedido.id_pedido).padStart(4, '0')}`;
-                const ventasExistentes = await ventasDB.getAll();
-                const yaRegistrado = ventasExistentes.some(v =>
-                    v.detalles && v.detalles.some(d => d.producto_codigo === codigoPed)
-                );
-                if (!yaRegistrado) {
-                    await ventasDB.createVentaPedido({
-                        pedidoId: payPedido.id_pedido,
-                        clienteNombre: payPedido.nombre_cliente,
-                        total: payPedido.precio_total,
-                        formaPago: payData.metodo || payPedido.forma_pago,
-                        costo_materiales: 0,
-                        observaciones: `Cobro pedido #${payPedido.id_pedido}`,
-                        fecha_venta: new Date().toISOString()
-                    });
-                    toast.success('Ingreso registrado en Reporte de Ventas ✅');
-                }
-            }
-
-            toast.success('Pago registrado');
-            handleClosePayModal(); fetchPedidos();
-        } catch (error) { toast.error('Error al registrar pago'); }
+    const handlePagoSuccess = (resultado) => {
+        fetchPedidos();
+        if (resultado && resultado.pedido) {
+            setUltimoPagoRealizado(resultado.pago);
+            setPrintPedido(resultado.pedido);
+            setShowPrintModal(true);
+        }
     };
 
     const handleCrearProduccion = async (pedido) => { navigate(`/produccion?pedido=${pedido.id_pedido}`); };
@@ -575,16 +589,16 @@ const Pedidos = () => {
                         SECCIÓN CLIENTE
                     ======================================== */}
                     <div className="space-y-3">
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center justify-between">
                             <label className="text-sm font-bold text-gray-700 uppercase tracking-widest text-[10px]">Cliente *</label>
                             {/* BOTON "+ NUEVO CLIENTE" SUTIL */}
                             <button
                                 type="button"
                                 onClick={() => abrirModalNuevoCliente(nombreBusqueda)}
-                                className="flex items-center gap-1 text-[10px] text-blue-600 hover:text-blue-800 font-bold bg-blue-50/50 hover:bg-blue-100 px-2 py-0.5 rounded transition-colors"
+                                className="flex items-center gap-1 text-[11px] text-blue-600 hover:text-blue-800 font-bold bg-blue-50/70 hover:bg-blue-100 px-2.5 py-1 rounded-md transition-colors"
                                 title="Crear nuevo cliente rápido"
                             >
-                                <FaPlus size={8} /> Nuevo
+                                <FaPlus size={9} /> Nuevo
                             </button>
                         </div>
                         <div className="relative" ref={searchRef}>
@@ -594,11 +608,11 @@ const Pedidos = () => {
                                 value={formData.nombre_cliente}
                                 onChange={(e) => handleSearchCliente(e.target.value)}
                                 autoComplete="off"
-                                className="w-full h-12 bg-gray-50 rounded-xl px-4 text-sm font-medium text-gray-900 border-none ring-1 ring-gray-200 focus:ring-2 focus:ring-blue-500 transition-all placeholder:text-gray-400"
+                                className="w-full h-11 sm:h-12 bg-gray-50 rounded-xl px-4 text-sm font-medium text-gray-900 border-none ring-1 ring-gray-200 focus:ring-2 focus:ring-blue-500 transition-all placeholder:text-gray-400"
                                 placeholder="Buscar o ingresar nombre..."
                             />
                             {showSugerencias && (clientesSugeridos.length > 0 || nombreBusqueda.trim().length > 1) && (
-                                <div className="absolute z-50 w-full mt-2 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden">
+                                <div className="absolute z-50 w-full mt-2 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden max-h-60 overflow-y-auto">
                                     {clientesSugeridos.map(c => (
                                         <button key={c.id} type="button" onClick={() => handleSelectCliente(c)} className="w-full text-left px-4 py-3 hover:bg-gray-50 border-b border-gray-50 last:border-0 flex justify-between items-center">
                                             <span className="font-semibold text-sm text-gray-800">{c.nombre}</span>
@@ -619,34 +633,32 @@ const Pedidos = () => {
                             )}
                         </div>
 
-                        <div>
-                            <label className="text-sm font-bold text-gray-700 uppercase tracking-widest text-[10px] block mb-1">Teléfono *</label>
-                            <input
-                                type="tel" inputMode="numeric" name="telefono"
-                                value={formData.telefono}
-                                onChange={clienteSeleccionado ? undefined : handleChange}
-                                readOnly={clienteSeleccionado}
-                                className={`w-full h-12 rounded-xl px-4 text-sm font-medium text-gray-900 border-none ring-1 transition-all ${clienteSeleccionado ? 'bg-gray-100 ring-gray-100 text-gray-500 cursor-not-allowed' : 'bg-gray-50 ring-gray-200 focus:ring-2 focus:ring-blue-500'}`}
-                                placeholder="Celular"
-                            />
-                        </div>
+                        {/* Teléfono como dato de referencia del cliente seleccionado */}
+                        {formData.nombre_cliente && formData.telefono && (
+                            <div className="flex items-center gap-2 text-xs text-gray-600 bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-200 w-fit">
+                                <FaPhone size={11} className="text-gray-400" />
+                                <span className="font-medium">{formData.telefono}</span>
+                                {formData.dni_ruc && (
+                                    <span className="text-gray-400 border-l border-gray-200 pl-2">DNI: {formData.dni_ruc}</span>
+                                )}
+                            </div>
+                        )}
                     </div>
 
                     <hr className="border-gray-100" />
 
                     {/* ========================================
-                        SECCIÓN PRODUCTOS (MINIMALISTA)
+                        SECCIÓN PRODUCTOS (RESPONSIVE)
                     ======================================== */}
                     <div className="space-y-3">
                         <label className="text-sm font-bold text-gray-700 uppercase tracking-widest text-[10px]">Añadir Producto</label>
-                        <div className="bg-gray-50 rounded-2xl p-3 ring-1 ring-gray-200">
-                            <div className="grid grid-cols-2 gap-2 mb-2">
-                                {/* <-- REEMPLAZADO PARA USAR METALES DESDE LA BD --> */}
-                                <select name="metal" value={productoActual.metal} onChange={handleProductoChange} className="w-full h-11 bg-white rounded-lg text-xs font-medium border-none ring-1 ring-gray-200 text-gray-600 focus:ring-2 focus:ring-blue-500">
+                        <div className="bg-gray-50 rounded-2xl p-3 ring-1 ring-gray-200 space-y-2">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                <select name="metal" value={productoActual.metal} onChange={handleProductoChange} className="w-full h-11 bg-white rounded-lg px-3 text-xs font-medium border-none ring-1 ring-gray-200 text-gray-700 focus:ring-2 focus:ring-blue-500">
                                     <option value="">Metal...</option>
                                     {metalesList.map(m => <option key={m} value={m}>{m}</option>)}
                                 </select>
-                                <select name="tipo_producto" value={productoActual.tipo_producto} onChange={handleProductoChange} className="w-full h-11 bg-white rounded-lg text-xs font-medium border-none ring-1 ring-gray-200 text-gray-600 focus:ring-2 focus:ring-blue-500">
+                                <select name="tipo_producto" value={productoActual.tipo_producto} onChange={handleProductoChange} className="w-full h-11 bg-white rounded-lg px-3 text-xs font-medium border-none ring-1 ring-gray-200 text-gray-700 focus:ring-2 focus:ring-blue-500">
                                     <option value="">Tipo...</option>
                                     {tiposDisponibles.map(t => <option key={t.id} value={t.nombre}>{t.nombre}</option>)}
                                 </select>
@@ -654,15 +666,15 @@ const Pedidos = () => {
                             <input
                                 type="text" name="nombre_producto" value={productoActual.nombre_producto} onChange={handleProductoChange}
                                 placeholder="Descripción (Ej. Anillo texturizado)"
-                                className="w-full h-11 bg-white rounded-lg px-3 text-xs font-medium border-none ring-1 ring-gray-200 mb-2 focus:ring-2 focus:ring-blue-500 text-gray-800"
+                                className="w-full h-11 bg-white rounded-lg px-3 text-xs font-medium border-none ring-1 ring-gray-200 focus:ring-2 focus:ring-blue-500 text-gray-800"
                             />
                             <div className="flex gap-2">
-                                <input type="number" inputMode="decimal" min="1" name="cantidad" value={productoActual.cantidad} onChange={handleProductoChange} placeholder="Cant." className="w-20 h-11 bg-white rounded-lg px-3 text-center text-sm font-medium border-none ring-1 ring-gray-200 text-gray-900" />
-                                <div className="relative flex-1">
+                                <input type="number" inputMode="decimal" min="1" name="cantidad" value={productoActual.cantidad} onChange={handleProductoChange} placeholder="Cant." className="w-20 sm:w-24 h-11 bg-white rounded-lg px-3 text-center text-sm font-medium border-none ring-1 ring-gray-200 text-gray-900 shrink-0" />
+                                <div className="relative flex-1 min-w-0">
                                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">S/</span>
                                     <input type="number" inputMode="decimal" step="0.01" name="precio_unitario" value={productoActual.precio_unitario} onChange={handleProductoChange} placeholder="Precio" className="w-full h-11 bg-white rounded-lg pl-8 pr-3 text-sm font-bold text-gray-800 border-none ring-1 ring-gray-200 focus:ring-2 focus:ring-blue-500" />
                                 </div>
-                                <button type="button" onClick={agregarProducto} className="h-11 w-11 bg-blue-600 text-white rounded-lg flex items-center justify-center hover:bg-blue-700 active:scale-95 transition-transform shadow-sm">
+                                <button type="button" onClick={agregarProducto} className="h-11 w-11 bg-blue-600 text-white rounded-lg flex items-center justify-center hover:bg-blue-700 active:scale-95 transition-transform shadow-sm shrink-0">
                                     <FaPlus size={14} />
                                 </button>
                             </div>
@@ -676,7 +688,7 @@ const Pedidos = () => {
                                             <p className="text-xs font-bold text-gray-800 truncate">{p.tipo_producto} - {p.nombre_producto}</p>
                                             <p className="text-[10px] text-gray-500">{p.cantidad}x {p.metal} @ S/ {p.precio_unitario.toFixed(2)}</p>
                                         </div>
-                                        <div className="flex items-center gap-3">
+                                        <div className="flex items-center gap-3 shrink-0">
                                             <span className="text-sm font-black text-blue-700">S/ {(p.cantidad * p.precio_unitario).toFixed(2)}</span>
                                             <button type="button" onClick={() => eliminarProductoLista(i)} className="text-red-400 hover:text-red-600 p-1"><FaTrash size={12} /></button>
                                         </div>
@@ -689,7 +701,7 @@ const Pedidos = () => {
                     <hr className="border-gray-100" />
 
                     {/* ========================================
-                        SECCIÓN ENVÍO
+                        SECCIÓN ENVÍO (2 OPCIONES)
                     ======================================== */}
                     <div className="space-y-3">
                         <div className="flex items-center justify-between">
@@ -706,40 +718,44 @@ const Pedidos = () => {
                             <div className="bg-blue-50/30 rounded-2xl p-3 border border-blue-100 space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
 
                                 <button type="button" onClick={() => setShowAddressDrawer(true)} className="w-full bg-white flex items-center justify-between p-3 rounded-xl border border-blue-100 hover:border-blue-200 transition-colors text-left shadow-sm">
-                                    <div className="flex items-center gap-3 overflow-hidden">
-                                        <div className="bg-blue-50 p-2 rounded-lg text-blue-500"><FaMapMarkerAlt size={14} /></div>
-                                        <div className="truncate">
+                                    <div className="flex items-center gap-3 overflow-hidden min-w-0">
+                                        <div className="bg-blue-50 p-2 rounded-lg text-blue-500 shrink-0"><FaMapMarkerAlt size={14} /></div>
+                                        <div className="truncate min-w-0">
                                             <p className="text-[10px] font-bold text-blue-400 uppercase tracking-widest">Dirección de Entrega</p>
-                                            <p className="text-xs font-semibold text-gray-800 truncate">{formData.direccion_entrega || 'Tocar para agregar dirección...'}</p>
+                                            <p className="text-xs font-semibold text-gray-800 truncate">{formData.direccion_entrega || 'Tocar para agregar dirección y DNI...'}</p>
+                                            {formData.dni_ruc && (
+                                                <p className="text-[10px] text-gray-500 truncate">DNI/RUC: {formData.dni_ruc}</p>
+                                            )}
                                         </div>
                                     </div>
-                                    <FaChevronRight className="text-gray-300" size={12} />
+                                    <FaChevronRight className="text-gray-300 shrink-0 ml-2" size={12} />
                                 </button>
 
-                                <div className="bg-white p-1 rounded-xl flex shadow-sm border border-gray-100">
-                                    {[
-                                        { id: 'destino', label: 'En Destino' },
-                                        { id: 'pagado', label: 'Ya Pagado' },
-                                        { id: 'pendiente', label: 'Pendiente' }
-                                    ].map(opt => (
-                                        <button
-                                            key={opt.id} type="button"
-                                            onClick={() => setFormData(prev => ({ ...prev, tipo_envio: opt.id }))}
-                                            className={`flex-1 py-2 text-[10px] sm:text-xs font-bold rounded-lg transition-all text-center ${formData.tipo_envio === opt.id ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-500 hover:bg-gray-50'}`}
-                                        >
-                                            {opt.label}
-                                        </button>
-                                    ))}
+                                <div className="grid grid-cols-2 gap-2 bg-gray-100/70 p-1 rounded-xl border border-gray-100">
+                                    <button
+                                        type="button"
+                                        onClick={() => setFormData(prev => ({ ...prev, tipo_envio: 'cobro' }))}
+                                        className={`py-2 px-2 text-xs font-bold rounded-lg transition-all text-center ${formData.tipo_envio === 'cobro' ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-200/50'}`}
+                                    >
+                                        Lo cobro yo
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setFormData(prev => ({ ...prev, tipo_envio: 'destino' }))}
+                                        className={`py-2 px-2 text-xs font-bold rounded-lg transition-all text-center ${formData.tipo_envio === 'destino' ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-200/50'}`}
+                                    >
+                                        Paga en destino
+                                    </button>
                                 </div>
 
-                                {formData.tipo_envio !== 'destino' && (
+                                {formData.tipo_envio === 'cobro' && (
                                     <div className="relative animate-in zoom-in-95 duration-200 shadow-sm">
                                         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">S/</span>
                                         <input
                                             type="number" inputMode="decimal" step="0.01" name="costo_envio"
                                             value={formData.costo_envio} onChange={handleChange}
-                                            placeholder="Costo de envío"
-                                            className="w-full h-12 bg-white rounded-xl pl-8 pr-4 text-sm font-bold text-gray-800 border border-blue-100 focus:ring-2 focus:ring-blue-500"
+                                            placeholder="Monto de envío a cobrar"
+                                            className="w-full h-11 bg-white rounded-xl pl-8 pr-4 text-sm font-bold text-gray-800 border border-blue-100 focus:ring-2 focus:ring-blue-500"
                                         />
                                     </div>
                                 )}
@@ -753,13 +769,9 @@ const Pedidos = () => {
                         SECCIÓN FINANZAS / PAGO
                     ======================================== */}
                     <div className="bg-white rounded-2xl p-4 sm:p-5 shadow-sm border border-gray-200 space-y-4">
-                        <div className="flex justify-between items-center border-b border-gray-100 pb-3">
+                        <div className="border-b border-gray-100 pb-3">
                             <label className="text-sm font-bold text-blue-800 uppercase tracking-widest text-[11px] flex items-center gap-2">
                                 <FaMoneyBillWave className="text-blue-500" /> Resumen y Pago
-                            </label>
-                            <label className="flex items-center gap-2 cursor-pointer bg-blue-50 px-2 py-1 rounded-md border border-blue-100 hover:bg-blue-100 transition-colors">
-                                <input type="checkbox" name="incluye_igv" checked={formData.incluye_igv} onChange={handleChange} className="rounded text-blue-600 border-gray-300 focus:ring-blue-500 h-4 w-4" />
-                                <span className="text-[10px] font-bold text-blue-700 uppercase">+ IGV</span>
                             </label>
                         </div>
 
@@ -770,23 +782,16 @@ const Pedidos = () => {
                                 <span className="font-semibold text-gray-800">S/ {calculos.precio_total_sin_igv.toFixed(2)}</span>
                             </div>
 
-                            {formData.requiere_envio && formData.tipo_envio !== 'destino' && parseFloat(formData.costo_envio) > 0 && (
+                            {formData.requiere_envio && formData.tipo_envio === 'cobro' && parseFloat(formData.costo_envio) > 0 && (
                                 <div className="flex justify-between text-blue-600">
-                                    <span>Envío ({formData.tipo_envio === 'pagado' ? 'Ya Pagado' : 'Pendiente'})</span>
+                                    <span>Envío (cobrado)</span>
                                     <span className="font-semibold">+ S/ {parseFloat(formData.costo_envio).toFixed(2)}</span>
                                 </div>
                             )}
                             {formData.requiere_envio && formData.tipo_envio === 'destino' && (
                                 <div className="flex justify-between text-amber-600 italic text-[10px]">
-                                    <span>Envío Pago en Destino</span>
+                                    <span>Envío (pago en destino)</span>
                                     <span>S/ 0.00</span>
-                                </div>
-                            )}
-
-                            {formData.incluye_igv && (
-                                <div className="flex justify-between text-gray-500">
-                                    <span>IGV (18%)</span>
-                                    <span>+ S/ {calculos.monto_igv.toFixed(2)}</span>
                                 </div>
                             )}
 
@@ -796,39 +801,51 @@ const Pedidos = () => {
                             </div>
                         </div>
 
-                        {/* Ingreso de Adelanto/Pago */}
-                        <div className="bg-gray-50 rounded-xl p-3 flex gap-3 items-center border border-gray-200 focus-within:border-blue-400 focus-within:ring-1 focus-within:ring-blue-400 transition-all shadow-inner">
-                            <select name="forma_pago" value={formData.forma_pago} onChange={handleChange} className="bg-transparent text-xs font-bold text-gray-700 border-none focus:ring-0 p-0 w-24 cursor-pointer">
-                                <option value="Efectivo">Efectivo</option>
-                                <option value="Yape">Yape</option>
-                                <option value="Plin">Plin</option>
-                                <option value="Transferencia">Transferencia</option>
-                            </select>
-                            <div className="h-6 w-px bg-gray-300"></div>
-                            <div className="relative flex-1 flex items-center">
-                                <span className="text-gray-500 text-[10px] sm:text-xs font-bold whitespace-nowrap mr-2">Adelanto S/</span>
-                                <input
-                                    type="number" inputMode="decimal" step="0.01" name="monto_a_cuenta"
-                                    value={formData.monto_a_cuenta} onChange={handleChange} required
-                                    className="w-full bg-transparent text-right text-lg font-black text-green-600 border-none focus:ring-0 p-0 placeholder:text-gray-300"
-                                    placeholder="0.00"
-                                />
+                        {/* Fila de Método de pago y Adelanto */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            <div className="bg-gray-50 rounded-xl px-3 py-2 border border-gray-200">
+                                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Método de pago</label>
+                                <select
+                                    name="forma_pago"
+                                    value={formData.forma_pago}
+                                    onChange={handleChange}
+                                    className="w-full bg-transparent text-sm font-bold text-gray-800 border-none focus:ring-0 p-0 cursor-pointer"
+                                >
+                                    {METODOS_PAGO.map(m => (
+                                        <option key={m} value={m}>{m}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div className="bg-gray-50 rounded-xl px-3 py-2 border border-gray-200">
+                                <div className="flex justify-between items-center mb-1">
+                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Adelanto S/</label>
+                                    {editingId && (
+                                        <span className="text-[9px] text-amber-600 font-semibold">Solo lectura</span>
+                                    )}
+                                </div>
+                                <div className="relative flex items-center">
+                                    <span className="text-gray-400 text-sm font-bold mr-1">S/</span>
+                                    <input
+                                        type="number"
+                                        inputMode="decimal"
+                                        step="0.01"
+                                        name="monto_a_cuenta"
+                                        value={formData.monto_a_cuenta}
+                                        onChange={handleChange}
+                                        readOnly={!!editingId}
+                                        className={`w-full bg-transparent text-right text-lg font-black border-none focus:ring-0 p-0 ${editingId ? 'text-gray-500 cursor-not-allowed' : 'text-green-600 placeholder:text-gray-300'}`}
+                                        placeholder="0.00"
+                                    />
+                                </div>
                             </div>
                         </div>
 
-                        {/* CAMPO NUEVO: Origen del pedido */}
-                        <div className="bg-gray-50 rounded-xl p-3 flex gap-3 items-center border border-gray-200 mt-3 shadow-inner relative">
-                            <label className="text-gray-500 text-[10px] sm:text-xs font-bold whitespace-nowrap absolute -top-2 left-3 bg-white px-1 border border-gray-200 rounded">Origen</label>
-                            <select
-                                name="origen_pedido"
-                                value={formData.origen_pedido || 'INTERNET'}
-                                onChange={handleChange}
-                                className="w-full bg-transparent text-sm font-bold text-gray-700 border-none focus:ring-0 p-0 pt-2 cursor-pointer"
-                            >
-                                <option value="INTERNET">🌐 Redes</option>
-                                <option value="TIENDA">🏪 Tienda</option>
-                            </select>
-                        </div>
+                        {editingId && (
+                            <p className="text-[11px] text-gray-500 italic px-1">
+                                ℹ️ Para registrar pagos adicionales o abonos al saldo pendiente, usa el botón de pago en la lista de pedidos.
+                            </p>
+                        )}
 
                         {/* Saldo Final */}
                         {!calculos.cancelado ? (
@@ -1014,8 +1031,8 @@ const Pedidos = () => {
                                                 <td className={`px-4 py-4 whitespace-nowrap text-sm font-bold text-right ${pedido.monto_saldo > 0 ? 'text-red-600' : 'text-green-600'}`}>S/ {pedido.monto_saldo.toFixed(2)}</td>
                                                 <td className="px-4 py-4 whitespace-nowrap text-right">
                                                     <div className="flex justify-center md:justify-end gap-3 md:gap-4">
-                                                        {!pedido.cancelado && pedido.monto_saldo > 0.1 && (
-                                                            <Tooltip text="Registrar pago">
+                                                        {!pedido.cancelado && Number(pedido.monto_saldo) > TOLERANCIA_SALDO && (
+                                                            <Tooltip text="Cobrar saldo">
                                                                 <button onClick={() => handleOpenPayModal(pedido)} className="text-green-600 hover:text-green-800 transition-colors">
                                                                     <FaMoneyBillWave className="h-6 w-6" />
                                                                 </button>
@@ -1061,6 +1078,13 @@ const Pedidos = () => {
                                                 <td className={`px-4 py-4 whitespace-nowrap text-sm font-bold text-right ${pedido.monto_saldo > 0 ? 'text-red-600' : 'text-green-600'}`}>S/ {pedido.monto_saldo.toFixed(2)}</td>
                                                 <td className="px-4 py-4 whitespace-nowrap text-right">
                                                     <div className="flex justify-center md:justify-end gap-3 md:gap-4">
+                                                        {!pedido.cancelado && Number(pedido.monto_saldo) > TOLERANCIA_SALDO && (
+                                                            <Tooltip text="Cobrar saldo">
+                                                                <button onClick={() => handleOpenPayModal(pedido)} className="text-green-600 hover:text-green-800 transition-colors">
+                                                                    <FaMoneyBillWave className="h-6 w-6" />
+                                                                </button>
+                                                            </Tooltip>
+                                                        )}
                                                         {pedido.tiene_productos_pendientes && (
                                                             <Tooltip text="Continuar producción (items faltantes)">
                                                                 <button onClick={() => handleCrearProduccion(pedido)} className="text-purple-600 hover:text-purple-900 transition-colors">
@@ -1110,6 +1134,13 @@ const Pedidos = () => {
                                                 <td className={`px-4 py-4 whitespace-nowrap text-sm font-bold text-right ${pedido.monto_saldo > 0 ? 'text-red-600' : 'text-green-600'}`}>S/ {pedido.monto_saldo.toFixed(2)}</td>
                                                 <td className="px-4 py-4 whitespace-nowrap text-right">
                                                     <div className="flex justify-center md:justify-end gap-3 md:gap-4">
+                                                        {!pedido.cancelado && Number(pedido.monto_saldo) > TOLERANCIA_SALDO && (
+                                                            <Tooltip text="Cobrar saldo">
+                                                                <button onClick={() => handleOpenPayModal(pedido)} className="text-green-600 hover:text-green-800 transition-colors">
+                                                                    <FaMoneyBillWave className="h-6 w-6" />
+                                                                </button>
+                                                            </Tooltip>
+                                                        )}
                                                         <Tooltip text="Registrar producción">
                                                             <button onClick={() => handleCrearProduccion(pedido)} className="text-purple-600 hover:text-purple-900 transition-colors">
                                                                 <FaHammer className="h-6 w-6" />
@@ -1142,233 +1173,61 @@ const Pedidos = () => {
                 </div >
             </div >
 
-            {/* DRAWER PARA DIRECCIÓN DE ENVÍO */}
+            {/* DRAWER PARA DIRECCIÓN DE ENVÍO Y DNI */}
             {showAddressDrawer && (
                 <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-sm transition-opacity">
                     <div className="bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl p-5 pb-8 sm:pb-5 animate-in slide-in-from-bottom duration-300">
                         <div className="w-12 h-1.5 bg-gray-200 rounded-full mx-auto mb-5 sm:hidden"></div>
                         <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2"><FaMapMarkerAlt className="text-blue-500" /> Detalle de Entrega</h3>
 
-                        <textarea
-                            name="direccion_entrega"
-                            value={formData.direccion_entrega}
-                            onChange={handleChange}
-                            placeholder="Ej: Av. Larco 123, Miraflores. Ref: Frente al parque. Recibe: Juan."
-                            rows="4"
-                            className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm font-medium text-gray-800 focus:ring-2 focus:ring-blue-500 mb-4 resize-none"
-                        ></textarea>
+                        <div className="space-y-3 mb-4">
+                            <div>
+                                <label className="text-[10px] font-bold text-gray-600 uppercase tracking-wider block mb-1">DNI / RUC (para envío)</label>
+                                <input
+                                    type="text"
+                                    name="dni_ruc"
+                                    value={formData.dni_ruc || ''}
+                                    onChange={handleChange}
+                                    placeholder="Número de documento..."
+                                    className="w-full h-11 bg-gray-50 border border-gray-200 rounded-xl px-3 text-sm font-medium text-gray-800 focus:ring-2 focus:ring-blue-500"
+                                />
+                            </div>
+                            <div>
+                                <label className="text-[10px] font-bold text-gray-600 uppercase tracking-wider block mb-1">Dirección de Entrega</label>
+                                <textarea
+                                    name="direccion_entrega"
+                                    value={formData.direccion_entrega}
+                                    onChange={handleChange}
+                                    placeholder="Ej: Av. Larco 123, Miraflores. Ref: Frente al parque. Recibe: Juan."
+                                    rows="3"
+                                    className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm font-medium text-gray-800 focus:ring-2 focus:ring-blue-500 resize-none"
+                                ></textarea>
+                            </div>
+                        </div>
 
                         <div className="flex gap-3">
-                            <button type="button" onClick={() => setShowAddressDrawer(false)} className="flex-1 h-12 bg-gray-100 text-gray-600 font-bold rounded-xl text-sm hover:bg-gray-200 transition-colors">Cancelar</button>
-                            <button type="button" onClick={() => setShowAddressDrawer(false)} className="flex-[2] h-12 bg-gray-900 text-white font-bold rounded-xl text-sm shadow-md hover:bg-black transition-colors">Confirmar Dirección</button>
+                            <button type="button" onClick={() => setShowAddressDrawer(false)} className="flex-1 h-12 bg-gray-100 text-gray-600 font-bold rounded-xl text-sm hover:bg-gray-200 transition-colors">Cerrar</button>
+                            <button type="button" onClick={() => setShowAddressDrawer(false)} className="flex-[2] h-12 bg-blue-600 text-white font-bold rounded-xl text-sm shadow-md hover:bg-blue-700 transition-colors">Guardar Datos</button>
                         </div>
                     </div>
                 </div>
             )}
 
-            {/* MODAL VOUCHER IMPRESIÓN (DISEÑO MEJORADO) */}
-            {showPrintModal && printPedido && (
-                <div className="fixed inset-0 bg-gray-900/80 backdrop-blur-sm overflow-y-auto h-full w-full z-[100] flex items-center justify-center p-4">
-                    <div className="bg-white rounded-2xl shadow-2xl w-[98%] sm:max-w-[460px] flex flex-col relative animate-in zoom-in-95 duration-200">
+            {/* Modal de Nota de Pedido (Adelanto / Cancelación) */}
+            <NotaPedido
+                isOpen={showPrintModal}
+                pedido={printPedido}
+                ultimoPago={ultimoPagoRealizado}
+                onClose={closePrintModal}
+            />
 
-                        {/* HEADER ACCIONES */}
-                        <div className="px-4 py-3 flex justify-between items-center bg-gray-50 border-b border-gray-100 rounded-t-2xl">
-                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Vista Previa</span>
-                            <div className="flex gap-2">
-                                <button onClick={async () => {
-                                    const element = document.getElementById('printable-voucher');
-                                    const canvas = await html2canvas(element, { scale: 3, backgroundColor: '#ffffff', useCORS: true });
-                                    canvas.toBlob(async (blob) => {
-                                        const file = new File([blob], `Pedido_${printPedido.id_pedido}.jpg`, { type: 'image/jpeg' });
-                                        if (navigator.canShare && navigator.canShare({ files: [file] })) {
-                                            try { await navigator.share({ files: [file] }); } catch (e) { }
-                                        } else {
-                                            const link = document.createElement('a');
-                                            link.download = `Pedido_${printPedido.id_pedido}.jpg`; link.href = canvas.toDataURL('image/jpeg', 1.0); link.click();
-                                        }
-                                    }, 'image/jpeg', 1.0);
-                                }} className="h-8 w-8 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center hover:bg-blue-200 transition-colors">
-                                    <FaShareAlt size={12} />
-                                </button>
-                                <button onClick={closePrintModal} className="h-8 w-8 bg-gray-200 text-gray-600 rounded-full flex items-center justify-center hover:bg-gray-300 transition-colors">
-                                    <FaTimesCircle size={14} />
-                                </button>
-                            </div>
-                        </div>
-
-                        {/* CONTENIDO DEL VOUCHER (CONTENEDOR SEGURO) */}
-                        <div className="p-6 sm:p-8 bg-white relative overflow-hidden rounded-b-2xl" id="printable-voucher">
-
-                            {/* SELLO DE PAGADO ELIMINADO PARA MANTENER LA VISTA LIMPIA */}
-
-                            {/* TAG DE ESTADO Y FECHA */}
-                            <div className="flex justify-between items-center mb-5 relative z-10">
-                                {printPedido.monto_saldo > 0.05 ? (
-                                    <span className="bg-amber-100 text-amber-800 text-[9px] font-bold px-2 py-0.5 rounded uppercase tracking-wider">En Proceso</span>
-                                ) : (
-                                    <span className="bg-emerald-100 text-emerald-800 text-[9px] font-bold px-2 py-0.5 rounded uppercase tracking-wider">Completado</span>
-                                )}
-                                <span className="text-[11px] font-mono font-bold text-gray-500">
-                                    {formatLocalDate(printPedido.fecha_pedido)}
-                                </span>
-                            </div>
-
-                            {/* HEADER - ROW 2: LOGO & FOLIO (A LA MISMA ALTURA) */}
-                            <div className="flex justify-between items-start mb-6 relative z-10 border-b border-gray-100 pb-4">
-                                <div>
-                                    <p className="text-[12px] font-normal text-gray-600 leading-none mb-1.5">Enigma artesanías y accesorios</p>
-                                    <h1 className="text-base font-bold uppercase tracking-widest text-gray-900 leading-none">NOTA DE PEDIDO</h1>
-                                </div>
-                                <div className="bg-gray-50 border border-gray-200 px-3 py-1.5 rounded">
-                                    <p className="text-[11px] font-bold text-gray-700 font-mono tracking-wide">N° {String(printPedido.id_pedido).padStart(4, '0')}</p>
-                                </div>
-                            </div>
-
-                            {/* CLIENT DETAILS (ICONS) */}
-                            <div className="mb-6 space-y-3 relative z-10">
-                                <div className="flex items-start gap-2.5 text-[15px]">
-                                    <FaUser className="text-gray-400 mt-1 shrink-0" size={13} />
-                                    <span className="font-semibold text-gray-800 capitalize leading-tight">{printPedido.nombre_cliente.toLowerCase()}</span>
-                                </div>
-                                {printPedido.telefono && (
-                                    <div className="flex items-center gap-2.5 text-sm">
-                                        <FaPhone className="text-gray-400 shrink-0" size={13} />
-                                        <span className="text-gray-600">{printPedido.telefono}</span>
-                                    </div>
-                                )}
-                                {printPedido.requiere_envio && printPedido.direccion_entrega && (
-                                    <div className="flex items-start gap-2.5 text-sm">
-                                        <FaMapMarkerAlt className="text-gray-400 mt-1 shrink-0" size={13} />
-                                        <span className="text-gray-600 leading-snug">{printPedido.direccion_entrega}</span>
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* PRODUCTS LIST */}
-                            <div className="mb-7 relative z-10">
-                                <div className="space-y-3.5">
-                                    {printPedido.detalles_pedido.map((d, index) => (
-                                        <div key={index} className="flex justify-between text-sm items-start">
-                                            <div className="pr-2 leading-tight">
-                                                <span className="font-bold text-gray-800">{d.cantidad}x </span>
-                                                <span className="text-gray-700">{d.nombre_producto}</span>
-                                                <span className="text-[10px] text-gray-400 block mt-1">({d.metal})</span>
-                                            </div>
-                                            <span className="font-semibold text-gray-800 pt-0.5 whitespace-nowrap">S/ {(d.cantidad * d.precio_unitario).toFixed(2)}</span>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-
-                            {/* TOTALS & SHIPPING */}
-                            <div className="border-t border-gray-200 pt-5 space-y-2 relative z-10 bg-transparent">
-                                <div className="flex justify-between text-sm text-gray-500">
-                                    <span>Subtotal</span>
-                                    <span>S/ {printPedido.precio_total_sin_igv.toFixed(2)}</span>
-                                </div>
-
-                                {printPedido.requiere_envio && (
-                                    <div className="flex justify-between text-sm text-gray-500">
-                                        <span>Envío {printPedido.envio_pago_pendiente && printPedido.envio_cobrado_al_cliente === 0 ? '(Pago en destino)' : ''}</span>
-                                        <span>S/ {printPedido.envio_cobrado_al_cliente.toFixed(2)}</span>
-                                    </div>
-                                )}
-
-                                {printPedido.incluye_igv && (
-                                    <div className="flex justify-between text-sm text-gray-500">
-                                        <span>IGV (18%)</span>
-                                        <span>S/ {printPedido.monto_igv.toFixed(2)}</span>
-                                    </div>
-                                )}
-
-                                <div className="flex justify-between font-bold text-base text-gray-900 pt-3 mt-3 border-t border-gray-100">
-                                    <span>TOTAL</span>
-                                    <span>S/ {printPedido.precio_total.toFixed(2)}</span>
-                                </div>
-
-                                {/* ESTADOS FINALES DE BALANCE */}
-                                {printPedido.monto_saldo > 0.05 ? (
-                                    <>
-                                        <div className="flex justify-between text-sm text-gray-500 mt-2">
-                                            <span>A Cuenta</span>
-                                            <span>- S/ {printPedido.monto_a_cuenta.toFixed(2)}</span>
-                                        </div>
-                                        <div className="flex justify-between items-center font-black text-base text-red-600 bg-red-50 px-3 py-2.5 rounded mt-3 border border-red-100">
-                                            <span className="uppercase tracking-wide text-[11px]">Saldo Pendiente</span>
-                                            <span>S/ {printPedido.monto_saldo.toFixed(2)}</span>
-                                        </div>
-                                    </>
-                                ) : (
-                                    <div className="mt-5 bg-emerald-50 border border-emerald-100 rounded-xl p-3 flex items-center justify-center gap-2">
-                                        <FaCheckCircle className="text-emerald-500" size={16} />
-                                        <div className="text-center">
-                                            <span className="block font-bold text-emerald-700 text-xs py-0.5 uppercase tracking-widest leading-none">Totalmente Pagado</span>
-                                            <span className="block text-[10px] text-emerald-600 mt-1.5 leading-none">Gracias por tu compra</span>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Modal de Pago Rápido */}
-            {showPayModal && payPedido && (
-                <div className="fixed inset-0 bg-gray-600 bg-opacity-75 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
-                    <div className="bg-white rounded-lg shadow-xl w-full max-w-md flex flex-col">
-                        <div className="px-6 py-4 border-b flex justify-between items-center bg-gray-50 rounded-t-lg">
-                            <h3 className="text-lg font-bold text-gray-800">Registrar Pago / Adelanto</h3>
-                            <button onClick={handleClosePayModal} className="text-gray-600 hover:text-gray-800">
-                                <FaTimesCircle size={24} />
-                            </button>
-                        </div>
-                        <div className="p-6">
-                            <p className="mb-4 text-sm text-gray-600">
-                                Cliente: <span className="font-bold">{payPedido.nombre_cliente}</span><br />
-                                Saldo Pendiente: <span className="font-bold text-red-600">S/ {payPedido.monto_saldo.toFixed(2)}</span>
-                            </p>
-
-                            <div className="space-y-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700">Monto a Pagar</label>
-                                    <input
-                                        type="number" step="0.01" value={payData.monto}
-                                        onChange={(e) => setPayData({ ...payData, monto: e.target.value })}
-                                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700">Fecha</label>
-                                    <input
-                                        type="date" value={payData.fecha}
-                                        onChange={(e) => setPayData({ ...payData, fecha: e.target.value })}
-                                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700">Método de Pago</label>
-                                    <select
-                                        value={payData.metodo}
-                                        onChange={(e) => setPayData({ ...payData, metodo: e.target.value })}
-                                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2"
-                                    >
-                                        <option value="Efectivo">Efectivo</option>
-                                        <option value="Yape">Yape</option>
-                                        <option value="Plin">Plin</option>
-                                        <option value="Transferencia">Transferencia</option>
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-                        <div className="px-6 py-4 border-t bg-gray-50 rounded-b-lg flex justify-end space-x-3">
-                            <button onClick={handleClosePayModal} className="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400">Cancelar</button>
-                            <button onClick={handleQuickPay} className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">Confirmar Pago</button>
-                        </div>
-                    </div>
-                </div>
-            )}
+            {/* Modal de Cobro de Saldo / Abono */}
+            <PagoModal
+                isOpen={showPayModal}
+                pedido={payPedido}
+                onClose={handleClosePayModal}
+                onSuccess={handlePagoSuccess}
+            />
 
             {/* Popup Pedido Cancelado */}
             {showCancelAlert && calculos.cancelado && (

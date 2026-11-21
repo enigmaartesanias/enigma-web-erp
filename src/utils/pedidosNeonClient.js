@@ -231,6 +231,52 @@ export const pedidosDB = {
     return pago;
   },
 
+  // Registrar pago y actualizar saldo del pedido (atómico con sql.transaction si está disponible)
+  async registrarPagoYActualizarPedido({ id_pedido, monto, fecha_pago, metodo_pago, nuevo_monto_a_cuenta, nuevo_monto_saldo, cancelado }) {
+    if (typeof sql.transaction === 'function') {
+      try {
+        const [pagoRes, pedidoRes] = await sql.transaction([
+          sql`
+            INSERT INTO pagos (id_pedido, monto, fecha_pago, metodo_pago, referencia)
+            VALUES (${id_pedido}, ${monto}, ${fecha_pago}, ${metodo_pago}, '')
+            RETURNING *
+          `,
+          sql`
+            UPDATE pedidos
+            SET monto_a_cuenta = ${nuevo_monto_a_cuenta},
+                monto_saldo = ${nuevo_monto_saldo},
+                cancelado = ${cancelado},
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id_pedido = ${id_pedido}
+            RETURNING *
+          `
+        ]);
+        const pago = Array.isArray(pagoRes) ? pagoRes[0] : pagoRes;
+        const pedido = Array.isArray(pedidoRes) ? pedidoRes[0] : pedidoRes;
+        return { pago, pedido };
+      } catch (txError) {
+        console.warn('Fallo sql.transaction, ejecutando secuencial:', txError);
+      }
+    }
+
+    // Fallback secuencial
+    const [pago] = await sql`
+      INSERT INTO pagos (id_pedido, monto, fecha_pago, metodo_pago, referencia)
+      VALUES (${id_pedido}, ${monto}, ${fecha_pago}, ${metodo_pago}, '')
+      RETURNING *
+    `;
+    const [pedido] = await sql`
+      UPDATE pedidos
+      SET monto_a_cuenta = ${nuevo_monto_a_cuenta},
+          monto_saldo = ${nuevo_monto_saldo},
+          cancelado = ${cancelado},
+          updated_at = CURRENT_TIMESTAMP
+      WHERE id_pedido = ${id_pedido}
+      RETURNING *
+    `;
+    return { pago, pedido };
+  },
+
   // Actualizar estado del pedido
   async updateEstadoPedido(id, nuevoEstado, fechaEntrega = null) {
     const [pedido] = await sql`

@@ -1,11 +1,21 @@
 import { createClient } from '@supabase/supabase-js';
 
-// Tus credenciales de Supabase
-const supabaseUrl = 'https://qwvhrtdddpmaovnyarhr.supabase.co'; // Tu URL de proyecto de Supabase
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF3dmhydGRkZHBtYW92bnlhcmhyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTIyOTU4MDUsImV4cCI6MjA2Nzg3MTgwNX0.BR9fF63sNEuoLmjQDfTj7xCVXZl9CnwOxvU-Net33Nw'; // <--- ¡ESTA ES LA CLAVE CORRECTA!
+export const SUPABASE_BUCKET = 'andru';
 
-// Inicializa el cliente de Supabase
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export const supabase = createClient(
+    import.meta.env.VITE_SUPABASE_URL,
+    import.meta.env.VITE_SUPABASE_ANON_KEY
+);
+
+// Obtiene la ruta interna del archivo a partir de su URL pública
+// (sirve para borrar). Devuelve null si la URL no es de este bucket
+// (por ejemplo, una URL antigua de Firebase).
+export const storagePathFromUrl = (url = '') => {
+    const marker = `/object/public/${SUPABASE_BUCKET}/`;
+    const i = url.indexOf(marker);
+    if (i === -1) return null;
+    return decodeURIComponent(url.slice(i + marker.length).split('?')[0]);
+};
 
 // Exporta también el módulo de autenticación
-export const auth = supabase.auth;
+export const auth = supabase.auth;

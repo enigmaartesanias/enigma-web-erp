@@ -1,6 +1,28 @@
 import React from 'react';
 import { TbBrandInstagram, TbBrandTiktok, TbBrandFacebook, TbBrandYoutube } from 'react-icons/tb';
 
+const css = `
+.sp-section{display:block;clear:both;width:100%;background:#e4dacb;padding:44px 0 40px;}
+.sp-wrap{max-width:420px;margin:0 auto;padding:0 16px;display:flex;flex-direction:column;align-items:center;text-align:center;}
+
+/* Encabezado: mismo estilo que Colecciones Artesanales / Piezas Disponibles */
+.sp-title{margin:0 0 8px;font-family:'Cormorant Garamond',serif;font-size:34px;font-weight:300;line-height:1.15;letter-spacing:.04em;color:#2a2018;}
+.sp-rule{display:block;width:30px;height:1px;background:#c8964a;opacity:.6;margin:0 auto 12px;}
+.sp-text{margin:0 auto 24px;max-width:300px;font-family:'Inter',sans-serif;font-size:13px;font-weight:300;line-height:1.6;color:#4f453d;}
+
+/* Iconos: círculos de 46px con icono de 22px */
+.sp-icons{display:flex;align-items:center;justify-content:center;gap:20px;}
+.sp-icon{display:flex;align-items:center;justify-content:center;width:46px;height:46px;border-radius:50%;border:1px solid rgba(154,107,39,0.5);color:#2a2018;background:transparent;text-decoration:none;transition:background-color .25s ease,border-color .25s ease,color .25s ease;}
+.sp-icon svg{width:22px;height:22px;}
+.sp-icon:hover{background:#2a2018;border-color:#2a2018;color:#f5f1ec;}
+.sp-icon:focus-visible{outline:2px solid #c8964a;outline-offset:3px;}
+
+@media (min-width:768px){
+  .sp-section{padding:48px 0 52px;}
+  .sp-text{margin-bottom:28px;}
+}
+`;
+
 const SocialProof = () => {
     const socialStats = [
         {
@@ -26,108 +48,34 @@ const SocialProof = () => {
     ];
 
     return (
-        // Fondo claro (crema, igual que Galeria.jsx) en vez de oscuro.
-        // Esta sección queda entre "Joyas con Historia" (oscuro) y el Footer
-        // (oscuro) — necesita ser clara para romper el bloque negro apilado
-        // y darle ritmo a la página en vez de fundirse con lo de arriba/abajo.
-        <section
-            className="py-14 md:py-16 w-full"
-            style={{ background: '#f5f1ec', display: 'block', clear: 'both' }}
-        >
-            <div className="container mx-auto px-4">
+        // Fondo crema/marfil suave #e4dacb
+        <section className="sp-section" aria-label="Redes sociales">
+            <style>{css}</style>
 
-                <div className="flex flex-col items-center mx-auto text-center" style={{ maxWidth: '420px' }}>
+            <div className="sp-wrap">
+                <h2 className="sp-title">El taller, visto de cerca</h2>
+                <span className="sp-rule" />
+                <p className="sp-text">
+                    Procesos y piezas, directo desde el banco de trabajo.
+                </p>
 
-                    {/* Línea dorada superior — mismo detalle que el resto del sitio */}
-                    <div style={{
-                        width: '30px',
-                        height: '0.5px',
-                        background: '#c8964a',
-                        opacity: 0.7,
-                        marginBottom: '18px',
-                    }} />
-
-                    <p style={{
-                        fontFamily: "'Inter', sans-serif",
-                        fontSize: '11px',
-                        fontWeight: '600',
-                        letterSpacing: '0.28em',
-                        textTransform: 'uppercase',
-                        color: '#c8964a',
-                        margin: '0 0 10px',
-                    }}>
-                        Nuestra Comunidad
-                    </p>
-
-                    <h2 style={{
-                        fontFamily: "'Cormorant Garamond', serif",
-                        fontSize: 'clamp(26px, 4vw, 30px)',
-                        fontWeight: '300',
-                        color: '#2a2018',
-                        letterSpacing: '0.02em',
-                        margin: '0 0 14px',
-                        lineHeight: '1.3',
-                    }}>
-                        El taller, visto de cerca
-                    </h2>
-
-                    <p style={{
-                        fontFamily: "'Inter', sans-serif",
-                        fontSize: '14px',
-                        fontWeight: '300',
-                        lineHeight: '1.7',
-                        color: '#5c5346',
-                        margin: '0 0 36px',
-                        maxWidth: '300px',
-                    }}>
-                        Donde compartimos el proceso artesanal y la vida de cada pieza, directo desde el banco de trabajo.
-                    </p>
-
-                    {/* Iconos sociales: círculos individuales con borde fino dorado
-                        sobre fondo claro. Mismo tratamiento que la versión oscura,
-                        invertido en color para mantener contraste y elegancia. */}
-                    <div className="flex items-center justify-center gap-4">
-                        {socialStats.map((social) => {
-                            const Icon = social.icon;
-                            return (
-                                <a
-                                    key={social.platform}
-                                    href={social.url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    aria-label={social.platform}
-                                    className="group"
-                                    style={{
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        width: '48px',
-                                        height: '48px',
-                                        borderRadius: '50%',
-                                        border: '0.5px solid rgba(200,150,74,0.45)',
-                                        transition: 'border-color 0.25s ease, background-color 0.25s ease',
-                                    }}
-                                    onMouseEnter={e => {
-                                        e.currentTarget.style.borderColor = '#c8964a';
-                                        e.currentTarget.style.backgroundColor = 'rgba(200,150,74,0.10)';
-                                    }}
-                                    onMouseLeave={e => {
-                                        e.currentTarget.style.borderColor = 'rgba(200,150,74,0.45)';
-                                        e.currentTarget.style.backgroundColor = 'transparent';
-                                    }}
-                                >
-                                    <Icon
-                                        className="transition-colors duration-200"
-                                        style={{ width: '20px', height: '20px', color: '#2a2018' }}
-                                        strokeWidth={1.3}
-                                    />
-                                </a>
-                            );
-                        })}
-                    </div>
-
+                <div className="sp-icons">
+                    {socialStats.map((social) => {
+                        const Icon = social.icon;
+                        return (
+                            <a
+                                key={social.platform}
+                                href={social.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                aria-label={social.platform}
+                                className="sp-icon"
+                            >
+                                <Icon strokeWidth={1.3} aria-hidden="true" />
+                            </a>
+                        );
+                    })}
                 </div>
-
             </div>
         </section>
     );

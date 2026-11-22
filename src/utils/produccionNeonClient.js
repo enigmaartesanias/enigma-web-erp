@@ -55,13 +55,14 @@ export const produccionDB = {
         : null,
       cantidad: parseInt(p.cantidad) || 0,
       costo_materiales: parseFloat(p.costo_materiales) || 0,
-      mano_de_obra: parseFloat(p.mano_de_obra) || 0, // Mapear correctamente
+      mano_de_obra: parseFloat(p.mano_de_obra) || 0,
       costo_herramientas: parseFloat(p.costo_herramientas) || 0,
       otros_gastos: parseFloat(p.otros_gastos) || 0,
       costo_total_unitario: parseFloat(p.costo_total_unitario) || 0,
       costo_total_produccion: parseFloat(p.costo_total_produccion) || 0,
       precio_sugerido: parseFloat(p.precio_sugerido) || 0,
-      complejidad: p.complejidad || 'Media'
+      complejidad: p.complejidad || 'Media',
+      motivo_anulacion: p.motivo_anulacion || ''
     }));
   },
 
@@ -74,7 +75,6 @@ export const produccionDB = {
 
   // Crear producción desde pedido
   async createFromPedido(pedidoId, data = {}) {
-    // Obtener datos del pedido (para nombre_cliente y fallback)
     const [pedido] = await sql`
       SELECT metal, tipo_producto, nombre_cliente FROM pedidos
       WHERE id_pedido = ${pedidoId}
@@ -82,11 +82,9 @@ export const produccionDB = {
 
     if (!pedido) throw new Error('Pedido no encontrado');
 
-    // Usar valores pasados o fallback a los del pedido
     const metal = data.metal || pedido.metal || 'Plata';
     const tipo_producto = data.tipo_producto || pedido.tipo_producto || 'Anillo';
 
-    // Si no se pasa nombre_producto, construimos uno descriptivo
     const nombre_producto = data.nombre_producto ||
       (data.tipo_producto ? `${data.tipo_producto} - ${pedido.nombre_cliente}` : `${pedido.nombre_cliente} - Pedido ${pedidoId}`);
 
@@ -127,7 +125,6 @@ export const produccionDB = {
       estado_produccion, observaciones, imagen_url, codigo_producto
     } = data;
 
-    // Calcular fecha inicio y fin usando fecha local de PERÚ
     const localToday = getLocalDate();
     let fechaInicio = null;
     let fechaFin = null;
@@ -168,32 +165,32 @@ export const produccionDB = {
   async update(id, produccionData) {
     const [produccion] = await sql`
       UPDATE produccion_taller SET
-metal = ${produccionData.metal},
-tipo_producto = ${produccionData.tipo_producto},
-nombre_producto = ${produccionData.nombre_producto},
-cantidad = ${produccionData.cantidad},
-costo_materiales = ${produccionData.costo_materiales || 0},
-mano_de_obra = ${produccionData.mano_de_obra || 0},
-porcentaje_alquiler = ${produccionData.porcentaje_alquiler || 0},
-costo_herramientas = ${produccionData.costo_herramientas || 0},
-otros_gastos = ${produccionData.otros_gastos || 0},
-estado_produccion = ${produccionData.estado_produccion},
-observaciones = ${produccionData.observaciones || ''},
-imagen_url = ${produccionData.imagen_url || ''},
-codigo_producto = COALESCE(${produccionData.codigo_producto}, codigo_producto),
-tiene_codigo_qr = COALESCE(${produccionData.tiene_codigo_qr}, tiene_codigo_qr),
-fecha_produccion = ${produccionData.fecha_produccion || null},
-complejidad = ${produccionData.complejidad || 'Media'},
-precio_sugerido = ${produccionData.precio_sugerido || 0},
-peso_material_gramos = ${produccionData.peso_material_gramos || 0},
-horas_trabajo_real = ${produccionData.horas_trabajo_real || 0},
-es_bisuteria = ${produccionData.es_bisuteria || false},
-costo_empaque = ${produccionData.costo_empaque || 0},
-costo_envio_asumido = ${produccionData.costo_envio_asumido || 0},
-sueldo_hora_objetivo = ${produccionData.sueldo_hora_objetivo || 15.00}
+        metal = ${produccionData.metal},
+        tipo_producto = ${produccionData.tipo_producto},
+        nombre_producto = ${produccionData.nombre_producto},
+        cantidad = ${produccionData.cantidad},
+        costo_materiales = ${produccionData.costo_materiales || 0},
+        mano_de_obra = ${produccionData.mano_de_obra || 0},
+        porcentaje_alquiler = ${produccionData.porcentaje_alquiler || 0},
+        costo_herramientas = ${produccionData.costo_herramientas || 0},
+        otros_gastos = ${produccionData.otros_gastos || 0},
+        estado_produccion = ${produccionData.estado_produccion},
+        observaciones = ${produccionData.observaciones || ''},
+        imagen_url = ${produccionData.imagen_url || ''},
+        codigo_producto = COALESCE(${produccionData.codigo_producto}, codigo_producto),
+        tiene_codigo_qr = COALESCE(${produccionData.tiene_codigo_qr}, tiene_codigo_qr),
+        fecha_produccion = ${produccionData.fecha_produccion || null},
+        complejidad = ${produccionData.complejidad || 'Media'},
+        precio_sugerido = ${produccionData.precio_sugerido || 0},
+        peso_material_gramos = ${produccionData.peso_material_gramos || 0},
+        horas_trabajo_real = ${produccionData.horas_trabajo_real || 0},
+        es_bisuteria = ${produccionData.es_bisuteria || false},
+        costo_empaque = ${produccionData.costo_empaque || 0},
+        costo_envio_asumido = ${produccionData.costo_envio_asumido || 0},
+        sueldo_hora_objetivo = ${produccionData.sueldo_hora_objetivo || 15.00}
       WHERE id_produccion = ${id}
-RETURNING *
-  `;
+      RETURNING *
+    `;
     return produccion;
   },
 
@@ -206,7 +203,8 @@ RETURNING *
         costo_materiales = ${data.costo_materiales || 0},
         mano_de_obra = ${data.mano_de_obra || 0},
         costo_herramientas = ${data.costo_herramientas || 0},
-        precio_sugerido = ${data.precio_sugerido || 0}
+        precio_sugerido = ${data.precio_sugerido || 0},
+        imagen_url = COALESCE(${data.imagen_url || null}, imagen_url)
       WHERE id_produccion = ${id}
       RETURNING *
     `;
@@ -229,13 +227,15 @@ RETURNING *
   },
 
   async delete(id) {
-    await sql`DELETE FROM produccion_taller WHERE id_produccion = ${id} `;
+    await sql`DELETE FROM produccion_taller WHERE id_produccion = ${id}`;
   },
 
-  async anular(id) {
+  // Método anular actualizado con parámetro motivo
+  async anular(id, motivo = '') {
     const [produccion] = await sql`
       UPDATE produccion_taller SET
-        estado_produccion = 'anulado'
+        estado_produccion = 'anulado',
+        motivo_anulacion = ${motivo || null}
       WHERE id_produccion = ${id}
       RETURNING *
     `;
@@ -248,24 +248,24 @@ RETURNING *
 
   async getPedidosPendientes() {
     const productos = await sql`
-SELECT
-p.id_pedido,
-  p.nombre_cliente,
-  p.telefono,
-  p.metal,
-  p.tipo_producto,
-  p.fecha_pedido,
-  d.id_detalle,
-  d.nombre_producto,
-  d.cantidad,
-  d.precio_unitario
+      SELECT
+        p.id_pedido,
+        p.nombre_cliente,
+        p.telefono,
+        p.metal,
+        p.tipo_producto,
+        p.fecha_pedido,
+        d.id_detalle,
+        d.nombre_producto,
+        d.cantidad,
+        d.precio_unitario
       FROM pedidos p
       INNER JOIN detalles_pedido d ON p.id_pedido = d.id_pedido
       LEFT JOIN produccion_taller pr ON pr.pedido_id = p.id_pedido 
         AND pr.nombre_producto LIKE '%' || d.nombre_producto || '%'
       WHERE pr.id_produccion IS NULL
       ORDER BY p.fecha_pedido DESC, d.id_detalle
-  `;
+    `;
 
     return productos.map(prod => ({
       ...prod,
@@ -280,14 +280,14 @@ p.id_pedido,
 
   async getStats() {
     const [stats] = await sql`
-SELECT
-COUNT(*) as total_registros,
-  COUNT(*) FILTER(WHERE estado_produccion = 'pendiente') as pendientes,
-    COUNT(*) FILTER(WHERE estado_produccion = 'en_proceso') as en_proceso,
-      COUNT(*) FILTER(WHERE estado_produccion = 'terminado') as terminados
+      SELECT
+        COUNT(*) as total_registros,
+        COUNT(*) FILTER(WHERE estado_produccion = 'pendiente') as pendientes,
+        COUNT(*) FILTER(WHERE estado_produccion = 'en_proceso') as en_proceso,
+        COUNT(*) FILTER(WHERE estado_produccion = 'terminado') as terminados
       FROM v_produccion_con_precios
       WHERE fecha_produccion >= CURRENT_DATE - INTERVAL '30 days'
-  `;
+    `;
 
     return {
       total_registros: parseInt(stats.total_registros) || 0,
@@ -304,12 +304,13 @@ COUNT(*) as total_registros,
   async markAsTransferred(id_produccion, producto_externo_id) {
     const [produccion] = await sql`
       UPDATE produccion_taller SET
-transferido_inventario = TRUE,
-  fecha_transferencia = CURRENT_TIMESTAMP,
-  producto_externo_id = ${producto_externo_id}
+        transferido_inventario = TRUE,
+        pendiente_inventario = FALSE,
+        fecha_transferencia = CURRENT_TIMESTAMP,
+        producto_externo_id = ${producto_externo_id}
       WHERE id_produccion = ${id_produccion}
-RETURNING *
-  `;
+      RETURNING *
+    `;
     return produccion;
   },
 
@@ -338,6 +339,7 @@ RETURNING *
       LEFT JOIN pedidos p ON pt.pedido_id = p.id_pedido
       WHERE pt.estado_produccion = 'terminado'
         AND pt.pendiente_inventario = true
+        AND (pt.transferido_inventario IS NOT TRUE)
       ORDER BY pt.fecha_fin_produccion DESC, pt.created_at DESC
     `;
     return items.map(p => ({
@@ -351,7 +353,8 @@ RETURNING *
   async marcarIngresadoInventario(id) {
     const [produccion] = await sql`
       UPDATE produccion_taller
-      SET pendiente_inventario = false
+      SET pendiente_inventario = false,
+          transferido_inventario = true
       WHERE id_produccion = ${id}
       RETURNING *
     `;

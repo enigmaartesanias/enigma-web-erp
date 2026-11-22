@@ -1,194 +1,118 @@
+import { Link } from 'react-router-dom';
+import { ChevronRight } from 'lucide-react';
 import andruDonalds from '../assets/images/andru.jpg';
+
+// ── Tema de la sección ──
+// 'crema' = fondo claro cálido (recomendado, contrasta con el hero oscuro)
+// 'oscuro' = café cálido con dorado
+const TEMA = 'crema';
+
+const TEMAS = {
+    crema: {
+        '--cc-bg': '#f4ede2',
+        '--cc-title': '#2a2018',
+        '--cc-accent': '#9a6b27',
+        '--cc-quote': '#3d352e',
+        '--cc-btn-text': '#2a2018',
+        '--cc-btn-border': '#9a6b27',
+        '--cc-btn-hover-bg': '#2a2018',
+        '--cc-btn-hover-text': '#f5f1ec',
+        '--cc-shadow': 'rgba(42,32,24,0.18)',
+    },
+    oscuro: {
+        '--cc-bg': '#2a2018',
+        '--cc-title': '#f5f1ec',
+        '--cc-accent': '#c8964a',
+        '--cc-quote': 'rgba(245,241,236,0.82)',
+        '--cc-btn-text': '#f5f1ec',
+        '--cc-btn-border': '#c8964a',
+        '--cc-btn-hover-bg': '#c8964a',
+        '--cc-btn-hover-text': '#2a2018',
+        '--cc-shadow': 'rgba(0,0,0,0.35)',
+    },
+};
+
+const css = `
+.cc-section{position:relative;overflow:hidden;background:var(--cc-bg);padding:48px 20px 52px;}
+.cc-inner{max-width:820px;margin:0 auto;display:flex;flex-direction:column;align-items:center;text-align:center;gap:24px;}
+
+/* Foto circular con aro dorado separado, como marco de joyería */
+.cc-ring{flex-shrink:0;padding:6px;border:1px solid var(--cc-accent);border-radius:50%;}
+.cc-photo{display:block;width:150px;height:150px;border-radius:50%;object-fit:cover;object-position:center top;box-shadow:0 8px 22px var(--cc-shadow);}
+
+.cc-content{min-width:0;}
+.cc-title{margin:0;font-family:'Cormorant Garamond',serif;font-size:34px;font-weight:400;line-height:1.1;letter-spacing:.04em;color:var(--cc-title);}
+.cc-title-sub{display:block;margin-top:2px;font-style:italic;color:var(--cc-accent);}
+
+/* Divisor dorado, igual que en las otras secciones */
+.cc-divider{display:block;width:36px;height:1px;margin:14px auto 0;background:var(--cc-accent);opacity:.8;}
+
+.cc-quote{margin:16px auto 0;max-width:330px;font-family:'Cormorant Garamond',serif;font-size:20px;font-style:italic;font-weight:400;line-height:1.4;color:var(--cc-quote);}
+.cc-quote-desktop{display:none;}
+
+.cc-btn{margin-top:22px;display:inline-flex;align-items:center;gap:8px;padding:10px 24px;border:1px solid var(--cc-btn-border);border-radius:0;background:transparent;color:var(--cc-btn-text);font-family:'Inter',sans-serif;font-size:10px;font-weight:400;letter-spacing:.22em;text-indent:.1em;text-transform:uppercase;text-decoration:none;transition:background .3s ease,color .3s ease;}
+.cc-btn:hover{background:var(--cc-btn-hover-bg);color:var(--cc-btn-hover-text);}
+.cc-btn:focus-visible{outline:2px solid var(--cc-accent);outline-offset:3px;}
+
+@media (min-width:768px){
+  .cc-section{padding:72px 32px;}
+  .cc-inner{flex-direction:row;text-align:left;gap:60px;}
+  .cc-photo{width:200px;height:200px;}
+  .cc-title{font-size:46px;}
+  .cc-divider{margin:16px 0 0;}
+  .cc-quote-mobile{display:none;}
+  .cc-quote-desktop{display:block;margin:18px 0 0;max-width:440px;font-size:21px;}
+  .cc-btn{margin-top:26px;}
+}
+`;
 
 const CelebrityCollaboration = () => {
     return (
         <section
-            className="relative overflow-hidden"
-            style={{
-                background: 'linear-gradient(135deg, #2e1a0a 0%, #3d2410 50%, #2e1a0a 100%)',
-                padding: '2rem 1.5rem',
-            }}
+            aria-labelledby="andru-title"
+            className="cc-section"
+            style={TEMAS[TEMA]}
         >
-            {/* Textura sutil */}
-            <div
-                className="absolute inset-0 opacity-10 pointer-events-none"
-                style={{
-                    backgroundImage: 'radial-gradient(rgba(200,150,74,0.4) 1px, transparent 1px)',
-                    backgroundSize: '28px 28px',
-                }}
-            />
-            {/* Línea cobre superior */}
-            <div className="absolute top-0 left-0 right-0 h-px"
-                style={{ background: 'linear-gradient(to right, transparent, #c8964a, transparent)' }} />
-            {/* Línea cobre inferior */}
-            <div className="absolute bottom-0 left-0 right-0 h-px"
-                style={{ background: 'linear-gradient(to right, transparent, #c8964a, transparent)' }} />
+            <style>{css}</style>
 
-            <div className="w-full max-w-3xl mx-auto relative z-10">
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-center">
+            <div className="cc-inner">
 
-                    {/* ── Imagen ── */}
-                    <div className="flex justify-center">
-                        <div className="relative w-full" style={{ maxWidth: '260px' }}>
-                            {/* Aro decorativo */}
-                            <div
-                                className="absolute inset-0 pointer-events-none"
-                                style={{
-                                    border: '1px solid rgba(200,150,74,0.3)',
-                                    transform: 'scale(1.025)',
-                                    borderRadius: '10px',
-                                }}
-                            />
-                            <img
-                                src={andruDonalds}
-                                alt="Andru Donalds luciendo joyas de Enigma Artesanías"
-                                className="w-full object-cover object-center"
-                                style={{
-                                    aspectRatio: '4/5',
-                                    borderRadius: '8px',
-                                    border: '1px solid rgba(200,150,74,0.4)',
-                                    boxShadow: '0 12px 40px rgba(0,0,0,0.55)',
-                                    display: 'block',
-                                }}
-                            />
-                            {/* Degradado inferior */}
-                            <div
-                                className="absolute bottom-0 left-0 right-0 pointer-events-none"
-                                style={{
-                                    height: '35%',
-                                    background: 'linear-gradient(to top, rgba(46,26,10,0.72) 0%, transparent 100%)',
-                                    borderRadius: '0 0 8px 8px',
-                                }}
-                            />
-                            {/* Badge Instagram */}
-                            <a
-                                href="https://www.instagram.com/andrudonalds/"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                style={{
-                                    position: 'absolute',
-                                    bottom: '10px',
-                                    right: '10px',
-                                    background: 'rgba(46,26,10,0.92)',
-                                    border: '0.5px solid rgba(200,150,74,0.45)',
-                                    color: '#f5f1ec',
-                                    padding: '5px 10px',
-                                    borderRadius: '20px',
-                                    fontSize: '9px',
-                                    fontFamily: "'Inter', sans-serif",
-                                    fontWeight: '400',
-                                    letterSpacing: '0.12em',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '5px',
-                                    textDecoration: 'none',
-                                }}
-                            >
-                                <span>Desde 2022</span>
-                                <svg width="10" height="10" fill="#c8964a" viewBox="0 0 24 24">
-                                    <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
-                                </svg>
-                            </a>
-                        </div>
-                    </div>
-
-                    {/* ── Contenido ── */}
-                    <div style={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        gap: '8px',
-                        textAlign: 'center',
-                        padding: '0 8px',
-                    }}>
-                        {/* Eyebrow */}
-                        <p style={{
-                            fontFamily: "'Inter', sans-serif",
-                            fontSize: '9px',
-                            fontWeight: '500',
-                            letterSpacing: '0.26em',
-                            textTransform: 'uppercase',
-                            color: '#c8964a',
-                            margin: 0,
-                        }}>
-                            Colaboración Exclusiva
-                        </p>
-
-                        {/* Línea decorativa */}
-                        <div style={{
-                            width: '20px',
-                            height: '0.5px',
-                            background: '#c8964a',
-                            opacity: 0.6,
-                        }} />
-
-                        {/* Título */}
-                        <h2 style={{
-                            fontFamily: "'Cormorant Garamond', serif",
-                            fontSize: 'clamp(26px, 5vw, 34px)',
-                            fontWeight: '300',
-                            color: '#f5f1ec',
-                            letterSpacing: '0.04em',
-                            lineHeight: '1.2',
-                            margin: 0,
-                        }}>
-                            Andru Donalds<br />
-                            <span style={{ color: '#c8964a', fontStyle: 'italic' }}>&amp; Enigma</span>
-                        </h2>
-
-                        {/* Descripción */}
-                        <p style={{
-                            fontFamily: "'Inter', sans-serif",
-                            fontSize: '15px',
-                            fontWeight: '300',
-                            color: 'rgba(245,241,236,0.88)',
-                            lineHeight: '1.75',
-                            margin: 0,
-                            maxWidth: '300px',
-                            padding: '0 4px',
-                        }}>
-                            "Andru Donalds, la voz icónica de los grandes éxitos de Enigma. Desde 2022, cada pieza que luce en sus giras internacionales nace en este mismo taller en Lima. Dos nombres, una misma identidad."
-                        </p>
-
-                        {/* Botón */}
-                        <button
-                            onClick={() => window.location.href = '/andru-donalds'}
-                            style={{
-                                fontFamily: "'Inter', sans-serif",
-                                fontSize: '10px',
-                                fontWeight: '600',
-                                letterSpacing: '0.18em',
-                                textTransform: 'uppercase',
-                                color: '#f5f1ec',
-                                background: 'transparent',
-                                border: '0.5px solid rgba(200,150,74,0.55)',
-                                borderRadius: '2px',
-                                padding: '11px 22px',
-                                cursor: 'pointer',
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '8px',
-                                marginTop: '4px',
-                                transition: 'border-color 0.2s, color 0.2s',
-                                width: '100%',
-                                maxWidth: '280px',
-                                justifyContent: 'center',
-                            }}
-                            onMouseEnter={e => {
-                                e.currentTarget.style.borderColor = '#c8964a';
-                                e.currentTarget.style.color = '#c8964a';
-                            }}
-                            onMouseLeave={e => {
-                                e.currentTarget.style.borderColor = 'rgba(200,150,74,0.55)';
-                                e.currentTarget.style.color = '#f5f1ec';
-                            }}
-                        >
-                            VER PIEZAS DE COLECCIÓN
-                            <span style={{ fontSize: '11px' }}>›</span>
-                        </button>
-                    </div>
-
+                {/* ── Foto circular ── */}
+                <div className="cc-ring">
+                    <img
+                        src={andruDonalds}
+                        alt="Andru Donalds luciendo joyas de Enigma Artesanías"
+                        loading="lazy"
+                        className="cc-photo"
+                    />
                 </div>
+
+                {/* ── Contenido ── */}
+                <div className="cc-content">
+                    <h2 id="andru-title" className="cc-title">
+                        Andru Donalds
+                        <span className="cc-title-sub">&amp; Enigma</span>
+                    </h2>
+                    <span className="cc-divider" aria-hidden="true" />
+
+                    {/* Cita en móvil */}
+                    <p className="cc-quote cc-quote-mobile">
+                        "La voz de Enigma luce nuestras piezas en sus giras internacionales desde 2022."
+                    </p>
+
+                    {/* Cita en desktop */}
+                    <p className="cc-quote cc-quote-desktop">
+                        "Andru Donalds, la voz icónica de los grandes éxitos de Enigma.
+                        Desde 2022, cada pieza que luce en sus giras internacionales
+                        nace en este mismo taller en Lima. Dos nombres, una misma identidad."
+                    </p>
+
+                    <Link to="/andru-donalds" className="cc-btn">
+                        Ver colección
+                        <ChevronRight size={12} aria-hidden="true" />
+                    </Link>
+                </div>
+
             </div>
         </section>
     );

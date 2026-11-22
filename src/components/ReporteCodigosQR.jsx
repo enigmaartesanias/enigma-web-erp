@@ -16,6 +16,36 @@ const getLocalYYYYMMDD = (dateInput) => {
     return `${yyyy}-${mm}-${dd}`;
 };
 
+// Parte el código (ej: "COMP-ANI-ALP-18") en 2 líneas balanceadas por grupos
+const splitCodeForLabel = (code) => {
+    if (!code) return ['CÓDIGO', ''];
+    const parts = code.split('-');
+    if (parts.length <= 1) return [code, ''];
+    const mid = Math.ceil(parts.length / 2);
+    return [parts.slice(0, mid).join('-'), parts.slice(mid).join('-')];
+};
+
+// Guía de corte tipo "cintura de avispa" en SVG
+const CutGuide = ({ totalWidth = 50, totalHeight = 11.4, faceWidth = 12, waistInset = 1.2, waistFlatHalf = 2, curveSpread = 5 }) => {
+    const bridgeStart = faceWidth;
+    const bridgeEnd = totalWidth - faceWidth;
+    const mid = totalWidth / 2;
+    const waistLeftX = mid - waistFlatHalf;
+    const waistRightX = mid + waistFlatHalf;
+    const c1 = bridgeStart + curveSpread;
+    const c2 = bridgeEnd - curveSpread;
+    const bottomWaist = totalHeight - waistInset;
+    const d = `M0,0 L${bridgeStart},0 C${c1},0 ${c1},${waistInset} ${waistLeftX},${waistInset} ` +
+        `L${waistRightX},${waistInset} C${c2},${waistInset} ${c2},0 ${bridgeEnd},0 L${totalWidth},0 ` +
+        `L${totalWidth},${totalHeight} L${bridgeEnd},${totalHeight} C${c2},${totalHeight} ${c2},${bottomWaist} ${waistRightX},${bottomWaist} ` +
+        `L${waistLeftX},${bottomWaist} C${c1},${bottomWaist} ${c1},${totalHeight} ${bridgeStart},${totalHeight} L0,${totalHeight} Z`;
+    return (
+        <svg className="cut-guide" viewBox={`0 0 ${totalWidth} ${totalHeight}`} preserveAspectRatio="none">
+            <path d={d} fill="none" stroke="#444" strokeWidth="0.2" />
+        </svg>
+    );
+};
+
 const ReporteCodigosQR = () => {
     const navigate = useNavigate();
     const [productos, setProductos] = useState([]);
@@ -26,8 +56,11 @@ const ReporteCodigosQR = () => {
     const [selectedIds, setSelectedIds] = useState([]);
     const [printQuantities, setPrintQuantities] = useState({});
     const [showBatchModal, setShowBatchModal] = useState(false);
-    const [isPrintReady, setIsPrintReady] = useState(false);
     const [isDownloading, setIsDownloading] = useState(false);
+
+    // NUEVO: Estado para alternar entre A6 (Mini) y A4
+    const [paperSize, setPaperSize] = useState('A6');
+
     const printRef = useRef(null);
 
     useEffect(() => { loadData(); }, []);
@@ -78,18 +111,16 @@ const ReporteCodigosQR = () => {
 
     const confirmPrint = () => {
         setShowBatchModal(false);
-        setIsPrintReady(true);
         setTimeout(() => {
             window.print();
-            setIsPrintReady(false);
-        }, 1000);
+        }, 500);
     };
 
     const handleDownloadSheet = async () => {
         if (selectedIds.length === 0) return;
         try {
             setIsDownloading(true);
-            const loadingToast = toast.loading('Preparando imagen A4...');
+            const loadingToast = toast.loading(`Preparando imagen ${paperSize}...`);
             await new Promise(resolve => setTimeout(resolve, 500));
             const element = printRef.current;
             const originalClass = element.className;
@@ -103,7 +134,7 @@ const ReporteCodigosQR = () => {
             });
             element.className = originalClass;
             const link = document.createElement('a');
-            link.download = `etiquetas-enigma-${Date.now()}.png`;
+            link.download = `etiquetas-enigma-${paperSize}-${Date.now()}.png`;
             link.href = canvas.toDataURL('image/png');
             document.body.appendChild(link);
             link.click();
@@ -121,10 +152,10 @@ const ReporteCodigosQR = () => {
 
     const filteredProductos = productos.filter(p => {
         const matchesSearch =
-            p.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (p.nombre && p.nombre.toLowerCase().includes(searchTerm.toLowerCase())) ||
             (p.codigo_usuario && p.codigo_usuario.toLowerCase().includes(searchTerm.toLowerCase()));
-        const matchesCategory = categoryFilter === 'TODOS' ||
-            (p.categoria && p.categoria.toUpperCase() === categoryFilter);
+        const pCat = (p.categoria ? p.categoria : 'OTROS').toUpperCase();
+        const matchesCategory = categoryFilter === 'TODOS' || pCat === categoryFilter;
         let matchesDate = true;
         if (dateFilter) {
             const pDate = getLocalYYYYMMDD(p.created_at);
@@ -135,12 +166,16 @@ const ReporteCodigosQR = () => {
 
     const selectedProductsData = productos.filter(p => selectedIds.includes(p.id));
 
+    // Generador de filas adaptativo según el tamaño de papel seleccionado
     const generateRows = () => {
         let rows = [];
+        // En A6 (Vertical) entra 1 etiqueta por fila. En A4 entran 3 etiquetas horizontales.
+        const maxLabelsPerRow = paperSize === 'A6' ? 1 : 3;
+
         selectedProductsData.forEach(prod => {
             let labelsLeft = printQuantities[prod.id] || 10;
             while (labelsLeft > 0) {
-                const labelsInThisRow = Math.min(labelsLeft, 8);
+                const labelsInThisRow = Math.min(labelsLeft, maxLabelsPerRow);
                 rows.push({ data: prod, labelCount: labelsInThisRow });
                 labelsLeft -= labelsInThisRow;
             }
@@ -236,7 +271,7 @@ const ReporteCodigosQR = () => {
                                     )}
                                     <div className="w-full flex flex-col items-center justify-center min-h-[120px] p-2 gap-2">
                                         <QRCode value={producto.codigo_usuario || String(producto.id)} size={56} level="L" />
-                                        <span className="font-bold text-gray-700 text-xs text-center line-clamp-2 leading-tight">
+                                        <span className="font-bold text-gray-700 text-xs text-center line-clamp-2 leading-tight uppercase">
                                             {producto.nombre}
                                         </span>
                                     </div>
@@ -253,34 +288,53 @@ const ReporteCodigosQR = () => {
             {/* VISTA DE IMPRESIÓN */}
             <div className={`print-view-container ${isDownloading ? 'visible-for-capture' : ''}`} ref={printRef}>
                 <div className="print-page-wrapper">
-                    {generateRows().map((row, idx) => (
-                        <div key={idx} className="label-row">
+                    {generateRows().map((row, idx) => {
+                        const [codeLine1, codeLine2] = splitCodeForLabel(row.data.codigo_usuario);
+                        return (
+                            <div key={idx} className="label-row">
 
-                            {/* ZONA DE REFERENCIA — nombre + código (Orientación visual a la izquierda) */}
-                            <div className="reference-box">
-                                <div className="ref-text-container-full">
+                                {/* GUÍA DE REFERENCIA (Izquierda) */}
+                                <div className="reference-box">
                                     <span className="ref-text-name">{row.data.nombre}</span>
                                     <span className="ref-text-code">{row.data.codigo_usuario}</span>
                                 </div>
-                            </div>
 
-                            {/* ETIQUETAS DE RECORTE (Contenedores Cuadrados: QR + Código) */}
-                            {Array.from({ length: row.labelCount }).map((_, i) => (
-                                <div key={i} className="label-box">
-                                    <div className="label-qr-section">
-                                        <QRCode
-                                            value={row.data.codigo_usuario || String(row.data.id)}
-                                            size={36}
-                                            level="L"
-                                            style={{ width: '100%', height: '100%' }}
-                                            viewBox="0 0 256 256"
-                                        />
+                                {/* BANDERINES (1 en A6 / hasta 3 en A4) */}
+                                {Array.from({ length: row.labelCount }).map((_, i) => (
+                                    <div key={i} className="dumbbell-label">
+                                        <CutGuide />
+
+                                        {/* Cara A: QR */}
+                                        <div className="label-face label-front">
+                                            <div className="qr-wrapper">
+                                                <QRCode
+                                                    value={row.data.codigo_usuario || String(row.data.id)}
+                                                    size={56}
+                                                    level="L"
+                                                    style={{ width: '100%', height: '100%' }}
+                                                    viewBox="0 0 256 256"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        {/* Puente/Cintura */}
+                                        <div className="label-bridge" />
+
+                                        {/* Cara B: Código + Precio */}
+                                        <div className="label-face label-back">
+                                            <div className="code-block">
+                                                <span className="code-line">{codeLine1}</span>
+                                                {codeLine2 && <span className="code-line">{codeLine2}</span>}
+                                            </div>
+                                            <div className="price-tag">
+                                                S/ {row.data.precio || row.data.precio_venta || '0.00'}
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div className="label-code">{row.data.codigo_usuario}</div>
-                                </div>
-                            ))}
-                        </div>
-                    ))}
+                                ))}
+                            </div>
+                        );
+                    })}
                 </div>
             </div>
 
@@ -296,115 +350,151 @@ const ReporteCodigosQR = () => {
                             <p className="text-indigo-100 text-xs mt-1">{selectedIds.length} productos seleccionados.</p>
                         </div>
 
-                        <div className="p-4 sm:p-6 space-y-6">
+                        <div className="p-4 sm:p-6 space-y-5">
+
+                            {/* Selector de Tamaño de Papel */}
                             <div>
-                                <label className="block text-xs font-black text-gray-400 uppercase tracking-[0.2em] mb-4">Cantidades a Imprimir</label>
-                                <div className="max-h-[30vh] overflow-y-auto space-y-3 pr-2">
+                                <label className="block text-xs font-black text-gray-400 uppercase tracking-wider mb-2">
+                                    Tamaño de Papel Físico
+                                </label>
+                                <div className="grid grid-cols-2 gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => setPaperSize('A6')}
+                                        className={`py-2 px-3 rounded-xl font-bold text-xs border transition-all ${paperSize === 'A6'
+                                                ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
+                                                : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100'
+                                            }`}
+                                    >
+                                        📄 Mini A6 (105x148mm)
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setPaperSize('A4')}
+                                        className={`py-2 px-3 rounded-xl font-bold text-xs border transition-all ${paperSize === 'A4'
+                                                ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
+                                                : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100'
+                                            }`}
+                                    >
+                                        📜 Hoja A4 (210x297mm)
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-black text-gray-400 uppercase tracking-[0.2em] mb-3">
+                                    Cantidades a Imprimir
+                                </label>
+                                <div className="max-h-[25vh] overflow-y-auto space-y-2.5 pr-1">
                                     {selectedProductsData.map(prod => (
                                         <div key={prod.id} className="flex items-center justify-between bg-gray-50 p-2.5 rounded-xl border border-gray-100">
                                             <div className="flex flex-col items-start min-w-0 pr-2">
                                                 <span className="font-mono text-[10px] text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded font-bold">{prod.codigo_usuario}</span>
-                                                <span className="text-xs text-gray-600 font-medium truncate w-32 sm:w-40 text-left">{prod.nombre}</span>
+                                                <span className="text-xs text-gray-600 font-medium truncate w-28 sm:w-36 text-left">{prod.nombre}</span>
                                             </div>
-                                            <div className="flex items-center gap-3 shrink-0">
-                                                <button onClick={() => updateQuantity(prod.id, -1)} className="w-8 h-8 rounded-lg bg-white border border-gray-200 flex items-center justify-center text-gray-600 hover:bg-gray-100">
-                                                    <FaMinus size={10} />
+                                            <div className="flex items-center gap-2 shrink-0">
+                                                <button onClick={() => updateQuantity(prod.id, -1)} className="w-7 h-7 rounded-lg bg-white border border-gray-200 flex items-center justify-center text-gray-600 hover:bg-gray-100">
+                                                    <FaMinus size={9} />
                                                 </button>
-                                                <span className="text-lg font-black text-gray-800 w-8 text-center">{printQuantities[prod.id] || 10}</span>
-                                                <button onClick={() => updateQuantity(prod.id, 1)} className="w-8 h-8 rounded-lg bg-white border border-gray-200 flex items-center justify-center text-gray-600 hover:bg-gray-100">
-                                                    <FaPlus size={10} />
+                                                <span className="text-sm font-black text-gray-800 w-6 text-center">{printQuantities[prod.id] || 10}</span>
+                                                <button onClick={() => updateQuantity(prod.id, 1)} className="w-7 h-7 rounded-lg bg-white border border-gray-200 flex items-center justify-center text-gray-600 hover:bg-gray-100">
+                                                    <FaPlus size={9} />
                                                 </button>
                                             </div>
                                         </div>
                                     ))}
                                 </div>
-                                <p className="mt-4 text-sm text-gray-500 border-t pt-4 text-center">
+                                <p className="mt-3 text-xs text-gray-500 border-t pt-3 text-center">
                                     Total: <strong>{selectedProductsData.reduce((acc, p) => acc + (printQuantities[p.id] || 10), 0)}</strong> etiquetas
                                 </p>
                             </div>
 
                             <button onClick={confirmPrint} disabled={isDownloading}
-                                className="w-full bg-indigo-600 text-white py-4 rounded-2xl font-bold hover:bg-indigo-700 transition-all shadow-lg active:scale-95 flex items-center justify-center gap-3 disabled:bg-gray-400">
-                                <FaPrint /> Confirmar e Imprimir
+                                className="w-full bg-indigo-600 text-white py-3.5 rounded-2xl font-bold hover:bg-indigo-700 transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2 disabled:bg-gray-400 text-sm">
+                                <FaPrint /> Confirmar e Imprimir ({paperSize})
                             </button>
 
                             <button onClick={handleDownloadSheet} disabled={isDownloading}
-                                className="w-full bg-white border-2 border-indigo-600 text-indigo-600 py-4 rounded-2xl font-bold hover:bg-indigo-50 transition-all flex items-center justify-center gap-3 disabled:opacity-50">
+                                className="w-full bg-white border-2 border-indigo-600 text-indigo-600 py-3.5 rounded-2xl font-bold hover:bg-indigo-50 transition-all flex items-center justify-center gap-2 text-sm disabled:opacity-50">
                                 {isDownloading
-                                    ? <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-indigo-600"></div>
+                                    ? <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-indigo-600"></div>
                                     : <FaPrint />}
-                                Descargar Hoja (Imagen A4)
+                                Descargar Hoja (Imagen {paperSize})
                             </button>
                         </div>
                     </div>
                 </div>
             )}
 
+            {/* ESTILOS CSS ADAPTATIVOS A4 / A6 */}
             <style>{`
                 @media screen {
                     .print-view-container { display: none; }
                 }
+
                 .print-view-container.visible-for-capture {
                     display: block !important;
                     position: fixed;
                     left: -9999px;
                     top: 0;
-                    width: 210mm;
+                    width: ${paperSize === 'A6' ? '105mm' : '210mm'};
                     background: white !important;
                     z-index: -1;
-                    padding: 8mm;
+                    padding: ${paperSize === 'A6' ? '4mm' : '8mm'};
                     box-sizing: border-box;
                 }
+
                 @media print {
-                    @page { size: A4; margin: 8mm; }
-                    html, body { height: 100%; background: white !important; }
-                    .print-view-container { display: block !important; background: white !important; }
-                    .print\\:hidden { display: none !important; }
+                    @page { 
+                        size: ${paperSize === 'A6' ? 'A6 portrait' : 'A4 portrait'}; 
+                        margin: ${paperSize === 'A6' ? '4mm' : '8mm'}; 
+                    }
+                    body * { 
+                        visibility: hidden; 
+                    }
+                    .print-view-container, .print-view-container * { 
+                        visibility: visible; 
+                    }
+                    .print-view-container { 
+                        display: block !important;
+                        position: absolute; 
+                        left: 0; 
+                        top: 0; 
+                        width: 100%; 
+                    }
                 }
 
                 .print-page-wrapper {
                     display: flex;
                     flex-direction: column;
-                    gap: 2mm;
-                    background-color: white !important;
-                    -webkit-print-color-adjust: exact !important;
-                    print-color-adjust: exact !important;
+                    gap: 1.5mm;
+                    font-family: system-ui, sans-serif;
                 }
 
                 .label-row {
                     display: flex;
-                    flex-direction: row;
-                    gap: 1.5mm;
+                    align-items: center;
+                    gap: 2mm;
                     page-break-inside: avoid;
-                    align-items: center;
                 }
 
-                /* Zona de referencia lateral izquierda */
                 .reference-box {
-                    width: 28mm;
-                    height: 15mm;
-                    display: flex;
-                    align-items: center;
-                    box-sizing: border-box;
-                    padding: 1mm;
-                    background-color: white !important;
-                }
-
-                .ref-text-container-full {
+                    width: 14mm;
                     display: flex;
                     flex-direction: column;
                     justify-content: center;
-                    width: 100%;
-                    gap: 1px;
+                    color: #444;
+                    border-right: 1px dashed #ccc;
+                    padding-right: 1mm;
+                    flex-shrink: 0;
                 }
 
                 .ref-text-name {
-                    font-size: 5.5pt;
-                    font-family: sans-serif;
                     font-weight: bold;
-                    text-transform: uppercase;
-                    line-height: 1.2;
-                    color: black;
+                    font-size: 4.5pt;
+                    line-height: 1.1;
+                    white-space: normal;
+                    word-break: break-word;
                     display: -webkit-box;
                     -webkit-line-clamp: 2;
                     -webkit-box-orient: vertical;
@@ -412,52 +502,70 @@ const ReporteCodigosQR = () => {
                 }
 
                 .ref-text-code {
-                    font-size: 5.5pt;
                     font-family: monospace;
-                    font-weight: bold;
-                    color: #374151;
-                    letter-spacing: 0.02em;
+                    font-size: 4pt;
+                    line-height: 1;
+                    color: #666;
+                    word-break: break-word;
                 }
 
-                /* Etiqueta de recorte CUADRADA 15x15mm */
-                .label-box {
-                    width: 15mm;
-                    height: 15mm;
-                    border: 0.5px solid #d1d5db;
+                .dumbbell-label {
+                    position: relative;
+                    display: flex;
+                    align-items: center;
+                    width: 50mm;
+                    height: 11.4mm;
                     box-sizing: border-box;
+                    flex-shrink: 0;
+                }
+
+                .cut-guide {
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    pointer-events: none;
+                }
+
+                .label-face {
+                    position: relative;
+                    width: 20mm;
+                    height: 100%;
                     display: flex;
                     flex-direction: column;
                     align-items: center;
                     justify-content: center;
-                    padding: 0.5mm 0.4mm;
-                    gap: 0.8mm;
-                    background-color: white !important;
-                    overflow: hidden;
+                    padding: 0.8mm 1mm;
+                    box-sizing: border-box;
                 }
 
-                /* Sección de QR */
-                .label-qr-section {
-                    width: 10mm;
-                    height: 10mm;
+                .label-front { align-items: flex-start; }
+                .label-back { align-items: flex-end; justify-content: space-between; text-align: center; }
+
+                .qr-wrapper { width: 9.8mm; height: 9.8mm; }
+                .label-bridge { position: relative; width: 10mm; height: 100%; }
+
+                .code-block {
                     display: flex;
+                    flex-direction: column;
                     align-items: center;
-                    justify-content: center;
-                    flex-shrink: 0;
+                    gap: 0.3mm;
+                    font-family: monospace;
+                    font-size: 6pt;
+                    font-weight: bold;
+                    color: #000;
+                    line-height: 1.1;
                 }
 
-                .label-code {
-                    font-size: 4.5pt;
-                    font-family: monospace;
-                    font-weight: bold;
-                    color: #111827;
-                    letter-spacing: -0.01em;
-                    line-height: 1;
-                    margin-top: 0.4mm;
-                    white-space: nowrap;
-                    overflow: hidden;
-                    text-overflow: ellipsis;
-                    text-align: center;
-                    max-width: 100%;
+                .code-line { white-space: nowrap; }
+
+                .price-tag {
+                    font-size: 7.5pt;
+                    font-weight: 400;
+                    color: #000;
+                    width: 100%;
+                    text-align: right;
                 }
             `}</style>
         </div>

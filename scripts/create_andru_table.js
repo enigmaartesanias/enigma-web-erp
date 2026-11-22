@@ -13,7 +13,7 @@ async function main() {
                 image_url TEXT NOT NULL,
                 order_index INTEGER DEFAULT 0,
                 is_active BOOLEAN DEFAULT true,
-                created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT CRRENT_TIMESTAMP
             );
         `;
         console.log("Tabla andru_donalds_images creada con éxito.");

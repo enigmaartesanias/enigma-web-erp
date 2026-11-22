@@ -1,18 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { pedidosDB } from '../utils/pedidosNeonClient';
-import { ventasDB } from '../utils/ventasClient';
 import { Link } from 'react-router-dom';
 import { FaArrowLeft, FaFilter, FaChartLine, FaMoneyBillWave, FaExclamationCircle, FaClipboardList, FaClock, FaTools, FaCheckCircle, FaTruck, FaTrash, FaTimesCircle, FaPhone, FaImage, FaEye, FaSearch, FaSlidersH, FaTimes } from 'react-icons/fa';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
-import html2canvas from 'html2canvas';
-import { Toaster, toast } from 'react-hot-toast';
-
-const getLocalDate = () => {
-    const d = new Date();
-    d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
-    return d.toISOString().split('T')[0];
-};
+import { Toaster } from 'react-hot-toast';
+import NotaPedido from './pedidos/NotaPedido';
+import { TOLERANCIA_SALDO } from '../utils/pedidosUtils';
+import { parseLocalDate } from '../utils/dateUtils';
 
 const formatLocalDate = (dateString) => {
     if (!dateString) return '';
@@ -36,8 +29,14 @@ const formatLocalDate = (dateString) => {
     }
 };
 
+// Para un pedido cerrado, la fecha que manda es la de entrega/cierre.
+const getFechaEfectiva = (pedido) => {
+    if (!pedido) return null;
+    if (pedido.estado_pedido === 'entregado' && pedido.fecha_entrega) return pedido.fecha_entrega;
+    return pedido.fecha_pedido;
+};
+
 const ReportePedidos = () => {
-    const [loading, setLoading] = useState(false);
     const [stats, setStats] = useState({
         ventasBrutas: 0,
         ventasNetas: 0,
@@ -45,8 +44,6 @@ const ReportePedidos = () => {
         cantidadPedidos: 0,
         ticketPromedio: 0
     });
-    const [topProductos, setTopProductos] = useState([]);
-    const [topClientes, setTopClientes] = useState([]);
     const [allOrders, setAllOrders] = useState([]);
     const [filteredOrders, setFilteredOrders] = useState([]);
 
@@ -73,40 +70,31 @@ const ReportePedidos = () => {
     const [showDetailModal, setShowDetailModal] = useState(false);
     const [selectedPedido, setSelectedPedido] = useState(null);
 
-    // Estado para Modal de Pago
-    const [showPayModal, setShowPayModal] = useState(false);
-    const [payPedido, setPayPedido] = useState(null);
-    const [payData, setPayData] = useState({
-        monto: '',
-        fecha: '',
-        metodo: 'Efectivo'
-    });
-
     useEffect(() => {
         fetchReportData();
     }, []);
 
     const fetchReportData = async (start = fechaInicio, end = fechaFin) => {
-        setLoading(true);
         try {
             const allPedidos = await pedidosDB.getAll();
             let data = allPedidos;
 
             if (start && end) {
                 data = allPedidos.filter(p => {
-                    if (!p.fecha_pedido) return false;
-                    const d = new Date(p.fecha_pedido);
-                    const year = d.getFullYear();
-                    const month = String(d.getMonth() + 1).padStart(2, '0');
-                    const day = String(d.getDate()).padStart(2, '0');
+                    const fechaEfectiva = parseLocalDate(getFechaEfectiva(p));
+                    if (!fechaEfectiva) return false;
+
+                    const year = fechaEfectiva.getFullYear();
+                    const month = String(fechaEfectiva.getMonth() + 1).padStart(2, '0');
+                    const day = String(fechaEfectiva.getDate()).padStart(2, '0');
                     const fechaLocal = `${year}-${month}-${day}`;
-                    const fechaUTC = d.toISOString().split('T')[0];
-                    const enRango = (fechaLocal >= start && fechaLocal <= end) || (fechaUTC >= start && fechaUTC <= end);
+                    const enRango = fechaLocal >= start && fechaLocal <= end;
 
                     const esAntiguoActivo = !enRango &&
+                        p.estado_pedido !== 'entregado' &&
                         fechaLocal < start &&
                         (
-                            (Number(p.monto_saldo) > 0) ||
+                            (Number(p.monto_saldo) > TOLERANCIA_SALDO) ||
                             (p.estado_produccion && p.estado_produccion !== 'terminado' && p.estado_produccion !== 'entregado')
                         );
 
@@ -120,8 +108,6 @@ const ReportePedidos = () => {
 
         } catch (error) {
             console.error('Error cargando reporte:', error);
-        } finally {
-            setLoading(false);
         }
     };
 
@@ -139,14 +125,14 @@ const ReportePedidos = () => {
 
             const ventasBrutas = pedidos.reduce((acc, p) => acc + (Number(p.precio_total) || 0), 0);
             const ventasNetas = pedidos
-                .filter(p => (p.monto_saldo || 0) <= 0.1)
+                .filter(p => (Number(p.monto_saldo) || 0) <= TOLERANCIA_SALDO)
                 .reduce((acc, p) => {
                     const total = Number(p.precio_total) || 0;
                     const envio = Number(p.envio_cobrado_al_cliente) || 0;
                     return acc + (total - envio);
                 }, 0);
 
-            const cuentasPorCobrar = pedidos.reduce((acc, p) => acc + ((p.monto_saldo > 0) ? Number(p.monto_saldo) : 0), 0);
+            const cuentasPorCobrar = pedidos.reduce((acc, p) => acc + ((Number(p.monto_saldo) > TOLERANCIA_SALDO) ? Number(p.monto_saldo) : 0), 0);
             const cantidad = pedidos.length;
             const promedio = cantidad > 0 ? ventasBrutas / cantidad : 0;
 
@@ -220,8 +206,8 @@ const ReportePedidos = () => {
         }
 
         filtered.sort((a, b) => {
-            const dateA = activeTab === 'Entregados' ? new Date(a.fecha_entrega || a.fecha_pedido) : new Date(a.fecha_pedido);
-            const dateB = activeTab === 'Entregados' ? new Date(b.fecha_entrega || b.fecha_pedido) : new Date(b.fecha_pedido);
+            const dateA = parseLocalDate(getFechaEfectiva(a))?.getTime() || 0;
+            const dateB = parseLocalDate(getFechaEfectiva(b))?.getTime() || 0;
             return dateB - dateA;
         });
 
@@ -241,80 +227,10 @@ const ReportePedidos = () => {
         setSelectedPedido(null);
     };
 
-    const handleOpenPayModal = (pedido) => {
-        setPayPedido(pedido);
-        setPayData({
-            monto: pedido.monto_saldo > 0 ? pedido.monto_saldo : '',
-            fecha: getLocalDate(),
-            metodo: 'Efectivo'
-        });
-        setShowPayModal(true);
-    };
-
-    const handleClosePayModal = () => {
-        setShowPayModal(false);
-        setPayPedido(null);
-    };
-
-    const handleQuickPay = async () => {
-        if (!payPedido || !payData.monto) return;
-
-        try {
-            const montoPago = parseFloat(payData.monto);
-            const nuevoAcuenta = (Number(payPedido.monto_a_cuenta) || 0) + montoPago;
-            const nuevoSaldo = Number(payPedido.precio_total) - nuevoAcuenta;
-            const cancelado = nuevoSaldo <= 0.05;
-
-            await pedidosDB.update(payPedido.id_pedido, {
-                ...payPedido,
-                monto_a_cuenta: nuevoAcuenta,
-                monto_saldo: nuevoSaldo < 0 ? 0 : nuevoSaldo,
-                cancelado: cancelado
-            });
-
-            await pedidosDB.createPago({
-                id_pedido: payPedido.id_pedido,
-                monto: montoPago,
-                fecha_pago: payData.fecha,
-                metodo_pago: payData.metodo,
-                referencia: 'Pago desde Reporte'
-            });
-
-            if (cancelado) {
-                const codigoPed = `PED-${String(payPedido.id_pedido).padStart(4, '0')}`;
-                const ventasExistentes = await ventasDB.getAll();
-                const yaRegistrado = ventasExistentes.some(v =>
-                    v.detalles && v.detalles.some(d => d.producto_codigo === codigoPed)
-                );
-                if (!yaRegistrado) {
-                    await ventasDB.createVentaPedido({
-                        pedidoId: payPedido.id_pedido,
-                        clienteNombre: payPedido.nombre_cliente,
-                        total: payPedido.precio_total,
-                        formaPago: payData.metodo || payPedido.forma_pago,
-                        costo_materiales: 0,
-                        detalles: payPedido.detalles_pedido,
-                        observaciones: `Cobro pedido #${payPedido.id_pedido}`,
-                        fecha_venta: new Date().toISOString()
-                    });
-                    toast.success('Ingreso registrado en Reporte de Ventas ✅');
-                }
-            }
-
-            toast.success('Pago registrado correctamente');
-            handleClosePayModal();
-            fetchReportData();
-
-        } catch (error) {
-            console.error('Error al registrar pago:', error);
-            toast.error('Error al registrar pago');
-        }
-    };
-
     return (
-        <div className="bg-gray-100 min-h-screen p-6">
+        <div className="bg-gray-100 min-h-screen p-3 sm:p-6">
             <div className="max-w-7xl mx-auto">
-                <div className="flex items-center mb-6 pt-2 md:pt-6">
+                <div className="flex items-center mb-4 sm:mb-6 pt-2 md:pt-6">
                     <Link to="/inventario-home" className="text-gray-500 hover:text-gray-900 transition-colors">
                         <FaArrowLeft size={18} />
                     </Link>
@@ -544,10 +460,9 @@ const ReportePedidos = () => {
                                                     {/* Fecha */}
                                                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 text-left">
                                                         {isFirst && (
-                                                            activeTab === 'Entregados' && pedido.fecha_entrega ? new Date(pedido.fecha_entrega).toLocaleDateString('es-PE') :
-                                                                activeTab === 'Entregados' ? '-' :
-                                                                    activeTab === 'Terminados' ? (pedido.updated_at ? new Date(pedido.updated_at).toLocaleDateString('es-PE') : '-') :
-                                                                        new Date(pedido.fecha_pedido).toLocaleDateString('es-PE')
+                                                            activeTab === 'Terminados'
+                                                                ? formatLocalDate(pedido.updated_at || pedido.fecha_pedido)
+                                                                : formatLocalDate(getFechaEfectiva(pedido)) || '-'
                                                         )}
                                                     </td>
 
@@ -562,7 +477,7 @@ const ReportePedidos = () => {
                                                             {/* Pago */}
                                                             <td className="px-4 py-3 whitespace-nowrap text-center">
                                                                 {isFirst && (
-                                                                    Number(pedido.monto_saldo) <= 0.05 ? (
+                                                                    Number(pedido.monto_saldo) <= TOLERANCIA_SALDO ? (
                                                                         <span className="px-2 py-1 rounded-full text-[10px] font-semibold bg-green-100 text-green-800">Pagado</span>
                                                                     ) : (
                                                                         <span className="px-2 py-1 rounded-full text-[10px] font-semibold bg-red-100 text-red-800">Pendiente</span>
@@ -573,7 +488,7 @@ const ReportePedidos = () => {
                                                             {/* Saldo */}
                                                             <td className="px-4 py-3 whitespace-nowrap text-sm text-left">
                                                                 {isFirst && (
-                                                                    Number(pedido.monto_saldo) > 0 ? (
+                                                                    Number(pedido.monto_saldo) > TOLERANCIA_SALDO ? (
                                                                         <span className="text-red-500 font-medium">S/ {Number(pedido.monto_saldo).toFixed(2)}</span>
                                                                     ) : (
                                                                         <span className="text-green-500 font-medium">S/ 0.00</span>
@@ -587,18 +502,6 @@ const ReportePedidos = () => {
                                                     <td className="px-4 py-3 whitespace-nowrap text-left">
                                                         {isFirst && (
                                                             <div className="flex items-center space-x-2">
-                                                                {Number(pedido.monto_saldo) > 0.1 && activeTab !== 'Producción' && (
-                                                                    <button
-                                                                        onClick={(e) => {
-                                                                            e.stopPropagation();
-                                                                            handleOpenPayModal(pedido);
-                                                                        }}
-                                                                        className="text-green-600 hover:text-green-800 transition-colors bg-green-50 p-1.5 rounded"
-                                                                        title="Registrar Pago"
-                                                                    >
-                                                                        <FaMoneyBillWave className="h-4 w-4" />
-                                                                    </button>
-                                                                )}
                                                                 <button
                                                                     onClick={() => handleVerDetalles(pedido)}
                                                                     className="text-blue-600 hover:text-blue-800 transition-colors bg-blue-50 p-1.5 rounded"
@@ -700,240 +603,14 @@ const ReportePedidos = () => {
                 </div>
             )}
 
-            {/* Modal de Detalle de Pedido */}
-            {showDetailModal && selectedPedido && (
-                <div className="fixed inset-0 bg-gray-600 bg-opacity-75 overflow-y-auto h-full w-full z-[80] flex items-start md:items-center justify-center p-4 pt-24 md:pt-4">
-                    <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl flex flex-col max-h-[90vh]">
-                        {/* Header Modal */}
-                        <div className="px-6 py-4 border-b flex justify-between items-center bg-gray-50 rounded-t-lg">
-                            <h3 className="text-lg font-bold text-gray-800">Detalle del Pedido #{selectedPedido.id_pedido}</h3>
-                            <button onClick={closeDetailModal} className="text-gray-600 hover:text-gray-800">
-                                <FaTimesCircle size={24} />
-                            </button>
-                        </div>
+            {/* Modal de Detalle de Pedido Reutilizando NotaPedido */}
+            <NotaPedido
+                isOpen={showDetailModal}
+                pedido={selectedPedido}
+                onClose={closeDetailModal}
+            />
 
-                        {/* Content (Printable Area) */}
-                        <div className="p-8 overflow-y-auto bg-white" id="printable-area-report">
-                            <div className="text-center mb-6 border-b pb-4">
-                                <p className="text-sm text-gray-500 mb-1">Enigma artesanías y accesorios</p>
-                                <h1 className="text-xl font-bold uppercase tracking-widest text-gray-900">Nota de Pedido</h1>
-                                <p className="text-sm text-gray-500 mt-1">{formatLocalDate(selectedPedido.fecha_pedido)}</p>
-                            </div>
 
-                            <div className="mb-6 grid grid-cols-2 gap-4 text-sm">
-                                <div className="text-left">
-                                    <h4 className="font-bold text-gray-700 mb-1">Cliente</h4>
-                                    <p className="text-gray-900">{selectedPedido.nombre_cliente}</p>
-                                    <div className="flex items-center text-gray-600 mt-1">
-                                        <FaPhone className="mr-1" size={12} />
-                                        <span>{selectedPedido.telefono}</span>
-                                    </div>
-                                </div>
-                                <div className="text-right">
-                                    {selectedPedido.requiere_envio && (
-                                        <>
-                                            <h4 className="font-bold text-gray-700 mb-1">Envío</h4>
-                                            <p className="text-gray-900">{selectedPedido.direccion_entrega}</p>
-                                        </>
-                                    )}
-                                </div>
-                            </div>
-
-                            <div className="mb-6 text-left">
-                                <h4 className="font-bold text-gray-700 text-xs mb-2 uppercase tracking-wider text-teal-600 text-left">Productos</h4>
-                                <div className="space-y-3">
-                                    {selectedPedido.detalles_pedido && selectedPedido.detalles_pedido.map((d, index) => (
-                                        <div key={index} className="pl-0 text-left">
-                                            <div className="text-[7px] font-normal text-teal-800 flex items-center mb-0.5 text-left">
-                                                <span className="mr-1">•</span>
-                                                {d.tipo_producto || 'Producto'} - {d.metal || 'Metal'}
-                                                {d.cantidad > 1 && <span className="text-gray-600 ml-1">(x{d.cantidad})</span>}
-                                            </div>
-                                            <div className="text-[7px] text-gray-800 font-normal pl-2 leading-tight text-left">
-                                                {d.nombre_producto}
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-
-                            <div className="border-t border-gray-200 mt-4 pt-2">
-                                <div className="w-full max-w-[200px] ml-auto text-[10px]">
-                                    {selectedPedido.incluye_igv && (
-                                        <>
-                                            <div className="flex justify-between text-gray-600 mb-1">
-                                                <span>IGV (18%):</span>
-                                                <span>S/ {Number(selectedPedido.monto_igv).toFixed(2)}</span>
-                                            </div>
-                                            <div className="flex justify-between text-gray-800 font-semibold">
-                                                <span>Total Venta:</span>
-                                                <span>S/ {(Number(selectedPedido.precio_total_sin_igv) + Number(selectedPedido.monto_igv)).toFixed(2)}</span>
-                                            </div>
-                                        </>
-                                    )}
-
-                                    {selectedPedido.envio_cobrado_al_cliente > 0 && (
-                                        <div className="flex justify-between text-blue-600 font-medium mt-1">
-                                            <span>Costo de Envío:</span>
-                                            <span>S/ {Number(selectedPedido.envio_cobrado_al_cliente).toFixed(2)}</span>
-                                        </div>
-                                    )}
-
-                                    <div className="flex justify-between font-bold text-sm border-t pt-1 mt-1">
-                                        <span>
-                                            {selectedPedido.envio_cobrado_al_cliente > 0
-                                                ? "TOTAL A PAGAR + ENV.:"
-                                                : (selectedPedido.incluye_igv ? "TOTAL:" : "TOTAL A PAGAR:")}
-                                        </span>
-                                        <span>S/ {Number(selectedPedido.precio_total).toFixed(2)}</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="py-2"></div>
-
-                            <h4 className="font-bold text-gray-800 border-b pb-1 mb-2">Estado de Cuenta</h4>
-
-                            <div className="mb-2">
-                                <div className="flex justify-between font-bold text-xs text-gray-600 border-b pb-1 mb-1">
-                                    <span>Adelantos (Pagos a Cuenta)</span>
-                                    <span>Método</span>
-                                    <span>Monto</span>
-                                </div>
-                                {selectedPedido.pagos && selectedPedido.pagos.length > 0 ? (
-                                    selectedPedido.pagos.sort((a, b) => new Date(a.fecha_pago) - new Date(b.fecha_pago)).map((pago, idx) => (
-                                        <div key={idx} className="flex justify-between text-xs py-1">
-                                            <span>{formatLocalDate(pago.fecha_pago)}</span>
-                                            <span>{pago.metodo_pago}</span>
-                                            <span>S/ {Number(pago.monto).toFixed(2)}</span>
-                                        </div>
-                                    ))
-                                ) : (
-                                    <div className="text-xs text-center text-gray-400 italic">No hay pagos registrados</div>
-                                )}
-                            </div>
-
-                            <div className="flex justify-between font-bold text-red-600 border-t pt-1 mt-1 text-sm">
-                                <span>SALDO PENDIENTE:</span>
-                                <span>S/ {Number(selectedPedido.monto_saldo) > 0.1 ? Number(selectedPedido.monto_saldo).toFixed(2) : '0.00'}</span>
-                            </div>
-
-                            <div className="mt-8 pt-4 border-t text-center">
-                                <p className="text-xs text-gray-500 uppercase tracking-wide">Aclaración Importante</p>
-                                <p className="text-xs text-gray-500 leading-snug">Esta Nota de Pedido no tiene validez como comprobante de pago.</p>
-                                <p className="text-xs text-gray-600 font-semibold mt-0.5">¡Gracias por tu pedido!</p>
-                            </div>
-                        </div>
-
-                        <div className="px-6 py-4 border-t bg-gray-50 rounded-b-lg flex justify-end items-center">
-                            <div className="flex space-x-3">
-                                <button
-                                    onClick={async () => {
-                                        const element = document.getElementById('printable-area-report');
-                                        const canvas = await html2canvas(element, { scale: 2, backgroundColor: '#ffffff' });
-
-                                        canvas.toBlob(async (blob) => {
-                                            const file = new File([blob], `pedido_${selectedPedido.id_pedido}.jpg`, { type: 'image/jpeg' });
-
-                                            if (navigator.canShare && navigator.canShare({ files: [file] })) {
-                                                try {
-                                                    await navigator.share({
-                                                        files: [file],
-                                                        title: `Pedido #${selectedPedido.id_pedido}`,
-                                                        text: `Nota de Pedido para ${selectedPedido.nombre_cliente}`
-                                                    });
-                                                } catch (_) {
-                                                    const link = document.createElement('a');
-                                                    link.download = `pedido_${selectedPedido.id_pedido}.jpg`;
-                                                    link.href = canvas.toDataURL('image/jpeg', 0.9);
-                                                    link.click();
-                                                }
-                                            } else {
-                                                const link = document.createElement('a');
-                                                link.download = `pedido_${selectedPedido.id_pedido}.jpg`;
-                                                link.href = canvas.toDataURL('image/jpeg', 0.9);
-                                                link.click();
-                                            }
-                                        }, 'image/jpeg', 0.9);
-                                    }}
-                                    className="p-2 bg-blue-600 text-white rounded hover:bg-blue-700 flex items-center justify-center transition-colors"
-                                    title="Compartir Imagen del Pedido"
-                                >
-                                    <FaImage className="h-5 w-5" />
-                                </button>
-                                <button onClick={closeDetailModal} className="px-3 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400 text-sm">
-                                    Cerrar
-                                </button>
-                            </div>
-                        </div>
-                    </div >
-                </div >
-            )}
-
-            {/* Modal de Pago Rápido */}
-            {
-                showPayModal && payPedido && (
-                    <div className="fixed inset-0 bg-gray-600 bg-opacity-75 overflow-y-auto h-full w-full z-[80] flex items-center justify-center p-4">
-                        <div className="bg-white rounded-lg shadow-xl w-full max-w-md flex flex-col">
-                            <div className="px-6 py-4 border-b flex justify-between items-center bg-gray-50 rounded-t-lg">
-                                <h3 className="text-lg font-bold text-gray-800">Registrar Pago / Adelanto</h3>
-                                <button onClick={handleClosePayModal} className="text-gray-600 hover:text-gray-800">
-                                    <FaTimesCircle size={24} />
-                                </button>
-                            </div>
-                            <div className="p-6">
-                                <p className="mb-4 text-sm text-gray-600">
-                                    Cliente: <span className="font-bold">{payPedido.nombre_cliente}</span><br />
-                                    Saldo Pendiente: <span className="font-bold text-red-600">S/ {Number(payPedido.monto_saldo).toFixed(2)}</span>
-                                </p>
-
-                                <div className="space-y-4">
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700">Monto a Pagar</label>
-                                        <input
-                                            type="number"
-                                            step="0.01"
-                                            value={payData.monto}
-                                            onChange={(e) => setPayData({ ...payData, monto: e.target.value })}
-                                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700">Fecha</label>
-                                        <input
-                                            type="date"
-                                            value={payData.fecha}
-                                            onChange={(e) => setPayData({ ...payData, fecha: e.target.value })}
-                                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700">Método de Pago</label>
-                                        <select
-                                            value={payData.metodo}
-                                            onChange={(e) => setPayData({ ...payData, metodo: e.target.value })}
-                                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2"
-                                        >
-                                            <option value="Efectivo">Efectivo</option>
-                                            <option value="Yape">Yape</option>
-                                            <option value="Plin">Plin</option>
-                                            <option value="Transferencia">Transferencia</option>
-                                        </select>
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="px-6 py-4 border-t bg-gray-50 rounded-b-lg flex justify-end space-x-3">
-                                <button onClick={handleClosePayModal} className="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400">
-                                    Cancelar
-                                </button>
-                                <button onClick={handleQuickPay} className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
-                                    Confirmar Pago
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                )
-            }
 
             <Toaster position="top-right" />
         </div>

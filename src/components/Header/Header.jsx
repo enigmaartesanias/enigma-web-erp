@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import logo from '../../assets/logo.png';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import logo from '../../assets/logo-blanco.png'; // PNG blanco con fondo transparente (ajusta el nombre si es otro)
 
 /* ─────────────────────────────────────────
    Paleta Enigma — inline para evitar purge
@@ -8,26 +8,34 @@ import logo from '../../assets/logo.png';
 ───────────────────────────────────────── */
 const C = {
     dorado: '#c8964a',
-    text: '#1a1a1a',
+    text: '#1f1b18',
     sub: '#b09070',
     crema: '#fdf9f5',
     bordes: '#ede8e2',
     icCobre: '#fdf0e0',
     icPlata: '#f0f0f0',
     icAlpaca: '#eef4f0',
-    textCobre: '#a07030',
+    textCobre: '#b56b38',
     textAlp: '#4a7a5a',
+    textPlata: '#6e6e6e',
+    marron: '#2a2018', // mismo tono de la sección Andru Donalds
 };
 
+/* Altura del header. Si en el celular lo ves muy pegado, sube a 76 u 80.
+   Debe coincidir con la constante del hero si lo cambias. */
+const HEADER_H = 76;
+
+const MENU_FONT = "'Segoe UI', 'Helvetica Neue', Arial, sans-serif";
+
 const groupLabel = {
-    fontSize: 10, letterSpacing: '0.2em', fontWeight: 700,
+    fontSize: 10, letterSpacing: '0.2em', fontWeight: 600,
     color: C.sub, textTransform: 'uppercase',
-    marginBottom: 10, textAlign: 'left', display: 'block',
+    marginBottom: 6, textAlign: 'left', display: 'block',
+    fontFamily: MENU_FONT,
 };
 
 const jewelryByMaterial = {
     Cobre: [
-        { name: 'Toda la Colección', path: '/cobre#coleccion' },
         { name: 'Aretes', path: '/catalogo/Cobre/ARETE' },
         { name: 'Pulseras', path: '/catalogo/Cobre/PULSERA' },
         { name: 'Anillos', path: '/catalogo/Cobre/ANILLO' },
@@ -49,15 +57,38 @@ const jewelryByMaterial = {
     ],
 };
 
+const BanderaPeru = () => (
+    <svg
+        width="15"
+        height="10"
+        viewBox="0 0 18 12"
+        aria-label="Bandera de Perú"
+        style={{
+            display: 'inline-block',
+            verticalAlign: 'middle',
+            borderRadius: 1.5,
+            boxShadow: '0 0 0 1px rgba(0,0,0,0.12)',
+            flexShrink: 0,
+        }}
+    >
+        <rect x="0" y="0" width="6" height="12" fill="#d91023" />
+        <rect x="6" y="0" width="6" height="12" fill="#ffffff" />
+        <rect x="12" y="0" width="6" height="12" fill="#d91023" />
+    </svg>
+);
+
 /* ─────────────────────────────────────────
    Componente Header
 ───────────────────────────────────────── */
 const Header = () => {
     const navigate = useNavigate();
+    const { pathname } = useLocation();
     const [menuOpen, setMenuOpen] = useState(false);
     const [activeDropdown, setActiveDropdown] = useState(null);
+    const [scrolled, setScrolled] = useState(false);
 
-    const openMenu = () => setMenuOpen(true);
+    const isHome = pathname === '/';
+
     const closeAll = () => { setMenuOpen(false); setActiveDropdown(null); };
     const toggleMenu = () => setMenuOpen(o => !o);
     const toggleDropdown = (m) => setActiveDropdown(d => d === m ? null : m);
@@ -66,6 +97,19 @@ const Header = () => {
         closeAll();
         navigate(path);
     };
+
+    /* Transparente solo en el inicio, arriba del todo y con el menú cerrado.
+       En cualquier otro caso, fondo marrón fijo. */
+    const solid = !isHome || scrolled || menuOpen;
+
+    /* Detectar scroll (solo importa en el inicio) */
+    useEffect(() => {
+        if (!isHome) { setScrolled(false); return; }
+        const onScroll = () => setScrolled(window.scrollY > 60);
+        onScroll();
+        window.addEventListener('scroll', onScroll, { passive: true });
+        return () => window.removeEventListener('scroll', onScroll);
+    }, [isHome]);
 
     /* Cerrar al hacer clic fuera del header + drawer */
     useEffect(() => {
@@ -97,34 +141,42 @@ const Header = () => {
         return () => document.removeEventListener('mousedown', onDown);
     }, [activeDropdown]);
 
-    const MetalRow = ({ symbol, label, sub, iconBg, iconColor, metal }) => {
+    const MetalRow = ({ label, plusColor, metal }) => {
         const open = activeDropdown === metal;
         return (
             <div className="has-submenu">
                 <button
                     onClick={() => toggleDropdown(metal)}
                     style={{
-                        display: 'flex', alignItems: 'center', justifyBetween: 'space-between',
-                        width: '100%', padding: '12px 0', background: 'none', border: 'none',
-                        cursor: 'pointer', textAlign: 'left',
+                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                        width: '100%', padding: '9px 0', background: 'none', border: 'none',
+                        cursor: 'pointer', textAlign: 'left', fontFamily: MENU_FONT,
                     }}
                 >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                        <div style={{
-                            width: 40, height: 40, borderRadius: 10, flexShrink: 0,
-                            backgroundColor: iconBg, color: iconColor,
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            fontFamily: 'Georgia, serif', fontWeight: 600, fontSize: 13,
-                        }}>
-                            {symbol}
-                        </div>
-                        <div>
-                            <span style={{ display: 'block', fontWeight: 500, fontSize: 16, color: C.text }}>{label}</span>
-                            <span style={{ display: 'block', fontSize: 12, color: C.sub }}>{sub}</span>
-                        </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <span
+                            aria-hidden
+                            style={{
+                                fontSize: 17,
+                                fontWeight: 500,
+                                lineHeight: 1,
+                                color: plusColor,
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                width: 16,
+                                transform: open ? 'rotate(45deg)' : 'none',
+                                transition: 'transform 0.2s ease',
+                            }}
+                        >
+                            +
+                        </span>
+                        <span style={{ fontWeight: 400, fontSize: 15, color: C.text, letterSpacing: '0.01em' }}>
+                            {label}
+                        </span>
                     </div>
                     <span style={{
-                        color: C.sub, fontSize: 20, lineHeight: 1,
+                        color: C.sub, fontSize: 18, lineHeight: 1,
                         display: 'inline-block',
                         transform: open ? 'rotate(90deg)' : 'none',
                         transition: 'transform 0.2s',
@@ -133,82 +185,66 @@ const Header = () => {
 
                 {open && (
                     <ul style={{
-                        marginLeft: 14, paddingLeft: 10, listStyle: 'none',
+                        marginLeft: 10, listStyle: 'none',
                         borderLeft: metal === 'Cobre' ? `2px solid ${C.dorado}` : `2px solid ${C.bordes}`,
                         backgroundColor: metal === 'Cobre' ? C.crema : '#fafaf8',
                         borderRadius: '0 8px 8px 0',
-                        padding: '4px 0 6px 10px',
-                        marginBottom: 6,
+                        padding: '3px 0 5px 10px',
+                        marginBottom: 4,
                     }}>
-                        {jewelryByMaterial[metal].map(j => {
-                            const isToda = j.name === 'Toda la Colección';
-                            const isNew = j.name.includes('Vinchas') || j.name.includes('Tobilleras');
-                            return (
-                                <li key={j.name}>
-                                    <button
-                                        onClick={() => goTo(j.path)}
-                                        style={{
-                                            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                                            width: '100%', padding: '8px 10px 8px 0',
-                                            background: 'none', border: 'none', cursor: 'pointer',
-                                            fontSize: 15, textAlign: 'left',
-                                            color: isToda ? C.dorado : '#555',
-                                            fontWeight: isToda ? 600 : 400,
-                                        }}
-                                    >
-                                        <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                            <span style={{
-                                                width: 5, height: 5, borderRadius: '50%', flexShrink: 0,
-                                                backgroundColor: isToda ? C.dorado : '#bbb',
-                                                display: 'inline-block',
-                                            }} />
-                                            {j.name}
-                                        </span>
-                                        {isNew && (
-                                            <span style={{
-                                                fontSize: 8, letterSpacing: '0.1em', textTransform: 'uppercase',
-                                                backgroundColor: C.icCobre, color: C.textCobre,
-                                                padding: '2px 6px', borderRadius: 4, fontWeight: 600,
-                                            }}>nuevo</span>
-                                        )}
-                                    </button>
-                                </li>
-                            );
-                        })}
+                        {jewelryByMaterial[metal].map(j => (
+                            <li key={j.name}>
+                                <button
+                                    onClick={() => goTo(j.path)}
+                                    style={{
+                                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                        width: '100%', padding: '6px 8px 6px 0',
+                                        background: 'none', border: 'none', cursor: 'pointer',
+                                        fontSize: 14, textAlign: 'left', fontFamily: MENU_FONT,
+                                        color: '#555',
+                                        fontWeight: 400,
+                                    }}
+                                >
+                                    <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                        <span style={{
+                                            width: 4, height: 4, borderRadius: '50%', flexShrink: 0,
+                                            backgroundColor: '#bbb',
+                                            display: 'inline-block',
+                                        }} />
+                                        {j.name}
+                                    </span>
+                                </button>
+                            </li>
+                        ))}
                     </ul>
                 )}
             </div>
         );
     };
 
-    const NavRow = ({ path, iconBg, iconColor, iconContent, label, sub, hasDivider = true }) => (
+    const NavRow = ({ path, label, hasDivider = true }) => (
         <div style={hasDivider ? { borderBottom: `1px solid ${C.bordes}` } : {}}>
             <button
                 onClick={() => goTo(path)}
                 style={{
                     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                    width: '100%', padding: '12px 0', background: 'none', border: 'none',
-                    cursor: 'pointer', textAlign: 'left',
+                    width: '100%', padding: '9px 0', background: 'none', border: 'none',
+                    cursor: 'pointer', textAlign: 'left', fontFamily: MENU_FONT,
                 }}
             >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <div style={{
-                        width: 40, height: 40, borderRadius: 10, flexShrink: 0,
-                        backgroundColor: iconBg, color: iconColor,
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontWeight: 600, fontSize: 16,
-                    }}>
-                        {iconContent}
-                    </div>
-                    <div>
-                        <span style={{ display: 'block', fontWeight: 500, fontSize: 16, color: C.text }}>{label}</span>
-                        <span style={{ display: 'block', fontSize: 12, color: C.sub }}>{sub}</span>
-                    </div>
-                </div>
-                <span style={{ color: C.sub, fontSize: 20, lineHeight: 1 }}>›</span>
+                <span style={{ fontWeight: 400, fontSize: 15, color: C.text, letterSpacing: '0.01em' }}>
+                    {label}
+                </span>
+                <span style={{ color: C.sub, fontSize: 18, lineHeight: 1 }}>›</span>
             </button>
         </div>
     );
+
+    /* Estilo común de los enlaces del menú de escritorio (blancos sobre fondo transparente o marrón) */
+    const navLink = {
+        display: 'block', padding: '8px 12px', fontSize: 14,
+        fontWeight: 500, color: '#ffffff', textDecoration: 'none',
+    };
 
     return (
         <>
@@ -228,16 +264,17 @@ const Header = () => {
                 id="main-header"
                 style={{
                     position: 'fixed', top: 0, left: 0, right: 0,
-                    height: 64, zIndex: 100,
-                    backgroundColor: '#ffffff',
-                    boxShadow: '0 1px 8px rgba(0,0,0,0.04)',
+                    height: HEADER_H, zIndex: 100,
+                    backgroundColor: solid ? C.marron : 'transparent',
+                    boxShadow: solid ? '0 1px 8px rgba(0,0,0,0.25)' : 'none',
+                    transition: 'background-color 0.3s ease, box-shadow 0.3s ease',
                     display: 'flex', alignItems: 'center',
                     justifyContent: 'space-between',
                     padding: '0 24px',
                 }}
             >
                 <button onClick={() => goTo('/')} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center' }}>
-                    <img src={logo} alt="Enigma artesanías" style={{ height: 40, display: 'block' }} />
+                    <img src={logo} alt="Enigma artesanías" style={{ height: 54, display: 'block' }} />
                 </button>
 
                 <button
@@ -248,7 +285,7 @@ const Header = () => {
                         display: 'flex', flexDirection: 'column',
                         justifyContent: 'center', alignItems: 'center',
                         width: 40, height: 40,
-                        backgroundColor: '#111111',
+                        backgroundColor: 'rgba(255,255,255,0.14)',
                         borderRadius: 8, border: 'none',
                         cursor: 'pointer', gap: 5, padding: '10px 8px',
                     }}
@@ -278,7 +315,7 @@ const Header = () => {
                 {/* Nav Desktop */}
                 <ul id="desktop-nav" style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 4, listStyle: 'none', margin: 0, padding: 0 }}>
                     <li>
-                        <Link to="/el-oficio" style={{ display: 'block', padding: '8px 12px', fontSize: 14, fontWeight: 500, color: '#1a1a1a', textDecoration: 'none' }}>
+                        <Link to="/el-oficio" style={navLink}>
                             El Oficio
                         </Link>
                     </li>
@@ -287,7 +324,7 @@ const Header = () => {
                             onMouseEnter={() => setActiveDropdown(material)}
                             onMouseLeave={() => setActiveDropdown(null)}
                         >
-                            <button style={{ padding: '8px 12px', fontSize: 14, fontMedium: 500, color: '#1a1a1a', background: 'none', border: 'none', cursor: 'pointer' }}>
+                            <button style={{ padding: '8px 12px', fontSize: 14, fontWeight: 500, color: '#ffffff', background: 'none', border: 'none', cursor: 'pointer' }}>
                                 {material}
                             </button>
                             {activeDropdown === material && (
@@ -310,12 +347,12 @@ const Header = () => {
                         </li>
                     ))}
                     <li>
-                        <Link to="/catalogo/all/PERSONALIZADO" style={{ display: 'block', padding: '8px 12px', fontSize: 14, fontWeight: 500, color: '#1a1a1a', textDecoration: 'none' }}>
+                        <Link to="/catalogo/all/PERSONALIZADO" style={navLink}>
                             Personalizados
                         </Link>
                     </li>
                     <li>
-                        <Link to="/contacto" style={{ display: 'block', padding: '8px 12px', fontSize: 14, fontWeight: 500, color: '#1a1a1a', textDecoration: 'none' }}>
+                        <Link to="/contacto" style={navLink}>
                             Contacto
                         </Link>
                     </li>
@@ -328,43 +365,38 @@ const Header = () => {
             <nav
                 id="mobile-menu-nav"
                 style={{
-                    position: 'fixed', top: 64, left: 0, right: 0, bottom: 0, zIndex: 99,
+                    position: 'fixed', top: HEADER_H, left: 0, right: 0, bottom: 0, zIndex: 99,
                     display: 'flex', flexDirection: 'column', backgroundColor: '#ffffff',
                     transform: menuOpen ? 'translateX(0)' : 'translateX(-100%)',
                     transition: 'transform 0.3s ease-in-out',
                     boxShadow: menuOpen ? '4px 0 24px rgba(0,0,0,0.08)' : 'none',
+                    fontFamily: MENU_FONT,
                 }}
             >
-                <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', WebkitOverflowScrolling: 'touch', padding: '16px 20px' }}>
+                <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', WebkitOverflowScrolling: 'touch', padding: '14px 20px' }}>
 
                     {/* COLECCIONES */}
                     <span style={groupLabel}>Colecciones</span>
                     <div style={{ borderBottom: `1px solid ${C.bordes}` }}>
-                        <MetalRow symbol="Cu" label="Cobre" sub="6 categorías disponibles" iconBg={C.icCobre} iconColor={C.textCobre} metal="Cobre" />
+                        <MetalRow label="Cobre" plusColor={C.textCobre} metal="Cobre" />
                     </div>
                     <div style={{ borderBottom: `1px solid ${C.bordes}` }}>
-                        <MetalRow symbol="Al" label="Alpaca" sub="Anillos · Pulseras · Collares · Aretes" iconBg={C.icAlpaca} iconColor={C.textAlp} metal="Alpaca" />
+                        <MetalRow label="Alpaca" plusColor={C.textAlp} metal="Alpaca" />
                     </div>
-                    <div style={{ marginBottom: 20 }}>
-                        <MetalRow symbol="Ag" label="Plata" sub="Anillos · Pulseras · Collares · Aretes" iconBg={C.icPlata} iconColor="#666" metal="Plata" />
-                    </div>
-
-                    {/* SERVICIOS */}
-                    <div style={{ borderTop: `1px solid ${C.bordes}`, paddingTop: 16, marginBottom: 20 }}>
-                        <span style={groupLabel}>Servicios</span>
-                        <NavRow path="/catalogo/all/PERSONALIZADO" iconBg="#e8f0f8" iconColor="#4a6b82" iconContent="+" label="Personalizados" sub="Diseña tu pieza única" hasDivider={false} />
+                    <div style={{ marginBottom: 14 }}>
+                        <MetalRow label="Plata" plusColor={C.textPlata} metal="Plata" />
                     </div>
 
-                    {/* NOSOTROS (Unificado y Corregido) */}
-                    <div style={{ borderTop: `1px solid ${C.bordes}`, paddingTop: 16, marginBottom: 8 }}>
+                    {/* NOSOTROS */}
+                    <div style={{ borderTop: `1px solid ${C.bordes}`, paddingTop: 12, marginBottom: 8 }}>
                         <span style={groupLabel}>Nosotros</span>
-                        <NavRow path="/el-oficio" iconBg="#f0ece8" iconColor={C.dorado} iconContent="—" label="El Oficio" sub="Orfebre · Joyería de Autor" />
-                        <NavRow path="/contacto" iconBg="#f0f0f0" iconColor="#666" iconContent="@" label="Contacto" sub="WhatsApp · Redes" hasDivider={false} />
+                        <NavRow path="/el-oficio" label="El Oficio" />
+                        <NavRow path="/contacto" label="Contacto" hasDivider={false} />
                     </div>
 
                     {/* Footer del drawer */}
-                    <div style={{ borderTop: `1px solid ${C.bordes}`, margin: '12px -20px 0', padding: '12px 20px', backgroundColor: C.crema, display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: C.dorado, flexShrink: 0, display: 'inline-block' }} />
+                    <div style={{ borderTop: `1px solid ${C.bordes}`, margin: '10px -20px 0', padding: '10px 20px', backgroundColor: C.crema, display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <BanderaPeru />
                         <span style={{ fontSize: 10, color: C.sub, letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 500 }}>
                             artesaniasenigma.com · Lima, Perú
                         </span>

@@ -8,7 +8,7 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "vite build && node -e \"const fs=require('fs'); fs.copyFileSync('dist/index.html', 'functions/index.html')\"",
+    "build": "vite build && node scripts/copy-template.mjs",
     "lint": "eslint .",
     "preview": "vite preview",
     "clean": "rimraf node_modules package-lock.json"

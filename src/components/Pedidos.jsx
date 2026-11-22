@@ -1,63 +1,25 @@
-﻿import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { pedidosDB } from '../utils/pedidosNeonClient';
 import { clientesDB } from '../utils/clientesNeonClient';
-import { produccionDB, METALES, TIPOS_PRODUCTO } from '../utils/produccionNeonClient';
 import { tiposProductoDB } from '../utils/tiposProductoDB';
-import { materialesDB } from '../utils/materialesNeonClient'; // <-- IMPORT NUEVO
+import { materialesDB } from '../utils/materialesNeonClient';
 import { getLocalDate } from '../utils/dateUtils';
 import { ventasDB } from '../utils/ventasClient';
+import { TOLERANCIA_SALDO, METODOS_PAGO, calcularSaldo, estadoPago, formatLocalDate, asegurarVentaPedido } from '../utils/pedidosUtils';
+import PagoModal from './pedidos/PagoModal';
+import NotaPedido from './pedidos/NotaPedido';
+import CerrarPedidoModal from './pedidos/CerrarPedidoModal';
 import { Link, useNavigate } from 'react-router-dom';
-import { FaEdit, FaTrash, FaCheckCircle, FaTimesCircle, FaPlus, FaWhatsapp, FaPrint, FaSearch, FaMoneyBillWave, FaShareAlt, FaImage, FaPhone, FaArrowLeft, FaHammer, FaCar, FaExclamationTriangle, FaCheck, FaEye, FaUser, FaBox, FaTruck, FaMapMarkerAlt, FaChevronRight } from 'react-icons/fa';
-import html2canvas from 'html2canvas';
+import { FaEdit, FaTrash, FaCheckCircle, FaPlus, FaMoneyBillWave, FaPhone, FaArrowLeft, FaHammer, FaCar, FaEye, FaTruck, FaMapMarkerAlt, FaChevronRight } from 'react-icons/fa';
 import toast, { Toaster } from 'react-hot-toast';
 import ConfirmModal from './ui/ConfirmModal';
 import Tooltip from './ui/Tooltip';
-import VoiceDialog from './VoiceDialog';
-import DictationTextarea from '../voice/DictationTextarea';
-
-// ========================================
-// UTILIDADES DE FECHA
-// ========================================
-const formatLocalDate = (dateString) => {
-    if (!dateString) return '';
-    try {
-        let dateStr = typeof dateString === 'string' ? dateString : dateString.toString();
-        const datePart = dateStr.includes('T') ? dateStr.split('T')[0] : dateStr;
-        if (!datePart.includes('-')) {
-            const date = new Date(dateString);
-            if (isNaN(date.getTime())) return '';
-            const day = String(date.getDate()).padStart(2, '0');
-            const month = String(date.getMonth() + 1).padStart(2, '0');
-            const year = String(date.getFullYear()).slice(-2);
-            return `${day}/${month}/${year}`;
-        }
-        const [year, month, day] = datePart.split('-');
-        if (!year || !month || !day) return '';
-        return `${day}/${month}/${year}`;
-    } catch (error) {
-        return '';
-    }
-};
 
 // ========================================
 // COMPONENTES DE BADGE
 // ========================================
-const EstadoPedidoBadge = ({ estado }) => {
-    const estilos = { aceptado: 'bg-blue-100 text-blue-800', entregado: 'bg-green-100 text-green-800' };
-    const iconos = { aceptado: '🔵', entregado: '🟢' };
-    const labels = { aceptado: 'Aceptado', entregado: 'Entregado' };
-    return (
-        <span className={`px-2 py-1 rounded-full text-xs font-semibold ${estilos[estado] || 'bg-gray-100 text-gray-800'}`}>
-            {iconos[estado] || '⚪'} {labels[estado] || estado}
-        </span>
-    );
-};
-
 const EstadoPagoBadge = ({ pedido }) => {
-    let estado = 'pendiente';
-    if (pedido.monto_a_cuenta === 0) estado = 'pendiente';
-    else if (pedido.monto_saldo > 0) estado = 'adelanto';
-    else estado = 'pagado';
+    const estado = estadoPago(pedido);
     const estilos = { pendiente: 'bg-red-100 text-red-800', adelanto: 'bg-yellow-100 text-yellow-800', pagado: 'bg-green-100 text-green-800' };
     const iconos = { pendiente: '🔴', adelanto: '🟡', pagado: '🟢' };
     const labels = { pendiente: 'Pendiente', adelanto: 'Adelanto', pagado: 'Pagado' };
@@ -68,39 +30,35 @@ const EstadoPagoBadge = ({ pedido }) => {
     );
 };
 
-const MATERIALES_PEDIDO = ['Plata', 'Alpaca', 'Cobre', 'Bronce', 'Bisutería'];
-
 // ========================================
 // COMPONENTE PRINCIPAL
 // ========================================
 const Pedidos = () => {
     const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
-    const [message, setMessage] = useState(null);
     const [pedidos, setPedidos] = useState([]);
     const [editingId, setEditingId] = useState(null);
-    const [searchTerm, setSearchTerm] = useState('');
     const [showPrintModal, setShowPrintModal] = useState(false);
     const [printPedido, setPrintPedido] = useState(null);
+    const [ultimoPagoRealizado, setUltimoPagoRealizado] = useState(null);
 
     // Quick Pay Modal State
     const [showPayModal, setShowPayModal] = useState(false);
     const [payPedido, setPayPedido] = useState(null);
-    const [payData, setPayData] = useState({ monto: '', fecha: getLocalDate(), metodo: 'Efectivo' });
+
+    // Cierre histórico / lote
+    const [modoHistorico, setModoHistorico] = useState(false);
+    const [seleccionados, setSeleccionados] = useState([]);
+    const [showCerrarModal, setShowCerrarModal] = useState(false);
+    const [pedidosACerrar, setPedidosACerrar] = useState([]);
 
     const [showCancelAlert, setShowCancelAlert] = useState(false);
     const [showSuccessModal, setShowSuccessModal] = useState(false);
-    const [showEstadoModal, setShowEstadoModal] = useState(false);
-    const [estadoPedido, setEstadoPedido] = useState(null);
-    const [nuevoEstadoPedido, setNuevoEstadoPedido] = useState('');
-    const [nuevoEstadoProduccion, setNuevoEstadoProduccion] = useState('');
 
     // Mobile Drawer for Address
     const [showAddressDrawer, setShowAddressDrawer] = useState(false);
 
     const [confirmModal, setConfirmModal] = useState({ isOpen: false, title: '', message: '', icon: null, confirmText: '', confirmColor: 'blue', onConfirm: () => { } });
-    const [focusedField, setFocusedField] = useState(null);
-    const handleFocus = (e) => setFocusedField(e.target.name);
 
     // ESTADO DE FORMULARIO REFINADO
     const [formData, setFormData] = useState({
@@ -122,16 +80,12 @@ const Pedidos = () => {
         incluye_igv: false,
         estado_pedido: 'aceptado',
         estado_produccion: 'no_iniciado',
-        origen_pedido: 'INTERNET',
     });
 
-    const [productoActual, setProductoActual] = useState({ nombre_producto: '', cantidad: '', precio_unitario: '' });
+    const [productoActual, setProductoActual] = useState({ nombre_producto: '', cantidad: '1', precio_unitario: '', metal: '', tipo_producto: '' });
     const [listaProductos, setListaProductos] = useState([]);
     const [calculos, setCalculos] = useState({ precio_total_sin_igv: 0, monto_igv: 0, precio_total: 0, monto_saldo: 0, cancelado: false });
 
-    const [showVoiceReviewModal, setShowVoiceReviewModal] = useState(false);
-    const [reviewData, setReviewData] = useState(null);
-    const [voiceState, setVoiceState] = useState({ isListening: false, transcriptActual: '' });
     const [activeTab, setActiveTab] = useState('pendientes');
     const [tiposDisponibles, setTiposDisponibles] = useState([]);
 
@@ -142,6 +96,10 @@ const Pedidos = () => {
     const [showSugerencias, setShowSugerencias] = useState(false);
     const [nombreBusqueda, setNombreBusqueda] = useState('');
     const searchRef = useRef(null);
+    const [clienteSeleccionado, setClienteSeleccionado] = useState(false);
+    const [showModalNuevoCliente, setShowModalNuevoCliente] = useState(false);
+    const [nuevoClienteForm, setNuevoClienteForm] = useState({ nombre: '', telefono: '' });
+    const [savingCliente, setSavingCliente] = useState(false);
 
     useEffect(() => {
         const handleClickOutside = (event) => {
@@ -176,6 +134,7 @@ const Pedidos = () => {
 
     const handleSearchCliente = async (query) => {
         setNombreBusqueda(query);
+        setClienteSeleccionado(false);
         setFormData(prev => ({ ...prev, nombre_cliente: query, telefono: '', dni_ruc: '', direccion_cliente_db: '' }));
         if (query.trim().length > 1) {
             try {
@@ -199,7 +158,41 @@ const Pedidos = () => {
             direccion_entrega: cliente.direccion || prev.direccion_entrega
         }));
         setNombreBusqueda(cliente.nombre);
+        setClienteSeleccionado(true);
         setShowSugerencias(false);
+    };
+
+    const abrirModalNuevoCliente = (nombrePrecargado = '') => {
+        setNuevoClienteForm({ nombre: nombrePrecargado || '', telefono: '' });
+        setShowSugerencias(false);
+        setShowModalNuevoCliente(true);
+    };
+
+    const cerrarModalNuevoCliente = () => {
+        setShowModalNuevoCliente(false);
+        setNuevoClienteForm({ nombre: '', telefono: '' });
+        setSavingCliente(false);
+    };
+
+    const handleGuardarNuevoCliente = async () => {
+        if (!nuevoClienteForm.nombre.trim()) { toast.error('El nombre es obligatorio'); return; }
+        if (!nuevoClienteForm.telefono.trim()) { toast.error('El teléfono es obligatorio'); return; }
+        setSavingCliente(true);
+        try {
+            const nuevoCliente = await clientesDB.create({
+                nombre: nuevoClienteForm.nombre.trim(),
+                telefono: nuevoClienteForm.telefono.trim(),
+                dni: null,
+                direccion: null
+            });
+            handleSelectCliente(nuevoCliente);
+            cerrarModalNuevoCliente();
+            toast.success(`Cliente "${nuevoCliente.nombre}" creado y seleccionado`);
+        } catch (err) {
+            toast.error('Error al crear cliente: ' + err.message);
+        } finally {
+            setSavingCliente(false);
+        }
     };
 
     const fetchPedidos = async () => {
@@ -216,32 +209,29 @@ const Pedidos = () => {
         const subtotalProductos = listaProductos.reduce((acc, item) => acc + (item.cantidad * item.precio_unitario), 0);
 
         let envioParaTotal = 0;
-        if (formData.requiere_envio && (formData.tipo_envio === 'pagado' || formData.tipo_envio === 'pendiente')) {
+        if (formData.requiere_envio && formData.tipo_envio === 'cobro') {
             envioParaTotal = parseFloat(formData.costo_envio) || 0;
         }
 
         const precio_total_sin_igv = subtotalProductos;
-        let monto_igv = formData.incluye_igv ? precio_total_sin_igv * 0.18 : 0;
-
-        const precio_total = precio_total_sin_igv + monto_igv + envioParaTotal;
+        const precio_total = parseFloat((precio_total_sin_igv + envioParaTotal).toFixed(2));
         const monto_a_cuenta = parseFloat(formData.monto_a_cuenta) || 0;
 
-        const monto_saldo_raw = precio_total - monto_a_cuenta;
-        const monto_saldo = monto_saldo_raw < 0.10 ? 0 : monto_saldo_raw;
-        const cancelado = precio_total > 0 && monto_saldo <= 0.001;
+        const monto_saldo = calcularSaldo(precio_total, monto_a_cuenta);
+        const cancelado = precio_total > 0 && monto_saldo <= TOLERANCIA_SALDO;
 
         setCalculos({
             precio_total_sin_igv: parseFloat(precio_total_sin_igv.toFixed(2)),
-            monto_igv: parseFloat(monto_igv.toFixed(2)),
-            precio_total: parseFloat(precio_total.toFixed(2)),
-            monto_saldo: parseFloat(monto_saldo.toFixed(2)),
+            monto_igv: 0,
+            precio_total,
+            monto_saldo,
             cancelado
         });
 
         if (cancelado) setShowCancelAlert(true);
         else setShowCancelAlert(false);
 
-    }, [formData.requiere_envio, formData.tipo_envio, formData.costo_envio, formData.monto_a_cuenta, formData.incluye_igv, listaProductos]);
+    }, [formData.requiere_envio, formData.tipo_envio, formData.costo_envio, formData.monto_a_cuenta, listaProductos]);
 
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target;
@@ -261,12 +251,12 @@ const Pedidos = () => {
             toast.error('Complete nombre, cantidad y precio'); return;
         }
         if (!productoActual.metal || !productoActual.tipo_producto) {
-            toast.warning('Seleccione Metal y Tipo'); return;
+            toast.error('Seleccione Metal y Tipo'); return;
         }
         setListaProductos(prev => [...prev, {
             ...productoActual, cantidad: parseFloat(productoActual.cantidad), precio_unitario: parseFloat(productoActual.precio_unitario)
         }]);
-        setProductoActual({ nombre_producto: '', cantidad: '', precio_unitario: '', metal: '', tipo_producto: '' });
+        setProductoActual({ nombre_producto: '', cantidad: '1', precio_unitario: '', metal: '', tipo_producto: '' });
     };
 
     const eliminarProductoLista = (index) => setListaProductos(prev => prev.filter((_, i) => i !== index));
@@ -278,8 +268,7 @@ const Pedidos = () => {
         let mappedTipoEnvio = 'destino';
         if (pedido.requiere_envio) {
             if (pedido.modalidad_envio === 'Por Pagar') mappedTipoEnvio = 'destino';
-            else if (pedido.envio_pago_pendiente) mappedTipoEnvio = 'pendiente';
-            else mappedTipoEnvio = 'pagado';
+            else mappedTipoEnvio = 'cobro';
         }
 
         setFormData({
@@ -290,15 +279,17 @@ const Pedidos = () => {
             metal: pedido.metal || 'Plata',
             tipo_producto: pedido.tipo_producto || 'Anillo',
             forma_pago: pedido.forma_pago || 'Efectivo',
-            requiere_envio: pedido.requiere_envio,
+            requiere_envio: !!pedido.requiere_envio,
             tipo_envio: mappedTipoEnvio,
             costo_envio: pedido.envio_cobrado_al_cliente || '',
             monto_a_cuenta: pedido.monto_a_cuenta || 0,
-            incluye_igv: pedido.incluye_igv,
+            incluye_igv: false,
             estado_pedido: pedido.estado_pedido || 'aceptado',
             estado_produccion: pedido.estado_produccion || 'no_iniciado',
-            origen_pedido: pedido.origen_pedido || 'INTERNET',
         });
+
+        setClienteSeleccionado(true);
+        setNombreBusqueda(pedido.nombre_cliente || '');
 
         if (pedido.detalles_pedido?.length > 0) {
             setListaProductos(pedido.detalles_pedido.map(d => ({ ...d })));
@@ -309,6 +300,12 @@ const Pedidos = () => {
     };
 
     const handleDelete = async (id) => {
+        const pedidoObj = pedidos.find(p => p.id_pedido === id);
+        if (pedidoObj && pedidoObj.pagos && pedidoObj.pagos.length > 0) {
+            toast.error('Tiene pagos registrados. No se puede eliminar.');
+            return;
+        }
+
         setConfirmModal({
             isOpen: true, title: 'Eliminar Pedido', message: '¿Estás seguro? Esta acción no se puede deshacer.',
             icon: <FaTrash />, confirmText: 'Sí, eliminar', confirmColor: 'red',
@@ -341,16 +338,26 @@ const Pedidos = () => {
         setFormData({
             nombre_cliente: '', telefono: '', dni_ruc: '', direccion_entrega: '', metal: '', tipo_producto: '',
             forma_pago: 'Efectivo', requiere_envio: false, tipo_envio: 'destino', costo_envio: '', monto_a_cuenta: '',
-            incluye_igv: false, estado_pedido: 'aceptado', estado_produccion: 'no_iniciado', direccion_cliente_db: '', origen_pedido: 'INTERNET'
+            incluye_igv: false, estado_pedido: 'aceptado', estado_produccion: 'no_iniciado', direccion_cliente_db: ''
         });
-        setProductoActual({ nombre_producto: '', cantidad: '', precio_unitario: '', metal: '', tipo_producto: '' });
+        setProductoActual({ nombre_producto: '', cantidad: '1', precio_unitario: '', metal: '', tipo_producto: '' });
         setListaProductos([]); setEditingId(null);
+        setClienteSeleccionado(false);
+        setNombreBusqueda('');
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (listaProductos.length === 0) { toast.error("Agregue al menos un producto."); return; }
         if (!formData.nombre_cliente || !formData.telefono) { toast.error("Nombre y Teléfono obligatorios."); return; }
+        if (!clienteSeleccionado && !editingId) { toast.error("Selecciona un cliente de la lista o crea uno nuevo con el botón +Nuevo."); return; }
+
+        const adelanto = parseFloat(formData.monto_a_cuenta) || 0;
+        if (adelanto < 0) { toast.error("El adelanto no puede ser negativo."); return; }
+        if (adelanto > calculos.precio_total + TOLERANCIA_SALDO) {
+            toast.error(`El adelanto (S/ ${adelanto.toFixed(2)}) no puede superar el total (S/ ${calculos.precio_total.toFixed(2)}).`);
+            return;
+        }
 
         setLoading(true);
 
@@ -363,18 +370,32 @@ const Pedidos = () => {
                 dbModalidadEnvio = 'Por Pagar';
                 dbEnvioPagoPendiente = true;
                 dbCostoEnvio = 0;
-            } else if (formData.tipo_envio === 'pagado') {
+            } else { // 'cobro'
                 dbModalidadEnvio = 'Fijo';
                 dbEnvioPagoPendiente = false;
-                dbCostoEnvio = parseFloat(formData.costo_envio) || 0;
-            } else if (formData.tipo_envio === 'pendiente') {
-                dbModalidadEnvio = 'Fijo';
-                dbEnvioPagoPendiente = true;
                 dbCostoEnvio = parseFloat(formData.costo_envio) || 0;
             }
         }
 
         try {
+            // Actualizar DNI / dirección en cliente si aplica
+            if (formData.nombre_cliente && (formData.dni_ruc || formData.direccion_entrega)) {
+                try {
+                    const clientes = await clientesDB.search(formData.nombre_cliente);
+                    const cMatch = clientes.find(c => c.nombre.trim().toLowerCase() === formData.nombre_cliente.trim().toLowerCase());
+                    if (cMatch && cMatch.id) {
+                        await clientesDB.update(cMatch.id, {
+                            nombre: cMatch.nombre,
+                            telefono: cMatch.telefono,
+                            dni: formData.dni_ruc || cMatch.dni,
+                            direccion: formData.direccion_entrega || cMatch.direccion
+                        });
+                    }
+                } catch (errC) {
+                    console.warn('No se pudo actualizar datos del cliente:', errC);
+                }
+            }
+
             const pedidoData = {
                 ...formData,
                 metal: formData.metal || listaProductos[0].metal,
@@ -386,11 +407,12 @@ const Pedidos = () => {
                 precio_total_sin_igv: calculos.precio_total_sin_igv,
                 precio_total: calculos.precio_total,
                 monto_a_cuenta: parseFloat(formData.monto_a_cuenta) || 0,
-                monto_igv: calculos.monto_igv,
+                monto_igv: 0,
+                incluye_igv: false,
                 monto_saldo: calculos.monto_saldo,
                 cancelado: calculos.cancelado,
                 entregado: false,
-                origen_pedido: formData.origen_pedido || 'INTERNET'
+                comprobante_pago: ''
             };
 
             let pedidoId = editingId;
@@ -398,12 +420,19 @@ const Pedidos = () => {
                 await pedidosDB.update(editingId, pedidoData);
                 await pedidosDB.deleteDetalles(editingId);
                 await pedidosDB.createDetalles(editingId, listaProductos);
+                toast.success('Pedido actualizado');
             } else {
                 const pedido = await pedidosDB.create(pedidoData);
                 pedidoId = pedido.id_pedido;
                 await pedidosDB.createDetalles(pedidoId, listaProductos);
                 if (pedidoData.monto_a_cuenta > 0) {
-                    await pedidosDB.createPago({ id_pedido: pedidoId, monto: pedidoData.monto_a_cuenta, fecha_pago: getLocalDate(), metodo_pago: formData.forma_pago, referencia: '' });
+                    await pedidosDB.createPago({
+                        id_pedido: pedidoId,
+                        monto: pedidoData.monto_a_cuenta,
+                        fecha_pago: getLocalDate(),
+                        metodo_pago: formData.forma_pago,
+                        referencia: ''
+                    });
                 }
                 setShowSuccessModal(true);
                 setTimeout(() => setShowSuccessModal(false), 3000);
@@ -411,23 +440,19 @@ const Pedidos = () => {
 
             // ── Sincronización con Reporte de Ventas ──
             if (calculos.cancelado) {
-                const codigoPed = `PED-${String(pedidoId).padStart(4, '0')}`;
-                const ventasExistentes = await ventasDB.getAll();
-                const yaExistente = ventasExistentes.some(v =>
-                    v.detalles && v.detalles.some(d => d.producto_codigo === codigoPed)
+                const resultadoVenta = await asegurarVentaPedido(
+                    {
+                        ...pedidoData,
+                        id_pedido: pedidoId,
+                        nombre_cliente: formData.nombre_cliente,
+                        detalles_pedido: listaProductos
+                    },
+                    { metodo: formData.forma_pago }
                 );
-
-                if (!yaExistente) {
-                    await ventasDB.createVentaPedido({
-                        pedidoId: pedidoId,
-                        clienteNombre: formData.nombre_cliente,
-                        total: calculos.precio_total,
-                        formaPago: formData.forma_pago,
-                        costo_materiales: 0,
-                        observaciones: `Cobro pedido #${pedidoId}`,
-                        fecha_venta: new Date().toISOString()
-                    });
-                    if (editingId) toast.success('Venta registrada/actualizada');
+                if (resultadoVenta.ventaError) {
+                    toast.error('Pedido guardado, pero no se pudo registrar la venta: ' + resultadoVenta.ventaError);
+                } else if (resultadoVenta.ventaRegistrada && editingId) {
+                    toast.success('Venta registrada/actualizada');
                 }
             }
 
@@ -437,50 +462,33 @@ const Pedidos = () => {
         finally { setLoading(false); }
     };
 
-    const handlePrint = (pedido) => { setPrintPedido(pedido); setShowPrintModal(true); };
-    const closePrintModal = () => { setShowPrintModal(false); setPrintPedido(null); };
+    const handlePrint = (pedido) => {
+        setPrintPedido(pedido);
+        setUltimoPagoRealizado(null);
+        setShowPrintModal(true);
+    };
+    const closePrintModal = () => {
+        setShowPrintModal(false);
+        setPrintPedido(null);
+        setUltimoPagoRealizado(null);
+    };
 
     const handleOpenPayModal = (pedido) => {
         setPayPedido(pedido);
-        setPayData({ monto: pedido.monto_saldo, fecha: getLocalDate(), metodo: 'Efectivo' });
         setShowPayModal(true);
     };
-    const handleClosePayModal = () => { setShowPayModal(false); setPayPedido(null); };
+    const handleClosePayModal = () => {
+        setShowPayModal(false);
+        setPayPedido(null);
+    };
 
-    const handleQuickPay = async () => {
-        if (!payPedido || !payData.monto) return;
-        try {
-            const montoPago = parseFloat(payData.monto);
-            const nuevoAcuenta = (payPedido.monto_a_cuenta || 0) + montoPago;
-            const nuevoSaldo = payPedido.precio_total - nuevoAcuenta;
-            const pedidoActualizado = { ...payPedido, monto_a_cuenta: nuevoAcuenta, monto_saldo: Math.max(0, nuevoSaldo), cancelado: nuevoSaldo <= 0.05 };
-            await pedidosDB.update(payPedido.id_pedido, pedidoActualizado);
-            await pedidosDB.createPago({ id_pedido: payPedido.id_pedido, monto: montoPago, fecha_pago: payData.fecha, metodo_pago: payData.metodo, referencia: '' });
-
-            // ── Si el saldo queda en cero → registrar ingreso en Ventas ──
-            if (nuevoSaldo <= 0.05) {
-                const codigoPed = `PED-${String(payPedido.id_pedido).padStart(4, '0')}`;
-                const ventasExistentes = await ventasDB.getAll();
-                const yaRegistrado = ventasExistentes.some(v =>
-                    v.detalles && v.detalles.some(d => d.producto_codigo === codigoPed)
-                );
-                if (!yaRegistrado) {
-                    await ventasDB.createVentaPedido({
-                        pedidoId: payPedido.id_pedido,
-                        clienteNombre: payPedido.nombre_cliente,
-                        total: payPedido.precio_total,
-                        formaPago: payData.metodo || payPedido.forma_pago,
-                        costo_materiales: 0,
-                        observaciones: `Cobro pedido #${payPedido.id_pedido}`,
-                        fecha_venta: new Date().toISOString()
-                    });
-                    toast.success('Ingreso registrado en Reporte de Ventas ✅');
-                }
-            }
-
-            toast.success('Pago registrado');
-            handleClosePayModal(); fetchPedidos();
-        } catch (error) { toast.error('Error al registrar pago'); }
+    const handlePagoSuccess = (resultado) => {
+        fetchPedidos();
+        if (resultado && resultado.pedido) {
+            setUltimoPagoRealizado(resultado.pago);
+            setPrintPedido(resultado.pedido);
+            setShowPrintModal(true);
+        }
     };
 
     const handleCrearProduccion = async (pedido) => { navigate(`/produccion?pedido=${pedido.id_pedido}`); };
@@ -498,17 +506,47 @@ const Pedidos = () => {
         } else if (activeTab === 'terminados') {
             return estadoProd === 'terminado' && estadoPed !== 'entregado';
         }
-        if (searchTerm) {
-            const term = searchTerm.toLowerCase();
-            return (p.nombre_cliente?.toLowerCase().includes(term) || p.telefono?.toString().includes(term));
-        }
         return true;
     });
 
-    const handleWheel = (e) => e.target.blur();
+    // ========================================
+    // CIERRE HISTÓRICO / EN LOTE
+    // ========================================
+    const toggleSeleccion = (id) => {
+        setSeleccionados(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+    };
+
+    const toggleSeleccionarTodos = () => {
+        const visibles = filteredPedidos.map(p => p.id_pedido);
+        const todosSeleccionados = visibles.length > 0 && visibles.every(id => seleccionados.includes(id));
+        setSeleccionados(todosSeleccionados ? [] : visibles);
+    };
+
+    const abrirCerrar = (lista) => {
+        if (!lista || lista.length === 0) { toast.error('Selecciona al menos un pedido.'); return; }
+        setPedidosACerrar(lista);
+        setShowCerrarModal(true);
+    };
+
+    const handleCerrarSeleccionados = () => {
+        const lista = pedidos.filter(p => seleccionados.includes(p.id_pedido));
+        abrirCerrar(lista);
+    };
+
+    const handleCerrarFila = (pedido) => abrirCerrar([pedido]);
+
+    const handleCerrarSuccess = () => {
+        fetchPedidos();
+        setSeleccionados([]);
+    };
+
+    const salirModoHistorico = () => {
+        setModoHistorico(false);
+        setSeleccionados([]);
+    };
 
     return (
-        <div className="container mx-auto p-3 md:p-6 bg-gray-50 min-h-screen pb-20 font-sans">
+        <div className={`container mx-auto p-3 md:p-6 bg-gray-50 min-h-screen font-sans ${modoHistorico && activeTab === 'pendientes' ? 'pb-44' : 'pb-20'}`}>
 
             <div className="mb-4">
                 <Link to="/inventario-home" className="flex items-center text-gray-500 hover:text-gray-800 transition-colors w-fit text-sm font-medium">
@@ -533,16 +571,17 @@ const Pedidos = () => {
                         SECCIÓN CLIENTE
                     ======================================== */}
                     <div className="space-y-3">
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center justify-between">
                             <label className="text-sm font-bold text-gray-700 uppercase tracking-widest text-[10px]">Cliente *</label>
                             {/* BOTON "+ NUEVO CLIENTE" SUTIL */}
-                            <Link
-                                to="/clientes"
-                                className="flex items-center gap-1 text-[10px] text-blue-600 hover:text-blue-800 font-bold bg-blue-50/50 hover:bg-blue-100 px-2 py-0.5 rounded transition-colors"
-                                title="Ir a registrar un nuevo cliente"
+                            <button
+                                type="button"
+                                onClick={() => abrirModalNuevoCliente(nombreBusqueda)}
+                                className="flex items-center gap-1 text-[11px] text-blue-600 hover:text-blue-800 font-bold bg-blue-50/70 hover:bg-blue-100 px-2.5 py-1 rounded-md transition-colors"
+                                title="Crear nuevo cliente rápido"
                             >
-                                <FaPlus size={8} /> Nuevo
-                            </Link>
+                                <FaPlus size={9} /> Nuevo
+                            </button>
                         </div>
                         <div className="relative" ref={searchRef}>
                             <input
@@ -551,73 +590,76 @@ const Pedidos = () => {
                                 value={formData.nombre_cliente}
                                 onChange={(e) => handleSearchCliente(e.target.value)}
                                 autoComplete="off"
-                                className="w-full h-12 bg-gray-50 rounded-xl px-4 text-sm font-medium text-gray-900 border-none ring-1 ring-gray-200 focus:ring-2 focus:ring-blue-500 transition-all placeholder:text-gray-400"
+                                className="w-full h-11 sm:h-12 bg-gray-50 rounded-xl px-4 text-sm font-medium text-gray-900 border-none ring-1 ring-gray-200 focus:ring-2 focus:ring-blue-500 transition-all placeholder:text-gray-400"
                                 placeholder="Buscar o ingresar nombre..."
                             />
-                            {showSugerencias && clientesSugeridos.length > 0 && (
-                                <div className="absolute z-50 w-full mt-2 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden">
+                            {showSugerencias && (clientesSugeridos.length > 0 || nombreBusqueda.trim().length > 1) && (
+                                <div className="absolute z-50 w-full mt-2 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden max-h-60 overflow-y-auto">
                                     {clientesSugeridos.map(c => (
                                         <button key={c.id} type="button" onClick={() => handleSelectCliente(c)} className="w-full text-left px-4 py-3 hover:bg-gray-50 border-b border-gray-50 last:border-0 flex justify-between items-center">
                                             <span className="font-semibold text-sm text-gray-800">{c.nombre}</span>
                                             <span className="text-xs text-gray-400">{c.telefono}</span>
                                         </button>
                                     ))}
+                                    {nombreBusqueda.trim().length > 1 && (
+                                        <button
+                                            type="button"
+                                            onClick={() => abrirModalNuevoCliente(nombreBusqueda)}
+                                            className="w-full text-left px-4 py-3 bg-blue-50 hover:bg-blue-100 flex items-center gap-2 text-blue-700 font-semibold text-sm border-t border-blue-100"
+                                        >
+                                            <FaPlus size={10} />
+                                            <span>Crear "{nombreBusqueda}"</span>
+                                        </button>
+                                    )}
                                 </div>
                             )}
                         </div>
 
-                        <div className="grid grid-cols-2 gap-3">
-                            <div>
-                                <label className="text-sm font-bold text-gray-700 uppercase tracking-widest text-[10px] block mb-1">Teléfono *</label>
-                                <input
-                                    type="tel" inputMode="numeric" name="telefono"
-                                    value={formData.telefono} onChange={handleChange}
-                                    className="w-full h-12 bg-gray-50 rounded-xl px-4 text-sm font-medium text-gray-900 border-none ring-1 ring-gray-200 focus:ring-2 focus:ring-blue-500"
-                                    placeholder="Celular"
-                                />
+                        {/* Teléfono como dato de referencia del cliente seleccionado */}
+                        {formData.nombre_cliente && formData.telefono && (
+                            <div className="flex items-center gap-2 text-xs text-gray-600 bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-200 w-fit">
+                                <FaPhone size={11} className="text-gray-400" />
+                                <span className="font-medium">{formData.telefono}</span>
+                                {formData.dni_ruc && (
+                                    <span className="text-gray-400 border-l border-gray-200 pl-2">DNI: {formData.dni_ruc}</span>
+                                )}
                             </div>
-                            <div>
-                                <label className="text-sm font-bold text-gray-400 uppercase tracking-widest text-[10px] block mb-1">DNI / RUC (Opcional)</label>
-                                <input
-                                    type="text" inputMode="numeric" name="dni_ruc"
-                                    value={formData.dni_ruc} onChange={handleChange}
-                                    className="w-full h-12 bg-gray-50 rounded-xl px-4 text-sm font-medium text-gray-900 border-none ring-1 ring-gray-200 focus:ring-2 focus:ring-blue-500"
-                                />
-                            </div>
-                        </div>
+                        )}
                     </div>
 
                     <hr className="border-gray-100" />
 
                     {/* ========================================
-                        SECCIÓN PRODUCTOS (MINIMALISTA)
+                        SECCIÓN PRODUCTOS (RESPONSIVE)
                     ======================================== */}
                     <div className="space-y-3">
                         <label className="text-sm font-bold text-gray-700 uppercase tracking-widest text-[10px]">Añadir Producto</label>
-                        <div className="bg-gray-50 rounded-2xl p-3 ring-1 ring-gray-200">
-                            <div className="grid grid-cols-2 gap-2 mb-2">
-                                {/* <-- REEMPLAZADO PARA USAR METALES DESDE LA BD --> */}
-                                <select name="metal" value={productoActual.metal} onChange={handleProductoChange} className="w-full h-11 bg-white rounded-lg text-xs font-medium border-none ring-1 ring-gray-200 text-gray-600 focus:ring-2 focus:ring-blue-500">
+                        <div className="bg-gray-50 rounded-2xl p-3 ring-1 ring-gray-200 space-y-2">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                <select name="metal" value={productoActual.metal} onChange={handleProductoChange} className="w-full h-11 bg-white rounded-lg px-3 text-xs font-medium border-none ring-1 ring-gray-200 text-gray-700 focus:ring-2 focus:ring-blue-500">
                                     <option value="">Metal...</option>
                                     {metalesList.map(m => <option key={m} value={m}>{m}</option>)}
                                 </select>
-                                <select name="tipo_producto" value={productoActual.tipo_producto} onChange={handleProductoChange} className="w-full h-11 bg-white rounded-lg text-xs font-medium border-none ring-1 ring-gray-200 text-gray-600 focus:ring-2 focus:ring-blue-500">
+                                <select name="tipo_producto" value={productoActual.tipo_producto} onChange={handleProductoChange} className="w-full h-11 bg-white rounded-lg px-3 text-xs font-medium border-none ring-1 ring-gray-200 text-gray-700 focus:ring-2 focus:ring-blue-500">
                                     <option value="">Tipo...</option>
                                     {tiposDisponibles.map(t => <option key={t.id} value={t.nombre}>{t.nombre}</option>)}
                                 </select>
                             </div>
-                            <input
-                                type="text" name="nombre_producto" value={productoActual.nombre_producto} onChange={handleProductoChange}
-                                placeholder="Descripción (Ej. Anillo texturizado)"
-                                className="w-full h-11 bg-white rounded-lg px-3 text-xs font-medium border-none ring-1 ring-gray-200 mb-2 focus:ring-2 focus:ring-blue-500 text-gray-800"
+                            <textarea
+                                name="nombre_producto"
+                                value={productoActual.nombre_producto}
+                                onChange={handleProductoChange}
+                                rows={2}
+                                placeholder="Descripción (Ej. Anillo talla 7 con piedra ónix y acabado mate)"
+                                className="w-full min-h-[64px] bg-white rounded-lg px-3 py-2.5 text-xs font-medium border-none ring-1 ring-gray-200 focus:ring-2 focus:ring-blue-500 text-gray-800 resize-none leading-relaxed"
                             />
                             <div className="flex gap-2">
-                                <input type="number" inputMode="decimal" min="1" name="cantidad" value={productoActual.cantidad} onChange={handleProductoChange} placeholder="Cant." className="w-20 h-11 bg-white rounded-lg px-3 text-center text-sm font-medium border-none ring-1 ring-gray-200 text-gray-900" />
-                                <div className="relative flex-1">
+                                <input type="number" inputMode="decimal" min="1" name="cantidad" value={productoActual.cantidad} onChange={handleProductoChange} placeholder="Cant." className="w-20 sm:w-24 h-11 bg-white rounded-lg px-3 text-center text-sm font-medium border-none ring-1 ring-gray-200 text-gray-900 shrink-0" />
+                                <div className="relative flex-1 min-w-0">
                                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">S/</span>
                                     <input type="number" inputMode="decimal" step="0.01" name="precio_unitario" value={productoActual.precio_unitario} onChange={handleProductoChange} placeholder="Precio" className="w-full h-11 bg-white rounded-lg pl-8 pr-3 text-sm font-bold text-gray-800 border-none ring-1 ring-gray-200 focus:ring-2 focus:ring-blue-500" />
                                 </div>
-                                <button type="button" onClick={agregarProducto} className="h-11 w-11 bg-blue-600 text-white rounded-lg flex items-center justify-center hover:bg-blue-700 active:scale-95 transition-transform shadow-sm">
+                                <button type="button" onClick={agregarProducto} className="h-11 w-11 bg-blue-600 text-white rounded-lg flex items-center justify-center hover:bg-blue-700 active:scale-95 transition-transform shadow-sm shrink-0">
                                     <FaPlus size={14} />
                                 </button>
                             </div>
@@ -631,7 +673,7 @@ const Pedidos = () => {
                                             <p className="text-xs font-bold text-gray-800 truncate">{p.tipo_producto} - {p.nombre_producto}</p>
                                             <p className="text-[10px] text-gray-500">{p.cantidad}x {p.metal} @ S/ {p.precio_unitario.toFixed(2)}</p>
                                         </div>
-                                        <div className="flex items-center gap-3">
+                                        <div className="flex items-center gap-3 shrink-0">
                                             <span className="text-sm font-black text-blue-700">S/ {(p.cantidad * p.precio_unitario).toFixed(2)}</span>
                                             <button type="button" onClick={() => eliminarProductoLista(i)} className="text-red-400 hover:text-red-600 p-1"><FaTrash size={12} /></button>
                                         </div>
@@ -644,57 +686,72 @@ const Pedidos = () => {
                     <hr className="border-gray-100" />
 
                     {/* ========================================
-                        SECCIÓN ENVÍO
+                        SECCIÓN ENVÍO (2 OPCIONES)
                     ======================================== */}
                     <div className="space-y-3">
-                        <div className="flex items-center justify-between">
-                            <label className="text-sm font-bold text-gray-700 uppercase tracking-widest text-[10px] flex items-center gap-1">
-                                <FaTruck className="text-gray-400" /> Delivery / Envío
-                            </label>
-                            <label className="relative inline-flex items-center cursor-pointer">
-                                <input type="checkbox" name="requiere_envio" checked={formData.requiere_envio} onChange={handleChange} className="sr-only peer" />
-                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                            </label>
+                        <label className="text-sm font-bold text-gray-700 uppercase tracking-widest text-[10px] flex items-center gap-1">
+                            <FaTruck className="text-gray-400" /> Delivery / Envío
+                        </label>
+
+                        <div className="grid grid-cols-2 gap-2 bg-gray-100 p-1 rounded-xl border border-gray-200">
+                            <button
+                                type="button"
+                                onClick={() => setFormData(prev => ({ ...prev, requiere_envio: false }))}
+                                className={`py-2.5 px-2 text-xs font-bold rounded-lg transition-all text-center ${!formData.requiere_envio ? 'bg-white text-gray-800 shadow-sm ring-1 ring-gray-200' : 'text-gray-500 hover:bg-gray-200/60'}`}
+                            >
+                                Sin envío
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setFormData(prev => ({ ...prev, requiere_envio: true }))}
+                                className={`py-2.5 px-2 text-xs font-bold rounded-lg transition-all text-center flex items-center justify-center gap-1.5 ${formData.requiere_envio ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-500 hover:bg-gray-200/60'}`}
+                            >
+                                <FaTruck size={11} /> Con envío
+                            </button>
                         </div>
 
                         {formData.requiere_envio && (
                             <div className="bg-blue-50/30 rounded-2xl p-3 border border-blue-100 space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
 
                                 <button type="button" onClick={() => setShowAddressDrawer(true)} className="w-full bg-white flex items-center justify-between p-3 rounded-xl border border-blue-100 hover:border-blue-200 transition-colors text-left shadow-sm">
-                                    <div className="flex items-center gap-3 overflow-hidden">
-                                        <div className="bg-blue-50 p-2 rounded-lg text-blue-500"><FaMapMarkerAlt size={14} /></div>
-                                        <div className="truncate">
+                                    <div className="flex items-center gap-3 overflow-hidden min-w-0">
+                                        <div className="bg-blue-50 p-2 rounded-lg text-blue-500 shrink-0"><FaMapMarkerAlt size={14} /></div>
+                                        <div className="truncate min-w-0">
                                             <p className="text-[10px] font-bold text-blue-400 uppercase tracking-widest">Dirección de Entrega</p>
-                                            <p className="text-xs font-semibold text-gray-800 truncate">{formData.direccion_entrega || 'Tocar para agregar dirección...'}</p>
+                                            <p className="text-xs font-semibold text-gray-800 truncate">{formData.direccion_entrega || 'Tocar para agregar dirección y DNI...'}</p>
+                                            {formData.dni_ruc && (
+                                                <p className="text-[10px] text-gray-500 truncate">DNI/RUC: {formData.dni_ruc}</p>
+                                            )}
                                         </div>
                                     </div>
-                                    <FaChevronRight className="text-gray-300" size={12} />
+                                    <FaChevronRight className="text-gray-300 shrink-0 ml-2" size={12} />
                                 </button>
 
-                                <div className="bg-white p-1 rounded-xl flex shadow-sm border border-gray-100">
-                                    {[
-                                        { id: 'destino', label: 'En Destino' },
-                                        { id: 'pagado', label: 'Ya Pagado' },
-                                        { id: 'pendiente', label: 'Pendiente' }
-                                    ].map(opt => (
-                                        <button
-                                            key={opt.id} type="button"
-                                            onClick={() => setFormData(prev => ({ ...prev, tipo_envio: opt.id }))}
-                                            className={`flex-1 py-2 text-[10px] sm:text-xs font-bold rounded-lg transition-all text-center ${formData.tipo_envio === opt.id ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-500 hover:bg-gray-50'}`}
-                                        >
-                                            {opt.label}
-                                        </button>
-                                    ))}
+                                <div className="grid grid-cols-2 gap-2 bg-gray-100/70 p-1 rounded-xl border border-gray-100">
+                                    <button
+                                        type="button"
+                                        onClick={() => setFormData(prev => ({ ...prev, tipo_envio: 'cobro' }))}
+                                        className={`py-2 px-2 text-xs font-bold rounded-lg transition-all text-center ${formData.tipo_envio === 'cobro' ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-200/50'}`}
+                                    >
+                                        Lo cobro yo
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setFormData(prev => ({ ...prev, tipo_envio: 'destino' }))}
+                                        className={`py-2 px-2 text-xs font-bold rounded-lg transition-all text-center ${formData.tipo_envio === 'destino' ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-200/50'}`}
+                                    >
+                                        Paga en destino
+                                    </button>
                                 </div>
 
-                                {formData.tipo_envio !== 'destino' && (
+                                {formData.tipo_envio === 'cobro' && (
                                     <div className="relative animate-in zoom-in-95 duration-200 shadow-sm">
                                         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">S/</span>
                                         <input
                                             type="number" inputMode="decimal" step="0.01" name="costo_envio"
                                             value={formData.costo_envio} onChange={handleChange}
-                                            placeholder="Costo de envío"
-                                            className="w-full h-12 bg-white rounded-xl pl-8 pr-4 text-sm font-bold text-gray-800 border border-blue-100 focus:ring-2 focus:ring-blue-500"
+                                            placeholder="Monto de envío a cobrar"
+                                            className="w-full h-11 bg-white rounded-xl pl-8 pr-4 text-sm font-bold text-gray-800 border border-blue-100 focus:ring-2 focus:ring-blue-500"
                                         />
                                     </div>
                                 )}
@@ -708,13 +765,9 @@ const Pedidos = () => {
                         SECCIÓN FINANZAS / PAGO
                     ======================================== */}
                     <div className="bg-white rounded-2xl p-4 sm:p-5 shadow-sm border border-gray-200 space-y-4">
-                        <div className="flex justify-between items-center border-b border-gray-100 pb-3">
+                        <div className="border-b border-gray-100 pb-3">
                             <label className="text-sm font-bold text-blue-800 uppercase tracking-widest text-[11px] flex items-center gap-2">
                                 <FaMoneyBillWave className="text-blue-500" /> Resumen y Pago
-                            </label>
-                            <label className="flex items-center gap-2 cursor-pointer bg-blue-50 px-2 py-1 rounded-md border border-blue-100 hover:bg-blue-100 transition-colors">
-                                <input type="checkbox" name="incluye_igv" checked={formData.incluye_igv} onChange={handleChange} className="rounded text-blue-600 border-gray-300 focus:ring-blue-500 h-4 w-4" />
-                                <span className="text-[10px] font-bold text-blue-700 uppercase">+ IGV</span>
                             </label>
                         </div>
 
@@ -725,23 +778,16 @@ const Pedidos = () => {
                                 <span className="font-semibold text-gray-800">S/ {calculos.precio_total_sin_igv.toFixed(2)}</span>
                             </div>
 
-                            {formData.requiere_envio && formData.tipo_envio !== 'destino' && parseFloat(formData.costo_envio) > 0 && (
+                            {formData.requiere_envio && formData.tipo_envio === 'cobro' && parseFloat(formData.costo_envio) > 0 && (
                                 <div className="flex justify-between text-blue-600">
-                                    <span>Envío ({formData.tipo_envio === 'pagado' ? 'Ya Pagado' : 'Pendiente'})</span>
+                                    <span>Envío (cobrado)</span>
                                     <span className="font-semibold">+ S/ {parseFloat(formData.costo_envio).toFixed(2)}</span>
                                 </div>
                             )}
                             {formData.requiere_envio && formData.tipo_envio === 'destino' && (
                                 <div className="flex justify-between text-amber-600 italic text-[10px]">
-                                    <span>Envío Pago en Destino</span>
+                                    <span>Envío (pago en destino)</span>
                                     <span>S/ 0.00</span>
-                                </div>
-                            )}
-
-                            {formData.incluye_igv && (
-                                <div className="flex justify-between text-gray-500">
-                                    <span>IGV (18%)</span>
-                                    <span>+ S/ {calculos.monto_igv.toFixed(2)}</span>
                                 </div>
                             )}
 
@@ -751,39 +797,51 @@ const Pedidos = () => {
                             </div>
                         </div>
 
-                        {/* Ingreso de Adelanto/Pago */}
-                        <div className="bg-gray-50 rounded-xl p-3 flex gap-3 items-center border border-gray-200 focus-within:border-blue-400 focus-within:ring-1 focus-within:ring-blue-400 transition-all shadow-inner">
-                            <select name="forma_pago" value={formData.forma_pago} onChange={handleChange} className="bg-transparent text-xs font-bold text-gray-700 border-none focus:ring-0 p-0 w-24 cursor-pointer">
-                                <option value="Efectivo">Efectivo</option>
-                                <option value="Yape">Yape</option>
-                                <option value="Plin">Plin</option>
-                                <option value="Transferencia">Transferencia</option>
-                            </select>
-                            <div className="h-6 w-px bg-gray-300"></div>
-                            <div className="relative flex-1 flex items-center">
-                                <span className="text-gray-500 text-[10px] sm:text-xs font-bold whitespace-nowrap mr-2">Adelanto S/</span>
-                                <input
-                                    type="number" inputMode="decimal" step="0.01" name="monto_a_cuenta"
-                                    value={formData.monto_a_cuenta} onChange={handleChange} required
-                                    className="w-full bg-transparent text-right text-lg font-black text-green-600 border-none focus:ring-0 p-0 placeholder:text-gray-300"
-                                    placeholder="0.00"
-                                />
+                        {/* Fila de Método de pago y Adelanto */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            <div className="bg-gray-50 rounded-xl px-3 py-2 border border-gray-200">
+                                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Método de pago</label>
+                                <select
+                                    name="forma_pago"
+                                    value={formData.forma_pago}
+                                    onChange={handleChange}
+                                    className="w-full bg-transparent text-sm font-bold text-gray-800 border-none focus:ring-0 p-0 cursor-pointer"
+                                >
+                                    {METODOS_PAGO.map(m => (
+                                        <option key={m} value={m}>{m}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div className="bg-gray-50 rounded-xl px-3 py-2 border border-gray-200">
+                                <div className="flex justify-between items-center mb-1">
+                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Adelanto S/</label>
+                                    {editingId && (
+                                        <span className="text-[9px] text-amber-600 font-semibold">Solo lectura</span>
+                                    )}
+                                </div>
+                                <div className="relative flex items-center">
+                                    <span className="text-gray-400 text-sm font-bold mr-1">S/</span>
+                                    <input
+                                        type="number"
+                                        inputMode="decimal"
+                                        step="0.01"
+                                        name="monto_a_cuenta"
+                                        value={formData.monto_a_cuenta}
+                                        onChange={handleChange}
+                                        readOnly={!!editingId}
+                                        className={`w-full bg-transparent text-right text-lg font-black border-none focus:ring-0 p-0 ${editingId ? 'text-gray-500 cursor-not-allowed' : 'text-green-600 placeholder:text-gray-300'}`}
+                                        placeholder="0.00"
+                                    />
+                                </div>
                             </div>
                         </div>
 
-                        {/* CAMPO NUEVO: Origen del pedido */}
-                        <div className="bg-gray-50 rounded-xl p-3 flex gap-3 items-center border border-gray-200 mt-3 shadow-inner relative">
-                            <label className="text-gray-500 text-[10px] sm:text-xs font-bold whitespace-nowrap absolute -top-2 left-3 bg-white px-1 border border-gray-200 rounded">Origen</label>
-                            <select
-                                name="origen_pedido"
-                                value={formData.origen_pedido || 'INTERNET'}
-                                onChange={handleChange}
-                                className="w-full bg-transparent text-sm font-bold text-gray-700 border-none focus:ring-0 p-0 pt-2 cursor-pointer"
-                            >
-                                <option value="INTERNET">🌐 Redes</option>
-                                <option value="TIENDA">🏪 Tienda</option>
-                            </select>
-                        </div>
+                        {editingId && (
+                            <p className="text-[11px] text-gray-500 italic px-1">
+                                ℹ️ Para registrar pagos adicionales o abonos al saldo pendiente, usa el botón de pago en la lista de pedidos.
+                            </p>
+                        )}
 
                         {/* Saldo Final */}
                         {!calculos.cancelado ? (
@@ -877,9 +935,21 @@ const Pedidos = () => {
 
                 <div className="mb-6">
                     {activeTab === 'pendientes' && (
-                        <div className="p-3 rounded-lg flex justify-between md:justify-center items-center text-sm border border-gray-200">
-                            <span className="text-gray-700 font-semibold uppercase tracking-wide">PEDIDOS PENDIENTES</span>
-                            <span className="font-bold text-2xl text-gray-900 ml-4">{filteredPedidos.length}</span>
+                        <div className="p-3 rounded-lg flex flex-wrap gap-3 justify-between items-center text-sm border border-gray-200">
+                            <div className="flex items-center gap-3">
+                                <span className="text-gray-700 font-semibold uppercase tracking-wide">PEDIDOS PENDIENTES</span>
+                                <span className="font-bold text-2xl text-gray-900">{filteredPedidos.length}</span>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => (modoHistorico ? salirModoHistorico() : setModoHistorico(true))}
+                                className={`h-9 px-3 rounded-lg text-[11px] font-bold transition-colors flex items-center gap-2 ${modoHistorico
+                                    ? 'bg-gray-900 text-white hover:bg-gray-800'
+                                    : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
+                                    }`}
+                            >
+                                {modoHistorico ? 'Salir del modo histórico' : 'Modo histórico'}
+                            </button>
                         </div>
                     )}
                     {activeTab === 'produccion' && (
@@ -922,6 +992,17 @@ const Pedidos = () => {
                                     </>
                                 ) : (
                                     <>
+                                        {modoHistorico && (
+                                            <th className="px-3 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider w-10">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={filteredPedidos.length > 0 && filteredPedidos.every(p => seleccionados.includes(p.id_pedido))}
+                                                    onChange={toggleSeleccionarTodos}
+                                                    className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                                                    title="Seleccionar todos"
+                                                />
+                                            </th>
+                                        )}
                                         <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Fecha</th>
                                         <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Cliente</th>
                                         <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider w-1/2 md:w-2/5">Producto</th>
@@ -937,7 +1018,7 @@ const Pedidos = () => {
                         <tbody className="bg-white divide-y divide-gray-200">
                             {filteredPedidos.length === 0 ? (
                                 <tr>
-                                    <td colSpan="8" className="px-6 py-4 text-center text-gray-500 font-medium italic">No hay pedidos activos en esta categoría.</td>
+                                    <td colSpan={modoHistorico && activeTab === 'pendientes' ? 9 : 8} className="px-6 py-4 text-center text-gray-500 font-medium italic">No hay pedidos activos en esta categoría.</td>
                                 </tr>
                             ) : (
                                 filteredPedidos.map((pedido) => (
@@ -946,12 +1027,7 @@ const Pedidos = () => {
                                             <>
                                                 <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">{formatLocalDate(pedido.fecha_pedido)}</td>
                                                 <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                                    <div className="flex flex-col gap-1 items-start">
-                                                        <span>{pedido.nombre_cliente}</span>
-                                                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${pedido.origen_pedido === 'TIENDA' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>
-                                                            {pedido.origen_pedido === 'TIENDA' ? '🏪 Tienda' : '🌐 Internet'}
-                                                        </span>
-                                                    </div>
+                                                    <span>{pedido.nombre_cliente}</span>
                                                 </td>
                                                 <td className="px-4 py-4 text-sm text-gray-600">
                                                     <div className="space-y-1">
@@ -969,8 +1045,13 @@ const Pedidos = () => {
                                                 <td className={`px-4 py-4 whitespace-nowrap text-sm font-bold text-right ${pedido.monto_saldo > 0 ? 'text-red-600' : 'text-green-600'}`}>S/ {pedido.monto_saldo.toFixed(2)}</td>
                                                 <td className="px-4 py-4 whitespace-nowrap text-right">
                                                     <div className="flex justify-center md:justify-end gap-3 md:gap-4">
-                                                        {!pedido.cancelado && pedido.monto_saldo > 0.1 && (
-                                                            <Tooltip text="Registrar pago">
+                                                        <Tooltip text="Cerrar pedido (histórico)">
+                                                            <button onClick={() => handleCerrarFila(pedido)} className="text-emerald-600 hover:text-emerald-800 transition-colors">
+                                                                <FaCheckCircle className="h-6 w-6" />
+                                                            </button>
+                                                        </Tooltip>
+                                                        {!pedido.cancelado && Number(pedido.monto_saldo) > TOLERANCIA_SALDO && (
+                                                            <Tooltip text="Cobrar saldo">
                                                                 <button onClick={() => handleOpenPayModal(pedido)} className="text-green-600 hover:text-green-800 transition-colors">
                                                                     <FaMoneyBillWave className="h-6 w-6" />
                                                                 </button>
@@ -993,12 +1074,7 @@ const Pedidos = () => {
                                             <>
                                                 <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">{formatLocalDate(pedido.fecha_pedido)}</td>
                                                 <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                                    <div className="flex flex-col gap-1 items-start">
-                                                        <span>{pedido.nombre_cliente}</span>
-                                                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${pedido.origen_pedido === 'TIENDA' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>
-                                                            {pedido.origen_pedido === 'TIENDA' ? '🏪 Tienda' : '🌐 Internet'}
-                                                        </span>
-                                                    </div>
+                                                    <span>{pedido.nombre_cliente}</span>
                                                 </td>
                                                 <td className="px-4 py-4 text-sm text-gray-600">
                                                     <div className="space-y-1">
@@ -1016,6 +1092,18 @@ const Pedidos = () => {
                                                 <td className={`px-4 py-4 whitespace-nowrap text-sm font-bold text-right ${pedido.monto_saldo > 0 ? 'text-red-600' : 'text-green-600'}`}>S/ {pedido.monto_saldo.toFixed(2)}</td>
                                                 <td className="px-4 py-4 whitespace-nowrap text-right">
                                                     <div className="flex justify-center md:justify-end gap-3 md:gap-4">
+                                                        <Tooltip text="Cerrar pedido (histórico)">
+                                                            <button onClick={() => handleCerrarFila(pedido)} className="text-emerald-600 hover:text-emerald-800 transition-colors">
+                                                                <FaCheckCircle className="h-6 w-6" />
+                                                            </button>
+                                                        </Tooltip>
+                                                        {!pedido.cancelado && Number(pedido.monto_saldo) > TOLERANCIA_SALDO && (
+                                                            <Tooltip text="Cobrar saldo">
+                                                                <button onClick={() => handleOpenPayModal(pedido)} className="text-green-600 hover:text-green-800 transition-colors">
+                                                                    <FaMoneyBillWave className="h-6 w-6" />
+                                                                </button>
+                                                            </Tooltip>
+                                                        )}
                                                         {pedido.tiene_productos_pendientes && (
                                                             <Tooltip text="Continuar producción (items faltantes)">
                                                                 <button onClick={() => handleCrearProduccion(pedido)} className="text-purple-600 hover:text-purple-900 transition-colors">
@@ -1033,14 +1121,19 @@ const Pedidos = () => {
                                             </>
                                         ) : (
                                             <>
+                                                {modoHistorico && (
+                                                    <td className="px-3 py-4 whitespace-nowrap text-center">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={seleccionados.includes(pedido.id_pedido)}
+                                                            onChange={() => toggleSeleccion(pedido.id_pedido)}
+                                                            className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                                                        />
+                                                    </td>
+                                                )}
                                                 <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">{formatLocalDate(pedido.fecha_pedido)}</td>
                                                 <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                                    <div className="flex flex-col gap-1 items-start">
-                                                        <span>{pedido.nombre_cliente}</span>
-                                                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${pedido.origen_pedido === 'TIENDA' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>
-                                                            {pedido.origen_pedido === 'TIENDA' ? '🏪 Tienda' : '🌐 Internet'}
-                                                        </span>
-                                                    </div>
+                                                    <span>{pedido.nombre_cliente}</span>
                                                 </td>
                                                 <td className="px-4 py-4 text-sm text-gray-600">
                                                     <div className="space-y-1">
@@ -1065,6 +1158,18 @@ const Pedidos = () => {
                                                 <td className={`px-4 py-4 whitespace-nowrap text-sm font-bold text-right ${pedido.monto_saldo > 0 ? 'text-red-600' : 'text-green-600'}`}>S/ {pedido.monto_saldo.toFixed(2)}</td>
                                                 <td className="px-4 py-4 whitespace-nowrap text-right">
                                                     <div className="flex justify-center md:justify-end gap-3 md:gap-4">
+                                                        <Tooltip text="Cerrar pedido (histórico)">
+                                                            <button onClick={() => handleCerrarFila(pedido)} className="text-emerald-600 hover:text-emerald-800 transition-colors">
+                                                                <FaCheckCircle className="h-6 w-6" />
+                                                            </button>
+                                                        </Tooltip>
+                                                        {!pedido.cancelado && Number(pedido.monto_saldo) > TOLERANCIA_SALDO && (
+                                                            <Tooltip text="Cobrar saldo">
+                                                                <button onClick={() => handleOpenPayModal(pedido)} className="text-green-600 hover:text-green-800 transition-colors">
+                                                                    <FaMoneyBillWave className="h-6 w-6" />
+                                                                </button>
+                                                            </Tooltip>
+                                                        )}
                                                         <Tooltip text="Registrar producción">
                                                             <button onClick={() => handleCrearProduccion(pedido)} className="text-purple-600 hover:text-purple-900 transition-colors">
                                                                 <FaHammer className="h-6 w-6" />
@@ -1097,233 +1202,100 @@ const Pedidos = () => {
                 </div >
             </div >
 
-            {/* DRAWER PARA DIRECCIÓN DE ENVÍO */}
+            {/* BARRA FIJA DE CIERRE EN LOTE */}
+            {modoHistorico && activeTab === 'pendientes' && (
+                <div className="fixed bottom-0 left-0 right-0 z-[120] bg-gray-900 text-white shadow-2xl border-t border-gray-700">
+                    <div className="max-w-6xl mx-auto px-4 py-3 flex flex-wrap items-center gap-3">
+                        <div className="flex items-center gap-2">
+                            <input
+                                type="checkbox"
+                                checked={filteredPedidos.length > 0 && filteredPedidos.every(p => seleccionados.includes(p.id_pedido))}
+                                onChange={toggleSeleccionarTodos}
+                                className="h-4 w-4 rounded border-gray-500 bg-gray-800 text-emerald-500 focus:ring-emerald-400 cursor-pointer"
+                            />
+                            <span className="text-xs font-semibold text-gray-300">
+                                {seleccionados.length} seleccionado{seleccionados.length === 1 ? '' : 's'}
+                            </span>
+                        </div>
+                        <p className="text-[11px] text-gray-400 flex-1 min-w-[200px]">
+                            Elige los pedidos ya cobrados/entregados y define su fecha real de cierre.
+                        </p>
+                        <div className="flex gap-2">
+                            <button
+                                type="button"
+                                onClick={salirModoHistorico}
+                                className="h-10 px-4 rounded-lg bg-gray-800 text-gray-200 text-xs font-bold hover:bg-gray-700 transition-colors"
+                            >
+                                Salir
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleCerrarSeleccionados}
+                                disabled={seleccionados.length === 0}
+                                className="h-10 px-5 rounded-lg bg-emerald-500 text-white text-xs font-bold hover:bg-emerald-600 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                            >
+                                Cerrar seleccionados
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* DRAWER PARA DIRECCIÓN DE ENVÍO Y DNI */}
             {showAddressDrawer && (
                 <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-sm transition-opacity">
                     <div className="bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl p-5 pb-8 sm:pb-5 animate-in slide-in-from-bottom duration-300">
                         <div className="w-12 h-1.5 bg-gray-200 rounded-full mx-auto mb-5 sm:hidden"></div>
                         <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2"><FaMapMarkerAlt className="text-blue-500" /> Detalle de Entrega</h3>
 
-                        <textarea
-                            name="direccion_entrega"
-                            value={formData.direccion_entrega}
-                            onChange={handleChange}
-                            placeholder="Ej: Av. Larco 123, Miraflores. Ref: Frente al parque. Recibe: Juan."
-                            rows="4"
-                            className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm font-medium text-gray-800 focus:ring-2 focus:ring-blue-500 mb-4 resize-none"
-                        ></textarea>
+                        <div className="space-y-3 mb-4">
+                            <div>
+                                <label className="text-[10px] font-bold text-gray-600 uppercase tracking-wider block mb-1">DNI / RUC (para envío)</label>
+                                <input
+                                    type="text"
+                                    name="dni_ruc"
+                                    value={formData.dni_ruc || ''}
+                                    onChange={handleChange}
+                                    placeholder="Número de documento..."
+                                    className="w-full h-11 bg-gray-50 border border-gray-200 rounded-xl px-3 text-sm font-medium text-gray-800 focus:ring-2 focus:ring-blue-500"
+                                />
+                            </div>
+                            <div>
+                                <label className="text-[10px] font-bold text-gray-600 uppercase tracking-wider block mb-1">Dirección de Entrega</label>
+                                <textarea
+                                    name="direccion_entrega"
+                                    value={formData.direccion_entrega}
+                                    onChange={handleChange}
+                                    placeholder="Ej: Av. Larco 123, Miraflores. Ref: Frente al parque. Recibe: Juan."
+                                    rows="3"
+                                    className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm font-medium text-gray-800 focus:ring-2 focus:ring-blue-500 resize-none"
+                                ></textarea>
+                            </div>
+                        </div>
 
                         <div className="flex gap-3">
-                            <button type="button" onClick={() => setShowAddressDrawer(false)} className="flex-1 h-12 bg-gray-100 text-gray-600 font-bold rounded-xl text-sm hover:bg-gray-200 transition-colors">Cancelar</button>
-                            <button type="button" onClick={() => setShowAddressDrawer(false)} className="flex-[2] h-12 bg-gray-900 text-white font-bold rounded-xl text-sm shadow-md hover:bg-black transition-colors">Confirmar Dirección</button>
+                            <button type="button" onClick={() => setShowAddressDrawer(false)} className="flex-1 h-12 bg-gray-100 text-gray-600 font-bold rounded-xl text-sm hover:bg-gray-200 transition-colors">Cerrar</button>
+                            <button type="button" onClick={() => setShowAddressDrawer(false)} className="flex-[2] h-12 bg-blue-600 text-white font-bold rounded-xl text-sm shadow-md hover:bg-blue-700 transition-colors">Guardar Datos</button>
                         </div>
                     </div>
                 </div>
             )}
 
-            {/* MODAL VOUCHER IMPRESIÓN (DISEÑO MEJORADO) */}
-            {showPrintModal && printPedido && (
-                <div className="fixed inset-0 bg-gray-900/80 backdrop-blur-sm overflow-y-auto h-full w-full z-[100] flex items-center justify-center p-4">
-                    <div className="bg-white rounded-2xl shadow-2xl w-[98%] sm:max-w-[460px] flex flex-col relative animate-in zoom-in-95 duration-200">
+            {/* Modal de Nota de Pedido (Adelanto / Cancelación) */}
+            <NotaPedido
+                isOpen={showPrintModal}
+                pedido={printPedido}
+                ultimoPago={ultimoPagoRealizado}
+                onClose={closePrintModal}
+            />
 
-                        {/* HEADER ACCIONES */}
-                        <div className="px-4 py-3 flex justify-between items-center bg-gray-50 border-b border-gray-100 rounded-t-2xl">
-                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Vista Previa</span>
-                            <div className="flex gap-2">
-                                <button onClick={async () => {
-                                    const element = document.getElementById('printable-voucher');
-                                    const canvas = await html2canvas(element, { scale: 3, backgroundColor: '#ffffff', useCORS: true });
-                                    canvas.toBlob(async (blob) => {
-                                        const file = new File([blob], `Pedido_${printPedido.id_pedido}.jpg`, { type: 'image/jpeg' });
-                                        if (navigator.canShare && navigator.canShare({ files: [file] })) {
-                                            try { await navigator.share({ files: [file] }); } catch (e) { }
-                                        } else {
-                                            const link = document.createElement('a');
-                                            link.download = `Pedido_${printPedido.id_pedido}.jpg`; link.href = canvas.toDataURL('image/jpeg', 1.0); link.click();
-                                        }
-                                    }, 'image/jpeg', 1.0);
-                                }} className="h-8 w-8 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center hover:bg-blue-200 transition-colors">
-                                    <FaShareAlt size={12} />
-                                </button>
-                                <button onClick={closePrintModal} className="h-8 w-8 bg-gray-200 text-gray-600 rounded-full flex items-center justify-center hover:bg-gray-300 transition-colors">
-                                    <FaTimesCircle size={14} />
-                                </button>
-                            </div>
-                        </div>
-
-                        {/* CONTENIDO DEL VOUCHER (CONTENEDOR SEGURO) */}
-                        <div className="p-6 sm:p-8 bg-white relative overflow-hidden rounded-b-2xl" id="printable-voucher">
-
-                            {/* SELLO DE PAGADO ELIMINADO PARA MANTENER LA VISTA LIMPIA */}
-
-                            {/* TAG DE ESTADO Y FECHA */}
-                            <div className="flex justify-between items-center mb-5 relative z-10">
-                                {printPedido.monto_saldo > 0.05 ? (
-                                    <span className="bg-amber-100 text-amber-800 text-[9px] font-bold px-2 py-0.5 rounded uppercase tracking-wider">En Proceso</span>
-                                ) : (
-                                    <span className="bg-emerald-100 text-emerald-800 text-[9px] font-bold px-2 py-0.5 rounded uppercase tracking-wider">Completado</span>
-                                )}
-                                <span className="text-[11px] font-mono font-bold text-gray-500">
-                                    {formatLocalDate(printPedido.fecha_pedido)}
-                                </span>
-                            </div>
-
-                            {/* HEADER - ROW 2: LOGO & FOLIO (A LA MISMA ALTURA) */}
-                            <div className="flex justify-between items-start mb-6 relative z-10 border-b border-gray-100 pb-4">
-                                <div>
-                                    <p className="text-[12px] font-normal text-gray-600 leading-none mb-1.5">Enigma artesanías y accesorios</p>
-                                    <h1 className="text-base font-bold uppercase tracking-widest text-gray-900 leading-none">NOTA DE PEDIDO</h1>
-                                </div>
-                                <div className="bg-gray-50 border border-gray-200 px-3 py-1.5 rounded">
-                                    <p className="text-[11px] font-bold text-gray-700 font-mono tracking-wide">N° {String(printPedido.id_pedido).padStart(4, '0')}</p>
-                                </div>
-                            </div>
-
-                            {/* CLIENT DETAILS (ICONS) */}
-                            <div className="mb-6 space-y-3 relative z-10">
-                                <div className="flex items-start gap-2.5 text-[15px]">
-                                    <FaUser className="text-gray-400 mt-1 shrink-0" size={13} />
-                                    <span className="font-semibold text-gray-800 capitalize leading-tight">{printPedido.nombre_cliente.toLowerCase()}</span>
-                                </div>
-                                {printPedido.telefono && (
-                                    <div className="flex items-center gap-2.5 text-sm">
-                                        <FaPhone className="text-gray-400 shrink-0" size={13} />
-                                        <span className="text-gray-600">{printPedido.telefono}</span>
-                                    </div>
-                                )}
-                                {printPedido.requiere_envio && printPedido.direccion_entrega && (
-                                    <div className="flex items-start gap-2.5 text-sm">
-                                        <FaMapMarkerAlt className="text-gray-400 mt-1 shrink-0" size={13} />
-                                        <span className="text-gray-600 leading-snug">{printPedido.direccion_entrega}</span>
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* PRODUCTS LIST */}
-                            <div className="mb-7 relative z-10">
-                                <div className="space-y-3.5">
-                                    {printPedido.detalles_pedido.map((d, index) => (
-                                        <div key={index} className="flex justify-between text-sm items-start">
-                                            <div className="pr-2 leading-tight">
-                                                <span className="font-bold text-gray-800">{d.cantidad}x </span>
-                                                <span className="text-gray-700">{d.nombre_producto}</span>
-                                                <span className="text-[10px] text-gray-400 block mt-1">({d.metal})</span>
-                                            </div>
-                                            <span className="font-semibold text-gray-800 pt-0.5 whitespace-nowrap">S/ {(d.cantidad * d.precio_unitario).toFixed(2)}</span>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-
-                            {/* TOTALS & SHIPPING */}
-                            <div className="border-t border-gray-200 pt-5 space-y-2 relative z-10 bg-transparent">
-                                <div className="flex justify-between text-sm text-gray-500">
-                                    <span>Subtotal</span>
-                                    <span>S/ {printPedido.precio_total_sin_igv.toFixed(2)}</span>
-                                </div>
-
-                                {printPedido.requiere_envio && (
-                                    <div className="flex justify-between text-sm text-gray-500">
-                                        <span>Envío {printPedido.envio_pago_pendiente && printPedido.envio_cobrado_al_cliente === 0 ? '(Pago en destino)' : ''}</span>
-                                        <span>S/ {printPedido.envio_cobrado_al_cliente.toFixed(2)}</span>
-                                    </div>
-                                )}
-
-                                {printPedido.incluye_igv && (
-                                    <div className="flex justify-between text-sm text-gray-500">
-                                        <span>IGV (18%)</span>
-                                        <span>S/ {printPedido.monto_igv.toFixed(2)}</span>
-                                    </div>
-                                )}
-
-                                <div className="flex justify-between font-bold text-base text-gray-900 pt-3 mt-3 border-t border-gray-100">
-                                    <span>TOTAL</span>
-                                    <span>S/ {printPedido.precio_total.toFixed(2)}</span>
-                                </div>
-
-                                {/* ESTADOS FINALES DE BALANCE */}
-                                {printPedido.monto_saldo > 0.05 ? (
-                                    <>
-                                        <div className="flex justify-between text-sm text-gray-500 mt-2">
-                                            <span>A Cuenta</span>
-                                            <span>- S/ {printPedido.monto_a_cuenta.toFixed(2)}</span>
-                                        </div>
-                                        <div className="flex justify-between items-center font-black text-base text-red-600 bg-red-50 px-3 py-2.5 rounded mt-3 border border-red-100">
-                                            <span className="uppercase tracking-wide text-[11px]">Saldo Pendiente</span>
-                                            <span>S/ {printPedido.monto_saldo.toFixed(2)}</span>
-                                        </div>
-                                    </>
-                                ) : (
-                                    <div className="mt-5 bg-emerald-50 border border-emerald-100 rounded-xl p-3 flex items-center justify-center gap-2">
-                                        <FaCheckCircle className="text-emerald-500" size={16} />
-                                        <div className="text-center">
-                                            <span className="block font-bold text-emerald-700 text-xs py-0.5 uppercase tracking-widest leading-none">Totalmente Pagado</span>
-                                            <span className="block text-[10px] text-emerald-600 mt-1.5 leading-none">Gracias por tu compra</span>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Modal de Pago Rápido */}
-            {showPayModal && payPedido && (
-                <div className="fixed inset-0 bg-gray-600 bg-opacity-75 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
-                    <div className="bg-white rounded-lg shadow-xl w-full max-w-md flex flex-col">
-                        <div className="px-6 py-4 border-b flex justify-between items-center bg-gray-50 rounded-t-lg">
-                            <h3 className="text-lg font-bold text-gray-800">Registrar Pago / Adelanto</h3>
-                            <button onClick={handleClosePayModal} className="text-gray-600 hover:text-gray-800">
-                                <FaTimesCircle size={24} />
-                            </button>
-                        </div>
-                        <div className="p-6">
-                            <p className="mb-4 text-sm text-gray-600">
-                                Cliente: <span className="font-bold">{payPedido.nombre_cliente}</span><br />
-                                Saldo Pendiente: <span className="font-bold text-red-600">S/ {payPedido.monto_saldo.toFixed(2)}</span>
-                            </p>
-
-                            <div className="space-y-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700">Monto a Pagar</label>
-                                    <input
-                                        type="number" step="0.01" value={payData.monto}
-                                        onChange={(e) => setPayData({ ...payData, monto: e.target.value })}
-                                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700">Fecha</label>
-                                    <input
-                                        type="date" value={payData.fecha}
-                                        onChange={(e) => setPayData({ ...payData, fecha: e.target.value })}
-                                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700">Método de Pago</label>
-                                    <select
-                                        value={payData.metodo}
-                                        onChange={(e) => setPayData({ ...payData, metodo: e.target.value })}
-                                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2"
-                                    >
-                                        <option value="Efectivo">Efectivo</option>
-                                        <option value="Yape">Yape</option>
-                                        <option value="Plin">Plin</option>
-                                        <option value="Transferencia">Transferencia</option>
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-                        <div className="px-6 py-4 border-t bg-gray-50 rounded-b-lg flex justify-end space-x-3">
-                            <button onClick={handleClosePayModal} className="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400">Cancelar</button>
-                            <button onClick={handleQuickPay} className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">Confirmar Pago</button>
-                        </div>
-                    </div>
-                </div>
-            )}
+            {/* Modal de Cobro de Saldo / Abono */}
+            <PagoModal
+                isOpen={showPayModal}
+                pedido={payPedido}
+                onClose={handleClosePayModal}
+                onSuccess={handlePagoSuccess}
+            />
 
             {/* Popup Pedido Cancelado */}
             {showCancelAlert && calculos.cancelado && (
@@ -1335,42 +1307,18 @@ const Pedidos = () => {
                 </div>
             )}
 
-            {/* Modal de Cambio de Estado */}
-            {showEstadoModal && estadoPedido && (
-                <div className="fixed inset-0 bg-gray-600 bg-opacity-75 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
-                    <div className="relative bg-white rounded-lg shadow-xl max-w-md w-full p-6">
-                        <h3 className="text-lg font-bold mb-4 text-gray-900">Cambiar Estado del Pedido</h3>
-                        <div className="mb-4 p-3 bg-gray-100 rounded">
-                            <p className="text-sm text-gray-600"><strong>Cliente:</strong> {estadoPedido.nombre_cliente}</p>
-                            <p className="text-sm text-gray-600"><strong>Fecha:</strong> {new Date(estadoPedido.fecha_pedido).toLocaleDateString()}</p>
-                        </div>
-                        <div className="mb-4">
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Estado del Pedido</label>
-                            <select value={nuevoEstadoPedido} onChange={(e) => setNuevoEstadoPedido(e.target.value)} className="w-full border border-gray-300 rounded-md px-3 py-2">
-                                <option value="aceptado">🔵 Aceptado</option>
-                                <option value="entregado">🟢 Entregado</option>
-                            </select>
-                        </div>
-                        <div className="mb-6">
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Estado de Producción</label>
-                            <select value={nuevoEstadoProduccion} onChange={(e) => setNuevoEstadoProduccion(e.target.value)} className="w-full border border-gray-300 rounded-md px-3 py-2">
-                                <option value="no_iniciado">🟡 No iniciado</option>
-                                <option value="en_proceso">🔵 En proceso</option>
-                                <option value="terminado">🟢 Terminado</option>
-                            </select>
-                        </div>
-                        {nuevoEstadoPedido === 'entregado' && nuevoEstadoProduccion !== 'terminado' && (
-                            <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded">
-                                <p className="text-sm text-yellow-800">⚠️ <strong>Nota:</strong> Si un pedido está entregado, la producción debería estar terminada.</p>
-                            </div>
-                        )}
-                        <div className="flex justify-end space-x-3">
-                            <button onClick={() => setShowEstadoModal(false)} className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300">Cancelar</button>
-                            <button className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Actualizar Estado</button>
-                        </div>
-                    </div>
-                </div>
-            )}
+            {/* Cierre histórico: vista previa y ejecución */}
+            <CerrarPedidoModal
+                isOpen={showCerrarModal}
+                pedidos={pedidosACerrar}
+                fechaInicial={getLocalDate()}
+                metodoInicial="Efectivo"
+                onClose={() => {
+                    setShowCerrarModal(false);
+                    setPedidosACerrar([]);
+                }}
+                onSuccess={handleCerrarSuccess}
+            />
 
             {/* Modal de Confirmación de Pedido Ingresado */}
             {showSuccessModal && (
@@ -1383,6 +1331,63 @@ const Pedidos = () => {
                         </div>
                         <h2 className="text-2xl font-bold text-gray-800 mb-2">PEDIDO INGRESADO</h2>
                         <p className="text-gray-600">El pedido ha sido registrado exitosamente</p>
+                    </div>
+                </div>
+            )}
+
+            {/* MODAL RÁPIDO: NUEVO CLIENTE */}
+            {showModalNuevoCliente && (
+                <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-5 space-y-4 animate-in zoom-in-95 duration-200">
+                        <div className="flex justify-between items-center">
+                            <h3 className="text-base font-bold text-gray-800">Nuevo Cliente</h3>
+                            <button type="button" onClick={cerrarModalNuevoCliente} className="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-100">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+                        <div className="space-y-3">
+                            <div>
+                                <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block mb-1">Nombre *</label>
+                                <input
+                                    type="text"
+                                    value={nuevoClienteForm.nombre}
+                                    onChange={e => setNuevoClienteForm(prev => ({ ...prev, nombre: e.target.value }))}
+                                    className="w-full h-12 bg-gray-50 rounded-xl px-4 text-sm font-medium text-gray-900 ring-1 ring-gray-200 border-none focus:ring-2 focus:ring-blue-500 outline-none"
+                                    placeholder="Nombre completo"
+                                    autoFocus
+                                />
+                            </div>
+                            <div>
+                                <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block mb-1">Teléfono *</label>
+                                <input
+                                    type="tel"
+                                    inputMode="numeric"
+                                    value={nuevoClienteForm.telefono}
+                                    onChange={e => setNuevoClienteForm(prev => ({ ...prev, telefono: e.target.value }))}
+                                    className="w-full h-12 bg-gray-50 rounded-xl px-4 text-sm font-medium text-gray-900 ring-1 ring-gray-200 border-none focus:ring-2 focus:ring-blue-500 outline-none"
+                                    placeholder="Número de celular"
+                                />
+                            </div>
+                        </div>
+                        <div className="flex gap-3 pt-1">
+                            <button
+                                type="button"
+                                onClick={cerrarModalNuevoCliente}
+                                className="flex-1 h-11 rounded-xl border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors"
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleGuardarNuevoCliente}
+                                disabled={savingCliente}
+                                className="flex-1 h-11 rounded-xl bg-blue-600 text-white text-sm font-bold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
+                            >
+                                {savingCliente ? 'Guardando...' : 'Guardar'}
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

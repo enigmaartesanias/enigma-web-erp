@@ -231,12 +231,72 @@ export const pedidosDB = {
     return pago;
   },
 
+  // Registrar pago y actualizar saldo del pedido (atómico con sql.transaction si está disponible)
+  async registrarPagoYActualizarPedido({ id_pedido, monto, fecha_pago, metodo_pago, nuevo_monto_a_cuenta, nuevo_monto_saldo, cancelado }) {
+    if (typeof sql.transaction === 'function') {
+      try {
+        const [pagoRes, pedidoRes] = await sql.transaction([
+          sql`
+            INSERT INTO pagos (id_pedido, monto, fecha_pago, metodo_pago, referencia)
+            VALUES (${id_pedido}, ${monto}, ${fecha_pago}, ${metodo_pago}, '')
+            RETURNING *
+          `,
+          sql`
+            UPDATE pedidos
+            SET monto_a_cuenta = ${nuevo_monto_a_cuenta},
+                monto_saldo = ${nuevo_monto_saldo},
+                cancelado = ${cancelado},
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id_pedido = ${id_pedido}
+            RETURNING *
+          `
+        ]);
+        const pago = Array.isArray(pagoRes) ? pagoRes[0] : pagoRes;
+        const pedido = Array.isArray(pedidoRes) ? pedidoRes[0] : pedidoRes;
+        return { pago, pedido };
+      } catch (txError) {
+        console.warn('Fallo sql.transaction, ejecutando secuencial:', txError);
+      }
+    }
+
+    // Fallback secuencial
+    const [pago] = await sql`
+      INSERT INTO pagos (id_pedido, monto, fecha_pago, metodo_pago, referencia)
+      VALUES (${id_pedido}, ${monto}, ${fecha_pago}, ${metodo_pago}, '')
+      RETURNING *
+    `;
+    const [pedido] = await sql`
+      UPDATE pedidos
+      SET monto_a_cuenta = ${nuevo_monto_a_cuenta},
+          monto_saldo = ${nuevo_monto_saldo},
+          cancelado = ${cancelado},
+          updated_at = CURRENT_TIMESTAMP
+      WHERE id_pedido = ${id_pedido}
+      RETURNING *
+    `;
+    return { pago, pedido };
+  },
+
   // Actualizar estado del pedido
   async updateEstadoPedido(id, nuevoEstado, fechaEntrega = null) {
     const [pedido] = await sql`
       UPDATE pedidos 
       SET estado_pedido = ${nuevoEstado},
           fecha_entrega = ${nuevoEstado === 'entregado' && fechaEntrega ? fechaEntrega : sql`fecha_entrega`}
+      WHERE id_pedido = ${id}
+      RETURNING *
+    `;
+    return pedido;
+  },
+
+  // Cierre histórico: marca entregado con la fecha elegida, sin tocar producción
+  async cerrarPedido(id, { fecha_entrega = null, cancelado = true } = {}) {
+    const [pedido] = await sql`
+      UPDATE pedidos
+      SET estado_pedido = 'entregado',
+          fecha_entrega = ${fecha_entrega},
+          cancelado = ${cancelado},
+          updated_at = CURRENT_TIMESTAMP
       WHERE id_pedido = ${id}
       RETURNING *
     `;

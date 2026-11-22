@@ -41,8 +41,11 @@ const AndruDonaldsCollection = () => {
     }, []);
 
     const sliderSettings = {
-        dots: true,
-        infinite: images.length > 3,
+        dots: false,                          // sin puntitos
+        arrows: false,
+        centerMode: images.length > 2,        // imagen activa al centro, vecinas asomándose
+        centerPadding: '48px',                // cuánto se asoma cada lado
+        infinite: images.length > 1,          // para que haya vecina también en la primera/última
         speed: 800,
         slidesToShow: Math.min(images.length, 3) || 1,
         slidesToScroll: 1,
@@ -55,15 +58,15 @@ const AndruDonaldsCollection = () => {
                 breakpoint: 1024,
                 settings: {
                     slidesToShow: Math.min(images.length, 2) || 1,
-                    infinite: images.length > 2
+                    centerPadding: '60px',
                 }
             },
             {
                 breakpoint: 640,
                 settings: {
                     slidesToShow: 1,
-                    centerMode: false,
-                    infinite: images.length > 1
+                    centerMode: images.length > 2,
+                    centerPadding: '48px',
                 }
             }
         ]
@@ -190,7 +193,7 @@ const AndruDonaldsCollection = () => {
                         <Slider {...sliderSettings} className="andru-slider">
                             {images.map((img) => (
                                 <div key={img.id} style={{ outline: 'none', padding: '0 8px' }}>
-                                    <div style={{ borderRadius: '10px', overflow: 'hidden', border: `0.5px solid rgba(200,150,74,0.3)`, aspectRatio: '4/5', position: 'relative', maxWidth: '280px', margin: '0 auto' }}>
+                                    <div style={{ borderRadius: '10px', overflow: 'hidden', border: `0.5px solid rgba(200,150,74,0.3)`, aspectRatio: '4/5', position: 'relative', width: '100%' }}>
                                         <img
                                             src={img.image_url}
                                             alt="Andru Donalds con joyas Enigma"
@@ -301,11 +304,7 @@ const AndruDonaldsCollection = () => {
                     </div>
 
                     {/* Frase de cierre */}
-                    <div style={{ marginTop: '32px', borderLeft: `3px solid ${GOLD}`, padding: '14px 18px', background: 'rgba(200,150,74,0.07)', borderRadius: '0 8px 8px 0' }}>
-                        <p style={{ fontSize: '13px', fontStyle: 'italic', color: CREAM, margin: 0, lineHeight: 1.7 }}>
-                            "Cada pieza toma un día entero de taller y más de 25 años de oficio. Ese es el precio."
-                        </p>
-                    </div>
+
                 </section>
             )}
 
@@ -372,9 +371,18 @@ const AndruDonaldsCollection = () => {
 
             <style>{`
                 @keyframes spin { to { transform: rotate(360deg); } }
-                .andru-slider .slick-dots li button:before { color: rgba(200,150,74,0.4); font-size: 8px; }
-                .andru-slider .slick-dots li.slick-active button:before { color: #c8964a; }
                 .andru-slider .slick-track { display: flex; align-items: center; }
+
+                /* Carrusel: la imagen central resalta, las laterales se atenúan */
+                .andru-slider .slick-slide > div { transition: transform 0.6s ease, opacity 0.6s ease; }
+                .andru-slider .slick-slide:not(.slick-center) > div {
+                    opacity: 0.45;
+                    transform: scale(0.92);
+                }
+                .andru-slider .slick-slide.slick-center > div {
+                    opacity: 1;
+                    transform: scale(1);
+                }
 
                 /* Zoom en grid de piezas */
                 .andru-prod-card:hover .andru-prod-img {

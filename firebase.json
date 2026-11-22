@@ -43,18 +43,6 @@
         "destination": "/robots.txt"
       },
       {
-        "source": "/api/share/product/:id",
-        "function": "shareProduct"
-      },
-      {
-        "source": "/producto/:id",
-        "function": "shareProduct"
-      },
-      {
-        "source": "/catalogo/**",
-        "function": "shareCatalog"
-      },
-      {
         "source": "**",
         "destination": "/index.html"
       }
@@ -105,8 +93,5 @@
         ]
       }
     ]
-  },
-  "functions": {
-    "source": "functions"
   }
 }

@@ -80,7 +80,7 @@ const Contacto = () => {
             Enigma Artesanías y Accesorios
           </h2>
           <p className="text-gray-600 space-y-2">
-            <span className="block">Dirección: Jr. Madre Selva 544 Tda. 02 - Urb. Santa Isabel - Carabayllo</span>
+
             <span className="block">Lima - Perú</span>
             <span className="block">
               Whatsapp: <a href="https://wa.me/51960282376" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline font-medium">+51 960282376</a>
@@ -90,19 +90,7 @@ const Contacto = () => {
         </div>
       </div>
 
-      <div className="mt-8">
-        <button
-          onClick={handleShareImage}
-          disabled={isGenerating}
-          className={`inline-flex items-center px-6 py-2 rounded-full shadow transition-colors text-sm font-medium ${isGenerating
-              ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-              : 'bg-white text-gray-800 hover:bg-gray-50 border border-gray-200'
-            }`}
-        >
-          <FaImage className="mr-2" />
-          {isGenerating ? 'Cargando...' : 'Compartir Imagen'}
-        </button>
-      </div>
+
     </section>
   );
 };

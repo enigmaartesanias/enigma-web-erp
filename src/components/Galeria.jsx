@@ -36,7 +36,8 @@ const MATERIAL_CARDS = [
         image: "/images/pulsera3.jpg",
         categories: COBRE_CATEGORIES,
         allRoute: "/cobre#coleccion",
-        allLabel: "Ver historia de la colección",
+        // Antes faltaba: el enlace del panel mostraba solo la flecha "→"
+        allLabel: "Ver toda la colección",
     },
     {
         name: "Colección Alpaca",
@@ -57,6 +58,9 @@ const MATERIAL_CARDS = [
         allLabel: "Ver toda la colección",
     },
 ];
+
+// Texto de la fila que invita a abrir el menú (tarjeta cerrada)
+const OPEN_LABEL = "Ver toda la colección";
 
 // ==========================================
 // 2. OVERLAY DE IMAGEN UNIFORME (reutilizable)
@@ -94,17 +98,36 @@ const CollageThumb = ({ src, alt }) => (
 );
 
 // ==========================================
+// 2.b TÍTULO DE TARJETA (arriba de la imagen, alineado a la izquierda)
+// Se usa igual en mobile y desktop. Es clickeable para abrir/cerrar.
+// ==========================================
+const CardTitle = ({ title, onToggle }) => (
+    <div
+        onClick={onToggle}
+        style={{
+            padding: '0 2px 10px',
+            cursor: 'pointer',
+            textAlign: 'left',
+        }}
+    >
+        <p style={{
+            fontFamily: "'Cormorant Garamond', serif",
+            fontSize: '24px',
+            fontWeight: '400',
+            color: '#1a1008',
+            letterSpacing: '0.02em',
+            lineHeight: 1.15,
+            margin: 0,
+        }}>
+            {title}
+        </p>
+    </div>
+);
+
+// ==========================================
 // 3. LISTA DE CATEGORÍAS (texto plano, sin cajas)
 // Compartida entre el modo mobile (panel lateral) y el modo
 // desktop (acordeón inferior refinado).
-//
-// Ajuste de compactación (menú deslizante mobile):
-// - padding vertical reducido 12px -> 9px (menos separación entre enlaces)
-// - fontSize subido 15px -> 16px (enlaces directos, más presencia)
-// - lineHeight agregado (1.4) para que el texto más grande no se vea
-//   apretado pese al padding reducido
-// - borderBottom más sutil (opacidad), funciona como divisor fino
-// - chevron reducido y en gris neutro para no competir con el texto
 // ==========================================
 const CategoryList = ({ categories, materialCapitalized, allRoute, allLabel }) => (
     <div style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
@@ -116,19 +139,19 @@ const CategoryList = ({ categories, materialCapitalized, allRoute, allLabel }) =
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
-                    padding: '9px 2px',
+                    padding: '8px 2px',
                     borderBottom: idx === categories.length - 1 ? 'none' : '0.5px solid rgba(237,233,228,0.7)',
-                    fontFamily: "'Inter', sans-serif",
-                    fontSize: '16px',
+                    fontFamily: "'Cormorant Garamond', serif",
+                    fontSize: '22px',
                     fontWeight: '500',
-                    lineHeight: '1.4',
-                    letterSpacing: '0.01em',
-                    color: '#241508',
+                    lineHeight: '1.3',
+                    letterSpacing: '0.02em',
+                    color: '#2a2018',
                     textDecoration: 'none',
-                    transition: 'color 0.18s ease',
+                    transition: 'color 0.18s ease, transform 0.18s ease',
                 }}
-                onMouseEnter={e => e.currentTarget.style.color = '#b07d35'}
-                onMouseLeave={e => e.currentTarget.style.color = '#241508'}
+                onMouseEnter={e => { e.currentTarget.style.color = '#c8964a'; e.currentTarget.style.transform = 'translateX(4px)'; }}
+                onMouseLeave={e => { e.currentTarget.style.color = '#2a2018'; e.currentTarget.style.transform = 'translateX(0)'; }}
             >
                 <span>{cat.name}</span>
                 <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -142,7 +165,6 @@ const CategoryList = ({ categories, materialCapitalized, allRoute, allLabel }) =
                             flexShrink: 0,
                         }} />
                     )}
-                    <span style={{ color: '#a8a29e', fontSize: '13px', fontWeight: 'bold', lineHeight: 1 }}>›</span>
                 </span>
             </Link>
         ))}
@@ -163,11 +185,11 @@ const CategoryList = ({ categories, materialCapitalized, allRoute, allLabel }) =
                     fontWeight: '600',
                     letterSpacing: '0.16em',
                     textTransform: 'uppercase',
-                    color: '#78716c',
+                    color: '#b07d35',
                     textDecoration: 'none',
                 }}
                 onMouseEnter={e => e.currentTarget.style.color = '#c8964a'}
-                onMouseLeave={e => e.currentTarget.style.color = '#78716c'}
+                onMouseLeave={e => e.currentTarget.style.color = '#b07d35'}
             >
                 {allLabel} &nbsp;→
             </Link>
@@ -193,29 +215,27 @@ const AccordionCard = ({ card, open, onToggle }) => {
     }, []);
 
     // Altura base del panel mobile. Se calcula según el número de categorías
-    // para que el salto al abrir sea sutil. Cada fila ahora ocupa ~39px
-    // (9px padding arriba+abajo + ~22px texto a 16px/1.4 + 0.5px borde),
-    // más ~94px para el header "Explorar"+botón cerrar y el pie compacto
-    // (título + "ver historia"). Con 4 categorías (Alpaca/Plata) ≈ 250px.
-    // Con 6 (Cobre) ≈ 328px.
-    const categoryRowHeight = 39;
-    const panelChrome = 94; // header "Explorar"+cerrar + pie título/historia + paddings
+    // para que el salto al abrir sea sutil. Cada fila ocupa ~45px
+    // (8px padding arriba+abajo + ~29px texto a 22px/1.3 + 0.5px borde),
+    // más ~74px para el botón cerrar (X) y el pie compacto
+    // (solo el enlace "Ver toda la colección").
+    const categoryRowHeight = 45;
+    const panelChrome = 74;
     const calculatedPanelHeight = categories.length * categoryRowHeight + panelChrome;
     const mobileBaseHeight = Math.max(200, calculatedPanelHeight);
 
     const materialCapitalized = key.charAt(0).toUpperCase() + key.slice(1);
 
-    // Solo hay 1 imagen disponible por colección (Firebase Hosting), no 4.
-    // En vez de simular un collage repitiendo la misma foto, se muestra una
-    // única imagen a ancho completo con el overlay de gradiente de marca.
-
     // ──────────────────────────────────────────────
-    // MODO MOBILE: collage se comprime lateralmente,
-    // panel de texto aparece a la derecha.
+    // MODO MOBILE: título arriba, collage se comprime
+    // lateralmente, panel de texto aparece a la derecha.
     // ──────────────────────────────────────────────
     if (isMobile) {
         return (
             <div className="w-full">
+                {/* Título arriba, alineado a la izquierda */}
+                <CardTitle title={title} onToggle={onToggle} />
+
                 <div
                     style={{
                         display: 'flex',
@@ -229,24 +249,23 @@ const AccordionCard = ({ card, open, onToggle }) => {
                         transition: 'min-height 0.32s ease-in-out',
                     }}
                 >
-                    {/* Imagen: se comprime a una franja ancla cuando está abierto.
-                        La altura base (mobileBaseHeight) ya contempla el número
-                        de categorías de esta tarjeta, así el salto al abrir es
-                        sutil en vez de un brinco vertical brusco. */}
+                    {/* Imagen: se comprime a una franja ancla cuando está abierto. */}
                     <div
                         onClick={onToggle}
                         style={{
                             position: 'relative',
-                            flex: open ? '0 0 36px' : '1 1 100%',
+                            flex: open ? '0 0 40px' : '1 1 100%',
                             transition: 'flex-basis 0.32s ease-in-out',
                             height: open ? '100%' : `${mobileBaseHeight}px`,
                             minHeight: open ? `${mobileBaseHeight}px` : undefined,
                             overflow: 'hidden',
                         }}
                     >
-                        <CollageThumb src={image} alt={title} />
+                        <div style={{ position: 'absolute', inset: 0 }}>
+                            <CollageThumb src={image} alt={title} />
+                        </div>
 
-                        {/* Indicador de deslizar/expandir — visible siempre en estado cerrado */}
+                        {/* Indicador de deslizar/expandir — visible en estado cerrado */}
                         {!open && (
                             <div style={{
                                 position: 'absolute',
@@ -269,9 +288,8 @@ const AccordionCard = ({ card, open, onToggle }) => {
                     </div>
 
                     {/* Panel de categorías: solo ocupa espacio cuando está abierto.
-                        overflow visible (no 'hidden') para que las listas largas
-                        como Cobre (6 categorías) no se corten — la fila padre
-                        crece con height:'auto' para acomodar el contenido real. */}
+                        overflow visible para que listas largas (Cobre, 6 categorías)
+                        no se corten. */}
                     <div
                         onClick={onToggle}
                         style={{
@@ -288,23 +306,10 @@ const AccordionCard = ({ card, open, onToggle }) => {
                             <div style={{
                                 display: 'flex',
                                 alignItems: 'center',
-                                justifyContent: 'space-between',
-                                marginBottom: '8px',
+                                justifyContent: 'flex-end',
+                                marginBottom: '2px',
                             }}>
-                                <p style={{
-                                    fontFamily: "'Inter', sans-serif",
-                                    fontSize: '10px',
-                                    fontWeight: '600',
-                                    letterSpacing: '0.16em',
-                                    textTransform: 'uppercase',
-                                    color: '#78716c',
-                                    margin: 0,
-                                }}>
-                                    Explorar
-                                </p>
-                                {/* Botón de cierre explícito: el usuario debe poder
-                                    ver claramente cómo cerrar el panel, sin depender
-                                    de adivinar que la franja de imagen es clickeable. */}
+                                {/* Botón de cierre: X fina, área de toque de 30px */}
                                 <button
                                     type="button"
                                     onClick={(e) => { e.stopPropagation(); onToggle(); }}
@@ -312,8 +317,7 @@ const AccordionCard = ({ card, open, onToggle }) => {
                                     style={{
                                         width: '30px',
                                         height: '30px',
-                                        borderRadius: '50%',
-                                        background: '#f0eae1',
+                                        background: 'transparent',
                                         border: 'none',
                                         display: 'flex',
                                         alignItems: 'center',
@@ -321,16 +325,15 @@ const AccordionCard = ({ card, open, onToggle }) => {
                                         cursor: 'pointer',
                                         flexShrink: 0,
                                         padding: 0,
+                                        color: '#8a7f73',
+                                        transition: 'color 0.18s ease',
                                     }}
+                                    onMouseEnter={e => e.currentTarget.style.color = '#c8964a'}
+                                    onMouseLeave={e => e.currentTarget.style.color = '#8a7f73'}
                                 >
-                                    <span style={{
-                                        fontSize: '35px',
-                                        fontWeight: '700',
-                                        color: '#5f5e5a',
-                                        lineHeight: 20,
-                                    }}>
-                                        ×
-                                    </span>
+                                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" aria-hidden="true">
+                                        <path d="M3 3l10 10M13 3L3 13" />
+                                    </svg>
                                 </button>
                             </div>
                         )}
@@ -345,34 +348,20 @@ const AccordionCard = ({ card, open, onToggle }) => {
                             )}
                         </div>
 
-                        {/* Pie compacto del panel abierto: título de colección y
-                            "ver historia" en una sola fila, en vez de 3 bloques
-                            apilados (link / "Colección" / título), que generaba
-                            demasiada altura y se sentía desordenado. */}
+                        {/* Pie compacto del panel abierto: solo el enlace a la
+                            colección completa (el título ya está arriba). */}
                         {open && (
                             <div
                                 onClick={(e) => e.stopPropagation()}
                                 style={{
                                     display: 'flex',
-                                    alignItems: 'baseline',
-                                    justifyContent: 'space-between',
-                                    flexWrap: 'wrap',
-                                    gap: '8px',
+                                    alignItems: 'center',
+                                    justifyContent: 'flex-start',
                                     marginTop: '8px',
                                     paddingTop: '10px',
                                     borderTop: '0.5px solid #ede9e4',
                                 }}
                             >
-                                <p style={{
-                                    fontFamily: "'Cormorant Garamond', serif",
-                                    fontSize: '18px',
-                                    fontWeight: '400',
-                                    color: '#1a1008',
-                                    letterSpacing: '0.02em',
-                                    margin: 0,
-                                }}>
-                                    {title}
-                                </p>
                                 <Link
                                     to={allRoute}
                                     style={{
@@ -381,52 +370,19 @@ const AccordionCard = ({ card, open, onToggle }) => {
                                         fontWeight: '600',
                                         letterSpacing: '0.1em',
                                         textTransform: 'uppercase',
-                                        color: '#78716c',
+                                        color: '#b07d35',
                                         textDecoration: 'none',
                                         whiteSpace: 'nowrap',
-                                        flexShrink: 0,
                                     }}
                                 >
-                                    {allLabel} →
+                                    {allLabel || OPEN_LABEL} →
                                 </Link>
                             </div>
                         )}
                     </div>
                 </div>
 
-                {/* Cabecera de texto: solo visible cuando el panel está cerrado.
-                    Cuando está abierto, el título ya se muestra dentro del
-                    panel (pie compacto junto al link "ver historia"), para
-                    no apilar 3 bloques de texto y reducir la altura total. */}
-                {!open && (
-                    <div className="flex items-center px-1 pt-3 pb-1 cursor-pointer" onClick={onToggle}>
-                        <div>
-                            <p style={{
-                                fontFamily: "'Inter', sans-serif",
-                                fontSize: '10px',
-                                fontWeight: '600',
-                                letterSpacing: '0.22em',
-                                textTransform: 'uppercase',
-                                color: '#c8964a',
-                                margin: '0 0 2px',
-                            }}>
-                                Colección
-                            </p>
-                            <p style={{
-                                fontFamily: "'Cormorant Garamond', serif",
-                                fontSize: '20px',
-                                fontWeight: '400',
-                                color: '#1a1008',
-                                letterSpacing: '0.02em',
-                                margin: 0,
-                            }}>
-                                {title}
-                            </p>
-                        </div>
-                    </div>
-                )}
-
-                {/* Texto invitación cuando está cerrado */}
+                {/* Invitación para abrir el menú: solo cuando está cerrado */}
                 {!open && (
                     <div
                         onClick={onToggle}
@@ -435,9 +391,7 @@ const AccordionCard = ({ card, open, onToggle }) => {
                             alignItems: 'center',
                             justifyContent: 'center',
                             gap: '6px',
-                            padding: '6px 0 2px',
-                            borderTop: '0.5px solid #f0ede9',
-                            marginTop: '4px',
+                            padding: '8px 0 2px',
                             cursor: 'pointer',
                         }}
                     >
@@ -449,7 +403,7 @@ const AccordionCard = ({ card, open, onToggle }) => {
                             textTransform: 'uppercase',
                             color: '#b07d35',
                         }}>
-                            Desliza para explorar categorías
+                            {OPEN_LABEL}
                         </span>
                         <span style={{ color: '#b07d35', fontSize: '11px', lineHeight: 1, fontWeight: 'bold' }}>‹</span>
                     </div>
@@ -459,116 +413,60 @@ const AccordionCard = ({ card, open, onToggle }) => {
     }
 
     // ──────────────────────────────────────────────
-    // MODO DESKTOP: acordeón vertical refinado.
-    // Mismo mecanismo de apertura (maxHeight) que antes,
-    // pero la lista de categorías ahora es texto plano
-    // (CategoryList) en vez de cajas con fondo y borde.
+    // MODO DESKTOP: título arriba, imagen, fila con
+    // "Ver toda la colección" y acordeón vertical.
+    // Se eliminó la pill "Explorar" de la imagen.
     // ──────────────────────────────────────────────
     return (
         <div className="w-full">
-            {/* Imagen con pill superpuesto */}
+            {/* Título arriba, alineado a la izquierda */}
+            <CardTitle title={title} onToggle={onToggle} />
+
+            {/* Imagen */}
             <div
                 className="relative w-full rounded-xl overflow-hidden cursor-pointer shadow-sm"
-                style={{ height: '260px' }}
+                style={{ height: '220px' }}
                 onClick={onToggle}
             >
                 <CollageThumb src={image} alt={title} />
+            </div>
 
-                {/* Pill Explorar / Cerrar */}
-                <div style={{
-                    position: 'absolute',
-                    bottom: '12px',
-                    right: '12px',
-                    background: 'rgba(26,14,6,0.82)',
-                    backdropFilter: 'blur(4px)',
-                    borderRadius: '20px',
-                    padding: '6px 14px',
+            {/* Fila de invitación: el chevron rota al abrir */}
+            <div
+                onClick={onToggle}
+                style={{
                     display: 'flex',
                     alignItems: 'center',
+                    justifyContent: 'center',
                     gap: '6px',
-                    pointerEvents: 'none',
+                    padding: '8px 0 2px',
+                    cursor: 'pointer',
+                }}
+            >
+                <span style={{
+                    fontFamily: "'Inter', sans-serif",
+                    fontSize: '10px',
+                    fontWeight: '600',
+                    letterSpacing: '0.14em',
+                    textTransform: 'uppercase',
+                    color: '#b07d35',
                 }}>
-                    <span style={{
-                        fontFamily: "'Inter', sans-serif",
-                        fontSize: '9px',
-                        fontWeight: '600',
-                        letterSpacing: '0.18em',
-                        textTransform: 'uppercase',
-                        color: '#f5f1ec',
-                    }}>
-                        {open ? 'Cerrar' : 'Explorar'}
-                    </span>
-                    <span style={{
-                        fontSize: '11px',
-                        color: '#c8964a',
-                        transition: 'transform 0.3s ease',
-                        transform: open ? 'rotate(180deg)' : 'rotate(0deg)',
-                        display: 'inline-block',
-                        lineHeight: 1,
-                        fontWeight: 'bold'
-                    }}>
-                        ⌄
-                    </span>
-                </div>
+                    {OPEN_LABEL}
+                </span>
+                <span style={{
+                    color: '#b07d35',
+                    fontSize: '11px',
+                    lineHeight: 1,
+                    fontWeight: 'bold',
+                    display: 'inline-block',
+                    transition: 'transform 0.3s ease',
+                    transform: open ? 'rotate(180deg)' : 'rotate(0deg)',
+                }}>
+                    ⌄
+                </span>
             </div>
 
-            {/* Cabecera de texto */}
-            <div className="flex items-center px-1 pt-3 pb-1 cursor-pointer" onClick={onToggle}>
-                <div>
-                    <p style={{
-                        fontFamily: "'Inter', sans-serif",
-                        fontSize: '10px',
-                        fontWeight: '600',
-                        letterSpacing: '0.22em',
-                        textTransform: 'uppercase',
-                        color: '#c8964a',
-                        margin: '0 0 2px',
-                    }}>
-                        Colección
-                    </p>
-                    <p style={{
-                        fontFamily: "'Cormorant Garamond', serif",
-                        fontSize: '20px',
-                        fontWeight: '400',
-                        color: '#1a1008',
-                        letterSpacing: '0.02em',
-                        margin: 0,
-                    }}>
-                        {title}
-                    </p>
-                </div>
-            </div>
-
-            {/* Texto invitación cuando está cerrado */}
-            {!open && (
-                <div
-                    onClick={onToggle}
-                    style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '6px',
-                        padding: '6px 0 2px',
-                        borderTop: '0.5px solid #f0ede9',
-                        marginTop: '4px',
-                        cursor: 'pointer',
-                    }}
-                >
-                    <span style={{
-                        fontFamily: "'Inter', sans-serif",
-                        fontSize: '10px',
-                        fontWeight: '600',
-                        letterSpacing: '0.14em',
-                        textTransform: 'uppercase',
-                        color: '#b07d35',
-                    }}>
-                        Toca para explorar categorías
-                    </span>
-                    <span style={{ color: '#b07d35', fontSize: '11px', lineHeight: 1, fontWeight: 'bold' }}>⌄</span>
-                </div>
-            )}
-
-            {/* Acordeón desplegable: ahora lista de texto plano, sin cajas */}
+            {/* Acordeón desplegable: lista de texto plano, sin cajas */}
             <div style={{
                 maxHeight: open ? '420px' : '0px',
                 overflow: 'hidden',
@@ -576,20 +474,9 @@ const AccordionCard = ({ card, open, onToggle }) => {
             }}>
                 <div style={{
                     borderTop: '0.5px solid #ede9e4',
-                    padding: '12px 2px 16px',
+                    padding: '8px 2px 14px',
+                    marginTop: '6px',
                 }}>
-                    <p style={{
-                        fontFamily: "'Inter', sans-serif",
-                        fontSize: '10px',
-                        fontWeight: '600',
-                        letterSpacing: '0.18em',
-                        textTransform: 'uppercase',
-                        color: '#78716c',
-                        margin: '0 0 10px',
-                    }}>
-                        Explorar por categoría
-                    </p>
-
                     <CategoryList
                         categories={categories}
                         materialCapitalized={materialCapitalized}
@@ -615,23 +502,12 @@ const Galeria = () => {
     };
 
     return (
-        // Fondo optimizado a un tono hueso/piedra elegante para dar contraste nítido con las tarjetas blancas
-        <section className="pt-6 pb-12 lg:py-12 bg-[#f4f1eb] font-sans">
+        // Zona marfil/taller — resalta las galerías fotográficas de colecciones de materiales
+        <section className="pt-10 pb-10 lg:py-10 bg-[#fdfbf7] font-sans">
             <div className="container mx-auto px-3">
 
-                {/* Encabezado de sección */}
-                <div className="text-center mb-8">
-                    <p style={{
-                        fontFamily: "'Inter', sans-serif",
-                        fontSize: '13px',
-                        fontWeight: '600',
-                        letterSpacing: '0.24em',
-                        textTransform: 'uppercase',
-                        color: '#c8964a',
-                        margin: '0 0 6px',
-                    }}>
-                        Materiales
-                    </p>
+                {/* Encabezado de sección (se eliminó "MATERIALES") */}
+                <div className="text-center mb-5">
                     <h2 style={{
                         fontFamily: "'Cormorant Garamond', serif",
                         fontSize: 'clamp(34px, 4.5vw, 34px)',
@@ -647,22 +523,21 @@ const Galeria = () => {
                         height: '0.5px',
                         background: '#c8964a',
                         opacity: 0.6,
-                        margin: '0 auto 10px',
+                        margin: '0 auto',
                     }} />
-
                 </div>
 
-                {/* Grid de tarjetas con espaciado estructural y dinámico */}
+                {/* Grid de tarjetas con espaciado compacto */}
                 <div className="flex flex-col lg:flex-row lg:justify-between lg:gap-6">
                     {MATERIAL_CARDS.map((card) => {
                         const isCardOpen = activeKey === card.key;
                         return (
                             <div
                                 key={card.key}
-                                // mb-10 inyectado dinámicamente si la tarjeta está abierta para aislarla del bloque inferior
-                                className={`flex flex-col bg-white p-4 rounded-xl shadow-md border border-stone-200/40 transition-all duration-300 w-full lg:w-[32%] ${isCardOpen
-                                    ? 'mb-10 ring-1 ring-amber-500/20 shadow-xl'
-                                    : 'mb-5 lg:mb-0'
+                                // mb-8 solo si la tarjeta está abierta para aislarla del bloque inferior
+                                className={`flex flex-col bg-white p-3 rounded-xl shadow-md border border-stone-200/40 transition-all duration-300 w-full lg:w-[32%] ${isCardOpen
+                                    ? 'mb-8 ring-1 ring-amber-500/20 shadow-xl'
+                                    : 'mb-6 lg:mb-0'
                                     }`}
                             >
                                 <AccordionCard

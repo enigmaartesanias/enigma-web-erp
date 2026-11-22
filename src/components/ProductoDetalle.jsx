@@ -1,60 +1,31 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import { Share2, Check } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 
 import ImageModal from './ImageModal';
 
-// ── Constantes de conversión internacional (PEN → divisa final con comisión WU) ──
-const FACTOR_AMERICA = 0.4500; // PEN → USD (incluye logística)
-const FACTOR_EUROPA = 0.4063; // PEN → EUR (incluye logística)
+// ── Constantes de conversión internacional ──
+const FACTOR_AMERICA = 0.4500;
+const FACTOR_EUROPA = 0.4063;
 
-// ── Traducciones UI por región ──
+// ── Textos UI ──
 const UI_TEXT = {
     es: {
-        desde: 'DESDE',
-        materialBase: 'Material base',
+        desde: 'Desde',
         detallesPieza: 'Detalles de la pieza',
-        notaArtesanal: 'Nota artesanal',
-        notaImagen: 'Imagen referencial. Cada pieza se elabora de forma artesanal, por lo que puede presentar ligeras variaciones.',
-        notaIgv: '* El precio de venta no incluye IGV.',
-        envioTitulo: 'Detalles de Envío y Entrega',
-        pagoTitulo: 'Métodos de Pago y Ubicación',
-        leerMas: 'Leer más...',
-        leerMenos: 'Ver menos',
-        cotizar: 'Cotizar por WhatsApp',
-        compartir: 'Compartir Pieza',
+        notaIgv: '* No incluye IGV',
         cargando: 'Cargando producto...',
         noEncontrado: 'Producto no encontrado.',
         inicio: '< Inicio',
         verCatalogo: 'Ver Catálogo >',
         volverA: 'Volver a',
-        relacionados: 'Productos relacionados',
+        relacionados: 'Otras Piezas de Autor',
         sinRelacionados: 'No hay productos relacionados para mostrar.',
-        consultarPrecio: 'Consultar precio',
         precioConsultar: 'Precio a consultar',
-    },
-    en: {
-        desde: 'FROM',
-        materialBase: 'Base material',
-        detallesPieza: 'Piece Details',
-        notaArtesanal: 'Artisan note',
-        notaImagen: 'Reference image. Each piece is individually handcrafted and may show slight natural variations.',
-        notaIgv: '* Price does not include local taxes.',
-        envioTitulo: 'Shipping & Delivery',
-        pagoTitulo: 'Payment Methods & Location',
-        leerMas: 'Read more...',
-        leerMenos: 'Show less',
-        cotizar: 'Quote via WhatsApp',
-        compartir: 'Share this piece',
-        cargando: 'Loading product...',
-        noEncontrado: 'Product not found.',
-        inicio: '< Home',
-        verCatalogo: 'View Catalogue >',
-        volverA: 'Back to',
-        relacionados: 'Related products',
-        sinRelacionados: 'No related products to display.',
-        consultarPrecio: 'Request a quote',
-        precioConsultar: 'Price on request',
+        oferta: 'Oferta especial',
+        compartir: 'Compartir',
+        enlaceCopiado: 'Enlace copiado',
     },
 };
 
@@ -74,46 +45,10 @@ const LupaIcono = () => (
     </svg>
 );
 
-// ── Chevron SVG para acordeón (Lucide-style) ──
-const ChevronIcono = ({ abierto }) => (
-    <svg
-        xmlns="http://www.w3.org/2000/svg"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        style={{
-            width: '16px',
-            height: '16px',
-            color: '#9ca3af',
-            transition: 'transform 300ms ease',
-            transform: abierto ? 'rotate(180deg)' : 'rotate(0deg)',
-            flexShrink: 0,
-        }}
-    >
-        <polyline points="6 9 12 15 18 9" />
-    </svg>
-);
-
-
-
-// ── Ícono Compartir ──
-const ShareIcono = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="18" cy="5" r="3"></circle>
-        <circle cx="6" cy="12" r="3"></circle>
-        <circle cx="18" cy="19" r="3"></circle>
-        <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
-        <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
-    </svg>
-);
-
 const ProductoDetalle = () => {
     const { id } = useParams();
 
-    // ── Estados existentes — NO TOCAR ──
+    // ── Estados ──
     const [producto, setProducto] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -122,17 +57,10 @@ const ProductoDetalle = () => {
     const [currentSlide, setCurrentSlide] = useState(0);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [modalImageUrl, setModalImageUrl] = useState('');
+    const [copiado, setCopiado] = useState(false);
 
-    // ── Variables de región fija (solo Perú) ──
-    const region = 'peru';
     const t = UI_TEXT.es;
 
-    // ── Estados nuevos: acordeones y descripción ──
-    const [acordeon1, setAcordeon1] = useState(false);
-    const [acordeon2, setAcordeon2] = useState(false);
-    const [isExpanded, setIsExpanded] = useState(false);
-
-    // ── Handlers de galería — NO TOCAR ──
     const openModal = (url) => {
         setModalImageUrl(url);
         setIsModalOpen(true);
@@ -142,16 +70,52 @@ const ProductoDetalle = () => {
         setModalImageUrl('');
     };
 
-    // ── Emite evento global con precio PEN (para Footer) ──
+    // ── Compartir producto ──
+    // Móvil: abre el menú nativo de compartir. Escritorio: copia el enlace.
+    const handleCompartir = async () => {
+        const url = window.location.href;
+        const shareData = {
+            title: producto?.titulo || 'Enigma Artesanías',
+            text: `${producto?.titulo || 'Pieza'} | Enigma Artesanías`,
+            url,
+        };
+
+        if (navigator.share) {
+            try {
+                await navigator.share(shareData);
+                return;
+            } catch (err) {
+                if (err.name === 'AbortError') return; // el usuario cerró el menú
+            }
+        }
+
+        try {
+            await navigator.clipboard.writeText(url);
+        } catch {
+            const temp = document.createElement('textarea');
+            temp.value = url;
+            temp.style.position = 'fixed';
+            temp.style.opacity = '0';
+            document.body.appendChild(temp);
+            temp.select();
+            document.execCommand('copy');
+            document.body.removeChild(temp);
+        }
+
+        setCopiado(true);
+        setTimeout(() => setCopiado(false), 2200);
+    };
+
     const emitirPrecioRegion = (reg, prod) => {
         if (!prod) return;
-        const precioStr = prod.precio ? `S/ ${Number(prod.precio).toFixed(2)} PEN` : '';
+        const precioEfectivo = prod.price_offer ? prod.price_offer : prod.precio;
+        const precioStr = precioEfectivo ? `S/ ${Number(precioEfectivo).toFixed(2)} PEN` : '';
         window.dispatchEvent(new CustomEvent('enigma:region-precio', {
             detail: { region: 'peru', precio: precioStr, titulo: prod.titulo }
         }));
     };
 
-    // ── useEffect: fetchProducto — NO TOCAR ──
+    // ── Fetch Producto ──
     useEffect(() => {
         const fetchProducto = async () => {
             setLoading(true);
@@ -169,7 +133,6 @@ const ProductoDetalle = () => {
             } else {
                 setProducto(data);
                 setCurrentSlide(0);
-                // Emitir precio inicial (región Perú por defecto)
                 emitirPrecioRegion('peru', data);
             }
 
@@ -179,7 +142,7 @@ const ProductoDetalle = () => {
         fetchProducto();
     }, [id]);
 
-    // ── useEffect: fetchRelacionados (shuffle aleatorio cross-categoría, ejecuta 1 sola vez) ──
+    // ── Fetch Relacionados ──
     useEffect(() => {
         if (!producto?.id || !producto?.categoria_id) return;
 
@@ -197,7 +160,6 @@ const ProductoDetalle = () => {
                 if (error) throw error;
                 if (cancelled) return;
 
-                // Fisher-Yates shuffle — se ejecuta SOLO al montar
                 const pool = [...(data || [])];
                 for (let i = pool.length - 1; i > 0; i--) {
                     const j = Math.floor(Math.random() * (i + 1));
@@ -211,66 +173,67 @@ const ProductoDetalle = () => {
 
         fetchRelacionados();
         return () => { cancelled = true; };
-    // Dependencias estables: solo IDs primitivos, nunca el objeto producto completo
     }, [producto?.id, producto?.categoria_id]);
 
-    // ── useEffect: fetchMateriales + fetchCategoria — NO TOCAR ──
+    // ── Fetch Materiales y Categoría ──
+    // Depende solo de id y categoria_id para evitar el bucle de consultas
     useEffect(() => {
-        if (producto) {
-            const fetchMateriales = async () => {
-                try {
-                    const { data: materialsData, error: materialsError } = await supabase
-                        .from('producto_material')
-                        .select('material_id')
-                        .eq('producto_id', id);
+        if (!producto?.id) return;
 
-                    if (materialsError) throw materialsError;
+        const fetchMateriales = async () => {
+            try {
+                const { data: materialsData, error: materialsError } = await supabase
+                    .from('producto_material')
+                    .select('material_id')
+                    .eq('producto_id', id);
 
-                    const materialsPromises = materialsData.map(async (materialData) => {
-                        const { data: materialName, error: materialError } = await supabase
-                            .from('materiales')
-                            .select('nombre')
-                            .eq('id', materialData.material_id)
-                            .single();
+                if (materialsError) throw materialsError;
 
-                        if (materialError) throw materialError;
-
-                        return materialName.nombre;
-                    });
-
-                    const materiales = await Promise.all(materialsPromises);
-                    const materialPrincipal = materiales[0] || 'No especificado';
-
-                    setProducto((prevProducto) => ({
-                        ...prevProducto,
-                        material_principal: materialPrincipal,
-                    }));
-                } catch (err) {
-                    console.error('Error al cargar materiales:', err.message);
-                }
-            };
-
-            const fetchCategoria = async () => {
-                try {
-                    const { data, error } = await supabase
-                        .from('categorias')
+                const materialsPromises = materialsData.map(async (materialData) => {
+                    const { data: materialName, error: materialError } = await supabase
+                        .from('materiales')
                         .select('nombre')
-                        .eq('id', producto.categoria_id)
+                        .eq('id', materialData.material_id)
                         .single();
 
-                    if (error) throw error;
-                    if (data) setCategoriaNombre(data.nombre);
-                } catch (err) {
-                    console.error('Error al cargar categoría:', err.message);
-                }
-            };
+                    if (materialError) throw materialError;
 
-            fetchCategoria();
-            fetchMateriales();
-        }
-    }, [producto, id]);
+                    return materialName.nombre;
+                });
 
-    // ── useEffect: Open Graph meta tags — NO TOCAR ──
+                const materiales = await Promise.all(materialsPromises);
+                const materialPrincipal = materiales[0] || 'No especificado';
+
+                setProducto((prevProducto) => ({
+                    ...prevProducto,
+                    material_principal: materialPrincipal,
+                }));
+            } catch (err) {
+                console.error('Error al cargar materiales:', err.message);
+            }
+        };
+
+        const fetchCategoria = async () => {
+            try {
+                const { data, error } = await supabase
+                    .from('categorias')
+                    .select('nombre')
+                    .eq('id', producto.categoria_id)
+                    .single();
+
+                if (error) throw error;
+                if (data) setCategoriaNombre(data.nombre);
+            } catch (err) {
+                console.error('Error al cargar categoría:', err.message);
+            }
+        };
+
+        fetchCategoria();
+        fetchMateriales();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [producto?.id, producto?.categoria_id]);
+
+    // ── Open Graph ──
     useEffect(() => {
         if (producto) {
             const setMetaTag = (property, content) => {
@@ -284,8 +247,7 @@ const ProductoDetalle = () => {
                 element.setAttribute('content', content);
             };
 
-            const pageTitle = `${producto.titulo} | Catálogo`;
-            document.title = pageTitle;
+            document.title = `${producto.titulo} | Catálogo`;
 
             setMetaTag('og:title', producto.titulo);
             const descLimpia = producto.descripcion
@@ -323,86 +285,60 @@ const ProductoDetalle = () => {
                 });
             };
         }
-    }, [producto, id]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [producto?.id, producto?.titulo, producto?.descripcion, producto?.imagen_principal_url]);
 
-    // ── Estados de carga/error ──
     if (loading) return <div className="p-8 text-center">{UI_TEXT.es.cargando}</div>;
     if (error) return <div className="p-8 text-center text-red-500">{error}</div>;
     if (!producto) return <div className="p-8 text-center">{UI_TEXT.es.noEncontrado}</div>;
 
-    // ── Galería — NO TOCAR ──
     const imageUrls = [
         producto.imagen_principal_url,
         producto.imagen2_url,
         producto.imagen3_url,
-    ].filter(url => url);
+    ].filter(Boolean);
 
     const totalImages = imageUrls.length;
 
-    // ── Lógica de precio por región (envío incluido en precio internacional) ──
-    const tieneIntl = producto.precio_internacional_base !== null &&
-        producto.precio_internacional_base !== undefined &&
-        Number(producto.precio_internacional_base) > 0;
-
-    const precioUSD = tieneIntl ? Math.round(Number(producto.precio_internacional_base) * FACTOR_AMERICA) : null;
-    const precioEUR = tieneIntl ? Math.round(Number(producto.precio_internacional_base) * FACTOR_EUROPA) : null;
-
-    // ── Descripción: siempre español ──
     const getDescripcion = () => producto.descripcion;
 
+    const tieneOferta = Boolean(
+        producto.price_offer &&
+        parseFloat(producto.price_offer) > 0 &&
+        (!producto.precio || parseFloat(producto.price_offer) < parseFloat(producto.precio))
+    );
 
-
-    // ── Construcción del mensaje de WhatsApp (Español, Perú, PEN) ──
     const buildWhatsAppMessage = () => {
         const nombre = producto.titulo;
         const url = window.location.href;
-        const precioLocal = producto.precio
-            ? `S/. ${Number(producto.precio).toFixed(2)} PEN`
-            : 'precio por consultar';
+        let precioLocal = 'precio por consultar';
+        if (tieneOferta) {
+            precioLocal = `S/. ${Number(producto.price_offer).toFixed(2)} PEN (en oferta)`;
+        } else if (producto.precio) {
+            precioLocal = `S/. ${Number(producto.precio).toFixed(2)} PEN`;
+        }
         return `Hola Enigma, vi la *${nombre}* (${precioLocal}) en tu web y me gustaría cotizarla.\n\n🔗 ${url}`;
     };
 
-    // ── Compartir con Web Share API — NO TOCAR ──
-    const handleShare = async () => {
-        const urlCompartir = `https://artesaniasenigma.com/producto/${producto.id}`;
-        const precioLocal = producto.precio
-            ? `S/. ${Number(producto.precio).toFixed(2)} PEN`
-            : 'precio por consultar';
-        const shareText = `✨ ${producto.titulo}\nDesde ${precioLocal} (no incluye envío)\nJoyería de autor hecha a pedido.`;
-
-        if (navigator.share) {
-            try {
-                await navigator.share({
-                    title: `${producto.titulo} | Enigma Joyería`,
-                    text: shareText,
-                    url: urlCompartir,
-                });
-            } catch (error) {
-                console.error('Error al compartir:', error);
-            }
-        } else {
-            try {
-                await navigator.clipboard.writeText(`${shareText}\n${urlCompartir}`);
-                alert('Enlace copiado al portapapeles');
-            } catch (error) {
-                console.error('No se pudo copiar', error);
-            }
-        }
-    };
+    // Condición para saber si existen especificaciones técnicas
+    const tieneEspecificaciones = Boolean(
+        producto.dimensions ||
+        (producto.weight_grams && Number(producto.weight_grams) > 0)
+    );
 
     return (
         <main className="pt-20 pb-12 bg-gray-50 min-h-screen">
 
-            {/* ── Navegación breadcrumb — NO TOCAR ── */}
-            <div className="container mx-auto px-8 max-w-3xl flex justify-between items-center">
-                <Link to="/" className="text-sm text-gray-600 hover:text-black hover:underline transition-colors">
+            {/* ── Breadcrumbs ── */}
+            <div className="container mx-auto px-4 sm:px-8 max-w-3xl flex justify-between items-center mb-3">
+                <Link to="/" className="text-xs sm:text-sm text-gray-500 hover:text-black transition-colors">
                     {t.inicio}
                 </Link>
                 <Link
                     to={producto?.material_principal && categoriaNombre
                         ? `/catalogo/${producto.material_principal}/${categoriaNombre}`
                         : '/catalogo/all/all'}
-                    className="text-sm text-gray-600 hover:text-black hover:underline transition-colors"
+                    className="text-xs sm:text-sm text-gray-500 hover:text-black transition-colors"
                 >
                     {producto?.material_principal && categoriaNombre
                         ? `${t.volverA} ${producto.material_principal} / ${categoriaNombre} >`
@@ -410,9 +346,9 @@ const ProductoDetalle = () => {
                 </Link>
             </div>
 
-            <div className="container mx-auto p-4 max-w-3xl bg-white shadow-xl rounded-lg">
+            <div className="container mx-auto p-4 sm:p-6 max-w-3xl bg-white shadow-xl rounded-lg">
 
-                {/* ── Galería — NO TOCAR ── */}
+                {/* ── Galería de imágenes ── */}
                 <div className="mb-6 producto-detalle-galeria">
                     <div className="relative galeria-main-container">
                         <img
@@ -452,79 +388,283 @@ const ProductoDetalle = () => {
                     )}
                 </div>
 
-                {/* ── Detalles del producto ── */}
-                <div className="py-2 mb-8 space-y-6">
+                {/* ── Información del producto ── */}
+                <div className="py-2 mb-8 space-y-8 text-left">
 
-                    {/* 1. Título — Cormorant Garamond */}
-                    <h2
-                        style={{
-                            fontFamily: "'Cormorant Garamond', serif",
-                            fontSize: 'clamp(28px, 7vw, 36px)',
-                            fontWeight: '400',
-                            color: '#1c1917',
-                            textAlign: 'left',
-                            lineHeight: '1.2',
-                            margin: '0',
-                        }}
-                    >
-                        {producto.titulo}
-                    </h2>
+                    {/* 1. Título + Compartir */}
+                    <div className="flex items-start justify-between gap-3">
+                        <h1
+                            style={{
+                                fontFamily: "'Cormorant Garamond', serif",
+                                fontSize: 'clamp(26px, 5.5vw, 33px)',
+                                fontWeight: '400',
+                                color: '#1c1917',
+                                lineHeight: '1.25',
+                                letterSpacing: '0.01em',
+                                margin: '0',
+                            }}
+                        >
+                            {producto.titulo}
+                        </h1>
 
-
-                    {/* 2. Bloque de precios fijo */}
-                    <div style={{ padding: '0', marginBottom: '0' }}>
-                        {/* Precio PEN destacado */}
-                        <div style={{
-                            fontFamily: "'Cormorant Garamond', serif",
-                            fontSize: 'clamp(28px, 7vw, 34px)',
-                            fontWeight: '400',
-                            color: '#1c1917',
-                            letterSpacing: '0.02em',
-                        }}>
-                            {producto.precio
-                                ? `S/ ${Number(producto.precio).toFixed(2)}`
-                                : 'Precio a consultar'}
-                            {producto.precio && (
-                                <span style={{
-                                    fontSize: '15px', fontWeight: '300',
-                                    letterSpacing: '0.1em', marginLeft: '4px'
-                                }}>PEN</span>
+                        <button
+                            type="button"
+                            onClick={handleCompartir}
+                            aria-label="Compartir este producto"
+                            aria-live="polite"
+                            className="shrink-0 inline-flex items-center gap-1.5 mt-2 text-stone-400 hover:text-stone-800 transition-colors"
+                            style={{
+                                background: 'transparent',
+                                border: 'none',
+                                padding: '4px 0',
+                                cursor: 'pointer',
+                                fontFamily: "'Inter', sans-serif",
+                                fontSize: '10px',
+                                fontWeight: '400',
+                                letterSpacing: '0.2em',
+                                textTransform: 'uppercase',
+                            }}
+                        >
+                            {copiado ? (
+                                <>
+                                    <Check size={14} strokeWidth={1.5} aria-hidden="true" />
+                                    {t.enlaceCopiado}
+                                </>
+                            ) : (
+                                <>
+                                    <Share2 size={14} strokeWidth={1.5} aria-hidden="true" />
+                                    {t.compartir}
+                                </>
                             )}
-                        </div>
+                        </button>
                     </div>
 
-                    {/* 4. Descripción de la pieza */}
+                    {/* 2. Bloque de Precio con soporte de Oferta (Oferta arriba destacada, precio regular abajo tachado) */}
+                    <div className="space-y-2">
+                        {tieneOferta ? (
+                            <div className="space-y-1.5">
+                                {/* Fila Superior: Precio de Oferta con el tamaño principal */}
+                                <div className="flex items-baseline gap-2.5">
+                                    <span
+                                        style={{
+                                            fontFamily: "'Inter', sans-serif",
+                                            fontSize: '11px',
+                                            fontWeight: '300',
+                                            letterSpacing: '0.08em',
+                                            color: '#78716c',
+                                        }}
+                                    >
+                                        {t.desde}
+                                    </span>
+                                    <span
+                                        style={{
+                                            fontFamily: "'Cormorant Garamond', serif",
+                                            fontSize: 'clamp(28px, 6.5vw, 34px)',
+                                            fontWeight: '400',
+                                            color: '#1c1917',
+                                            letterSpacing: '0.02em',
+                                            lineHeight: '1',
+                                        }}
+                                    >
+                                        S/ {Number(producto.price_offer).toFixed(2)}
+                                    </span>
+                                    <span
+                                        style={{
+                                            fontFamily: "'Inter', sans-serif",
+                                            fontSize: '10px',
+                                            fontWeight: '300',
+                                            letterSpacing: '0.2em',
+                                            textTransform: 'uppercase',
+                                            color: '#a8a29e',
+                                            marginLeft: '2px',
+                                        }}
+                                    >
+                                        PEN
+                                    </span>
+                                </div>
+
+                                {/* Fila Inferior: Precio original más pequeño y sutilmente tachado */}
+                                {producto.precio && (
+                                    <div className="flex items-center gap-2 pt-0.5">
+                                        <span
+                                            style={{
+                                                fontFamily: "'Inter', sans-serif",
+                                                fontSize: '11px',
+                                                fontWeight: '300',
+                                                letterSpacing: '0.04em',
+                                                color: '#a8a29e',
+                                            }}
+                                        >
+                                            Antes:
+                                        </span>
+                                        <span
+                                            style={{
+                                                fontFamily: "'Cormorant Garamond', serif",
+                                                fontSize: '17px',
+                                                letterSpacing: '0.02em',
+                                            }}
+                                            className="line-through text-stone-400 decoration-stone-300 font-light"
+                                        >
+                                            S/ {Number(producto.precio).toFixed(2)}
+                                        </span>
+                                    </div>
+                                )}
+                            </div>
+                        ) : (
+                            /* Modo normal cuando NO hay oferta */
+                            <div className="flex items-baseline gap-2.5">
+                                {producto.precio && (
+                                    <span
+                                        style={{
+                                            fontFamily: "'Inter', sans-serif",
+                                            fontSize: '11px',
+                                            fontWeight: '300',
+                                            letterSpacing: '0.08em',
+                                            color: '#78716c',
+                                        }}
+                                    >
+                                        {t.desde}
+                                    </span>
+                                )}
+                                <span
+                                    style={{
+                                        fontFamily: "'Cormorant Garamond', serif",
+                                        fontSize: 'clamp(26px, 6vw, 32px)',
+                                        fontWeight: '400',
+                                        color: '#1c1917',
+                                        letterSpacing: '0.02em',
+                                        lineHeight: '1',
+                                    }}
+                                >
+                                    {producto.precio
+                                        ? `S/ ${Number(producto.precio).toFixed(2)}`
+                                        : t.precioConsultar}
+                                </span>
+                                {producto.precio && (
+                                    <span
+                                        style={{
+                                            fontFamily: "'Inter', sans-serif",
+                                            fontSize: '10px',
+                                            fontWeight: '300',
+                                            letterSpacing: '0.2em',
+                                            textTransform: 'uppercase',
+                                            color: '#a8a29e',
+                                            marginLeft: '2px',
+                                        }}
+                                    >
+                                        PEN
+                                    </span>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Texto aclaratorio pequeño y no invasivo */}
+                        <p
+                            style={{
+                                fontFamily: "'Inter', sans-serif",
+                                fontSize: '11px',
+                                fontWeight: '300',
+                                letterSpacing: '0.04em',
+                                lineHeight: '1.5',
+                                color: '#a8a29e',
+                                margin: 0,
+                                paddingTop: '6px',
+                            }}
+                        >
+                            {t.notaIgv}
+                        </p>
+                    </div>
+
+                    {/* 3. Detalles de la pieza y Ficha Técnica */}
                     {getDescripcion() && (
-                        <div className="text-left">
-                            <h3 className="text-xs font-bold tracking-widest text-zinc-500 uppercase mb-3">
+                        <div className="space-y-4">
+                            <h3
+                                style={{
+                                    fontFamily: "'Inter', sans-serif",
+                                    fontSize: '11px',
+                                    fontWeight: '600',
+                                    letterSpacing: '0.22em',
+                                    textTransform: 'uppercase',
+                                    color: '#78716c',
+                                    margin: 0,
+                                }}
+                            >
                                 {t.detallesPieza}
                             </h3>
-                            <div className="text-zinc-700 font-light leading-relaxed text-base space-y-2">
+
+                            {/* Párrafo narrativo */}
+                            <div
+                                className="space-y-3"
+                                style={{
+                                    fontFamily: "'Inter', sans-serif",
+                                    fontSize: '14px',
+                                    fontWeight: '300',
+                                    lineHeight: '1.85',
+                                    letterSpacing: '0.01em',
+                                    color: '#57534e',
+                                }}
+                            >
                                 {getDescripcion().split(/(?:\r?\n)+|(?=Realizado en )/i).map((part, index) => {
                                     if (!part || part.trim() === '') return null;
                                     return (
-                                        <p key={index}>
+                                        <p key={index} style={{ margin: 0 }}>
                                             {part.trim()}
                                         </p>
                                     );
                                 })}
                             </div>
+
+                            {/* Ficha Técnica: Tamaño y Peso en una sola columna sutil */}
+                            {tieneEspecificaciones && (
+                                <div
+                                    className="border-t border-stone-100 space-y-2"
+                                    style={{
+                                        paddingTop: '16px',
+                                        fontFamily: "'Inter', sans-serif",
+                                        fontSize: '12.5px',
+                                        fontWeight: '300',
+                                        lineHeight: '1.6',
+                                        letterSpacing: '0.01em',
+                                    }}
+                                >
+                                    {producto.dimensions && (
+                                        <div className="flex items-center gap-2">
+                                            <span style={{ fontSize: '11px', letterSpacing: '0.06em', color: '#a8a29e' }}>
+                                                Dimensiones:
+                                            </span>
+                                            <span style={{ color: '#57534e' }}>
+                                                {producto.dimensions}
+                                            </span>
+                                        </div>
+                                    )}
+
+                                    {producto.weight_grams && Number(producto.weight_grams) > 0 && (
+                                        <div className="flex items-center gap-2">
+                                            <span style={{ fontSize: '11px', letterSpacing: '0.06em', color: '#a8a29e' }}>
+                                                Peso aprox.:
+                                            </span>
+                                            <span style={{ color: '#57534e' }}>
+                                                {Number(producto.weight_grams)} gr.
+                                            </span>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     )}
 
-                    {/* 6. Sección: Proceso de Taller — layout vertical full-width */}
+                    {/* 4. Proceso de Taller (si aplica) */}
                     {(producto.workshop_image || producto.workshop_desc) && (
                         <div style={{
                             borderTop: '1px solid #f0ede8',
-                            paddingTop: '20px',
+                            paddingTop: '24px',
                             marginTop: '24px',
                         }}>
-                            {/* Eyebrow centrado */}
                             <p style={{
                                 fontFamily: "'Inter', sans-serif",
                                 fontSize: '10px',
                                 fontWeight: '600',
-                                letterSpacing: '0.2em',
+                                letterSpacing: '0.22em',
                                 textTransform: 'uppercase',
                                 color: '#a8a29e',
                                 margin: '0',
@@ -533,7 +673,6 @@ const ProductoDetalle = () => {
                                 Del taller a tus manos
                             </p>
 
-                            {/* Imagen full-width */}
                             {producto.workshop_image && (
                                 <img
                                     src={producto.workshop_image}
@@ -546,17 +685,17 @@ const ProductoDetalle = () => {
                                 />
                             )}
 
-                            {/* Texto como pie de foto — 13px, zinc-600 */}
                             {producto.workshop_desc && (
                                 <p style={{
                                     fontFamily: "'Inter', sans-serif",
                                     fontSize: '13px',
                                     fontWeight: '300',
                                     fontStyle: 'italic',
-                                    color: '#52525b',
-                                    lineHeight: '1.7',
+                                    color: '#57534e',
+                                    lineHeight: '1.85',
+                                    letterSpacing: '0.01em',
                                     textAlign: 'center',
-                                    marginTop: '10px',
+                                    marginTop: '14px',
                                     padding: '0 8px',
                                     maxWidth: '380px',
                                     marginLeft: 'auto',
@@ -568,8 +707,46 @@ const ProductoDetalle = () => {
                         </div>
                     )}
 
-                    {/* 8. Botón CTA */}
-                    <div className="pt-3">
+                    {/* 5. Nota: Sobre tu Encargo (sin enlace; el botón de abajo es la vía de contacto) */}
+                    <div
+                        style={{
+                            backgroundColor: '#faf8f5',
+                            border: '1px solid #ede8e1',
+                            borderRadius: '3px',
+                            padding: '22px 22px',
+                        }}
+                        className="space-y-3"
+                    >
+                        <p
+                            style={{
+                                fontFamily: "'Inter', sans-serif",
+                                fontSize: '10.5px',
+                                fontWeight: '600',
+                                letterSpacing: '0.2em',
+                                textTransform: 'uppercase',
+                                color: '#78716c',
+                                margin: 0,
+                            }}
+                        >
+                            Sobre tu Encargo
+                        </p>
+                        <p
+                            style={{
+                                fontFamily: "'Inter', sans-serif",
+                                fontSize: '13px',
+                                fontWeight: '300',
+                                lineHeight: '1.85',
+                                letterSpacing: '0.01em',
+                                color: '#57534e',
+                                margin: 0,
+                            }}
+                        >
+                            Cada pieza se forja a mano, a tu medida y exclusivamente para ti. Iniciamos con un adelanto y coordinamos contigo el plazo de entrega. Para cualquier variación o diseño personalizado, escríbenos desde el botón de abajo y lo conversamos.
+                        </p>
+                    </div>
+
+                    {/* 6. Botón CTA */}
+                    <div className="pt-2">
                         <a
                             href={`https://wa.me/51960282376?text=${encodeURIComponent(buildWhatsAppMessage())}`}
                             target="_blank"
@@ -596,11 +773,10 @@ const ProductoDetalle = () => {
                         </a>
                     </div>
 
-
                 </div>
 
-                {/* 10. Otras Piezas de Autor */}
-                <div className="py-6 mb-2">
+                {/* 7. Otras Piezas de Autor */}
+                <div className="py-6 mb-2 text-left">
                     <h2 style={{
                         fontFamily: "'Cormorant Garamond', serif",
                         fontSize: 'clamp(18px, 4.5vw, 22px)',
@@ -608,15 +784,14 @@ const ProductoDetalle = () => {
                         color: '#1c1917',
                         letterSpacing: '0.02em',
                         marginBottom: '16px',
-                        textAlign: 'left',
                     }}>
-                        Otras Piezas de Autor
+                        {t.relacionados}
                     </h2>
                     <div className="grid grid-cols-2 gap-4">
                         {relacionados.length > 0 ? (
                             relacionados.map((relatedProducto) => (
                                 <div key={relatedProducto.id}>
-                                    <Link to={`/producto/${relatedProducto.id}`} onClick={() => window.scrollTo(0,0)}>
+                                    <Link to={`/producto/${relatedProducto.id}`} onClick={() => window.scrollTo(0, 0)}>
                                         <img
                                             src={relatedProducto.imagen_principal_url}
                                             alt={relatedProducto.titulo}
@@ -647,7 +822,7 @@ const ProductoDetalle = () => {
 
             </div>
 
-            {/* ── ImageModal — NO TOCAR ── */}
+            {/* ── Modal de Imagen ── */}
             <ImageModal
                 isOpen={isModalOpen}
                 onClose={closeModal}

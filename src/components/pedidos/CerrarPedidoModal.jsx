@@ -156,10 +156,10 @@ const CerrarPedidoModal = ({
     const avisos = resultados ? resultados.filter(r => r.ok && r.aviso) : [];
 
     return (
-        <div className="fixed inset-0 bg-gray-900/70 backdrop-blur-sm overflow-y-auto h-full w-full z-[150] flex items-center justify-center p-4">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[90vh] flex flex-col overflow-hidden">
+        <div className="fixed inset-0 bg-gray-900/70 backdrop-blur-sm overflow-y-auto h-full w-full z-[150] flex items-center justify-center p-2 sm:p-4">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[95vh] sm:max-h-[90vh] flex flex-col overflow-hidden">
                 {/* Cabecera */}
-                <div className="px-5 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/80">
+                <div className="px-4 sm:px-5 py-3 sm:py-4 border-b border-gray-100 flex justify-between items-center gap-2 bg-gray-50/80">
                     <div className="flex items-center gap-2">
                         <div className="p-2 bg-emerald-100 text-emerald-700 rounded-lg">
                             <FaBoxOpen size={18} />
@@ -182,7 +182,7 @@ const CerrarPedidoModal = ({
 
                 {/* Resultados */}
                 {resultados ? (
-                    <div className="p-5 space-y-4 overflow-y-auto">
+                    <div className="p-3 sm:p-5 space-y-4 overflow-y-auto">
                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                             <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-3 text-center">
                                 <p className="text-[10px] font-bold text-emerald-600 uppercase">Cerrados</p>
@@ -220,7 +220,7 @@ const CerrarPedidoModal = ({
                         <div className="flex justify-end">
                             <button
                                 onClick={onClose}
-                                className="h-11 px-6 bg-gray-900 text-white text-sm font-bold rounded-xl hover:bg-gray-800 transition-colors"
+                                className="h-11 px-6 w-full sm:w-auto bg-gray-900 text-white text-sm font-bold rounded-xl hover:bg-gray-800 transition-colors"
                             >
                                 Cerrar
                             </button>
@@ -234,42 +234,44 @@ const CerrarPedidoModal = ({
                 ) : (
                     <>
                         {/* Controles */}
-                        <div className="p-4 border-b border-gray-100 bg-white flex flex-wrap gap-3 items-end">
-                            <div>
-                                <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">
-                                    Fecha para todos
-                                </label>
-                                <div className="flex gap-2">
-                                    <input
-                                        type="date"
-                                        value={fechaComun}
-                                        onChange={(e) => setFechaComun(e.target.value)}
-                                        className="h-10 bg-gray-50 border border-gray-200 rounded-lg px-2 text-xs font-medium text-gray-800"
-                                    />
-                                    <button
-                                        type="button"
-                                        onClick={handleAplicarFechaTodos}
-                                        className="h-10 px-3 bg-gray-100 text-gray-700 text-[11px] font-bold rounded-lg hover:bg-gray-200"
+                        <div className="p-4 border-b border-gray-100 bg-white space-y-3">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <div>
+                                    <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">
+                                        Fecha para todos
+                                    </label>
+                                    <div className="flex gap-2">
+                                        <input
+                                            type="date"
+                                            value={fechaComun}
+                                            onChange={(e) => setFechaComun(e.target.value)}
+                                            className="flex-1 min-w-0 h-11 bg-gray-50 border border-gray-200 rounded-lg px-2 text-xs font-medium text-gray-800"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={handleAplicarFechaTodos}
+                                            className="h-11 px-4 bg-gray-100 text-gray-700 text-[11px] font-bold rounded-lg hover:bg-gray-200 shrink-0"
+                                        >
+                                            Aplicar
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">
+                                        Método de pago
+                                    </label>
+                                    <select
+                                        value={metodo}
+                                        onChange={(e) => setMetodo(e.target.value)}
+                                        className="w-full h-11 bg-gray-50 border border-gray-200 rounded-lg px-2 text-xs font-bold text-gray-800"
                                     >
-                                        Aplicar
-                                    </button>
+                                        {METODOS_PAGO.map(m => <option key={m} value={m}>{m}</option>)}
+                                    </select>
                                 </div>
                             </div>
 
-                            <div>
-                                <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">
-                                    Método de pago
-                                </label>
-                                <select
-                                    value={metodo}
-                                    onChange={(e) => setMetodo(e.target.value)}
-                                    className="h-10 bg-gray-50 border border-gray-200 rounded-lg px-2 text-xs font-bold text-gray-800"
-                                >
-                                    {METODOS_PAGO.map(m => <option key={m} value={m}>{m}</option>)}
-                                </select>
-                            </div>
-
-                            <div className="ml-auto text-right">
+                            <div className="flex items-center justify-between gap-2 pt-2 border-t border-gray-100">
                                 <p className="text-[11px] text-gray-500">
                                     {aCerrar.length} a cerrar · {enRevision.length} en revisar
                                 </p>
@@ -279,8 +281,8 @@ const CerrarPedidoModal = ({
                             </div>
                         </div>
 
-                        {/* Tabla */}
-                        <div className="overflow-auto flex-1">
+                        {/* Tabla (escritorio) */}
+                        <div className="hidden md:block overflow-auto flex-1">
                             <table className="min-w-full divide-y divide-gray-200 text-xs">
                                 <thead className="bg-gray-100 sticky top-0 z-10">
                                     <tr>
@@ -379,18 +381,109 @@ const CerrarPedidoModal = ({
                             </table>
                         </div>
 
+                        {/* Tarjetas (móvil) */}
+                        <div className="md:hidden flex-1 overflow-y-auto divide-y divide-gray-100">
+                            {filas.map(fila => (
+                                <div key={fila.pedido.id_pedido} className={`p-3 space-y-2 ${fila.accion === 'revisar' ? 'bg-red-50/60' : ''}`}>
+                                    <div className="flex items-start justify-between gap-2">
+                                        <div className="min-w-0">
+                                            <p className="text-[10px] font-mono font-bold text-gray-400">#{String(fila.pedido.id_pedido).padStart(4, '0')}</p>
+                                            <p className="text-sm font-semibold text-gray-800 truncate">{fila.pedido.nombre_cliente}</p>
+                                        </div>
+                                        <div className="shrink-0">
+                                            {fila.accion === 'cerrar' && (
+                                                <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-emerald-100 text-emerald-700 font-bold text-[10px]">
+                                                    <FaCheckCircle size={9} /> Cerrar
+                                                </span>
+                                            )}
+                                            {fila.accion === 'cobrar' && (
+                                                <span className="inline-flex items-center px-2 py-1 rounded-full bg-blue-100 text-blue-700 font-bold text-[10px]">
+                                                    Cobrar S/ {montoCobro(fila).toFixed(2)}
+                                                </span>
+                                            )}
+                                            {fila.accion === 'revisar' && (
+                                                <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-red-100 text-red-700 font-bold text-[10px]">
+                                                    <FaExclamationTriangle size={9} /> Revisar
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-2 text-[11px]">
+                                        <div className="bg-gray-50 rounded-lg px-2.5 py-1.5">
+                                            <span className="block text-[9px] font-bold text-gray-400 uppercase">Total</span>
+                                            <span className="font-semibold text-gray-700">S/ {fila.total.toFixed(2)}</span>
+                                        </div>
+                                        <div className="bg-gray-50 rounded-lg px-2.5 py-1.5">
+                                            <span className="block text-[9px] font-bold text-gray-400 uppercase">Pagado</span>
+                                            <span className="font-semibold text-gray-700">S/ {fila.pagado.toFixed(2)}</span>
+                                        </div>
+                                        <div className="bg-gray-50 rounded-lg px-2.5 py-1.5">
+                                            <span className="block text-[9px] font-bold text-gray-400 uppercase">Saldo</span>
+                                            <span className="font-bold text-red-600">S/ {fila.saldoMostrado.toFixed(2)}</span>
+                                            {fila.discrepancia && (
+                                                <span className="block text-[9px] font-semibold text-amber-600">
+                                                    real: S/ {fila.saldoCalculado.toFixed(2)}
+                                                </span>
+                                            )}
+                                        </div>
+                                        <div className="bg-gray-50 rounded-lg px-2.5 py-1.5">
+                                            <span className="block text-[9px] font-bold text-gray-400 uppercase">Pagos</span>
+                                            <span className={`font-semibold ${fila.avisoPagos ? 'text-amber-600' : 'text-gray-700'}`}>
+                                                S/ {fila.pagosSum.toFixed(2)}
+                                            </span>
+                                            {fila.avisoPagos && <FaExclamationTriangle size={9} className="inline ml-1 text-amber-500" />}
+                                        </div>
+                                    </div>
+
+                                    <div className="flex items-end gap-2">
+                                        <div className="flex-1 min-w-0">
+                                            <label className="block text-[9px] font-bold text-gray-400 uppercase mb-0.5">Fecha cierre</label>
+                                            <input
+                                                type="date"
+                                                value={fila.fecha}
+                                                onChange={(e) => handleFechaFila(fila.pedido.id_pedido, e.target.value)}
+                                                disabled={fila.accion === 'revisar' || guardando}
+                                                className="w-full h-10 bg-white border border-gray-200 rounded-lg px-2 text-xs text-gray-700 disabled:opacity-50"
+                                            />
+                                        </div>
+                                        <div className="text-right pb-2 shrink-0">
+                                            {fila.ventaExiste === true ? (
+                                                <span className="text-[10px] font-bold text-emerald-600">Venta: Sí</span>
+                                            ) : fila.ventaExiste === false ? (
+                                                <span className="text-[10px] font-medium text-blue-600">Venta: se crea</span>
+                                            ) : (
+                                                <span className="text-[10px] text-gray-400">Venta: ?</span>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {fila.discrepancia && (
+                                        <button
+                                            type="button"
+                                            onClick={() => handleForzar(fila.pedido.id_pedido)}
+                                            disabled={guardando}
+                                            className="w-full h-9 rounded-lg border border-gray-200 text-[11px] font-bold text-gray-600 hover:bg-gray-50 disabled:opacity-50"
+                                        >
+                                            {fila.forzado ? 'Deshacer forzar' : 'Forzar cierre con saldo real'}
+                                        </button>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+
                         {/* Pie */}
-                        <div className="p-4 border-t border-gray-100 bg-gray-50 flex flex-col sm:flex-row sm:items-center gap-3">
+                        <div className="p-3 sm:p-4 border-t border-gray-100 bg-gray-50 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
                             <p className="text-[11px] text-gray-500 flex-1">
                                 Los pedidos en <span className="font-bold text-red-600">Revisar</span> no se cerrarán.
                                 La fecha define el mes de la venta y de la entrega.
                             </p>
-                            <div className="flex gap-2 justify-end">
+                            <div className="flex flex-col-reverse sm:flex-row gap-2 w-full sm:w-auto">
                                 <button
                                     type="button"
                                     onClick={onClose}
                                     disabled={guardando}
-                                    className="h-11 px-5 bg-white border border-gray-200 text-gray-700 text-sm font-semibold rounded-xl hover:bg-gray-100 disabled:opacity-50"
+                                    className="h-11 px-5 w-full sm:w-auto bg-white border border-gray-200 text-gray-700 text-sm font-semibold rounded-xl hover:bg-gray-100 disabled:opacity-50"
                                 >
                                     Cancelar
                                 </button>
@@ -398,7 +491,7 @@ const CerrarPedidoModal = ({
                                     type="button"
                                     onClick={handleConfirmar}
                                     disabled={guardando || aCerrar.length === 0}
-                                    className="h-11 px-6 bg-emerald-600 text-white text-sm font-bold rounded-xl hover:bg-emerald-700 shadow-lg shadow-emerald-600/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                                    className="h-11 px-6 w-full sm:w-auto bg-emerald-600 text-white text-sm font-bold rounded-xl hover:bg-emerald-700 shadow-lg shadow-emerald-600/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                                 >
                                     {guardando ? (
                                         <>

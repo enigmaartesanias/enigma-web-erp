@@ -7,6 +7,14 @@ module.exports = {
       colors: {
         amber: colors.amber,
         orange: colors.orange,
+        emerald: colors.emerald,
+        rose: colors.rose,
+        teal: colors.teal,
+        cyan: colors.cyan,
+        lime: colors.lime,
+        violet: colors.violet,
+        sky: colors.sky,
+        fuchsia: colors.fuchsia,
         enigma: {
           panel: '#ffffff',
           text: '#1a1a1a',

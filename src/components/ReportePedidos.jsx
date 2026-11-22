@@ -228,9 +228,9 @@ const ReportePedidos = () => {
     };
 
     return (
-        <div className="bg-gray-100 min-h-screen p-6">
+        <div className="bg-gray-100 min-h-screen p-3 sm:p-6">
             <div className="max-w-7xl mx-auto">
-                <div className="flex items-center mb-6 pt-2 md:pt-6">
+                <div className="flex items-center mb-4 sm:mb-6 pt-2 md:pt-6">
                     <Link to="/inventario-home" className="text-gray-500 hover:text-gray-900 transition-colors">
                         <FaArrowLeft size={18} />
                     </Link>

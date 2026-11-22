@@ -546,7 +546,7 @@ const Pedidos = () => {
     };
 
     return (
-        <div className="container mx-auto p-3 md:p-6 bg-gray-50 min-h-screen pb-20 font-sans">
+        <div className={`container mx-auto p-3 md:p-6 bg-gray-50 min-h-screen font-sans ${modoHistorico && activeTab === 'pendientes' ? 'pb-44' : 'pb-20'}`}>
 
             <div className="mb-4">
                 <Link to="/inventario-home" className="flex items-center text-gray-500 hover:text-gray-800 transition-colors w-fit text-sm font-medium">
@@ -645,10 +645,13 @@ const Pedidos = () => {
                                     {tiposDisponibles.map(t => <option key={t.id} value={t.nombre}>{t.nombre}</option>)}
                                 </select>
                             </div>
-                            <input
-                                type="text" name="nombre_producto" value={productoActual.nombre_producto} onChange={handleProductoChange}
-                                placeholder="Descripción (Ej. Anillo texturizado)"
-                                className="w-full h-11 bg-white rounded-lg px-3 text-xs font-medium border-none ring-1 ring-gray-200 focus:ring-2 focus:ring-blue-500 text-gray-800"
+                            <textarea
+                                name="nombre_producto"
+                                value={productoActual.nombre_producto}
+                                onChange={handleProductoChange}
+                                rows={2}
+                                placeholder="Descripción (Ej. Anillo talla 7 con piedra ónix y acabado mate)"
+                                className="w-full min-h-[64px] bg-white rounded-lg px-3 py-2.5 text-xs font-medium border-none ring-1 ring-gray-200 focus:ring-2 focus:ring-blue-500 text-gray-800 resize-none leading-relaxed"
                             />
                             <div className="flex gap-2">
                                 <input type="number" inputMode="decimal" min="1" name="cantidad" value={productoActual.cantidad} onChange={handleProductoChange} placeholder="Cant." className="w-20 sm:w-24 h-11 bg-white rounded-lg px-3 text-center text-sm font-medium border-none ring-1 ring-gray-200 text-gray-900 shrink-0" />
@@ -686,14 +689,25 @@ const Pedidos = () => {
                         SECCIÓN ENVÍO (2 OPCIONES)
                     ======================================== */}
                     <div className="space-y-3">
-                        <div className="flex items-center justify-between">
-                            <label className="text-sm font-bold text-gray-700 uppercase tracking-widest text-[10px] flex items-center gap-1">
-                                <FaTruck className="text-gray-400" /> Delivery / Envío
-                            </label>
-                            <label className="relative inline-flex items-center cursor-pointer">
-                                <input type="checkbox" name="requiere_envio" checked={formData.requiere_envio} onChange={handleChange} className="sr-only peer" />
-                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                            </label>
+                        <label className="text-sm font-bold text-gray-700 uppercase tracking-widest text-[10px] flex items-center gap-1">
+                            <FaTruck className="text-gray-400" /> Delivery / Envío
+                        </label>
+
+                        <div className="grid grid-cols-2 gap-2 bg-gray-100 p-1 rounded-xl border border-gray-200">
+                            <button
+                                type="button"
+                                onClick={() => setFormData(prev => ({ ...prev, requiere_envio: false }))}
+                                className={`py-2.5 px-2 text-xs font-bold rounded-lg transition-all text-center ${!formData.requiere_envio ? 'bg-white text-gray-800 shadow-sm ring-1 ring-gray-200' : 'text-gray-500 hover:bg-gray-200/60'}`}
+                            >
+                                Sin envío
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setFormData(prev => ({ ...prev, requiere_envio: true }))}
+                                className={`py-2.5 px-2 text-xs font-bold rounded-lg transition-all text-center flex items-center justify-center gap-1.5 ${formData.requiere_envio ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-500 hover:bg-gray-200/60'}`}
+                            >
+                                <FaTruck size={11} /> Con envío
+                            </button>
                         </div>
 
                         {formData.requiere_envio && (

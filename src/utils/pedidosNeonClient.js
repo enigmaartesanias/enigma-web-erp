@@ -289,6 +289,20 @@ export const pedidosDB = {
     return pedido;
   },
 
+  // Cierre histórico: marca entregado con la fecha elegida, sin tocar producción
+  async cerrarPedido(id, { fecha_entrega = null, cancelado = true } = {}) {
+    const [pedido] = await sql`
+      UPDATE pedidos
+      SET estado_pedido = 'entregado',
+          fecha_entrega = ${fecha_entrega},
+          cancelado = ${cancelado},
+          updated_at = CURRENT_TIMESTAMP
+      WHERE id_pedido = ${id}
+      RETURNING *
+    `;
+    return pedido;
+  },
+
   // ELIMINACIÓN DE PEDIDO COMPLETO (SOLO DESDE PRODUCCIÓN)
   async eliminarPedidoCompleto(id) {
     console.log(`⚠️ Iniciando eliminación total del pedido #${id}`);

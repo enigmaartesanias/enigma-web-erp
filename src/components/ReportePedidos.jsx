@@ -2,16 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { pedidosDB } from '../utils/pedidosNeonClient';
 import { Link } from 'react-router-dom';
 import { FaArrowLeft, FaFilter, FaChartLine, FaMoneyBillWave, FaExclamationCircle, FaClipboardList, FaClock, FaTools, FaCheckCircle, FaTruck, FaTrash, FaTimesCircle, FaPhone, FaImage, FaEye, FaSearch, FaSlidersH, FaTimes } from 'react-icons/fa';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
-import { Toaster, toast } from 'react-hot-toast';
+import { Toaster } from 'react-hot-toast';
 import NotaPedido from './pedidos/NotaPedido';
-
-const getLocalDate = () => {
-    const d = new Date();
-    d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
-    return d.toISOString().split('T')[0];
-};
+import { TOLERANCIA_SALDO } from '../utils/pedidosUtils';
+import { parseLocalDate } from '../utils/dateUtils';
 
 const formatLocalDate = (dateString) => {
     if (!dateString) return '';
@@ -35,8 +29,14 @@ const formatLocalDate = (dateString) => {
     }
 };
 
+// Para un pedido cerrado, la fecha que manda es la de entrega/cierre.
+const getFechaEfectiva = (pedido) => {
+    if (!pedido) return null;
+    if (pedido.estado_pedido === 'entregado' && pedido.fecha_entrega) return pedido.fecha_entrega;
+    return pedido.fecha_pedido;
+};
+
 const ReportePedidos = () => {
-    const [loading, setLoading] = useState(false);
     const [stats, setStats] = useState({
         ventasBrutas: 0,
         ventasNetas: 0,
@@ -44,8 +44,6 @@ const ReportePedidos = () => {
         cantidadPedidos: 0,
         ticketPromedio: 0
     });
-    const [topProductos, setTopProductos] = useState([]);
-    const [topClientes, setTopClientes] = useState([]);
     const [allOrders, setAllOrders] = useState([]);
     const [filteredOrders, setFilteredOrders] = useState([]);
 
@@ -77,26 +75,26 @@ const ReportePedidos = () => {
     }, []);
 
     const fetchReportData = async (start = fechaInicio, end = fechaFin) => {
-        setLoading(true);
         try {
             const allPedidos = await pedidosDB.getAll();
             let data = allPedidos;
 
             if (start && end) {
                 data = allPedidos.filter(p => {
-                    if (!p.fecha_pedido) return false;
-                    const d = new Date(p.fecha_pedido);
-                    const year = d.getFullYear();
-                    const month = String(d.getMonth() + 1).padStart(2, '0');
-                    const day = String(d.getDate()).padStart(2, '0');
+                    const fechaEfectiva = parseLocalDate(getFechaEfectiva(p));
+                    if (!fechaEfectiva) return false;
+
+                    const year = fechaEfectiva.getFullYear();
+                    const month = String(fechaEfectiva.getMonth() + 1).padStart(2, '0');
+                    const day = String(fechaEfectiva.getDate()).padStart(2, '0');
                     const fechaLocal = `${year}-${month}-${day}`;
-                    const fechaUTC = d.toISOString().split('T')[0];
-                    const enRango = (fechaLocal >= start && fechaLocal <= end) || (fechaUTC >= start && fechaUTC <= end);
+                    const enRango = fechaLocal >= start && fechaLocal <= end;
 
                     const esAntiguoActivo = !enRango &&
+                        p.estado_pedido !== 'entregado' &&
                         fechaLocal < start &&
                         (
-                            (Number(p.monto_saldo) > 0) ||
+                            (Number(p.monto_saldo) > TOLERANCIA_SALDO) ||
                             (p.estado_produccion && p.estado_produccion !== 'terminado' && p.estado_produccion !== 'entregado')
                         );
 
@@ -110,8 +108,6 @@ const ReportePedidos = () => {
 
         } catch (error) {
             console.error('Error cargando reporte:', error);
-        } finally {
-            setLoading(false);
         }
     };
 
@@ -129,14 +125,14 @@ const ReportePedidos = () => {
 
             const ventasBrutas = pedidos.reduce((acc, p) => acc + (Number(p.precio_total) || 0), 0);
             const ventasNetas = pedidos
-                .filter(p => (p.monto_saldo || 0) <= 0.1)
+                .filter(p => (Number(p.monto_saldo) || 0) <= TOLERANCIA_SALDO)
                 .reduce((acc, p) => {
                     const total = Number(p.precio_total) || 0;
                     const envio = Number(p.envio_cobrado_al_cliente) || 0;
                     return acc + (total - envio);
                 }, 0);
 
-            const cuentasPorCobrar = pedidos.reduce((acc, p) => acc + ((p.monto_saldo > 0) ? Number(p.monto_saldo) : 0), 0);
+            const cuentasPorCobrar = pedidos.reduce((acc, p) => acc + ((Number(p.monto_saldo) > TOLERANCIA_SALDO) ? Number(p.monto_saldo) : 0), 0);
             const cantidad = pedidos.length;
             const promedio = cantidad > 0 ? ventasBrutas / cantidad : 0;
 
@@ -210,8 +206,8 @@ const ReportePedidos = () => {
         }
 
         filtered.sort((a, b) => {
-            const dateA = activeTab === 'Entregados' ? new Date(a.fecha_entrega || a.fecha_pedido) : new Date(a.fecha_pedido);
-            const dateB = activeTab === 'Entregados' ? new Date(b.fecha_entrega || b.fecha_pedido) : new Date(b.fecha_pedido);
+            const dateA = parseLocalDate(getFechaEfectiva(a))?.getTime() || 0;
+            const dateB = parseLocalDate(getFechaEfectiva(b))?.getTime() || 0;
             return dateB - dateA;
         });
 
@@ -464,10 +460,9 @@ const ReportePedidos = () => {
                                                     {/* Fecha */}
                                                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 text-left">
                                                         {isFirst && (
-                                                            activeTab === 'Entregados' && pedido.fecha_entrega ? new Date(pedido.fecha_entrega).toLocaleDateString('es-PE') :
-                                                                activeTab === 'Entregados' ? '-' :
-                                                                    activeTab === 'Terminados' ? (pedido.updated_at ? new Date(pedido.updated_at).toLocaleDateString('es-PE') : '-') :
-                                                                        new Date(pedido.fecha_pedido).toLocaleDateString('es-PE')
+                                                            activeTab === 'Terminados'
+                                                                ? formatLocalDate(pedido.updated_at || pedido.fecha_pedido)
+                                                                : formatLocalDate(getFechaEfectiva(pedido)) || '-'
                                                         )}
                                                     </td>
 
@@ -482,7 +477,7 @@ const ReportePedidos = () => {
                                                             {/* Pago */}
                                                             <td className="px-4 py-3 whitespace-nowrap text-center">
                                                                 {isFirst && (
-                                                                    Number(pedido.monto_saldo) <= 0.05 ? (
+                                                                    Number(pedido.monto_saldo) <= TOLERANCIA_SALDO ? (
                                                                         <span className="px-2 py-1 rounded-full text-[10px] font-semibold bg-green-100 text-green-800">Pagado</span>
                                                                     ) : (
                                                                         <span className="px-2 py-1 rounded-full text-[10px] font-semibold bg-red-100 text-red-800">Pendiente</span>
@@ -493,7 +488,7 @@ const ReportePedidos = () => {
                                                             {/* Saldo */}
                                                             <td className="px-4 py-3 whitespace-nowrap text-sm text-left">
                                                                 {isFirst && (
-                                                                    Number(pedido.monto_saldo) > 0 ? (
+                                                                    Number(pedido.monto_saldo) > TOLERANCIA_SALDO ? (
                                                                         <span className="text-red-500 font-medium">S/ {Number(pedido.monto_saldo).toFixed(2)}</span>
                                                                     ) : (
                                                                         <span className="text-green-500 font-medium">S/ 0.00</span>

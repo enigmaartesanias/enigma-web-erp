@@ -1,66 +1,25 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { pedidosDB } from '../utils/pedidosNeonClient';
 import { clientesDB } from '../utils/clientesNeonClient';
-import { produccionDB, METALES, TIPOS_PRODUCTO } from '../utils/produccionNeonClient';
 import { tiposProductoDB } from '../utils/tiposProductoDB';
-import { materialesDB } from '../utils/materialesNeonClient'; // <-- IMPORT NUEVO
+import { materialesDB } from '../utils/materialesNeonClient';
 import { getLocalDate } from '../utils/dateUtils';
 import { ventasDB } from '../utils/ventasClient';
-import { TOLERANCIA_SALDO, METODOS_PAGO, calcularSaldo } from '../utils/pedidosUtils';
+import { TOLERANCIA_SALDO, METODOS_PAGO, calcularSaldo, estadoPago, formatLocalDate, asegurarVentaPedido } from '../utils/pedidosUtils';
 import PagoModal from './pedidos/PagoModal';
 import NotaPedido from './pedidos/NotaPedido';
+import CerrarPedidoModal from './pedidos/CerrarPedidoModal';
 import { Link, useNavigate } from 'react-router-dom';
-import { FaEdit, FaTrash, FaCheckCircle, FaTimesCircle, FaPlus, FaWhatsapp, FaPrint, FaSearch, FaMoneyBillWave, FaShareAlt, FaImage, FaPhone, FaArrowLeft, FaHammer, FaCar, FaExclamationTriangle, FaCheck, FaEye, FaUser, FaBox, FaTruck, FaMapMarkerAlt, FaChevronRight } from 'react-icons/fa';
-import html2canvas from 'html2canvas';
+import { FaEdit, FaTrash, FaCheckCircle, FaPlus, FaMoneyBillWave, FaPhone, FaArrowLeft, FaHammer, FaCar, FaEye, FaTruck, FaMapMarkerAlt, FaChevronRight } from 'react-icons/fa';
 import toast, { Toaster } from 'react-hot-toast';
 import ConfirmModal from './ui/ConfirmModal';
 import Tooltip from './ui/Tooltip';
-import VoiceDialog from './VoiceDialog';
-import DictationTextarea from '../voice/DictationTextarea';
-
-// ========================================
-// UTILIDADES DE FECHA
-// ========================================
-const formatLocalDate = (dateString) => {
-    if (!dateString) return '';
-    try {
-        let dateStr = typeof dateString === 'string' ? dateString : dateString.toString();
-        const datePart = dateStr.includes('T') ? dateStr.split('T')[0] : dateStr;
-        if (!datePart.includes('-')) {
-            const date = new Date(dateString);
-            if (isNaN(date.getTime())) return '';
-            const day = String(date.getDate()).padStart(2, '0');
-            const month = String(date.getMonth() + 1).padStart(2, '0');
-            const year = String(date.getFullYear()).slice(-2);
-            return `${day}/${month}/${year}`;
-        }
-        const [year, month, day] = datePart.split('-');
-        if (!year || !month || !day) return '';
-        return `${day}/${month}/${year}`;
-    } catch (error) {
-        return '';
-    }
-};
 
 // ========================================
 // COMPONENTES DE BADGE
 // ========================================
-const EstadoPedidoBadge = ({ estado }) => {
-    const estilos = { aceptado: 'bg-blue-100 text-blue-800', entregado: 'bg-green-100 text-green-800' };
-    const iconos = { aceptado: '🔵', entregado: '🟢' };
-    const labels = { aceptado: 'Aceptado', entregado: 'Entregado' };
-    return (
-        <span className={`px-2 py-1 rounded-full text-xs font-semibold ${estilos[estado] || 'bg-gray-100 text-gray-800'}`}>
-            {iconos[estado] || '⚪'} {labels[estado] || estado}
-        </span>
-    );
-};
-
 const EstadoPagoBadge = ({ pedido }) => {
-    let estado = 'pendiente';
-    if (pedido.monto_a_cuenta === 0) estado = 'pendiente';
-    else if (pedido.monto_saldo > 0) estado = 'adelanto';
-    else estado = 'pagado';
+    const estado = estadoPago(pedido);
     const estilos = { pendiente: 'bg-red-100 text-red-800', adelanto: 'bg-yellow-100 text-yellow-800', pagado: 'bg-green-100 text-green-800' };
     const iconos = { pendiente: '🔴', adelanto: '🟡', pagado: '🟢' };
     const labels = { pendiente: 'Pendiente', adelanto: 'Adelanto', pagado: 'Pagado' };
@@ -71,18 +30,14 @@ const EstadoPagoBadge = ({ pedido }) => {
     );
 };
 
-const MATERIALES_PEDIDO = ['Plata', 'Alpaca', 'Cobre', 'Bronce', 'Bisutería'];
-
 // ========================================
 // COMPONENTE PRINCIPAL
 // ========================================
 const Pedidos = () => {
     const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
-    const [message, setMessage] = useState(null);
     const [pedidos, setPedidos] = useState([]);
     const [editingId, setEditingId] = useState(null);
-    const [searchTerm, setSearchTerm] = useState('');
     const [showPrintModal, setShowPrintModal] = useState(false);
     const [printPedido, setPrintPedido] = useState(null);
     const [ultimoPagoRealizado, setUltimoPagoRealizado] = useState(null);
@@ -91,19 +46,19 @@ const Pedidos = () => {
     const [showPayModal, setShowPayModal] = useState(false);
     const [payPedido, setPayPedido] = useState(null);
 
+    // Cierre histórico / lote
+    const [modoHistorico, setModoHistorico] = useState(false);
+    const [seleccionados, setSeleccionados] = useState([]);
+    const [showCerrarModal, setShowCerrarModal] = useState(false);
+    const [pedidosACerrar, setPedidosACerrar] = useState([]);
+
     const [showCancelAlert, setShowCancelAlert] = useState(false);
     const [showSuccessModal, setShowSuccessModal] = useState(false);
-    const [showEstadoModal, setShowEstadoModal] = useState(false);
-    const [estadoPedido, setEstadoPedido] = useState(null);
-    const [nuevoEstadoPedido, setNuevoEstadoPedido] = useState('');
-    const [nuevoEstadoProduccion, setNuevoEstadoProduccion] = useState('');
 
     // Mobile Drawer for Address
     const [showAddressDrawer, setShowAddressDrawer] = useState(false);
 
     const [confirmModal, setConfirmModal] = useState({ isOpen: false, title: '', message: '', icon: null, confirmText: '', confirmColor: 'blue', onConfirm: () => { } });
-    const [focusedField, setFocusedField] = useState(null);
-    const handleFocus = (e) => setFocusedField(e.target.name);
 
     // ESTADO DE FORMULARIO REFINADO
     const [formData, setFormData] = useState({
@@ -125,16 +80,12 @@ const Pedidos = () => {
         incluye_igv: false,
         estado_pedido: 'aceptado',
         estado_produccion: 'no_iniciado',
-        origen_pedido: 'INTERNET',
     });
 
     const [productoActual, setProductoActual] = useState({ nombre_producto: '', cantidad: '1', precio_unitario: '', metal: '', tipo_producto: '' });
     const [listaProductos, setListaProductos] = useState([]);
     const [calculos, setCalculos] = useState({ precio_total_sin_igv: 0, monto_igv: 0, precio_total: 0, monto_saldo: 0, cancelado: false });
 
-    const [showVoiceReviewModal, setShowVoiceReviewModal] = useState(false);
-    const [reviewData, setReviewData] = useState(null);
-    const [voiceState, setVoiceState] = useState({ isListening: false, transcriptActual: '' });
     const [activeTab, setActiveTab] = useState('pendientes');
     const [tiposDisponibles, setTiposDisponibles] = useState([]);
 
@@ -335,7 +286,6 @@ const Pedidos = () => {
             incluye_igv: false,
             estado_pedido: pedido.estado_pedido || 'aceptado',
             estado_produccion: pedido.estado_produccion || 'no_iniciado',
-            origen_pedido: pedido.origen_pedido || 'INTERNET',
         });
 
         setClienteSeleccionado(true);
@@ -388,7 +338,7 @@ const Pedidos = () => {
         setFormData({
             nombre_cliente: '', telefono: '', dni_ruc: '', direccion_entrega: '', metal: '', tipo_producto: '',
             forma_pago: 'Efectivo', requiere_envio: false, tipo_envio: 'destino', costo_envio: '', monto_a_cuenta: '',
-            incluye_igv: false, estado_pedido: 'aceptado', estado_produccion: 'no_iniciado', direccion_cliente_db: '', origen_pedido: 'INTERNET'
+            incluye_igv: false, estado_pedido: 'aceptado', estado_produccion: 'no_iniciado', direccion_cliente_db: ''
         });
         setProductoActual({ nombre_producto: '', cantidad: '1', precio_unitario: '', metal: '', tipo_producto: '' });
         setListaProductos([]); setEditingId(null);
@@ -401,6 +351,13 @@ const Pedidos = () => {
         if (listaProductos.length === 0) { toast.error("Agregue al menos un producto."); return; }
         if (!formData.nombre_cliente || !formData.telefono) { toast.error("Nombre y Teléfono obligatorios."); return; }
         if (!clienteSeleccionado && !editingId) { toast.error("Selecciona un cliente de la lista o crea uno nuevo con el botón +Nuevo."); return; }
+
+        const adelanto = parseFloat(formData.monto_a_cuenta) || 0;
+        if (adelanto < 0) { toast.error("El adelanto no puede ser negativo."); return; }
+        if (adelanto > calculos.precio_total + TOLERANCIA_SALDO) {
+            toast.error(`El adelanto (S/ ${adelanto.toFixed(2)}) no puede superar el total (S/ ${calculos.precio_total.toFixed(2)}).`);
+            return;
+        }
 
         setLoading(true);
 
@@ -455,7 +412,7 @@ const Pedidos = () => {
                 monto_saldo: calculos.monto_saldo,
                 cancelado: calculos.cancelado,
                 entregado: false,
-                origen_pedido: formData.origen_pedido || 'INTERNET'
+                comprobante_pago: ''
             };
 
             let pedidoId = editingId;
@@ -483,24 +440,19 @@ const Pedidos = () => {
 
             // ── Sincronización con Reporte de Ventas ──
             if (calculos.cancelado) {
-                const codigoPed = `PED-${String(pedidoId).padStart(4, '0')}`;
-                const ventasExistentes = await ventasDB.getAll();
-                const yaExistente = ventasExistentes.some(v =>
-                    v.detalles && v.detalles.some(d => d.producto_codigo === codigoPed)
+                const resultadoVenta = await asegurarVentaPedido(
+                    {
+                        ...pedidoData,
+                        id_pedido: pedidoId,
+                        nombre_cliente: formData.nombre_cliente,
+                        detalles_pedido: listaProductos
+                    },
+                    { metodo: formData.forma_pago }
                 );
-
-                if (!yaExistente) {
-                    await ventasDB.createVentaPedido({
-                        pedidoId: pedidoId,
-                        clienteNombre: formData.nombre_cliente,
-                        total: calculos.precio_total,
-                        formaPago: formData.forma_pago,
-                        costo_materiales: 0,
-                        detalles: listaProductos,
-                        observaciones: `Cobro pedido #${pedidoId}`,
-                        fecha_venta: new Date().toISOString()
-                    });
-                    if (editingId) toast.success('Venta registrada/actualizada');
+                if (resultadoVenta.ventaError) {
+                    toast.error('Pedido guardado, pero no se pudo registrar la venta: ' + resultadoVenta.ventaError);
+                } else if (resultadoVenta.ventaRegistrada && editingId) {
+                    toast.success('Venta registrada/actualizada');
                 }
             }
 
@@ -554,14 +506,44 @@ const Pedidos = () => {
         } else if (activeTab === 'terminados') {
             return estadoProd === 'terminado' && estadoPed !== 'entregado';
         }
-        if (searchTerm) {
-            const term = searchTerm.toLowerCase();
-            return (p.nombre_cliente?.toLowerCase().includes(term) || p.telefono?.toString().includes(term));
-        }
         return true;
     });
 
-    const handleWheel = (e) => e.target.blur();
+    // ========================================
+    // CIERRE HISTÓRICO / EN LOTE
+    // ========================================
+    const toggleSeleccion = (id) => {
+        setSeleccionados(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+    };
+
+    const toggleSeleccionarTodos = () => {
+        const visibles = filteredPedidos.map(p => p.id_pedido);
+        const todosSeleccionados = visibles.length > 0 && visibles.every(id => seleccionados.includes(id));
+        setSeleccionados(todosSeleccionados ? [] : visibles);
+    };
+
+    const abrirCerrar = (lista) => {
+        if (!lista || lista.length === 0) { toast.error('Selecciona al menos un pedido.'); return; }
+        setPedidosACerrar(lista);
+        setShowCerrarModal(true);
+    };
+
+    const handleCerrarSeleccionados = () => {
+        const lista = pedidos.filter(p => seleccionados.includes(p.id_pedido));
+        abrirCerrar(lista);
+    };
+
+    const handleCerrarFila = (pedido) => abrirCerrar([pedido]);
+
+    const handleCerrarSuccess = () => {
+        fetchPedidos();
+        setSeleccionados([]);
+    };
+
+    const salirModoHistorico = () => {
+        setModoHistorico(false);
+        setSeleccionados([]);
+    };
 
     return (
         <div className="container mx-auto p-3 md:p-6 bg-gray-50 min-h-screen pb-20 font-sans">
@@ -939,9 +921,21 @@ const Pedidos = () => {
 
                 <div className="mb-6">
                     {activeTab === 'pendientes' && (
-                        <div className="p-3 rounded-lg flex justify-between md:justify-center items-center text-sm border border-gray-200">
-                            <span className="text-gray-700 font-semibold uppercase tracking-wide">PEDIDOS PENDIENTES</span>
-                            <span className="font-bold text-2xl text-gray-900 ml-4">{filteredPedidos.length}</span>
+                        <div className="p-3 rounded-lg flex flex-wrap gap-3 justify-between items-center text-sm border border-gray-200">
+                            <div className="flex items-center gap-3">
+                                <span className="text-gray-700 font-semibold uppercase tracking-wide">PEDIDOS PENDIENTES</span>
+                                <span className="font-bold text-2xl text-gray-900">{filteredPedidos.length}</span>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => (modoHistorico ? salirModoHistorico() : setModoHistorico(true))}
+                                className={`h-9 px-3 rounded-lg text-[11px] font-bold transition-colors flex items-center gap-2 ${modoHistorico
+                                    ? 'bg-gray-900 text-white hover:bg-gray-800'
+                                    : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
+                                    }`}
+                            >
+                                {modoHistorico ? 'Salir del modo histórico' : 'Modo histórico'}
+                            </button>
                         </div>
                     )}
                     {activeTab === 'produccion' && (
@@ -984,6 +978,17 @@ const Pedidos = () => {
                                     </>
                                 ) : (
                                     <>
+                                        {modoHistorico && (
+                                            <th className="px-3 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider w-10">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={filteredPedidos.length > 0 && filteredPedidos.every(p => seleccionados.includes(p.id_pedido))}
+                                                    onChange={toggleSeleccionarTodos}
+                                                    className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                                                    title="Seleccionar todos"
+                                                />
+                                            </th>
+                                        )}
                                         <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Fecha</th>
                                         <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Cliente</th>
                                         <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider w-1/2 md:w-2/5">Producto</th>
@@ -999,7 +1004,7 @@ const Pedidos = () => {
                         <tbody className="bg-white divide-y divide-gray-200">
                             {filteredPedidos.length === 0 ? (
                                 <tr>
-                                    <td colSpan="8" className="px-6 py-4 text-center text-gray-500 font-medium italic">No hay pedidos activos en esta categoría.</td>
+                                    <td colSpan={modoHistorico && activeTab === 'pendientes' ? 9 : 8} className="px-6 py-4 text-center text-gray-500 font-medium italic">No hay pedidos activos en esta categoría.</td>
                                 </tr>
                             ) : (
                                 filteredPedidos.map((pedido) => (
@@ -1008,12 +1013,7 @@ const Pedidos = () => {
                                             <>
                                                 <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">{formatLocalDate(pedido.fecha_pedido)}</td>
                                                 <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                                    <div className="flex flex-col gap-1 items-start">
-                                                        <span>{pedido.nombre_cliente}</span>
-                                                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${pedido.origen_pedido === 'TIENDA' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>
-                                                            {pedido.origen_pedido === 'TIENDA' ? '🏪 Tienda' : '🌐 Internet'}
-                                                        </span>
-                                                    </div>
+                                                    <span>{pedido.nombre_cliente}</span>
                                                 </td>
                                                 <td className="px-4 py-4 text-sm text-gray-600">
                                                     <div className="space-y-1">
@@ -1031,6 +1031,11 @@ const Pedidos = () => {
                                                 <td className={`px-4 py-4 whitespace-nowrap text-sm font-bold text-right ${pedido.monto_saldo > 0 ? 'text-red-600' : 'text-green-600'}`}>S/ {pedido.monto_saldo.toFixed(2)}</td>
                                                 <td className="px-4 py-4 whitespace-nowrap text-right">
                                                     <div className="flex justify-center md:justify-end gap-3 md:gap-4">
+                                                        <Tooltip text="Cerrar pedido (histórico)">
+                                                            <button onClick={() => handleCerrarFila(pedido)} className="text-emerald-600 hover:text-emerald-800 transition-colors">
+                                                                <FaCheckCircle className="h-6 w-6" />
+                                                            </button>
+                                                        </Tooltip>
                                                         {!pedido.cancelado && Number(pedido.monto_saldo) > TOLERANCIA_SALDO && (
                                                             <Tooltip text="Cobrar saldo">
                                                                 <button onClick={() => handleOpenPayModal(pedido)} className="text-green-600 hover:text-green-800 transition-colors">
@@ -1055,12 +1060,7 @@ const Pedidos = () => {
                                             <>
                                                 <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">{formatLocalDate(pedido.fecha_pedido)}</td>
                                                 <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                                    <div className="flex flex-col gap-1 items-start">
-                                                        <span>{pedido.nombre_cliente}</span>
-                                                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${pedido.origen_pedido === 'TIENDA' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>
-                                                            {pedido.origen_pedido === 'TIENDA' ? '🏪 Tienda' : '🌐 Internet'}
-                                                        </span>
-                                                    </div>
+                                                    <span>{pedido.nombre_cliente}</span>
                                                 </td>
                                                 <td className="px-4 py-4 text-sm text-gray-600">
                                                     <div className="space-y-1">
@@ -1078,6 +1078,11 @@ const Pedidos = () => {
                                                 <td className={`px-4 py-4 whitespace-nowrap text-sm font-bold text-right ${pedido.monto_saldo > 0 ? 'text-red-600' : 'text-green-600'}`}>S/ {pedido.monto_saldo.toFixed(2)}</td>
                                                 <td className="px-4 py-4 whitespace-nowrap text-right">
                                                     <div className="flex justify-center md:justify-end gap-3 md:gap-4">
+                                                        <Tooltip text="Cerrar pedido (histórico)">
+                                                            <button onClick={() => handleCerrarFila(pedido)} className="text-emerald-600 hover:text-emerald-800 transition-colors">
+                                                                <FaCheckCircle className="h-6 w-6" />
+                                                            </button>
+                                                        </Tooltip>
                                                         {!pedido.cancelado && Number(pedido.monto_saldo) > TOLERANCIA_SALDO && (
                                                             <Tooltip text="Cobrar saldo">
                                                                 <button onClick={() => handleOpenPayModal(pedido)} className="text-green-600 hover:text-green-800 transition-colors">
@@ -1102,14 +1107,19 @@ const Pedidos = () => {
                                             </>
                                         ) : (
                                             <>
+                                                {modoHistorico && (
+                                                    <td className="px-3 py-4 whitespace-nowrap text-center">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={seleccionados.includes(pedido.id_pedido)}
+                                                            onChange={() => toggleSeleccion(pedido.id_pedido)}
+                                                            className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                                                        />
+                                                    </td>
+                                                )}
                                                 <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">{formatLocalDate(pedido.fecha_pedido)}</td>
                                                 <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                                    <div className="flex flex-col gap-1 items-start">
-                                                        <span>{pedido.nombre_cliente}</span>
-                                                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${pedido.origen_pedido === 'TIENDA' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>
-                                                            {pedido.origen_pedido === 'TIENDA' ? '🏪 Tienda' : '🌐 Internet'}
-                                                        </span>
-                                                    </div>
+                                                    <span>{pedido.nombre_cliente}</span>
                                                 </td>
                                                 <td className="px-4 py-4 text-sm text-gray-600">
                                                     <div className="space-y-1">
@@ -1134,6 +1144,11 @@ const Pedidos = () => {
                                                 <td className={`px-4 py-4 whitespace-nowrap text-sm font-bold text-right ${pedido.monto_saldo > 0 ? 'text-red-600' : 'text-green-600'}`}>S/ {pedido.monto_saldo.toFixed(2)}</td>
                                                 <td className="px-4 py-4 whitespace-nowrap text-right">
                                                     <div className="flex justify-center md:justify-end gap-3 md:gap-4">
+                                                        <Tooltip text="Cerrar pedido (histórico)">
+                                                            <button onClick={() => handleCerrarFila(pedido)} className="text-emerald-600 hover:text-emerald-800 transition-colors">
+                                                                <FaCheckCircle className="h-6 w-6" />
+                                                            </button>
+                                                        </Tooltip>
                                                         {!pedido.cancelado && Number(pedido.monto_saldo) > TOLERANCIA_SALDO && (
                                                             <Tooltip text="Cobrar saldo">
                                                                 <button onClick={() => handleOpenPayModal(pedido)} className="text-green-600 hover:text-green-800 transition-colors">
@@ -1172,6 +1187,45 @@ const Pedidos = () => {
                     </table>
                 </div >
             </div >
+
+            {/* BARRA FIJA DE CIERRE EN LOTE */}
+            {modoHistorico && activeTab === 'pendientes' && (
+                <div className="fixed bottom-0 left-0 right-0 z-[120] bg-gray-900 text-white shadow-2xl border-t border-gray-700">
+                    <div className="max-w-6xl mx-auto px-4 py-3 flex flex-wrap items-center gap-3">
+                        <div className="flex items-center gap-2">
+                            <input
+                                type="checkbox"
+                                checked={filteredPedidos.length > 0 && filteredPedidos.every(p => seleccionados.includes(p.id_pedido))}
+                                onChange={toggleSeleccionarTodos}
+                                className="h-4 w-4 rounded border-gray-500 bg-gray-800 text-emerald-500 focus:ring-emerald-400 cursor-pointer"
+                            />
+                            <span className="text-xs font-semibold text-gray-300">
+                                {seleccionados.length} seleccionado{seleccionados.length === 1 ? '' : 's'}
+                            </span>
+                        </div>
+                        <p className="text-[11px] text-gray-400 flex-1 min-w-[200px]">
+                            Elige los pedidos ya cobrados/entregados y define su fecha real de cierre.
+                        </p>
+                        <div className="flex gap-2">
+                            <button
+                                type="button"
+                                onClick={salirModoHistorico}
+                                className="h-10 px-4 rounded-lg bg-gray-800 text-gray-200 text-xs font-bold hover:bg-gray-700 transition-colors"
+                            >
+                                Salir
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleCerrarSeleccionados}
+                                disabled={seleccionados.length === 0}
+                                className="h-10 px-5 rounded-lg bg-emerald-500 text-white text-xs font-bold hover:bg-emerald-600 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                            >
+                                Cerrar seleccionados
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* DRAWER PARA DIRECCIÓN DE ENVÍO Y DNI */}
             {showAddressDrawer && (
@@ -1239,42 +1293,18 @@ const Pedidos = () => {
                 </div>
             )}
 
-            {/* Modal de Cambio de Estado */}
-            {showEstadoModal && estadoPedido && (
-                <div className="fixed inset-0 bg-gray-600 bg-opacity-75 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
-                    <div className="relative bg-white rounded-lg shadow-xl max-w-md w-full p-6">
-                        <h3 className="text-lg font-bold mb-4 text-gray-900">Cambiar Estado del Pedido</h3>
-                        <div className="mb-4 p-3 bg-gray-100 rounded">
-                            <p className="text-sm text-gray-600"><strong>Cliente:</strong> {estadoPedido.nombre_cliente}</p>
-                            <p className="text-sm text-gray-600"><strong>Fecha:</strong> {new Date(estadoPedido.fecha_pedido).toLocaleDateString()}</p>
-                        </div>
-                        <div className="mb-4">
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Estado del Pedido</label>
-                            <select value={nuevoEstadoPedido} onChange={(e) => setNuevoEstadoPedido(e.target.value)} className="w-full border border-gray-300 rounded-md px-3 py-2">
-                                <option value="aceptado">🔵 Aceptado</option>
-                                <option value="entregado">🟢 Entregado</option>
-                            </select>
-                        </div>
-                        <div className="mb-6">
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Estado de Producción</label>
-                            <select value={nuevoEstadoProduccion} onChange={(e) => setNuevoEstadoProduccion(e.target.value)} className="w-full border border-gray-300 rounded-md px-3 py-2">
-                                <option value="no_iniciado">🟡 No iniciado</option>
-                                <option value="en_proceso">🔵 En proceso</option>
-                                <option value="terminado">🟢 Terminado</option>
-                            </select>
-                        </div>
-                        {nuevoEstadoPedido === 'entregado' && nuevoEstadoProduccion !== 'terminado' && (
-                            <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded">
-                                <p className="text-sm text-yellow-800">⚠️ <strong>Nota:</strong> Si un pedido está entregado, la producción debería estar terminada.</p>
-                            </div>
-                        )}
-                        <div className="flex justify-end space-x-3">
-                            <button onClick={() => setShowEstadoModal(false)} className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300">Cancelar</button>
-                            <button className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Actualizar Estado</button>
-                        </div>
-                    </div>
-                </div>
-            )}
+            {/* Cierre histórico: vista previa y ejecución */}
+            <CerrarPedidoModal
+                isOpen={showCerrarModal}
+                pedidos={pedidosACerrar}
+                fechaInicial={getLocalDate()}
+                metodoInicial="Efectivo"
+                onClose={() => {
+                    setShowCerrarModal(false);
+                    setPedidosACerrar([]);
+                }}
+                onSuccess={handleCerrarSuccess}
+            />
 
             {/* Modal de Confirmación de Pedido Ingresado */}
             {showSuccessModal && (

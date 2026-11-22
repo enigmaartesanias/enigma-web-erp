@@ -1,5 +1,4 @@
 import { neon } from '@neondatabase/serverless';
-import { productosExternosDB } from './productosExternosNeonClient';
 
 const sql = neon(import.meta.env.VITE_DATABASE_URL);
 
@@ -169,23 +168,9 @@ export const ventasDB = {
                 RETURNING *
             `;
 
-            // 4. Insertar detalles del pedido para trazabilidad completa
-            if (venta && venta.id && ventaData.detalles && ventaData.detalles.length > 0) {
-                for (const d of ventaData.detalles) {
-                    await sql`
-                        INSERT INTO detalles_venta (
-                            venta_id, producto_id, cantidad, precio_unitario,
-                            subtotal, producto_nombre, producto_codigo
-                        ) VALUES (
-                            ${venta.id}, null, ${d.cantidad || 1}, ${d.precio_unitario || d.subtotal || 0}, 
-                            ${d.subtotal || 0},
-                            ${d.nombre_producto || 'Producto Pedido'}, 
-                            ${d.producto_codigo || `PED-${String(pedidoId).padStart(4, '0')}`}
-                        )
-                    `;
-                }
-            } else if (venta && venta.id) {
-                // Fallback: un solo detalle si no hay lista
+            // 4. Un solo detalle placeholder. getAll() lo expande a los
+            //    productos reales desde detalles_pedido (evita duplicar PED-####).
+            if (venta && venta.id) {
                 await sql`
                     INSERT INTO detalles_venta (
                         venta_id, producto_id, cantidad, precio_unitario,
@@ -201,6 +186,25 @@ export const ventasDB = {
             return venta;
         } catch (error) {
             console.error("Error creando venta de pedido:", error);
+            throw error;
+        }
+    },
+
+    // Verifica si un pedido ya generó su venta (sin traer todo el histórico)
+    async existeVentaPedido(pedidoId) {
+        try {
+            const codigoPed = `PED-${String(pedidoId).padStart(4, '0')}`;
+            const rows = await sql`
+                SELECT 1
+                FROM ventas v
+                JOIN detalles_venta d ON d.venta_id = v.id
+                WHERE d.producto_codigo = ${codigoPed}
+                  AND v.origen_venta = 'pedido'
+                LIMIT 1
+            `;
+            return rows.length > 0;
+        } catch (error) {
+            console.error('Error verificando venta del pedido:', error);
             throw error;
         }
     },
@@ -234,8 +238,10 @@ export const ventasDB = {
                                 AND NOT (
                                     v.origen_venta = 'pedido' 
                                     AND dv.producto_codigo LIKE 'PED-%'
-                                    AND (SELECT COUNT(*) FROM detalles_venta WHERE venta_id = v.id) = 1
-                                    AND EXISTS (SELECT 1 FROM detalles_pedido WHERE id_pedido = CAST(SUBSTRING(dv.producto_codigo FROM '[0-9]+') AS INTEGER))
+                                    AND EXISTS (
+                                        SELECT 1 FROM detalles_pedido dp
+                                        WHERE dp.id_pedido = CAST(SUBSTRING(dv.producto_codigo FROM '[0-9]+') AS INTEGER)
+                                    )
                                 )
                                 UNION ALL
                                 SELECT 
@@ -244,11 +250,12 @@ export const ventasDB = {
                                     dp.nombre_producto as producto_nombre, 
                                     ('PED-' || LPAD(dp.id_pedido::text, 4, '0')) as producto_codigo
                                 FROM detalles_pedido dp
-                                JOIN detalles_venta dv ON dv.venta_id = v.id
                                 WHERE v.origen_venta = 'pedido'
-                                  AND dv.producto_codigo LIKE 'PED-%'
-                                  AND (SELECT COUNT(*) FROM detalles_venta WHERE venta_id = v.id) = 1
-                                  AND dp.id_pedido = CAST(SUBSTRING(dv.producto_codigo FROM '[0-9]+') AS INTEGER)
+                                  AND EXISTS (
+                                      SELECT 1 FROM detalles_venta dv2
+                                      WHERE dv2.venta_id = v.id
+                                        AND dv2.producto_codigo = ('PED-' || LPAD(dp.id_pedido::text, 4, '0'))
+                                  )
                             ) d
                             LEFT JOIN productos_externos p ON d.producto_id = p.id
                             LEFT JOIN produccion_taller pr ON d.producto_id IS NOT NULL AND CAST(NULLIF(p.produccion_id, '') AS INTEGER) = pr.id_produccion

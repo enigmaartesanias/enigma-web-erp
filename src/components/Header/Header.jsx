@@ -375,6 +375,38 @@ const Header = () => {
             >
                 <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', WebkitOverflowScrolling: 'touch', padding: '14px 20px' }}>
 
+                    {/* ACCESO RÁPIDO: PIEZAS DISPONIBLES */}
+                    <div style={{ borderBottom: `1px solid ${C.bordes}`, marginBottom: 14 }}>
+                        <button
+                            onClick={() => goTo('/stock')}
+                            style={{
+                                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                width: '100%', padding: '10px 0', background: 'none', border: 'none',
+                                cursor: 'pointer', textAlign: 'left', fontFamily: MENU_FONT,
+                            }}
+                        >
+                            <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                <span
+                                    aria-hidden
+                                    style={{
+                                        display: 'inline-block', width: 6, height: 6,
+                                        borderRadius: '50%', backgroundColor: C.dorado,
+                                        flexShrink: 0,
+                                    }}
+                                />
+                                <span style={{ display: 'block' }}>
+                                    <span style={{ display: 'block', fontSize: 15, fontWeight: 500, color: C.text, letterSpacing: '0.01em' }}>
+                                        Piezas disponibles
+                                    </span>
+                                    <span style={{ display: 'block', marginTop: 2, fontSize: 9.5, letterSpacing: '0.14em', textTransform: 'uppercase', color: C.sub }}>
+                                        Entrega inmediata
+                                    </span>
+                                </span>
+                            </span>
+                            <span aria-hidden style={{ color: C.dorado, fontSize: 18, lineHeight: 1 }}>›</span>
+                        </button>
+                    </div>
+
                     {/* COLECCIONES */}
                     <span style={groupLabel}>Colecciones</span>
                     <div style={{ borderBottom: `1px solid ${C.bordes}` }}>

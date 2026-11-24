@@ -27,8 +27,8 @@ const css = `
 .cs-slider .slick-slide{height:auto !important;transition:opacity .4s ease;}
 .cs-slider .slick-list{overflow:hidden;}
 
-/* Foto: más rectangular (referencial; la imagen completa está en el detalle) */
-.cs-img-wrap{width:100%;aspect-ratio:4 / 3;overflow:hidden;border-radius:8px;background:#dfd7c9;box-shadow:0 4px 15px rgba(0,0,0,0.05);}
+/* Foto: vertical 4:5, misma proporción que StockGrid (la imagen completa está en el detalle) */
+.cs-img-wrap{width:100%;aspect-ratio:4 / 5;overflow:hidden;border-radius:8px;background:#dfd7c9;box-shadow:0 4px 15px rgba(0,0,0,0.05);}
 .cs-img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .5s ease;}
 .cs-card:hover .cs-img{transform:scale(1.04);}
 
@@ -47,7 +47,6 @@ const css = `
 
 @media (min-width:769px){
   .cs-section{padding:48px 0 52px;}
-  .cs-img-wrap{aspect-ratio:5 / 4;}
   /* Se reserva el alto de 2 líneas para alinear precios entre las 4 tarjetas */
   .cs-title{min-height:2.5em;}
   .cs-slider-wrap{padding:0 40px;}

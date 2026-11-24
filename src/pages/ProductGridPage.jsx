@@ -319,21 +319,23 @@ const ProductGridPage = () => {
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
                     {sortedProducts.map((product) => (
                         <Link to={`/producto/${product.id}`} key={product.id} className="group block h-full">
-                            <div className="bg-white shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden h-full flex flex-col">
-                                {/* Componente de imagen para la carga gradual */}
-                                <div className="aspect-[4/5] w-full overflow-hidden">
+                            <div className="bg-white shadow-sm hover:shadow-md border border-gray-100 transition-all duration-300 overflow-hidden h-full flex flex-col">
+                                {/* Componente de imagen para la carga gradual. Ratio inline porque Tailwind v2 no genera aspect-[4/5] */}
+                                <div className="w-full overflow-hidden bg-gray-100" style={{ aspectRatio: '4 / 5' }}>
                                     <ProductImage
                                         src={product.imagen_principal_url}
                                         alt={product.titulo}
-                                        className="h-full w-full object-cover"
+                                        className="block h-full w-full object-cover"
                                     />
                                 </div>
 
-                                <div className="p-4 flex flex-col flex-grow">
-                                    <h3 className="text-xs md:text-base font-semibold truncate text-black">{product.titulo}</h3>
-                                    {product.precio && (
-                                        <p className="text-sm md:text-lg font-normal text-black mt-2">Desde S/ {product.precio.toFixed(2)}</p>
-                                    )}
+                                <div className="px-3 py-2.5 flex flex-col text-left">
+                                    <h3 className="text-xs md:text-sm font-medium truncate text-black leading-snug">{product.titulo}</h3>
+                                    <p className="text-xs md:text-sm font-normal text-gray-600 mt-1">
+                                        {product.precio
+                                            ? `Desde S/ ${Number(product.precio).toFixed(2)}`
+                                            : 'Consultar precio'}
+                                    </p>
                                 </div>
                             </div>
                         </Link>

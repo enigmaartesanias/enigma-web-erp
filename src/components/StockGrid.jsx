@@ -4,15 +4,13 @@ import { supabase } from '../supabaseClient';
 
 /**
 - StockGrid: Piezas en taller con entrega inmediata — minimalista / joyería de autor
-- - Muestra 2 productos en móvil (1 sola fila de 2 columnas) y 4 en escritorio (1x4)
+- - Muestra 4 productos en móvil (2 columnas x 2 filas) y 4 en escritorio (1x4)
+- - Fotos en proporción vertical 4:5 (vitrina editorial)
 - - Cada tarjeta muestra solo foto, título (hasta 2 líneas) y precio, alineados a la izquierda
 - - El material y el stock se ven en el detalle del producto, no en el index
 - - Sin botones de compra directos en las tarjetas (diseño tipo vitrina/galería)
 - - Se oculta automáticamente si no hay stock disponible (retorna null)
  */
-
-// Proporción de la foto: '100%' = cuadrada 1:1 | '125%' = vertical 4:5
-const IMAGE_PADDING = '100%';
 
 const css = `
 .sg-section{width:100%;padding:40px 0 32px;}
@@ -24,15 +22,10 @@ const css = `
 .sg-rule{display:block;width:30px;height:1px;background:#c8964a;opacity:.6;margin:0 auto 12px;}
 .sg-sub{margin:0 auto;max-width:320px;font-family:'Inter',sans-serif;font-size:13px;font-weight:300;line-height:1.6;color:#6b625a;}
 
-.sg-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px 12px;align-items:stretch;}
+.sg-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px 14px;align-items:stretch;}
 .sg-card{display:flex;flex-direction:column;height:100%;background:transparent;border:0;box-shadow:none;}
 
-/* Oculta la 3ª y 4ª tarjeta en móvil para dejar solo una fila de 2 columnas */
-.sg-card:nth-child(n+3){
-  display:none;
-}
-
-.sg-media{position:relative;width:100%;overflow:hidden;background:#f1efec;border-radius:0;}
+.sg-media{position:relative;width:100%;aspect-ratio:4 / 5;overflow:hidden;background:#f1efec;border-radius:0;}
 .sg-media-link{position:absolute;top:0;left:0;right:0;bottom:0;display:block;}
 .sg-img{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;border-radius:0;transition:transform .7s ease;}
 .sg-card:hover .sg-img{transform:scale(1.04);}
@@ -69,18 +62,18 @@ const css = `
 }
 
 /* Texto de la tarjeta: alineado a la izquierda */
-.sg-body{display:flex;flex-direction:column;flex:1;padding-top:10px;text-align:left;}
+.sg-body{display:flex;flex-direction:column;flex:1;padding-top:7px;text-align:left;}
 
-/* Título: Cormorant delgado, hasta 2 líneas. Se reserva el alto de 2 líneas
-   (2.6em = 2 x line-height 1.3) para que los precios queden alineados entre tarjetas. */
-.sg-title{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:2.6em;font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:400;letter-spacing:.02em;line-height:1.3;color:#2a2018;text-decoration:none;transition:color .2s;}
+/* Título: Cormorant delgado, hasta 2 líneas. Sin alto reservado para que el
+   precio quede pegado al título. */
+.sg-title{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-family:'Cormorant Garamond',serif;font-size:17px;font-weight:400;letter-spacing:.02em;line-height:1.25;color:#2a2018;text-decoration:none;transition:color .2s;}
 .sg-title:hover{color:#b07d35;}
 
-.sg-foot{margin-top:auto;padding-top:4px;}
-.sg-price{display:flex;align-items:baseline;justify-content:flex-start;gap:8px;line-height:1.2;font-family:'Inter',sans-serif;}
-.sg-price-now{font-size:13px;font-weight:300;letter-spacing:.04em;color:#4f453d;}
-.sg-price-old{font-size:11px;font-weight:300;color:#b5aca3;text-decoration-line:line-through;text-decoration-color:#c4bcb3;text-decoration-thickness:1px;}
-.sg-price-ask{font-size:12px;font-weight:300;letter-spacing:.04em;color:#6b625a;}
+.sg-foot{padding-top:6px;}
+.sg-price{display:flex;align-items:baseline;justify-content:flex-start;gap:6px;line-height:1.2;font-family:'Inter',sans-serif;}
+.sg-price-now{font-size:11.5px;font-weight:300;letter-spacing:.04em;color:#6b625a;}
+.sg-price-old{font-size:10px;font-weight:300;color:#b5aca3;text-decoration-line:line-through;text-decoration-color:#c4bcb3;text-decoration-thickness:1px;}
+.sg-price-ask{font-size:11px;font-weight:300;letter-spacing:.04em;color:#6b625a;}
 
 /* Botón / enlace sutil para explorar todo el stock */
 .sg-more-wrap{text-align:center;margin-top:28px;}
@@ -92,18 +85,15 @@ const css = `
 @media (min-width:640px){
   .sg-wrap{padding:0 24px;}
   .sg-grid{gap:30px 20px;}
-  .sg-title{font-size:20px;}
-  .sg-price-now{font-size:14px;}
+  .sg-title{font-size:19px;}
+  .sg-price-now{font-size:12.5px;}
+  .sg-price-old{font-size:10.5px;}
   .sg-badge-oferta{top:11px;left:11px;font-size:9px;padding:4px 9px;}
 }
 @media (min-width:768px){
   .sg-section{padding:48px 0 52px;}
   .sg-head{margin-bottom:32px;}
   .sg-grid{grid-template-columns:repeat(4,minmax(0,1fr));}
-  /* Vuelve a mostrar las 4 tarjetas completas en escritorio */
-  .sg-card:nth-child(n+3){
-    display:flex;
-  }
   .sg-more-wrap{margin-top:36px;}
 }
 `;
@@ -162,7 +152,7 @@ const StockGrid = () => {
 
                         return (
                             <article key={producto.id} className="sg-card">
-                                <div className="sg-media" style={{ paddingBottom: IMAGE_PADDING }}>
+                                <div className="sg-media">
                                     {tieneOferta && (
                                         <div className="sg-badge-oferta">
                                             Oferta
